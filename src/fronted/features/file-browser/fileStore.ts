@@ -13,6 +13,8 @@ type UseFileState = {
     videoLoaded: boolean;
     srtHash: string | null;
     subtitleSessionId: string | null;
+    /** 字幕重载令牌；递增时触发播放器按当前 subtitlePath 重建字幕上下文。 */
+    subtitleReloadToken: number;
 };
 
 type UseFileActions = {
@@ -20,6 +22,8 @@ type UseFileActions = {
     loadedVideo: (file: string) => void;
     clear: () => void;
     clearSrt: () => void;
+    /** 递增重载令牌，用于在 subtitlePath 不变时强制重建字幕（如增量会话结束）。 */
+    reloadSubtitles: () => void;
 };
 
 const useFile = create(
@@ -31,6 +35,7 @@ const useFile = create(
         projectId: null,
         srtHash: null,
         subtitleSessionId: null,
+        subtitleReloadToken: 0,
         updateFile: (ph: string) => {
             if (MediaUtil.isMedia(ph)) {
                 set({
@@ -72,6 +77,9 @@ const useFile = create(
                 srtHash: null,
                 subtitleSessionId: null,
             });
+        },
+        reloadSubtitles: () => {
+            set((s) => ({ subtitleReloadToken: s.subtitleReloadToken + 1 }));
         },
     }))
 );

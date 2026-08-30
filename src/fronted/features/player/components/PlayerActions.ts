@@ -7,6 +7,7 @@
  */
 
 import { usePlayer, SeekAction } from '@/fronted/features/player/playerStore';
+import { useTrainingModeStore } from '@/fronted/features/player/trainingStore';
 import { Sentence } from '@/common/types/SentenceC';
 
 /**
@@ -50,6 +51,16 @@ export class PlayerActions {
   setAutoPause(v: boolean) { this.s.setAutoPause(v); }
   setSingleRepeat(v: boolean) { this.s.setSingleRepeat(v); }
   setAutoPlayNext(v: boolean) { this.s.setAutoPlayNext(v); }
+
+  // 训练模式（skipGap / rewindOnResume 归 trainingStore，为持久化的训练偏好）
+  setSkipGap(v: boolean) { useTrainingModeStore.getState().setSkipGap(v); }
+  setShadowing(v: boolean) { this.s.setShadowing(v); }
+  setRewindOnResume(v: boolean) { useTrainingModeStore.getState().setRewindOnResume(v); }
+  /**
+   * 开启/关闭常开逐句循环模式（每句 ×N 后自动下一句）。
+   * @param config 遍数与每遍倍速表；传 null 关闭并恢复倍速
+   */
+  setSentenceLoop(config: { times: number; rates?: number[] } | null) { this.s.setSentenceLoop(config); }
 
   /**
    * 高频：updateExactPlayTime

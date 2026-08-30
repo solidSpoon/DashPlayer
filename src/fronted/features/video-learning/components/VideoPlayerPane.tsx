@@ -96,6 +96,8 @@ export default function VideoPlayerPane({
   const pendingTargetRef = useRef<{ sentence: Sentence; time: number } | null>(null);
   const pendingHighlightRef = useRef<{ fileHash?: string; index: number } | null>(null);
   const autoPlayRef = useRef(false);
+  // 记录上一次显式播放请求的 key，用于区分"用户点击播放"与"静默选中"
+  const lastForcePlayKeyRef = useRef(forcePlayKey);
   const lineIdxRef = useRef(lineIdx);
   const resolvedVocabularyCacheRef = useRef<Record<string, ClipVocabularyEntry[]>>({});
 
@@ -130,7 +132,7 @@ export default function VideoPlayerPane({
       fileHash: target.sentence.fileHash,
       index: target.sentence.index
     };
-    seekToTarget({ time: target.time, target: target.sentence });
+    seekToTarget({ time: target.time, target: target.sentence, play: false });
     pendingTargetRef.current = null;
   }, [seekToTarget]);
 
@@ -162,7 +164,10 @@ export default function VideoPlayerPane({
       loadSubtitles(sentencesConverted);
 
       playerReadyRef.current = false;
-      autoPlayRef.current = true;
+      // 仅显式播放请求（点击片段卡片等使 forcePlayKey 变化）才自动起播；进页面、切换单词等静默选中保持暂停
+      const shouldAutoPlay = forcePlayKey !== undefined && forcePlayKey !== lastForcePlayKeyRef.current;
+      lastForcePlayKeyRef.current = forcePlayKey;
+      autoPlayRef.current = shouldAutoPlay;
 
       const desiredIndex = lineIdxRef.current ?? -1;
       let targetSentence: Sentence | null = null;

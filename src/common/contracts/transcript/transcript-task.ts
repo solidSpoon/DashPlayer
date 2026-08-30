@@ -11,14 +11,44 @@ export enum TranscriptTaskState {
     FAILED = 'failed',
 }
 
+/**
+ * 增量转录单个识别分块的时长（秒）。
+ *
+ * 后端据此切分音频块，前端据此推导播放位置的上报去重粒度；两侧必须共用同一来源，
+ * 否则前端会按错误的边界判断"块优先级是否可能变化"。
+ */
+export const TRANSCRIPTION_CHUNK_SECONDS = 120;
+
+/** 转录阶段枚举 */
+export type TranscriptPhase = 'preparing' | 'generating' | 'finishing';
+
 /** 转录任务的展示结果，各字段按状态可选出现。 */
 export interface TranscriptTaskResult {
+    /** 当前阶段：'preparing' 预处理中, 'generating' 字幕生成中, 'finishing' 正在整理字幕 */
+    phase?: TranscriptPhase;
+    /** 生成阶段的当前完成分块数/总数或生成进度 */
+    currentChunk?: number;
+    totalChunks?: number;
     /** 面向用户的状态说明，如进度百分比与累计秒数。 */
     message?: string;
     /** 失败时的错误信息。 */
     error?: string;
     /** 完成后的字幕文件路径。 */
     srtPath?: string;
+}
+
+/** 转录增量块结果，仅在当前 Electron 进程内流转。 */
+export interface TranscriptChunkResult {
+    /** 转录任务所属媒体。 */
+    filePath: string;
+    /** 稳定块序号，从零开始。 */
+    chunkIndex: number;
+    /** 块在原视频中的起始秒数。 */
+    start: number;
+    /** 块在原视频中的结束秒数。 */
+    end: number;
+    /** 当前块已经生成的字幕句子。 */
+    sentences: import('@/common/utils/SrtUtil').SrtLine[];
 }
 
 /** 后端向渲染进程推送的单条转录状态更新。 */

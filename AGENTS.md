@@ -31,6 +31,7 @@ External integrations drive key features: Youdao, Tencent, OpenAI, Sherpa ONNX. 
 - Avoid compatibility shims; remove dead/legacy code thoroughly when refactoring.
 - Before implementing new features or refactors, read `docs/architecture-guidelines.md` and follow its file placement/layering rules.
 - 遇到并发控制、限流、让步调度、锁顺序或重入相关需求时（例如 ffmpeg/ffprobe/whisper 任务并发、gpt/tts/tencent 请求限流、视频分析让步调度），先阅读 `docs/concurrency-kernel-usage.md`，按该文档的约定实现。
+- 涉及日志产出、崩溃归因、子进程/后台任务身份标识（`job`）、检索键（`traceId`/`module`）或"这条日志该写什么字段"时，先阅读 `docs/observability.md`：本项目的故障排查由 AI 只读 JSONL 日志完成，日志形状与检索键是契约的一部分。
 - 禁止编写 fallback 逻辑来掩盖配置或数据问题（包括前端默认值兜底、静默回退、隐式纠偏）；一旦数据异常必须尽早失败并显式暴露问题。
 - 遇到问题必须优先做根因修复，不以“最小改动”作为决策依据；应消除问题源头及相关死代码，避免临时性补丁长期残留。
 - 作为 Agent 执行实现时，不要为了控制改动面而牺牲正确性；应优先选择从根源解决问题的方案，允许为此进行必要的重构，并主动删除因旧方案产生的遗留、兼容分支和无效代码。

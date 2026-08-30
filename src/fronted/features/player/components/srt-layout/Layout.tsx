@@ -4,7 +4,7 @@ import PlaybackStage from './Stage';
 import PodcastViewer from '@/fronted/features/player/components/subtitles/PodcastViewer';
 import MainSubtitle from './MainSubtitle';
 import Subtitle from './components/Subtitle';
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import useFile from '@/fronted/features/file-browser/fileStore';
 import useLayout from '@/fronted/hooks/useLayout';
 import { useLocalStorage } from '@uidotdev/usehooks';
@@ -29,8 +29,81 @@ const PlaybackLayout = () => {
     const [sizeIb, setSizeIb] = useLocalStorage<number>('split-size-ib', 20);
     const navigate = useNavigate();
     const { handlePlayerReady, handleAutoPlayNext } = usePlayerBridge(navigate);
+
+    const [videoElement, setVideoElement] = useState<HTMLVideoElement | null>(null);
+    const ambientCanvasRef = useRef<HTMLCanvasElement>(null);
+    const rootContainerRef = useRef<HTMLDivElement>(null);
+
+    // 在根容器底层驱动空间环境光：动态感知视频实际相对位置与比例，实现不规则空间光场投射
+    useEffect(() => {
+        if (!videoElement || podcastMode || !hasSource) {
+            return undefined;
+        }
+        let animationFrameId: number | undefined;
+        let cancelled = false;
+        let lastDrawTime = 0;
+        let lastCanvasW = 0;
+        let lastCanvasH = 0;
+        const fps = 24;
+        const drawInterval = 1000 / fps;
+
+        const syncVideos = () => {
+            if (cancelled) return;
+            const now = performance.now();
+            if (now - lastDrawTime >= drawInterval) {
+                const backgroundCanvas = ambientCanvasRef.current;
+                const rootContainer = rootContainerRef.current;
+                if (videoElement && backgroundCanvas && rootContainer && videoElement.readyState >= 2 && !videoElement.seeking && !videoElement.paused) {
+                    const ctx = backgroundCanvas.getContext('2d', { alpha: false });
+                    if (ctx) {
+                        const rootRect = rootContainer.getBoundingClientRect();
+                        const videoRect = videoElement.getBoundingClientRect();
+
+                        const ratio = window.devicePixelRatio || 1;
+                        const resolutionFactor = 0.2; // 高性能低分辨率缓冲绘制
+                        const scaledRootW = Math.max(1, Math.floor(rootRect.width * ratio * resolutionFactor));
+                        const scaledRootH = Math.max(1, Math.floor(rootRect.height * ratio * resolutionFactor));
+
+                        if (scaledRootW !== lastCanvasW || scaledRootH !== lastCanvasH) {
+                            backgroundCanvas.width = scaledRootW;
+                            backgroundCanvas.height = scaledRootH;
+                            lastCanvasW = scaledRootW;
+                            lastCanvasH = scaledRootH;
+                        }
+
+                        // 动态计算视频在根容器中的真实绝对坐标与尺寸（自动适应普通分栏拖拽与全屏居中）
+                        const relX = (videoRect.left - rootRect.left) / rootRect.width;
+                        const relY = (videoRect.top - rootRect.top) / rootRect.height;
+                        const relW = videoRect.width / rootRect.width;
+                        const relH = videoRect.height / rootRect.height;
+
+                        // 柔和向外溢出延伸（Padding Expansion），让光晕自然蔓延渗透到右侧和下方
+                        const expandFactor = 0.25; 
+                        const drawX = Math.max(0, (relX - relW * expandFactor) * scaledRootW);
+                        const drawY = Math.max(0, (relY - relH * expandFactor) * scaledRootH);
+                        const drawW = Math.min(scaledRootW, (relW * (1 + expandFactor * 2)) * scaledRootW);
+                        const drawH = Math.min(scaledRootH, (relH * (1 + expandFactor * 2)) * scaledRootH);
+
+                        ctx.drawImage(videoElement, drawX, drawY, drawW, drawH);
+                    }
+                }
+                lastDrawTime = now;
+            }
+            if (cancelled) return;
+            animationFrameId = requestAnimationFrame(syncVideos);
+        };
+
+        animationFrameId = requestAnimationFrame(syncVideos);
+        return () => {
+            cancelled = true;
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+            }
+        };
+    }, [videoElement, podcastMode, hasSource]);
+
     const containerClass = cn(
-        'w-full h-full flex flex-col border-0 border-white/90 drop-shadow-lg overflow-hidden',
+        'relative w-full h-full flex flex-col border-0 border-white/90 drop-shadow-lg overflow-hidden bg-stone-200 dark:bg-black',
         hasSubTitle && 'border-r-0',
         showSideBar && 'overflow-hidden border-[30px] border-background/80 rounded-[45px]'
     );
@@ -44,10 +117,33 @@ const PlaybackLayout = () => {
     }
 
     return (
-        <div className={containerClass}>
+        <div ref={rootContainerRef} className={containerClass}>
+            {/* 顶层全局真实空间环境光 Canvas：覆盖整个播放器窗口 */}
+            <canvas
+                ref={ambientCanvasRef}
+                className={cn(
+                    'absolute inset-0 w-full h-full pointer-events-none transition-opacity duration-500 z-0',
+                    'blur-[80px] saturate-[1.1] brightness-[0.78]',
+                    'dark:blur-[80px] dark:saturate-[1.15] dark:brightness-[0.52]',
+                    videoElement ? 'opacity-80 dark:opacity-75' : 'opacity-0',
+                    podcastMode && 'hidden'
+                )}
+            />
+
+            {/* 高性能全局氛围渐变滤镜：压暗背景，提高画质沉浸感与文字可读性 */}
+            {!podcastMode && (
+                <div
+                    className={cn(
+                        'absolute inset-0 pointer-events-none transition-colors duration-300 z-0',
+                        'bg-gradient-to-b from-black/15 via-black/10 to-black/25',
+                        'dark:bg-gradient-to-b dark:from-black/45 dark:via-black/25 dark:to-black/65'
+                    )}
+                />
+            )}
+
             <ResizablePanelGroup
                 className={cn(
-                    'bg-gray-300 dark:bg-neutral-800'
+                    'relative z-10 bg-transparent'
                 )}
                 direction={'horizontal'}>
                 <ResizablePanel
@@ -60,51 +156,74 @@ const PlaybackLayout = () => {
                         setSizeOa(e);
                     }}
                 >
-                    <ResizablePanelGroup direction={'vertical'}>
-                        <ResizablePanel
-                            minSize={10}
-                            defaultSize={sizeIa}
-                            onResize={(e) => {
-                                if (fullScreen) {
-                                    return;
-                                }
-                                setSizeIa(e);
-                            }}
-                        >
-                            <div
-                                className={cn('w-full h-full grid grid-cols-1 grid-rows-1')}>
+                    <div className="relative w-full h-full overflow-hidden">
+                        <ResizablePanelGroup direction={'vertical'} className="relative z-10">
+                            <ResizablePanel
+                                minSize={10}
+                                defaultSize={sizeIa}
+                                onResize={(e) => {
+                                    if (fullScreen) {
+                                        return;
+                                    }
+                                    setSizeIa(e);
+                                }}
+                            >
                                 <PlaybackStage
-                                    className={cn('row-start-1 row-end-2 col-start-1 col-end-2')}
+                                    className="w-full h-full"
                                     onReady={handlePlayerReady}
                                     onEnded={handleAutoPlayNext}
+                                    onProvideVideoElement={setVideoElement}
                                 />
-                                {podcastMode && <PodcastViewer
-                                    className={cn('row-start-1 row-end-2 col-start-1 col-end-2 z-0')}
-                                />}
-                            </div>
-                        </ResizablePanel>
-                        {(!fullScreen && !podcastMode) && (
-                            <>
-                                <ResizableHandle withHandle
-                                                 className={cn('drop-shadow data-[panel-group-direction=vertical]:h-2 dark:bg-zinc-700')} />
-                                <ResizablePanel
-                                    className={cn('ofvisible')}
-                                    defaultSize={sizeIb}
-                                    onResize={(e) => {
-                                        if (fullScreen) {
-                                            return;
-                                        }
-                                        setSizeIb(e);
-                                    }}
-                                ><MainSubtitle /></ResizablePanel>
-                            </>
+                            </ResizablePanel>
+                            {!fullScreen && !podcastMode && (
+                                <>
+                                    <ResizableHandle
+                                        className={cn(
+                                            'group relative h-2 w-full flex items-center justify-center',
+                                            'bg-stone-300/80 dark:bg-neutral-800/80 hover:bg-stone-200/90 dark:hover:bg-neutral-700/90',
+                                            'after:hidden transition-colors duration-150 cursor-row-resize z-20'
+                                        )}
+                                    >
+                                        <div className="w-10 h-1 rounded-full bg-stone-500/70 dark:bg-neutral-400/70 group-hover:bg-rose-600 dark:group-hover:bg-rose-400 group-hover:w-14 transition-all duration-200 shadow-xs" />
+                                    </ResizableHandle>
+                                    <ResizablePanel
+                                        className={cn('overflow-hidden bg-stone-50/75 dark:bg-neutral-800/65 backdrop-blur-2xl')}
+                                        minSize={0}
+                                        defaultSize={sizeIb}
+                                        onResize={(e) => {
+                                            if (fullScreen) {
+                                                return;
+                                            }
+                                            setSizeIb(e);
+                                        }}
+                                    >
+                                        <MainSubtitle />
+                                    </ResizablePanel>
+                                </>
+                            )}
+
+                        </ResizablePanelGroup>
+
+                        {/* 播客模式：作为顶层全屏覆盖层呈现，保留底部的 PlaybackStage 与 Panel 结构完整稳定 */}
+                        {podcastMode && (
+                            <PodcastViewer className="absolute inset-0 z-30" />
                         )}
-                    </ResizablePanelGroup>
+                    </div>
                 </ResizablePanel>
+
                 {!fullScreen && (
                     <>
-                        <ResizableHandle withHandle className={cn('gutter-style w-2 dark:bg-zinc-700')} />
+                        <ResizableHandle
+                            className={cn(
+                                'group relative w-2 h-full flex items-center justify-center',
+                                'bg-stone-300/80 dark:bg-neutral-800/80 hover:bg-stone-200/90 dark:hover:bg-neutral-700/90',
+                                'after:hidden transition-colors duration-150 cursor-col-resize z-20'
+                            )}
+                        >
+                            <div className="w-1 h-10 rounded-full bg-stone-500/70 dark:bg-neutral-400/70 group-hover:bg-rose-600 dark:group-hover:bg-rose-400 group-hover:h-14 transition-all duration-200 shadow-xs" />
+                        </ResizableHandle>
                         <ResizablePanel
+                            className="relative overflow-hidden bg-stone-300/60 dark:bg-neutral-950/70 backdrop-blur-2xl shadow-[inset_1px_1px_6px_rgba(0,0,0,0.06)] dark:shadow-[inset_1px_1px_8px_rgba(0,0,0,0.4)]"
                             defaultSize={sizeOb}
                             onResize={(e) => {
                                 if (fullScreen) {

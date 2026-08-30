@@ -36,8 +36,8 @@ export interface Sentence {
     transGroup: number;
 
     /**
-     * 稳定句子翻译键，格式为 `fileHash:index`。
-     * 说明：仅用于按句缓存和回写结果，不承载上下文语义。
+     * renderer 定位键，格式为 `fileHash:index`。
+     * 说明：仅用于后端回推译文时让前端找到对应句子，不参与翻译缓存寻址。
      */
     translationKey: string;
 

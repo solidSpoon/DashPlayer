@@ -70,20 +70,6 @@ const electronHandler = {
     call: async function invok<K extends keyof ApiMap>(path: K, param?: ApiDefinitions[K]['params']): Promise<ApiDefinitions[K]['return']> {
         return ipcRenderer.invoke(path, param, createTraceCarrier());
     },
-    /**
-     * 调用 main 进程 API，失败时返回 null。
-     * @param path API 路径。
-     * @param param API 参数。
-     * @returns main 进程返回结果；调用失败时返回 null。
-     */
-    safeCall: async function invok<K extends keyof ApiMap>(path: K, param?: ApiDefinitions[K]['params']): Promise<ApiDefinitions[K]['return'] | null> {
-        try {
-            return await ipcRenderer.invoke(path, param, createTraceCarrier());
-        } catch (e) {
-            // Error handling for renderer API registration
-            return null;
-        }
-    },
 
     // 前端API注册方法
     registerRendererApi: function<K extends keyof RendererApiMap>(

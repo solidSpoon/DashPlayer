@@ -9,11 +9,8 @@ import MediaUtil, {
 import useFile from '@/fronted/features/file-browser/fileStore';
 import { SWR_KEY, swrApiMutate, swrMutate } from '@/fronted/lib/swr-util';
 import useLayout from '@/fronted/hooks/useLayout';
-import useConvert from '@/fronted/features/convert/convertStore';
-import { toast } from 'sonner';
 import StrUtil from '@/common/utils/str-util';
 import { fileBrowserApi } from '@/fronted/features/file-browser/fileBrowserApi';
-import i18n from '@/fronted/i18n';
 import { useTranslation } from 'react-i18next';
 import { FileVideo } from 'lucide-react';
 
@@ -28,54 +25,10 @@ export class FileAction {
                     useFile.getState().clearSrt();
                 }
             } else {
+                // 格式兼容性引导统一由播放页负责（乐观播放 + 失败/无声检测），这里不再预检
                 const [id] = await fileBrowserApi.createWatchHistory(ps);
                 await fileBrowserApi.changeWindowSize('player');
                 navigate(`/player/${id}`);
-                const mkvs = ps.filter(p => p.toLowerCase().endsWith('.mkv'));
-                if (mkvs.length > 0) {
-                    const suggested = await Promise.all(
-                        mkvs.map((path) => fileBrowserApi.suggestHtml5Video(path)),
-                    );
-                    const missing = mkvs.filter((_p, idx) => !suggested[idx]);
-                    if (missing.length === 0) {
-                        return;
-                    }
-                    const suspiciousAudioCodecs = new Set([
-                        // DTS may appear as `dts` or `dca` in ffprobe
-                        'dts',
-                        'dca',
-                        // TrueHD may appear as `truehd` or `mlp`
-                        'truehd',
-                        'mlp',
-                        'eac3',
-                        'ac3',
-                        'opus',
-                        'vorbis',
-                    ]);
-                    const infos = await Promise.all(
-                        missing.map((path) => fileBrowserApi.getMediaInfo(path)),
-                    );
-                    const suspiciousFiles = missing.filter((_p, idx) => {
-                        const audioCodec = (infos[idx]?.audioCodec ?? '').toLowerCase();
-                        return audioCodec.length === 0 || suspiciousAudioCodecs.has(audioCodec);
-                    });
-                    if (suspiciousFiles.length === 0) {
-                        return;
-                    }
-                    setTimeout(() => {
-                        toast(i18n.t('toast:audioCompatibilityTitle'), {
-                            description: i18n.t('toast:audioCompatibilityDescription'),
-                            position: 'top-right',
-                            action: {
-                                label: i18n.t('toast:audioCompatibilityAction'),
-                                onClick: () => {
-                                    useConvert.getState().addFiles(suspiciousFiles);
-                                    navigate(`/convert`);
-                                }
-                            }
-                        });
-                    }, 500);
-                }
             }
             await swrMutate(SWR_KEY.PLAYER_P);
             await swrApiMutate('watch-history/list');
@@ -97,50 +50,6 @@ export class FileAction {
                 await fileBrowserApi.changeWindowSize('player');
                 useLayout.getState().changeSideBar(false);
                 navigate(`/player/${id}`);
-
-                const mkvs = ps.filter(p => p.toLowerCase().endsWith('.mkv'));
-                if (mkvs.length > 0) {
-                    const suggested = await Promise.all(
-                        mkvs.map((path) => fileBrowserApi.suggestHtml5Video(path)),
-                    );
-                    const missing = mkvs.filter((_p, idx) => !suggested[idx]);
-                    if (missing.length === 0) {
-                        return;
-                    }
-                    const suspiciousAudioCodecs = new Set([
-                        'dts',
-                        'dca',
-                        'truehd',
-                        'mlp',
-                        'eac3',
-                        'ac3',
-                        'opus',
-                        'vorbis',
-                    ]);
-                    const infos = await Promise.all(
-                        missing.map((path) => fileBrowserApi.getMediaInfo(path)),
-                    );
-                    const suspiciousFiles = missing.filter((_p, idx) => {
-                        const audioCodec = (infos[idx]?.audioCodec ?? '').toLowerCase();
-                        return audioCodec.length === 0 || suspiciousAudioCodecs.has(audioCodec);
-                    });
-                    if (suspiciousFiles.length === 0) {
-                        return;
-                    }
-                    setTimeout(() => {
-                        toast(i18n.t('toast:audioCompatibilityTitle'), {
-                            description: i18n.t('toast:audioCompatibilityDescription'),
-                            position: 'top-right',
-                            action: {
-                                label: i18n.t('toast:audioCompatibilityAction'),
-                                onClick: () => {
-                                    useConvert.getState().addFiles(suspiciousFiles);
-                                    navigate(`/convert`);
-                                }
-                            }
-                        });
-                    }, 500);
-                }
             }
             await swrMutate(SWR_KEY.PLAYER_P);
             await swrApiMutate('watch-history/list');

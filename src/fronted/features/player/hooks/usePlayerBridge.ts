@@ -12,6 +12,8 @@ import { computeResumeTime } from '@/fronted/lib/playerResume';
 import { playerApi } from '@/fronted/features/player/playerApi';
 import useTranslation from '@/fronted/features/player/translationStore';
 import useVocabulary from '@/fronted/features/player/vocabularyStore';
+import { transcriptApi } from '@/fronted/features/transcript/transcriptApi';
+import { TRANSCRIPTION_CHUNK_SECONDS } from '@/common/contracts/transcript/transcript-task';
 
 const logger = getRendererLogger('usePlayerBridge');
 
@@ -34,6 +36,8 @@ export function usePlayerBridge(navigate: (path: string) => void) {
     const srtHash = useFile((s) => s.srtHash);
     const subtitleSessionId = useFile((s) => s.subtitleSessionId);
     const videoId = useFile((s) => s.videoId);
+    /** 字幕重载令牌；增量转录会话结束后由 renderer api 递增，触发字幕回退重载。 */
+    const subtitleReloadToken = useFile((s) => s.subtitleReloadToken);
 
     const lastLoadedFileRef = useRef<string | undefined>(undefined);
 
@@ -65,19 +69,28 @@ export function usePlayerBridge(navigate: (path: string) => void) {
             if (StrUtil.isBlank(currentVideoId)) {
                 return;
             }
-            const currentPath = StrUtil.isBlank(subtitlePath) ? null : subtitlePath!;
-            const playbackSessionId = crypto.randomUUID();
-            logger.info('subtitle parsing started', {
-                videoId: currentVideoId,
-                subtitlePath: currentPath,
-                playbackSessionId,
-            });
+            // 先清掉上一视频残留的字幕哈希与翻译上下文，避免增量分支提前返回时旧状态继续生效。
             useFile.setState({
                 srtHash: null,
                 subtitleSessionId: null,
             });
             useTranslation.getState().setActiveFileHash(null);
             playerActions.clearSubtitles();
+            const currentPath = StrUtil.isBlank(subtitlePath) ? null : subtitlePath!;
+            const incrementalSnapshot = await transcriptApi.getSessionSnapshot(videoPath!);
+            if (cancelled || videoPath !== useFile.getState().videoPath) return;
+            if (incrementalSnapshot && incrementalSnapshot.sentences.length > 0) {
+                // 转录进行中：增量字幕优先于已挂载的 SRT，直到会话结束。
+                useTranslation.getState().setActiveFileHash(incrementalSnapshot.sessionId);
+                playerActions.loadSubtitles(incrementalSnapshot.sentences);
+                return;
+            }
+            const playbackSessionId = crypto.randomUUID();
+            logger.info('subtitle parsing started', {
+                videoId: currentVideoId,
+                subtitlePath: currentPath,
+                playbackSessionId,
+            });
             try {
                 const result = await playerApi.parseSubtitleToSentences({
                     subtitlePath: currentPath,
@@ -119,7 +132,30 @@ export function usePlayerBridge(navigate: (path: string) => void) {
         return () => {
             cancelled = true;
         };
-    }, [subtitlePath, videoId]);
+    }, [subtitlePath, videoId, videoPath, subtitleReloadToken]);
+
+    useEffect(() => {
+        if (StrUtil.isBlank(videoPath)) return;
+        /**
+         * 上报播放位置驱动后端调整待识别块优先级。
+         *
+         * 块的就近顺序只在相邻块起点的中点附近翻转，中点距半块（chunk/2）网格边界最多偏半秒
+         * （来自 1 秒块重叠），因此按半块区间去重的代价是不超过 0.5 秒的需求延迟。
+         * 效果：暂停时零上报，正常播放每分钟至多一次，快跳必然跨区间并立即上报。
+         */
+        const demandGranularity = TRANSCRIPTION_CHUNK_SECONDS / 2;
+        /** 最近一次已上报位置所在的半块区间；-1 保证首次检查必定上报一次。 */
+        let lastReportedBucket = -1;
+        const reportDemand = () => {
+            const position = usePlayer.getState().internal.exactPlayTime;
+            const bucket = Math.floor(position / demandGranularity);
+            if (bucket === lastReportedBucket) return;
+            lastReportedBucket = bucket;
+            void transcriptApi.updateDemand(videoPath!, position).catch(() => undefined);
+        };
+        const timer = window.setInterval(reportDemand, 2000);
+        return () => window.clearInterval(timer);
+    }, [videoPath]);
 
     useEffect(() => {
         let cancelled = false;

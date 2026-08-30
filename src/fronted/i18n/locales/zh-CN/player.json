@@ -1,6 +1,10 @@
 {
-    "compatToastTitle": "该视频可能在播放器中无声",
-    "compatToastAction": "生成兼容版本",
+    "compatToastAudioTitle": "该视频可能没有声音",
+    "compatToastAudioDescription": "它的音频格式可能不被播放器支持，转换一下就能正常出声了。",
+    "compatToastIssueTitle": "视频播放不顺畅？",
+    "compatToastIssueDescription": "可以稍等片刻看看是否会自动恢复；如果一直无法播放，建议前往转换页面转一下格式。",
+    "compatToastIgnore": "暂时忽略",
+    "compatToastAction": "去转换",
     "emptyState": {
         "heroTitle": "开启英语学习之旅",
         "heroDescription": "选择视频，通过双语字幕和智能学习工具提升英语水平。",
@@ -49,8 +53,11 @@
     "transcript": {
         "button": "生成字幕",
         "modelMissing": "需要先下载字幕模型，请前往“设置中心 > 服务凭据”下载",
-        "statusInit": "初始化中...",
-        "statusInProgress": "字幕转录中...",
+        "statusInit": "准备中...",
+        "statusPreparing": "预处理中...",
+        "statusGenerating": "生成字幕 {{progress}}%",
+        "statusFinishing": "整理中...",
+        "statusInProgress": "生成中...",
         "tooltipTitle": "生成字幕",
         "tooltipBody": "使用 AI 为当前视频自动生成字幕。字幕文件将保存在视频同级目录，并在完成后自动载入。",
         "noVideoSelected": "请先选择一个视频文件",

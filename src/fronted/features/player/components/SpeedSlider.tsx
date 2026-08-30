@@ -10,15 +10,16 @@ import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { Check } from 'lucide-react';
 
-export interface VolumeSliderProps {
+export interface SpeedSliderProps {
     speed: number;
     onSpeedChange: (speed: number) => void;
     onSelectFinish?: () => void;
+    className?: string;
 }
 
 const SPEED_PRESETS = [0.25, 0.5, 0.75, 1.0, 1.25, 1.5, 1.75, 2.0];
 
-const SpeedSlider = ({ speed, onSpeedChange, onSelectFinish }: VolumeSliderProps) => {
+const SpeedSlider = ({ speed, onSpeedChange, onSelectFinish, className }: SpeedSliderProps) => {
     const { t } = useI18nTranslation('player');
     const logger = getRendererLogger('SpeedSlider');
     const [open, setOpen] = useState(false);
@@ -70,7 +71,10 @@ const SpeedSlider = ({ speed, onSpeedChange, onSelectFinish }: VolumeSliderProps
                     aria-expanded={open}
                     size="sm"
                     variant="ghost"
-                    className="h-8 px-2.5 rounded-lg text-xs font-mono text-white/90 hover:text-white hover:bg-white/15 transition-colors"
+                    className={cn(
+                        'h-8 px-2.5 rounded-lg text-xs font-mono text-inherit hover:bg-black/5 dark:hover:bg-white/15 transition-colors',
+                        className
+                    )}
                 >
                     <span className="font-mono">{speed.toFixed(2)}x</span>
                 </Button>

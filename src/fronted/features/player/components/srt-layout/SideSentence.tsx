@@ -1,6 +1,5 @@
 import React, { forwardRef } from 'react';
 import useSetting from '@/fronted/features/settings/settingsStore';
-// removed old player controller usage
 import { usePlayerUiState } from '@/fronted/features/player/playerUiStore';
 import { usePlayerState } from '@/fronted/features/player/playerState';
 import { cn } from '@/fronted/lib/utils';
@@ -12,6 +11,7 @@ import { Sentence } from '@/common/types/SentenceC';
 import useTranslation from '@/fronted/features/player/translationStore';
 import useVocabulary from '@/fronted/features/player/vocabularyStore';
 import { shallow } from 'zustand/shallow';
+import { Bookmark, Play, Pause, Repeat1 } from 'lucide-react';
 
 interface SideSentenceNewParam {
     sentence: Sentence;
@@ -37,100 +37,61 @@ export const SPLIT_REGEX =
 
 const IconTip = ({ tip, children }: { tip: string; children: React.ReactNode }) => {
     return (
-        <TooltipProvider>
+        <TooltipProvider delayDuration={300}>
             <Tooltip>
-                <TooltipTrigger>
+                <TooltipTrigger asChild>
                     {children}
                 </TooltipTrigger>
-                <TooltipContent align={'start'}>
+                <TooltipContent side="top" sideOffset={4} className="text-xs">
                     {tip}
                 </TooltipContent>
             </Tooltip>
         </TooltipProvider>
     );
-
 };
 
-const PlayingIcon = () => {
-    return (
-        <IconTip tip={'Playing'}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                 className="lucide lucide-circle-play">
-                <circle cx="12" cy="12" r="10" />
-                <polygon points="10 8 16 12 10 16 10 8" />
-            </svg>
-        </IconTip>
-    );
-};
+// 精致跳动的音频声波小动效
+const PlayingAudioWave = () => (
+    <IconTip tip="正在播放">
+        <div className="flex items-end justify-center gap-[2px] w-4 h-4 text-rose-600 dark:text-rose-400">
+            <span className="w-[2.5px] h-3.5 bg-current rounded-full animate-[pulse_0.8s_ease-in-out_infinite]" />
+            <span className="w-[2.5px] h-2 bg-current rounded-full animate-[pulse_0.6s_ease-in-out_0.2s_infinite]" />
+            <span className="w-[2.5px] h-4 bg-current rounded-full animate-[pulse_0.9s_ease-in-out_0.4s_infinite]" />
+        </div>
+    </IconTip>
+);
 
-const RepeatPlayingIcon = () => {
-    return (
-        <IconTip tip={'Repeat Playing'}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
-                 className="lucide lucide-circle-percent">
-                <circle cx="12" cy="12" r="10" />
-                <path d="m15 9-6 6" />
-                <path d="M9 9h.01" />
-                <path d="M15 15h.01" />
-            </svg>
-        </IconTip>
-    );
-};
+const RepeatAudioWave = () => (
+    <IconTip tip="单句循环中">
+        <div className="flex items-center justify-center w-4 h-4 text-rose-600 dark:text-rose-400">
+            <Repeat1 className="w-3.5 h-3.5" />
+        </div>
+    </IconTip>
+);
 
-const NormalPausingIcon = () => {
-    return (
-        <IconTip tip={'Pausing'}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                 stroke="currentColor"
-                 strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-circle-pause">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="10" x2="10" y1="15" y2="9" />
-                <line x1="14" x2="14" y1="15" y2="9" />
-            </svg>
-        </IconTip>
-    );
-};
-
-const AutoPausingIcon = () => {
-    return (
-        <IconTip tip={'Auto Pausing'}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
-                 fill="none"
-                 stroke="currentColor" strokeWidth="2" strokeLinecap="round"
-                 strokeLinejoin="round"
-                 className="lucide lucide-octagon-pause">
-                <path d="M10 15V9" />
-                <path d="M14 15V9" />
-                <path d="M7.714 2h8.572L22 7.714v8.572L16.286 22H7.714L2 16.286V7.714z" />
-            </svg>
-        </IconTip>
-    );
-};
-
-const CARD_SPACING_PX = 6; // 与 m-1.5 保持一致
-const CARD_RADIUS_PX = 12;
+const PausedIcon = () => (
+    <IconTip tip="已暂停">
+        <div className="flex items-center justify-center w-4 h-4 text-stone-400 dark:text-neutral-500">
+            <Pause className="w-3 h-3 fill-current" />
+        </div>
+    </IconTip>
+);
 
 /**
- * 渲染侧边字幕卡片。
- *
- * 说明：
- * - 侧边字幕保留生词提示，但不复用主字幕的强交互高亮样式。
- * - 这里的高亮只承担“轻提示”职责，避免误导用户以为支持悬浮词典。
+ * 渲染侧边字幕条目（实体卡片流设计：实色卡片、清晰层次与高亮聚焦）。
  */
 const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
     ({ sentence, onClick, isCurrent, isRepeat, selectionState }: SideSentenceNewParam, ref) => {
         const playing = usePlayerState((state) => state.playing);
         const translationKey = sentence?.translationKey || '';
         const newTranslation = useTranslation(state => state.translations.get(translationKey)) || '';
-        const s = [sentence.text, sentence.textZH, newTranslation].find(
-            (i) => i !== undefined && i !== ''
-        );
+        
+        const primaryText = sentence.text || '';
+        const secondaryText = sentence.textZH || newTranslation || '';
+
         const fontSize = useSetting((state) =>
             state.values.get('appearance.fontSize')
         );
-        const ap = usePlayerState((state) => state.internal.onPlaySeekTime !== null);
         const isFavourite = useFavouriteClip((s) => s.lineClip.get(mapClipKey(useFile.getState().srtHash, sentence.index)) ?? false);
         const [hover, setHover] = React.useState(false);
         const { showEn, syncSide } = usePlayerUiState(
@@ -141,12 +102,12 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
         const vocabularyStore = useVocabulary();
         const isVocabularyWord = vocabularyStore.isVocabularyWord;
 
-        const icon = () => {
+        const renderStatusIcon = () => {
+            if (!isCurrent) return null;
             if (playing) {
-                return isRepeat ? <RepeatPlayingIcon /> : <PlayingIcon />;
-            } else {
-                return ap ? <AutoPausingIcon /> : <NormalPausingIcon />;
+                return isRepeat ? <RepeatAudioWave /> : <PlayingAudioWave />;
             }
+            return <PausedIcon />;
         };
 
         // 分割文本为单词和非单词部分
@@ -172,13 +133,6 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                 });
         };
 
-        /**
-         * 为侧边字幕渲染低强调生词提示。
-         *
-         * 说明：
-         * - 仅保留较轻的字重和虚线下划线。
-         * - 不使用主字幕那种高对比底色，避免产生可悬浮交互的暗示。
-         */
         const renderHighlightedText = (text: string) => {
             const parts = splitText(text);
             return parts.map((part) => {
@@ -187,7 +141,10 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                         <span
                             key={part.id}
                             className={cn(
-                                'font-medium underline decoration-dotted underline-offset-[0.18em] decoration-current/35'
+                                'underline decoration-dotted underline-offset-[0.2em] transition-colors',
+                                isCurrent
+                                    ? 'decoration-stone-900/60 dark:decoration-white/70'
+                                    : 'decoration-stone-400/50 dark:decoration-neutral-500/50'
                             )}
                         >
                             {part.content}
@@ -198,54 +155,47 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
             });
         };
 
-        const overlayStyle = React.useMemo(() => {
+        // 计算选区形态与合并卡片质感
+        // 注意：四周 1px 边框必须永远保留（不可用 border-b-0 / border-t-0），否则 box-sizing 会让高度少 1~2px 造成内部文字跳动！
+        const selectionClass = React.useMemo(() => {
             if (!selectionState?.isMember) {
-                return null;
+                return '';
             }
-            const top = selectionState.isGroupStart ? 0 : -CARD_SPACING_PX;
-            const bottom = selectionState.isGroupEnd ? 0 : -CARD_SPACING_PX;
-            return {
-                top: `${top}px`,
-                bottom: `${bottom}px`,
-                borderTopLeftRadius: selectionState.isGroupStart ? `${CARD_RADIUS_PX}px` : '0px',
-                borderTopRightRadius: selectionState.isGroupStart ? `${CARD_RADIUS_PX}px` : '0px',
-                borderBottomLeftRadius: selectionState.isGroupEnd ? `${CARD_RADIUS_PX}px` : '0px',
-                borderBottomRightRadius: selectionState.isGroupEnd ? `${CARD_RADIUS_PX}px` : '0px',
-            } satisfies React.CSSProperties;
-        }, [selectionState]);
-
-        const overlayClass = React.useMemo(() => {
-            if (!selectionState?.isMember) {
-                return 'pointer-events-none absolute left-0 right-0';
-            }
-            const base = [
-                'pointer-events-none absolute left-0 right-0',
-                'bg-stone-50/95 dark:bg-neutral-800/95',
-                'transition-all duration-150 ease-out',
+            const classes: string[] = [
+                'bg-stone-200/90 dark:bg-neutral-800/90',
+                'border-stone-400/70 dark:border-neutral-600/80',
+                'shadow-xs text-stone-900 dark:text-neutral-100',
             ];
-            if (selectionState.isGroupStart) {
-                base.push('border border-stone-200/80 dark:border-neutral-600/70 shadow-md');
-            } else if (selectionState.isMember) {
-                base.push('border-x border-stone-200/80 dark:border-neutral-600/70');
+
+            if (selectionState.isGroupStart && selectionState.isGroupEnd) {
+                // 单个选中（完整圆角）
+                classes.push('rounded-xl');
+            } else if (selectionState.isGroupStart) {
+                // 选区头部：保留上圆角，下方直角，下边框颜色融入底色（不改边框宽度）
+                classes.push('rounded-t-xl rounded-b-none border-b-transparent');
+            } else if (selectionState.isGroupEnd) {
+                // 选区尾部：保留下圆角，上方直角，上边框颜色融入底色（不改边框宽度）
+                classes.push('rounded-b-xl rounded-t-none border-t-transparent');
+            } else {
+                // 选区中间成员：上下直角，上下边框颜色融入底色（不改边框宽度）
+                classes.push('rounded-none border-y-transparent');
             }
-            if (selectionState.isGroupEnd) {
-                base.push('border-b border-stone-200/80 dark:border-neutral-600/70');
-            }
-            return base.join(' ');
+            return classes.join(' ');
         }, [selectionState]);
 
         return (
             // eslint-disable-next-line jsx-a11y/no-static-element-interactions, jsx-a11y/click-events-have-key-events
             <div
                 className={cn(
-                    'relative m-1.5 mr-0.5 px-1 py-2 border-0 flex gap-1 content-start rounded-lg overflow-visible',
-                    selectionState?.isMember ? 'bg-transparent hover:bg-transparent drop-shadow-none' : 'bg-stone-200 dark:bg-neutral-700',
-                    selectionState?.isMember ? 'hover:drop-shadow-none' : 'hover:drop-shadow-lg drop-shadow',
-                    selectionState?.isMember && 'transition-transform duration-150',
-                    !show && 'transition-colors duration-500',
-                    fontSize === 'fontSizeSmall' ? 'text-base' : 'text-lg',
-                    isFavourite && 'text-yellow-500 dark:text-yellow-300',
-                    !selectionState?.isMember && 'transition-colors duration-150'
+                    // 外边距与内边距保持绝对恒定，四个方向 1px 边框始终存在，高度与定位 100% 绝对静止
+                    'group relative my-1.5 ml-1.5 mr-0 pl-3.5 pr-2.5 py-3 rounded-xl flex items-start gap-2.5 cursor-pointer select-none border transition-colors duration-150',
+                    // 卡片色调（激活与常规卡片底色非常接近、仅微调边框和文字，保持整体质感平滑统一）：
+                    !selectionState?.isMember && (
+                        isCurrent
+                            ? 'bg-stone-200/90 dark:bg-neutral-800/85 border-stone-400/60 dark:border-neutral-600/70 shadow-xs text-stone-900 dark:text-neutral-100'
+                            : 'bg-stone-200/70 dark:bg-neutral-800/60 border-stone-300/60 dark:border-neutral-700/50 shadow-[0_1px_2px_rgba(0,0,0,0.02)] hover:bg-stone-200/90 dark:hover:bg-neutral-800/80 hover:border-stone-400/50 dark:hover:border-neutral-600 text-stone-700 dark:text-neutral-300'
+                    ),
+                    selectionClass
                 )}
                 onClick={() => {
                     onClick(sentence);
@@ -258,31 +208,76 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                 }}
                 ref={ref}
             >
-                {selectionState?.isMember && overlayStyle && (
-                    <div aria-hidden className={overlayClass} style={overlayStyle} />
+                {/* 选区卡片之间的向下无缝连接桥（my-1.5 为 6px，上下两张卡片间距刚好是 12px，高度填满 14px 覆盖上下接缝） */}
+                {selectionState?.isMember && !selectionState.isGroupEnd && (
+                    <div
+                        aria-hidden="true"
+                        className="absolute -bottom-[13px] -left-[1px] -right-[1px] h-[14px] bg-stone-200/90 dark:bg-neutral-800/90 border-l border-r border-stone-400/70 dark:border-neutral-600/80 z-0 pointer-events-none"
+                    />
                 )}
+
+                {/* 选区内句间分割线 */}
+                {selectionState?.isMember && !selectionState.isGroupEnd && (
+                    <div
+                        aria-hidden="true"
+                        className="absolute -bottom-[6px] left-4 right-4 h-[1px] bg-stone-300/80 dark:bg-neutral-600/80 z-[1] pointer-events-none"
+                    />
+                )}
+
+                {/* 收藏句右上角精致书签标记（绝对定位，不影响文本排版） */}
+                {isFavourite && (
+                    <div className="absolute top-2.5 right-2 z-20 pointer-events-none">
+                        <Bookmark className="w-3.5 h-3.5 fill-amber-500 text-amber-500 dark:fill-amber-400 dark:text-amber-400 opacity-90 drop-shadow-xs" />
+                    </div>
+                )}
+
+                {/* 左上角状态指示器：固定 4x4 占位布局，通过透明度显隐，绝对不挤压文字 */}
                 <div
                     className={cn(
-                        'relative z-10 flex flex-col items-center justify-center',
-                        isCurrent ? 'visible' : 'invisible',
-                        fontSize === 'fontSizeSmall' ? 'w-5 h-5' : 'w-7 h-7',
-                        fontSize === 'fontSizeSmall' ? 'text-base' : 'text-lg',
-                        `text-red-500 dark:text-red-600`
+                        'relative z-10 flex items-center justify-center w-4 h-4 shrink-0 mt-0.5 transition-opacity duration-200',
+                        isCurrent ? 'opacity-100' : 'opacity-0'
                     )}
                 >
-                    {icon()}
+                    {renderStatusIcon()}
                 </div>
 
+                {/* 文本内容区：水平居中对齐 */}
                 <motion.div
                     className={cn(
-                        'relative z-10 w-full text-center',
-                        hover || show ? 'text-opacity-100' : 'text-opacity-0'
+                        'relative z-10 flex-1 min-w-0 flex flex-col items-center justify-center text-center transition-opacity duration-300',
+                        hover || show ? 'opacity-100' : 'opacity-0'
                     )}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: hover || show ? 1 : 0 }}
-                    transition={{ duration: 0.5 }}
+                    transition={{ duration: 0.2 }}
                 >
-                    {renderHighlightedText(s ?? '')}
+                    {/* 英文主句：激活与非激活字体大小、字重严格恒定(font-normal)，仅通过颜色加深，字符宽度100%不变，绝无换行跳动 */}
+                    <div className={cn(
+                        'w-full leading-snug transition-colors tracking-normal text-center font-normal',
+                        fontSize === 'fontSizeSmall' && 'text-[14.5px]',
+                        (!fontSize || fontSize === 'fontSizeMedium') && 'text-[16px]',
+                        fontSize === 'fontSizeLarge' && 'text-[18px]',
+                        isCurrent
+                            ? 'text-stone-950 dark:text-white'
+                            : 'text-stone-700 dark:text-neutral-300 group-hover:text-stone-950 dark:group-hover:text-white'
+                    )}>
+                        {renderHighlightedText(primaryText)}
+                    </div>
+
+                    {/* 中文译文：水平居中，激活与非激活字体大小严格一致，加深文本颜色以确保高可读性 */}
+                    {secondaryText && (
+                        <div className={cn(
+                            'w-full mt-1.5 leading-normal transition-colors font-normal text-center',
+                            fontSize === 'fontSizeSmall' && 'text-[12.5px]',
+                            (!fontSize || fontSize === 'fontSizeMedium') && 'text-[14px]',
+                            fontSize === 'fontSizeLarge' && 'text-[15.5px]',
+                            isCurrent
+                                ? 'text-stone-600 dark:text-neutral-300'
+                                : 'text-stone-500/90 dark:text-neutral-400/90 group-hover:text-stone-700 dark:group-hover:text-neutral-200'
+                        )}>
+                            {secondaryText}
+                        </div>
+                    )}
                 </motion.div>
             </div>
         );

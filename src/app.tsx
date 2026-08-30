@@ -15,8 +15,7 @@ import AppearanceSetting from '@/fronted/features/settings/AppearanceSetting';
 import ProxySetting from '@/fronted/features/settings/ProxySetting';
 import ServiceCredentialSetting from '@/fronted/features/settings/ServiceCredentialSetting';
 import EngineSelectionSetting from '@/fronted/features/settings/EngineSelectionSetting';
-import { Toaster } from '@/fronted/components/ui/sonner';
-import { Toaster as HotToaster } from 'react-hot-toast';
+import toast, { Toaster as HotToaster, Toast } from 'react-hot-toast';
 import RendererToastHost from '@/fronted/components/shared/toasts/RendererToastHost';
 
 import TranscriptPage from '@/fronted/features/transcript/TranscriptPage';
@@ -26,7 +25,7 @@ import ConvertPage from '@/fronted/features/convert/ConvertPage';
 import Eb from '@/fronted/components/shared/common/Eb';
 import FavouritePage from '@/fronted/features/favourite/FavouritePage';
 import VideoLearningPage from '@/fronted/features/video-learning/VideoLearningPage';
-import { toast as sonnerToast } from 'sonner';
+import { Button } from '@/fronted/components/ui/button';
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { applyLanguageSetting } from '@/fronted/i18n';
@@ -56,17 +55,28 @@ const App = () => {
                     return;
                 }
                 const latest = result.releases[0];
-                sonnerToast(t('updateAvailableTitle', { version: latest.version }), {
-                    id: UPDATE_TOAST_ID,
-                    duration: 8000,
-                    position: 'bottom-left',
-                    action: {
-                        label: t('updateAvailableAction'),
-                        onClick: async () => {
-                            await backendClient.call('system/open-url', latest.url);
-                        },
-                    },
-                });
+                const versionTitle = t('updateAvailableTitle', { version: latest.version });
+                toast(
+                    (tState: Toast) => (
+                        <div className="flex items-center gap-3 text-sm">
+                            <span className="font-semibold text-xs">{versionTitle}</span>
+                            <Button
+                                size="sm"
+                                className="h-7 px-3 text-xs shrink-0"
+                                onClick={() => {
+                                    toast.dismiss(tState.id);
+                                    void backendClient.call('system/open-url', latest.url);
+                                }}
+                            >
+                                {t('updateAvailableAction')}
+                            </Button>
+                        </div>
+                    ),
+                    {
+                        id: UPDATE_TOAST_ID,
+                        duration: 8000,
+                    }
+                );
             })().catch(() => {
                 // ignore update check failures on startup
             });
@@ -150,8 +160,19 @@ const App = () => {
                     </Routes>
                 </HashRouter>
             </div>
-            <Toaster position="bottom-left" />
-            <HotToaster />
+            <HotToaster
+                position="top-center"
+                toastOptions={{
+                    className: 'border border-border/80 bg-background/95 text-foreground shadow-lg backdrop-blur-md text-xs font-medium rounded-xl',
+                    style: {
+                        background: 'hsl(var(--background))',
+                        color: 'hsl(var(--foreground))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '0.75rem',
+                        boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+                    },
+                }}
+            />
             <RendererToastHost />
             <GlobalShortCut />
         </>

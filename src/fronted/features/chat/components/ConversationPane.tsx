@@ -46,7 +46,7 @@ import type { ServiceCredentialSettingDetailVO } from '@/common/types/vo/service
 import { useTranslation } from 'react-i18next';
 import i18n from '@/fronted/i18n';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
-import { useToast } from '@/fronted/components/ui/use-toast';
+import toast from 'react-hot-toast';
 import Markdown from '@/fronted/components/shared/markdown/Markdown';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
@@ -405,7 +405,6 @@ const renderMessage = (
  */
 const ConversationPane = ({ chat }: { chat: SentenceLearningChat }) => {
     const { t } = useTranslation('common');
-    const { toast } = useToast();
     const { mutate } = useSWRConfig();
     const { data: engineSettings, mutate: mutateEngineSettings } = useSWR<EngineSelectionSettingVO>(
         'settings/engine-selection/detail',
@@ -459,11 +458,7 @@ const ConversationPane = ({ chat }: { chat: SentenceLearningChat }) => {
             await mutateEngineSettings(nextSettings, { revalidate: false });
             await mutate('settings/service-credentials/detail');
         } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: '模型切换失败',
-                description: error instanceof Error ? error.message : String(error),
-            });
+            toast.error(`模型切换失败\n${error instanceof Error ? error.message : String(error)}`);
         } finally {
             setSavingModel(false);
         }
@@ -533,11 +528,7 @@ const ConversationPane = ({ chat }: { chat: SentenceLearningChat }) => {
                                 disabled={!sentenceLearningEnabled || savingModel || availableModels.length === 0}
                                 value={engineSettings?.openai.featureModels.sentenceLearning}
                                 onValueChange={(value) => selectModel(value).catch((error) => {
-                                    toast({
-                                        variant: 'destructive',
-                                        title: '模型切换失败',
-                                        description: error instanceof Error ? error.message : String(error),
-                                    });
+                                    toast.error(`模型切换失败\n${error instanceof Error ? error.message : String(error)}`);
                                 })}
                             >
                                 <SelectTrigger

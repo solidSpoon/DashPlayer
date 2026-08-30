@@ -63,6 +63,10 @@ export interface SemaphoreOptions {
      */
     name?: string;
     /**
+     * 原语类型；互斥锁底层复用信号量实现，缺少该标记时日志无法区分"独占锁被占住"与"并发槽位打满"。
+     */
+    kind?: 'semaphore' | 'mutex';
+    /**
      * 日志端口持有者；由组合根运行期注入，保持内核不直接依赖基础设施。
      */
     logger?: ConcurrencyLoggerRef;
@@ -231,6 +235,9 @@ export function safeLog(
 
 /** 等待超过该阈值（毫秒）时记 debug，用于观测限流/信号量竞争。 */
 export const CONCURRENCY_WAIT_LOG_THRESHOLD_MS = 500;
+
+/** 持锁达到该阈值（毫秒）时（仍在持有期间）记 warn，用于定位"任务卡住把锁占死"这类永远走不到 release 的故障。 */
+export const CONCURRENCY_HOLD_LOG_THRESHOLD_MS = 5000;
 
 /**
  * 合作式让步调用选项。

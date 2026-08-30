@@ -110,20 +110,4 @@ export const fileBrowserApi = {
      */
     listWatchHistoryByPath: (basePath: string) => backendClient.call('watch-history/list', basePath),
 
-    /**
-     * 获取媒体信息。
-     *
-     * @param filePath 媒体文件路径。
-     * @returns 媒体信息。
-     */
-    getMediaInfo: (filePath: string) => backendClient.call('media/info', filePath),
-
-    /**
-     * 获取转换为 HTML5 视频的建议路径。
-     *
-     * @param filePath 视频文件路径。
-     * @returns 建议的视频路径。
-     */
-    suggestHtml5Video: (filePath: string) => backendClient.call('convert/suggest-html5-video', filePath),
-
 };

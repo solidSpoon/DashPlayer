@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
-import { AiOutlineFieldTime } from 'react-icons/ai';
-import { Bookmark } from 'lucide-react';
+import { History, Bookmark } from 'lucide-react';
 import { cn } from '@/fronted/lib/utils';
 import { FONT_SIZE } from '@/fronted/styles/style';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
@@ -47,21 +46,19 @@ const TranslatableLineWrapper: React.FC<TranslatableLineWrapperProps> = ({
   const variantConfig = variant === 'plain'
     ? {
       root: cn(
-        'relative z-10 mx-0 mt-0 rounded-none bg-transparent drop-shadow-none shadow-none text-foreground dark:text-neutral-100 pointer-events-auto transition-all duration-200 box-border',
+        'relative z-10 mx-0 mt-0 rounded-none bg-transparent drop-shadow-none shadow-none text-stone-800 dark:text-neutral-200 pointer-events-auto transition-all duration-200 box-border',
         isHidden && 'opacity-60 hover:opacity-100'
       ),
-      leftControl: 'w-10 h-10 flex-shrink-0',
-      rightControl: 'w-10 h-full flex items-center justify-center flex-shrink-0'
+      actions: 'absolute right-2.5 top-1.5 flex items-center gap-1.5 z-20'
     }
     : {
       root: cn(
-        'rounded-lg drop-shadow-md mx-10 mt-2.5 shadow-inner z-50 transition-all duration-200 pointer-events-auto box-border',
+        'relative rounded-lg drop-shadow-md mx-10 mt-2.5 shadow-inner z-50 transition-all duration-200 pointer-events-auto box-border',
         isHidden
-          ? 'bg-stone-200/80 dark:bg-neutral-800/80 text-stone-500 dark:text-neutral-400 shadow-stone-100/50 dark:shadow-neutral-900/50 hover:bg-stone-200 dark:hover:bg-neutral-700 hover:text-stone-700 dark:hover:text-neutral-100 hover:shadow-stone-100 dark:hover:shadow-neutral-600'
-          : 'bg-stone-200 dark:bg-neutral-700 text-stone-700 dark:text-neutral-100 shadow-stone-100 dark:shadow-neutral-600'
+          ? 'bg-stone-200/80 dark:bg-neutral-800/80 text-stone-500 dark:text-neutral-400 shadow-stone-100/50 dark:shadow-neutral-900/50 hover:bg-stone-200 dark:hover:bg-neutral-700 hover:text-stone-700 dark:hover:text-neutral-200 hover:shadow-stone-100 dark:hover:shadow-neutral-600'
+          : 'bg-stone-200 dark:bg-neutral-700 text-stone-700 dark:text-neutral-200 shadow-stone-100 dark:shadow-neutral-600'
       ),
-      leftControl: 'w-10 m-2.5 h-10 flex-shrink-0',
-      rightControl: 'w-10 h-full flex items-end justify-center pb-2 flex-shrink-0'
+      actions: 'absolute right-3 top-1.5 flex items-center gap-1.5 z-20'
     };
 
   return (
@@ -71,7 +68,7 @@ const TranslatableLineWrapper: React.FC<TranslatableLineWrapperProps> = ({
       onBlur={() => setHovered(false)}
       onMouseLeave={() => setHovered(false)}
       className={cn(
-        'flex justify-between items-start',
+        'relative flex justify-center items-center font-medium tracking-normal leading-snug',
         variantConfig.root,
         FONT_SIZE['ms1-large'],
         fontSize === 'fontSizeSmall' && FONT_SIZE['ms1-small'],
@@ -80,32 +77,13 @@ const TranslatableLineWrapper: React.FC<TranslatableLineWrapperProps> = ({
         className
       )}
     >
-      {/* 左侧：时间调整（业务控件） */}
-      <div className={cn(variantConfig.leftControl)}>
-        {adjusted && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button onClick={clearAdjust} variant={'ghost'} size={'icon'} className={cn('[&_svg]:size-7')}>
-                  <AiOutlineFieldTime className={cn('fill-black')} />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>点击重置当前句子时间戳</TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        )}
-      </div>
-
-      {/* 中间：纯翻译行 */}
-      <TranslatableLine
-        sentence={sentence}
-        show={show || hovered}
-        className={coreClassName}
-      />
-
-      {/* 右侧：收藏标记（业务控件） */}
-      <div className={cn(variantConfig.rightControl)}>
-        {isFavourite && <Bookmark className={cn('w-5 h-5 text-yellow-500 dark:text-yellow-600')} />}
+      {/* 中间纯正文：自然居中 */}
+      <div className="w-full">
+        <TranslatableLine
+          sentence={sentence}
+          show={show || hovered}
+          className={coreClassName}
+        />
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import {DpTask} from '@/common/contracts/dp-task';
 import {YdRes, OpenAIDictionaryResult} from '@/common/types/YdRes';
 import {ChapterParseResult} from '@/common/types/chapter-result';
-import {SrtSentence} from '@/common/types/SentenceC';
+import {SrtSentence, Sentence} from '@/common/types/SentenceC';
 import {WindowState} from '@/common/types/Types';
 import {SubtitleTimestampAdjustmentInput} from '@/common/contracts/subtitle-timestamp-adjustment';
 import { UpdateCheckResult } from '@/common/types/update-check';
@@ -56,7 +56,9 @@ interface TranscriptDef {
     'transcript/list': { params: void, return: TranscriptTask[] };
     'transcript/enqueue': { params: { filePath: string }, return: TranscriptTask };
     'transcript/remove': { params: { filePath: string }, return: void };
-    'transcript/start': { params: { filePath: string }, return: 'started' | 'model_missing' };
+    'transcript/start': { params: { filePath: string; currentPosition?: number }, return: 'started' | 'model_missing' };
+    'transcript/update-demand': { params: { filePath: string; currentPosition: number }, return: void };
+    'transcript/session-snapshot': { params: { filePath: string }, return: { sessionId: string; sentences: Sentence[] } | null };
     'transcript/cancel': { params: { filePath: string }, return: boolean };
 }
 
@@ -312,6 +314,26 @@ interface VocabularyDef {
         params: { filePath: string },
         return: { success: boolean; message?: string; error?: string }
     };
+    'vocabulary/favorite': {
+        params: { word: string },
+        return: {
+            success: boolean;
+            data?: { word: string; translate: string; alreadyExists: boolean };
+            error?: string
+        }
+    };
+    'vocabulary/update': {
+        params: { oldWord: string; word: string; translate: string },
+        return: { success: boolean; error?: string }
+    };
+    'vocabulary/delete': {
+        params: { word: string },
+        return: { success: boolean; error?: string }
+    };
+    'vocabulary/generate-definition': {
+        params: { word: string },
+        return: { success: boolean; data?: string; error?: string }
+    };
 }
 
 interface VideoLearningDef {
@@ -347,9 +369,9 @@ interface VideoLearningDef {
         params: void,
         return: { success: boolean }
     };
-    'video-learning/clip-counts': {
+    'video-learning/word-clip-stats': {
         params: void,
-        return: { success: boolean; data: Record<string, number> }
+        return: { success: boolean; data: Record<string, { count: number; lastAddedAt: string }> }
     };
 }
 

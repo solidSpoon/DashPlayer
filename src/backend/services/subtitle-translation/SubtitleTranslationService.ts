@@ -16,6 +16,12 @@ import SubtitleTranslationScheduler, {
     SubtitleTranslationBatchRequest,
     SubtitleTranslationBatchResult,
 } from '@/backend/services/subtitle-translation/SubtitleTranslationScheduler';
+import {
+    buildContextStorageKeyForSentence,
+    buildSentenceStorageKey,
+    resolvePromptNeighbor,
+    shouldTranslateSubtitleText,
+} from '@/backend/services/subtitle-translation/SubtitleTranslationCacheKey';
 import { concurrency } from '@/backend/utils/concurrency';
 import {
     buildSubtitleBatchPrompt,
@@ -28,7 +34,6 @@ import {
     TranslationProvider,
 } from '@/common/types/TranslationResult';
 import TimeUtil from '@/common/utils/TimeUtil';
-import { p } from '@/common/utils/Util';
 
 type SubtitleTranslationStorageMode = 'tencent' | `openai_${string}`;
 
@@ -42,12 +47,39 @@ interface SubtitleTranslationExecutionContext {
     storageMode: SubtitleTranslationStorageMode;
     /** 前端用于过滤过期结果的翻译模式。 */
     mode: TranslationMode;
-    /** 当前字幕文件的完整句子列表。 */
-    sentences: Sentence[];
+    /**
+     * 当前字幕文件按稳定坐标（sentence.index）索引的句子映射。
+     * 增量转录会话的坐标为「分片序号 × 100000 + 片内序号」，与数组下标不同，
+     * 因此取句、前后文邻居查询都必须走该映射而非数组下标。
+     */
+    sentencesByIndex: Map<number, Sentence>;
     /** 当前字幕文件哈希。 */
     fileHash: string;
     /** OpenAI 批量提示词使用的风格约束。 */
     style?: string;
+}
+
+/**
+ * 批次内单个待翻译句子的描述符。
+ *
+ * 一次批次里每个句子都先生成该描述符，后续查缓存、发起在线请求、落库全程复用，
+ * 避免同一句的存储键在链路上被重复计算而出现不一致。
+ */
+interface SubtitleBatchTarget {
+    /** 句子的稳定坐标（sentence.index），用于回写批次完成与失败集合。 */
+    index: number;
+    /**
+     * 回推 renderer 用于定位句子的键，等于 Sentence.translationKey。
+     * 前端译文 Map 与 OpenAI 批量的回显键都使用它，不参与数据库寻址。
+     */
+    publishKey: string;
+    /**
+     * 数据库 sentence 列的存储键，由本次请求的实际输入形态派生：
+     * OpenAI 带上下文批量为三句键，腾讯批量与无上下文直翻为单句键。
+     */
+    storageKey: string;
+    /** 字幕原文，保留大小写，用于送翻译与跳过判定。 */
+    text: string;
 }
 
 /**
@@ -66,7 +98,7 @@ interface DirectTranslationTarget {
 export interface SubtitleTranslationDemandInput {
     /** 字幕文件哈希。 */
     fileHash: string;
-    /** 当前正在播放的字幕索引。 */
+    /** 当前正在播放的字幕稳定坐标（sentence.index；增量转录为大坐标）。 */
     currentIndex: number;
     /** 前端按播放位置递增的需求标记。 */
     demandId: number;
@@ -122,15 +154,6 @@ const mapOpenAiModeToStorage = (
     }
     return `openai_zh${suffix}`;
 };
-
-/**
- * 判断字幕文本是否包含值得送往翻译服务的文字或数字。
- *
- * @param text 字幕原文。
- * @returns 包含文字或数字时返回 true。
- */
-const shouldTranslateSubtitleText = (text: string): boolean =>
-    text.trim().length > 0 && /[\p{L}\p{N}]/u.test(text);
 
 /**
  * 将未知异常转换为适合提示用户的短消息。
@@ -285,7 +308,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
         const targetsByKey = new Map<string, DirectTranslationTarget>();
         texts.forEach((text) => {
             const trimmed = text.trim();
-            const key = p(trimmed);
+            const key = buildSentenceStorageKey(trimmed);
             if (key && !targetsByKey.has(key)) {
                 targetsByKey.set(key, { key, text: trimmed });
             }
@@ -326,7 +349,6 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
         const skipped = pending.filter((target) => !shouldTranslateSubtitleText(target.text));
         skipped.forEach((target) => {
             result.set(target.key, target.text);
-            freshResults.set(target.key, target.text);
         });
 
         const onlineTargets = pending.filter(
@@ -346,6 +368,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
                 batchId,
                 provider,
                 mode,
+                cacheHitCount: cached.size,
                 targetCount: onlineTargets.length,
                 elapsedMs: Date.now() - startedAt,
             });
@@ -380,6 +403,10 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             this.scheduler.release(fileHash, input.rendererSessionId);
             throw new Error('未找到字幕缓存，请重新加载字幕或重新打开视频');
         }
+        // 坐标升序排列；普通 SRT 的坐标即 0..N-1，与数组下标一致。
+        const sentenceIndices = srtData.sentences
+            .map((sentence) => sentence.index)
+            .sort((left, right) => left - right);
 
         const provider = await this.settingService.getCurrentTranslationProvider();
         if (!provider) {
@@ -393,13 +420,13 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
                 currentIndex: input.currentIndex,
                 demandId: input.demandId,
                 rendererSessionId: input.rendererSessionId,
-                sentenceCount: srtData.sentences.length,
+                sentenceIndices,
                 profileKey: 'tencent',
                 context: {
                     provider,
                     storageMode: 'tencent',
                     mode: 'zh',
-                    sentences: srtData.sentences,
+                    sentencesByIndex: this.buildSentencesByIndex(srtData.sentences),
                     fileHash,
                 },
             });
@@ -423,17 +450,27 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             currentIndex: input.currentIndex,
             demandId: input.demandId,
             rendererSessionId: input.rendererSessionId,
-            sentenceCount: srtData.sentences.length,
+            sentenceIndices,
             profileKey: `${storageMode}:${routedModel.fullModelId}`,
             context: {
                 provider,
                 storageMode,
                 mode,
-                sentences: srtData.sentences,
+                sentencesByIndex: this.buildSentencesByIndex(srtData.sentences),
                 fileHash,
                 style,
             },
         });
+    }
+
+    /**
+     * 构建按稳定坐标索引的句子映射，供批次取句与前后文邻居查询使用。
+     *
+     * @param sentences 当前字幕文件的完整句子列表。
+     * @returns 坐标到句子的映射。
+     */
+    private buildSentencesByIndex(sentences: Sentence[]): Map<number, Sentence> {
+        return new Map(sentences.map((sentence) => [sentence.index, sentence]));
     }
 
     /**
@@ -462,9 +499,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
         const completedIndices = new Set<number>();
         const failedIndices = new Set<number>();
         const batchStartedAt = Date.now();
-        const targets = request.indices
-            .map((index) => request.context.sentences[index])
-            .filter((sentence): sentence is Sentence => Boolean(sentence));
+        const targets = this.buildBatchTargets(request);
 
         this.logger.info('字幕翻译批次开始', {
             fileHash: request.fileHash,
@@ -480,19 +515,19 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
         });
 
         request.indices.forEach((index) => {
-            if (!request.context.sentences[index]) {
+            if (!request.context.sentencesByIndex.has(index)) {
                 failedIndices.add(index);
             }
         });
 
         try {
             this.throwIfAborted(request.signal);
-            const pending = await this.resolveCachedAndSkippedTargets(
+            const { onlineTargets, cacheHitCount } = await this.resolveCachedAndSkippedTargets(
                 request,
                 targets,
                 completedIndices
             );
-            if (pending.length === 0) {
+            if (onlineTargets.length === 0) {
                 this.logger.info('字幕翻译批次缓存完成', {
                     fileHash: request.fileHash,
                     batchId: request.batchId,
@@ -504,6 +539,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
                     indexStart: request.indices[0],
                     indexEnd: request.indices[request.indices.length - 1],
                     batchSize: request.indices.length,
+                    cacheHitCount,
                     completedCount: completedIndices.size,
                     failedCount: failedIndices.size,
                     elapsedMs: Date.now() - batchStartedAt,
@@ -516,18 +552,21 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             }
 
             const onlineResults = request.context.provider === 'tencent'
-                ? await this.translateWithTencent(request, pending)
-                : await this.translateWithOpenAi(request, pending);
+                ? await this.translateWithTencent(request, onlineTargets)
+                : await this.translateWithOpenAi(request, onlineTargets);
             this.throwIfAborted(request.signal);
-            await this.saveTranslations(onlineResults, request.context.storageMode);
+            await this.saveTranslations(
+                this.toStorageKeyedTranslations(onlineResults, onlineTargets),
+                request.context.storageMode
+            );
             this.pushTranslations(onlineResults, request.context);
 
             const translatedKeys = new Set(onlineResults.keys());
-            pending.forEach((sentence) => {
-                if (translatedKeys.has(sentence.translationKey)) {
-                    completedIndices.add(sentence.index);
+            onlineTargets.forEach((target) => {
+                if (translatedKeys.has(target.publishKey)) {
+                    completedIndices.add(target.index);
                 } else {
-                    failedIndices.add(sentence.index);
+                    failedIndices.add(target.index);
                 }
             });
 
@@ -542,9 +581,10 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
                 indexStart: request.indices[0],
                 indexEnd: request.indices[request.indices.length - 1],
                 batchSize: request.indices.length,
+                cacheHitCount,
                 completedCount: completedIndices.size,
                 failedCount: failedIndices.size,
-                onlineTargetCount: pending.length,
+                onlineTargetCount: onlineTargets.length,
                 elapsedMs: Date.now() - batchStartedAt,
             });
 
@@ -571,9 +611,9 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
                 };
             }
 
-            targets.forEach((sentence) => {
-                if (!completedIndices.has(sentence.index)) {
-                    failedIndices.add(sentence.index);
+            targets.forEach((target) => {
+                if (!completedIndices.has(target.index)) {
+                    failedIndices.add(target.index);
                 }
             });
             this.logger.warn('字幕翻译批次执行失败', {
@@ -608,60 +648,126 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
     }
 
     /**
-     * 回传缓存命中与无需在线翻译的字幕，并返回剩余目标。
+     * 把批次坐标解析为翻译目标描述符，并在此一次算出数据库存储键。
+     *
+     * 存储键的前后文邻居取句子自身坐标的上下句而非批首尾，保证键只绑句子的语义邻域、
+     * 与批次如何划分无关；播放窗口移动导致批次重组时，同一句的键保持稳定。
+     * OpenAI 批量带上下文因此使用三句键，腾讯批量只吃单句原文因此使用单句键。
      *
      * @param request 当前批次参数。
-     * @param targets 当前批次有效字幕。
-     * @param completedIndices 已完成索引集合。
-     * @returns 仍需在线翻译的字幕。
+     * @returns 批次内可取到句子的描述符列表。
+     */
+    private buildBatchTargets(
+        request: SubtitleTranslationBatchRequest<SubtitleTranslationExecutionContext>
+    ): SubtitleBatchTarget[] {
+        const { provider, sentencesByIndex } = request.context;
+        return request.indices
+            .map((index) => sentencesByIndex.get(index))
+            .filter((sentence): sentence is Sentence => Boolean(sentence))
+            .map((sentence) => ({
+                index: sentence.index,
+                publishKey: sentence.translationKey,
+                storageKey: provider === 'openai'
+                    ? buildContextStorageKeyForSentence(sentence, sentencesByIndex)
+                    : buildSentenceStorageKey(sentence.text),
+                text: sentence.text,
+            }));
+    }
+
+    /**
+     * 把以 renderer 定位键索引的结果投影为以数据库存储键索引的结果。
+     *
+     * 这是批次链路上唯一一次定位键到存储键的转换，只在进出数据库时发生。
+     * 同一批内出现重复原文时，相同存储键会被覆盖为同值，落库为幂等 upsert。
+     *
+     * @param translations 定位键到翻译文本的映射。
+     * @param targets 产生该批结果所用的描述符，提供定位键与存储键的对应关系。
+     * @returns 存储键到翻译文本的映射。
+     */
+    private toStorageKeyedTranslations(
+        translations: Map<string, string>,
+        targets: SubtitleBatchTarget[]
+    ): Map<string, string> {
+        const result = new Map<string, string>();
+        targets.forEach((target) => {
+            const translation = translations.get(target.publishKey);
+            if (translation) {
+                result.set(target.storageKey, translation);
+            }
+        });
+        return result;
+    }
+
+    /**
+     * 回传缓存命中与无需在线翻译的字幕，并返回剩余在线翻译目标。
+     *
+     * @param request 当前批次参数。
+     * @param targets 当前批次有效字幕描述符。
+     * @param completedIndices 已完成索引集合，命中与跳过句就地追加。
+     * @returns 仍需在线翻译的目标与缓存命中句数。
      */
     private async resolveCachedAndSkippedTargets(
         request: SubtitleTranslationBatchRequest<SubtitleTranslationExecutionContext>,
-        targets: Sentence[],
+        targets: SubtitleBatchTarget[],
         completedIndices: Set<number>
-    ): Promise<Sentence[]> {
-        const cached = await this.getTranslations(
-            targets.map((sentence) => sentence.translationKey),
+    ): Promise<{ onlineTargets: SubtitleBatchTarget[]; cacheHitCount: number }> {
+        const uniqueStorageKeys = Array.from(
+            new Set(targets.map((target) => target.storageKey))
+        );
+        const cachedByStorageKey = await this.getTranslations(
+            uniqueStorageKeys,
             request.context.storageMode
         );
+        const cached = new Map<string, string>();
+        targets.forEach((target) => {
+            const translation = cachedByStorageKey.get(target.storageKey);
+            if (translation) {
+                cached.set(target.publishKey, translation);
+            }
+        });
         if (cached.size > 0) {
             this.pushTranslations(cached, request.context);
-            targets.forEach((sentence) => {
-                if (cached.has(sentence.translationKey)) {
-                    completedIndices.add(sentence.index);
+            targets.forEach((target) => {
+                if (cached.has(target.publishKey)) {
+                    completedIndices.add(target.index);
                 }
             });
         }
 
-        const uncached = targets.filter(
-            (sentence) => !cached.has(sentence.translationKey)
-        );
+        const uncached = targets.filter((target) => !cached.has(target.publishKey));
         const skipped = uncached.filter(
-            (sentence) => !shouldTranslateSubtitleText(sentence.text)
+            (target) => !shouldTranslateSubtitleText(target.text)
         );
         if (skipped.length > 0) {
             const unchanged = new Map<string, string>();
-            skipped.forEach((sentence) => {
-                unchanged.set(sentence.translationKey, sentence.text);
-                completedIndices.add(sentence.index);
+            skipped.forEach((target) => {
+                unchanged.set(target.publishKey, target.text);
+                completedIndices.add(target.index);
             });
-            await this.saveTranslations(unchanged, request.context.storageMode);
             this.pushTranslations(unchanged, request.context);
         }
 
-        return uncached.filter((sentence) => shouldTranslateSubtitleText(sentence.text));
+        return {
+            onlineTargets: uncached.filter(
+                (target) => shouldTranslateSubtitleText(target.text)
+            ),
+            cacheHitCount: cached.size,
+        };
     }
 
     /**
      * 使用腾讯批量接口翻译当前目标。
      *
-     * @param targets 当前未命中缓存的字幕。
-     * @param signal 当前批次取消信号。
-     * @returns 以稳定字幕键索引的翻译结果。
+     * 腾讯接口只吃单句原文，因此结果按原文取回后以 renderer 定位键返回，
+     * 存储键转换由调用方在落库前统一完成。
+     *
+     * @param request 当前批次参数。
+     * @param targets 当前未命中缓存的字幕描述符。
+     * @returns 以 renderer 定位键索引的翻译结果。
      */
     private async translateWithTencent(
         request: SubtitleTranslationBatchRequest<SubtitleTranslationExecutionContext>,
-        targets: Sentence[],
+        targets: SubtitleBatchTarget[],
     ): Promise<Map<string, string>> {
         const client = this.tencentProvider.getClient();
         if (!client) {
@@ -672,7 +778,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
         const holder = await concurrency.withRateLimit(
             'tencent',
             () => client.batchTrans(
-                targets.map((sentence) => sentence.text),
+                targets.map((target) => target.text),
                 {
                     batchId: request.batchId,
                     fileHash: request.fileHash,
@@ -683,10 +789,10 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
         this.throwIfAborted(request.signal);
 
         const translations = new Map<string, string>();
-        targets.forEach((sentence) => {
-            const translation = holder.get(sentence.text)?.trim();
+        targets.forEach((target) => {
+            const translation = holder.get(target.text)?.trim();
             if (translation) {
-                translations.set(sentence.translationKey, translation);
+                translations.set(target.publishKey, translation);
             }
         });
         return translations;
@@ -729,31 +835,34 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
      * 使用 OpenAI 非流式结构化输出翻译当前目标。
      *
      * 失败后的重新执行由窗口调度器统一控制，当前方法本身只发起一次请求。
+     * 提示词中的回显键使用 renderer 定位键而非数据库存储键：存储键是长哈希，
+     * 要求模型逐字回抄会放大整批失败面，且同批重复原文会塌成相同键被判定重复返回。
      *
      * @param request 当前批次参数。
-     * @param targets 当前未命中缓存的字幕。
-     * @returns 以稳定字幕键索引的完整翻译结果。
+     * @param targets 当前未命中缓存的字幕描述符。
+     * @returns 以 renderer 定位键索引的完整翻译结果。
      */
     private async translateWithOpenAi(
         request: SubtitleTranslationBatchRequest<SubtitleTranslationExecutionContext>,
-        targets: Sentence[]
+        targets: SubtitleBatchTarget[]
     ): Promise<Map<string, string>> {
         const style = request.context.style;
         if (!style) {
             throw new Error('OpenAI 字幕翻译风格配置缺失');
         }
 
-        const targetItems: OpenAiSubtitleTranslationTarget[] = targets.map((sentence) => ({
-            key: sentence.translationKey,
-            text: sentence.text,
+        const targetItems: OpenAiSubtitleTranslationTarget[] = targets.map((target) => ({
+            key: target.publishKey,
+            text: target.text,
         }));
         const firstIndex = targets[0].index;
         const lastIndex = targets[targets.length - 1].index;
+        // 提示词的前后文邻居取批首尾坐标的相邻句：跨分片间隔处查不到邻居则上下文留空。
         const contextBefore = this.buildContextItem(
-            request.context.sentences[firstIndex - 1]
+            request.context.sentencesByIndex.get(firstIndex - 1)
         );
         const contextAfter = this.buildContextItem(
-            request.context.sentences[lastIndex + 1]
+            request.context.sentencesByIndex.get(lastIndex + 1)
         );
         const prompt = buildSubtitleBatchPrompt({
             targets: targetItems,
@@ -844,18 +953,25 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
     /**
      * 将相邻字幕转换为只读上下文条目。
      *
+     * 邻居取值复用 resolvePromptNeighbor，与存储键计算共用同一判据，
+     * 避免出现"键认为邻居存在、提示词认为不存在"的分歧。
+     *
      * @param sentence 相邻字幕；不存在时为空。
-     * @returns 可写入提示词的上下文条目。
+     * @returns 可写入提示词的上下文条目；无可用文本时为空。
      */
     private buildContextItem(
         sentence: Sentence | undefined
     ): OpenAiSubtitleTranslationTarget | null {
-        if (!sentence || !shouldTranslateSubtitleText(sentence.text)) {
+        if (!sentence) {
+            return null;
+        }
+        const text = resolvePromptNeighbor(sentence);
+        if (text === null) {
             return null;
         }
         return {
             key: sentence.translationKey,
-            text: sentence.text,
+            text,
         };
     }
 
@@ -878,9 +994,9 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
     /**
      * 批量查询当前模式下的句级翻译缓存。
      *
-     * @param keys 稳定字幕键。
+     * @param keys 数据库存储键（内容派生键，非 renderer 定位键）。
      * @param mode 持久化缓存模式。
-     * @returns 有效的非空翻译映射。
+     * @returns 有效的非空翻译映射，键为存储键。
      */
     private async getTranslations(
         keys: string[],
@@ -904,7 +1020,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
     /**
      * 批量持久化句级翻译结果。
      *
-     * @param translations 稳定字幕键到翻译文本的映射。
+     * @param translations 数据库存储键到翻译文本的映射。
      * @param mode 持久化缓存模式。
      */
     private async saveTranslations(
@@ -927,7 +1043,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
     /**
      * 向渲染层批量推送当前配置下的最终翻译结果。
      *
-     * @param translations 稳定字幕键到翻译文本的映射。
+     * @param translations renderer 定位键到翻译文本的映射。
      * @param context 当前字幕翻译配置。
      */
     private pushTranslations(
@@ -982,7 +1098,6 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             title: '字幕翻译失败',
             message: combinedMessage,
             variant: 'error',
-            position: 'top-left',
             bubble: true,
             dedupeKey,
             duration: 6500,

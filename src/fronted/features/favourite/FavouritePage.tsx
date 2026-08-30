@@ -162,6 +162,7 @@ const Favorite = () => {
                                 ref={virtuosoRef}
                                 className="w-full h-full scrollbar-none"
                                 data={data}
+                                defaultItemHeight={80}
                                 itemContent={(_index, item) => <FavouriteItem item={item} />}
                             />
                         </div>

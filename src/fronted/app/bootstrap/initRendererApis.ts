@@ -9,6 +9,8 @@ import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 import { TranscriptTaskState } from '@/common/contracts/transcript/transcript-task';
 import { transcriptApi } from '@/fronted/features/transcript/transcriptApi';
 import toast from 'react-hot-toast';
+import useFile from '@/fronted/features/file-browser/fileStore';
+import { playerActions } from '@/fronted/features/player/components/PlayerActions';
 
 /**
  * 注册 main 进程可调用的 renderer 接口。
@@ -37,30 +39,6 @@ export function initRendererApis(): () => void {
 
         unregisters.push(registerRendererApi(path, wrappedHandler as RendererApiMap[K]));
     };
-
-    register('ui/show-notification', async (params) => {
-        logger.debug('Show notification', { params });
-
-        if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification(params.title, {
-                body: params.message,
-                icon: '/icon.png',
-            });
-            return;
-        }
-
-        alert(`${params.title}: ${params.message}`);
-    });
-
-    register('ui/show-confirm-dialog', async (params) => {
-        logger.debug('Show confirmation dialog', { params });
-        return true;
-    });
-
-    register('ui/update-progress', async (params) => {
-        logger.debug('Update progress', { params });
-        window.dispatchEvent(new CustomEvent('progress-update', { detail: params }));
-    });
 
     register('ui/show-toast', async (params) => {
         logger.debug('Show toast', { params });
@@ -99,11 +77,26 @@ export function initRendererApis(): () => void {
                     await transcriptApi.attachSubtitle(update.filePath, 'same');
                     await swrMutate(SWR_KEY.PLAYER_P);
                     toast('Transcript done', { icon: '🚀' });
+                    continue;
+                }
+                // 取消/失败后增量会话已结束，当前视频需回退到已挂载的真实字幕（无则清空）。
+                if (
+                    (update.status === TranscriptTaskState.CANCELLED || update.status === TranscriptTaskState.FAILED)
+                    && update.filePath === useFile.getState().videoPath
+                ) {
+                    useFile.getState().reloadSubtitles();
                 }
             }
         } finally {
             await swrMutate(SWR_KEY.TRANSCRIPTION_TASKS);
         }
+    });
+
+    register('transcript/chunk-result', async (params) => {
+        if (params.filePath !== useFile.getState().videoPath) return;
+        if (params.sentences.length === 0) return;
+        useTranslation.getState().setActiveFileHash(params.sessionId);
+        playerActions.loadSubtitles(params.sentences);
     });
 
     register('dictionary/openai-update', async ({ requestId, word, data, isComplete = false }) => {

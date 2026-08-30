@@ -39,6 +39,8 @@ export function createMutex(options?: { name?: string; logger?: ConcurrencyLogge
     const semaphore: Semaphore = createSemaphore({
         capacity: 1,
         name,
+        // 互斥锁复用信号量实现，必须显式标明类型，否则日志里与并发槽位无法区分。
+        kind: 'mutex',
         logger: options?.logger,
     });
 

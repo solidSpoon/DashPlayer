@@ -36,7 +36,7 @@ import { ParakeetModelStatusVO } from '@/common/types/vo/parakeet-model-vo';
 import { SherpaTtsModelStatusVO } from '@/common/types/vo/sherpa-tts-model-vo';
 import type { ParakeetModelPhase } from '@/common/contracts/parakeet-model-phase';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
-import { useToast } from '@/fronted/components/ui/use-toast';
+import toast from 'react-hot-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
 import {
@@ -51,7 +51,6 @@ import {
  */
 const ServiceCredentialSetting = () => {
     const { t } = useI18nTranslation('settings');
-    const { toast } = useToast();
     const { data: settings } = useSWR('settings/service-credentials/detail', () =>
         settingsApi.getServiceCredentials(),
     );
@@ -102,13 +101,9 @@ const ServiceCredentialSetting = () => {
     const copyText = async (value: string) => {
         try {
             await navigator.clipboard.writeText(value);
-            toast({ title: t('common.copied') });
+            toast.success(t('common.copied'));
         } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: t('common.copyFailed'),
-                description: error instanceof Error ? error.message : String(error),
-            });
+            toast.error(`${t('common.copyFailed')}\n${error instanceof Error ? error.message : String(error)}`);
         }
     };
 
@@ -117,11 +112,7 @@ const ServiceCredentialSetting = () => {
         try {
             await settingsApi.openUrl(url);
         } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: t('common.openUrlFailed'),
-                description: error instanceof Error ? error.message : String(error),
-            });
+            toast.error(`${t('common.openUrlFailed')}\n${error instanceof Error ? error.message : String(error)}`);
         }
     };
 
@@ -130,11 +121,7 @@ const ServiceCredentialSetting = () => {
         try {
             await settingsApi.openFolderForFile(filePath);
         } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: t('common.openFolderFailed'),
-                description: error instanceof Error ? error.message : String(error),
-            });
+            toast.error(`${t('common.openFolderFailed')}\n${error instanceof Error ? error.message : String(error)}`);
         }
     };
 
@@ -256,11 +243,7 @@ const ServiceCredentialSetting = () => {
         try {
             await flush();
         } catch (flushError) {
-            toast({
-                variant: 'destructive',
-                title: t('common.saveFailed'),
-                description: flushError instanceof Error ? flushError.message : String(flushError),
-            });
+            toast.error(`${t('common.saveFailed')}\n${flushError instanceof Error ? flushError.message : String(flushError)}`);
             return;
         }
 
@@ -297,11 +280,7 @@ const ServiceCredentialSetting = () => {
             throw new Error('openai.models 未初始化');
         }
         if (openAiModels.some((item) => item.model === model)) {
-            toast({
-                variant: 'destructive',
-                title: t('common.saveFailed'),
-                description: t('serviceCredentials.openai.duplicateModel', { model }),
-            });
+            toast.error(`${t('common.saveFailed')}\n${t('serviceCredentials.openai.duplicateModel', { model })}`);
             return;
         }
         setValue(
@@ -345,14 +324,10 @@ const ServiceCredentialSetting = () => {
             await settingsApi.downloadParakeetModel();
             setParakeetDownloadProgress(100);
             setParakeetDownloadPhase('downloading');
-            toast({ title: t('common.downloadDone'), description: 'Parakeet v3 模型已下载' });
+            toast.success(`${t('common.downloadDone')}\nParakeet v3 模型已下载`);
             await refreshParakeetModelStatus();
         } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: t('common.downloadFailed'),
-                description: error instanceof Error ? error.message : String(error),
-            });
+            toast.error(`${t('common.downloadFailed')}\n${error instanceof Error ? error.message : String(error)}`);
         } finally {
             downloadingRef.current = false;
             setDownloadingParakeetModel(false);
@@ -367,14 +342,10 @@ const ServiceCredentialSetting = () => {
             const result = await settingsApi.cancelParakeetModelDownload();
             if (result.cancelled) {
                 setParakeetDownloadPhase('downloading');
-                toast({ title: t('serviceCredentials.parakeet.downloadCancelled') });
+                toast.success(t('serviceCredentials.parakeet.downloadCancelled'));
             }
         } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: t('common.downloadFailed'),
-                description: error instanceof Error ? error.message : String(error),
-            });
+            toast.error(`${t('common.downloadFailed')}\n${error instanceof Error ? error.message : String(error)}`);
         }
     };
 
@@ -385,14 +356,10 @@ const ServiceCredentialSetting = () => {
         setDeletingParakeetModel(true);
         try {
             await settingsApi.deleteParakeetModel();
-            toast({ title: t('serviceCredentials.parakeet.modelDeleted') });
+            toast.success(t('serviceCredentials.parakeet.modelDeleted'));
             await refreshParakeetModelStatus();
         } catch (error) {
-            toast({
-                variant: 'destructive',
-                title: t('serviceCredentials.parakeet.deleteFailed'),
-                description: error instanceof Error ? error.message : String(error),
-            });
+            toast.error(`${t('serviceCredentials.parakeet.deleteFailed')}\n${error instanceof Error ? error.message : String(error)}`);
         } finally {
             setDeletingParakeetModel(false);
         }
@@ -408,10 +375,10 @@ const ServiceCredentialSetting = () => {
         setSherpaTtsDownloadPhase('downloading');
         try {
             await settingsApi.downloadSherpaTtsModel();
-            toast({ title: t('common.downloadDone'), description: 'Sherpa TTS 模型已下载' });
+            toast.success(`${t('common.downloadDone')}\nSherpa TTS 模型已下载`);
             await refreshSherpaTtsModelStatus();
         } catch (error) {
-            toast({ variant: 'destructive', title: t('common.downloadFailed'), description: error instanceof Error ? error.message : String(error) });
+            toast.error(`${t('common.downloadFailed')}\n${error instanceof Error ? error.message : String(error)}`);
         } finally {
             sherpaTtsDownloadingRef.current = false;
             setDownloadingSherpaTtsModel(false);
@@ -423,7 +390,7 @@ const ServiceCredentialSetting = () => {
      */
     const cancelSherpaTtsDownload = async () => {
         const result = await settingsApi.cancelSherpaTtsModelDownload();
-        if (result.cancelled) toast({ title: 'Sherpa TTS 模型下载已取消' });
+        if (result.cancelled) toast.success('Sherpa TTS 模型下载已取消');
     };
 
     /**
@@ -433,7 +400,7 @@ const ServiceCredentialSetting = () => {
         setDeletingSherpaTtsModel(true);
         try {
             await settingsApi.deleteSherpaTtsModel();
-            toast({ title: 'Sherpa TTS 模型已删除' });
+            toast.success('Sherpa TTS 模型已删除');
             await refreshSherpaTtsModelStatus();
         } finally {
             setDeletingSherpaTtsModel(false);

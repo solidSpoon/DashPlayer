@@ -5,13 +5,11 @@ import { Captions } from 'lucide-react';
 import TooltippedButton from '@/fronted/components/shared/common/TooltippedButton';
 import useFile from '@/fronted/features/file-browser/fileStore';
 import StrUtil from '@/common/utils/str-util';
-import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { SWR_KEY } from '@/fronted/lib/swr-util';
 import { transcriptApi } from '@/fronted/features/transcript/transcriptApi';
-
-const logger = getRendererLogger('TranscriptButton');
+import { usePlayer } from '@/fronted/features/player/playerStore';
 
 /** 播放器转录按钮属性。 */
 interface TranscriptButtonProps {
@@ -51,7 +49,20 @@ export default function TranscriptButton({ className }: TranscriptButtonProps) {
       case 'init':
         return t('transcript.statusInit');
       case 'in_progress': {
-        const message = currentVideoTask.result?.message || t('transcript.statusInProgress');
+        const result = currentVideoTask.result;
+        if (result?.phase === 'preparing') {
+          return t('transcript.statusPreparing');
+        }
+        if (result?.phase === 'finishing') {
+          return t('transcript.statusFinishing');
+        }
+        if (result?.phase === 'generating') {
+          if (typeof result.currentChunk === 'number' && typeof result.totalChunks === 'number' && result.totalChunks > 0) {
+            const percent = Math.min(99, Math.floor((result.currentChunk / result.totalChunks) * 100));
+            return t('transcript.statusGenerating', { progress: percent });
+          }
+        }
+        const message = result?.message || t('transcript.statusInProgress');
         return message.length > 10 ? message.substring(0, 10) + '...' : message;
       }
       case 'done':
@@ -59,13 +70,6 @@ export default function TranscriptButton({ className }: TranscriptButtonProps) {
         return t('transcript.button');
     }
   };
-
-  logger.debug('transcript task status', {
-    videoPath,
-    currentVideoTask,
-    isInProgress,
-    statusText: getStatusText()
-  });
 
   const tooltipMd = codeBlock`
   #### ${t('transcript.tooltipTitle')}
@@ -81,7 +85,9 @@ export default function TranscriptButton({ className }: TranscriptButtonProps) {
       toast.error(t('transcript.noVideoSelected'));
       return;
     }
-    const result = await transcriptApi.startTranscription(srtPath);
+    // 仅在点击瞬间读取播放位置作为转录起点，避免订阅高频播放时钟导致组件跟随渲染
+    const currentPosition = usePlayer.getState().getExactPlayTime();
+    const result = await transcriptApi.startTranscription(srtPath, currentPosition);
     await mutate();
     if (result === 'model_missing') {
       toast.error(t('transcript.modelMissing'));

@@ -1,4 +1,7 @@
 import { ChildProcess, spawn } from 'child_process';
+import { FfmpegExecutionError } from '@/backend/services/gateways/media/FfmpegGateway';
+import { CancelByUserError } from '@/backend/utils/errors/errors';
+import { OutputTail } from '@/backend/utils/output-tail';
 
 /**
  * FFmpeg 执行请求。
@@ -12,6 +15,8 @@ export interface FfmpegRunRequest {
     inputDurationSecond?: number;
     /** 进程工作目录；默认使用当前进程目录。 */
     cwd?: string;
+    /** 子进程身份标识，随错误对象透传，便于上层归因。 */
+    job?: string;
 }
 
 /**
@@ -52,8 +57,8 @@ export interface FfmpegRunningTask {
  * FFmpeg 运行时事件回调。
  */
 export interface FfmpegRunHooks {
-    /** 命令启动时触发，提供完整命令行字符串。 */
-    onStart?: (commandLine: string) => void;
+    /** 命令启动时触发，提供完整命令行字符串与子进程 pid（spawn 立即失败时为空）。 */
+    onStart?: (commandLine: string, pid?: number) => void;
     /** 接收到 stderr 行时触发。 */
     onStderrLine?: (line: string) => void;
     /** 解析到进度信息时触发。 */
@@ -69,7 +74,9 @@ export class FfmpegProcessRunner {
      */
     public start(request: FfmpegRunRequest, hooks: FfmpegRunHooks = {}): FfmpegRunningTask {
         const startedAt = Date.now();
-        const stderrTail: string[] = [];
+        const stderrTail = new OutputTail();
+        /** 上层是否已发起取消；置位后子进程非零退出按预期取消处理。 */
+        let cancelRequested = false;
 
         /** 用于跟踪当前子进程，便于取消时发送信号。 */
         let processRef: ChildProcess | null = null;
@@ -81,12 +88,12 @@ export class FfmpegProcessRunner {
             });
             processRef = child;
 
-            hooks.onStart?.(this.composeCommandLine(request.ffmpegPath, request.args));
+            hooks.onStart?.(this.composeCommandLine(request.ffmpegPath, request.args), child.pid);
 
             child.stderr.on('data', (chunk) => {
                 const text = chunk.toString('utf8');
+                stderrTail.push(text);
                 for (const line of text.split(/\r?\n/).filter(Boolean)) {
-                    this.appendTail(stderrTail, line, 120);
                     hooks.onStderrLine?.(line);
                     const progress = this.tryParseProgress(line, request.inputDurationSecond);
                     if (progress) {
@@ -105,18 +112,31 @@ export class FfmpegProcessRunner {
                 if (exitCode === 0) {
                     resolve({
                         exitCode,
-                        stderrTail: stderrTail.slice(),
+                        stderrTail: stderrTail.allLines(),
                         durationMs,
                     });
                     return;
                 }
 
-                const stderrBlock = stderrTail.join('\n');
-                reject(new Error(`FFmpeg 退出码 ${exitCode}\n${stderrBlock}`));
+                // 取消导致的退出属于预期行为，用显式类型区分，上层无需再靠消息文本猜测。
+                if (cancelRequested) {
+                    reject(new CancelByUserError(`FFmpeg 已取消（退出码 ${exitCode}）`));
+                    return;
+                }
+
+                // 尾部有限行数组结构化透出，避免整段 stderr 文本被日志长度上限截掉关键错误。
+                reject(new FfmpegExecutionError({
+                    exitCode,
+                    stderrTail: stderrTail.logTail(),
+                    durationMs,
+                    job: request.job,
+                    pid: child.pid,
+                }));
             });
         });
 
         const cancel = () => {
+            cancelRequested = true;
             if (!processRef || processRef.killed) return;
             processRef.kill('SIGTERM');
             setTimeout(() => {
@@ -149,16 +169,6 @@ export class FfmpegProcessRunner {
     private quotePart(part: string): string {
         if (!part.includes(' ')) return part;
         return `"${part.replace(/"/g, '\\"')}"`;
-    }
-
-    /**
-     * 维护固定长度的 stderr 尾部缓存。
-     */
-    private appendTail(lines: string[], line: string, maxLines: number): void {
-        lines.push(line);
-        if (lines.length > maxLines) {
-            lines.shift();
-        }
     }
 
     /**

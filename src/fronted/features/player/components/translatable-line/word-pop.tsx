@@ -6,6 +6,8 @@ import {
     useFloating,
     useInteractions
 } from '@floating-ui/react';
+import { Star, Loader2 } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
 import { cn } from '@/fronted/lib/utils';
 import OpenAIWordPop from './openai-word-pop';
@@ -29,6 +31,12 @@ export interface WordSubParam {
     openaiStreamingData?: OpenAIDictionaryResult | null;
     isStreaming?: boolean;
     onRefresh?: () => void;
+    /** 点击收藏按钮；未提供时不渲染收藏入口。 */
+    onFavorite?: () => void;
+    /** 当前单词是否已收藏。 */
+    isFavorited?: boolean;
+    /** 收藏请求是否进行中。 */
+    isFavoriting?: boolean;
     classNames?: {
         container?: string;        // youdao 容器覆盖
         openaiContainer?: string;  // openai 容器覆盖
@@ -45,12 +53,16 @@ const WordPop = React.forwardRef(
             openaiStreamingData,
             isStreaming = false,
             onRefresh,
+            onFavorite,
+            isFavorited = false,
+            isFavoriting = false,
             classNames
         }: WordSubParam,
         ref: React.ForwardedRef<HTMLDivElement | null>
     ) => {
         logger.debug('WordPop translation data', { translation, openaiStreamingData, isStreaming });
 
+        const { t } = useTranslation('common');
         const theme = useTransLineTheme();
         const setting = useSetting((state) => state.setting);
         const dictionaryEngineRaw = setting('providers.dictionary');
@@ -147,6 +159,9 @@ const WordPop = React.forwardRef(
                         isLoading={openAILoading}
                         isStreaming={isStreaming}
                         onRefresh={onRefresh}
+                        onFavorite={onFavorite}
+                        isFavorited={isFavorited}
+                        isFavoriting={isFavoriting}
                     />
                 );
             }
@@ -157,9 +172,30 @@ const WordPop = React.forwardRef(
                         theme.pop.container,
                         classNames?.container,
                         isLoading ? 'opacity-0' : 'opacity-100',
-                        shouldShowYoudao && translation.webdict?.url && 'pt-4'
+                        shouldShowYoudao && translation.webdict?.url && 'pt-4',
+                        'relative'
                     )}
                 >
+                    {onFavorite && (
+                        <button
+                            type="button"
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                onFavorite();
+                            }}
+                            disabled={isFavoriting || isFavorited}
+                            className={cn(
+                                'absolute top-2 right-2 z-10 p-1.5 rounded-md backdrop-blur-sm bg-background/70 text-muted-foreground hover:text-foreground transition-colors cursor-pointer',
+                                isFavorited && 'text-amber-500 hover:text-amber-500',
+                                (isFavoriting || isFavorited) && 'cursor-default'
+                            )}
+                            title={t('favoriteWord')}
+                        >
+                            {isFavoriting
+                                ? <Loader2 size={14} className="animate-spin" />
+                                : <Star size={14} fill={isFavorited ? 'currentColor' : 'none'} />}
+                        </button>
+                    )}
                     {shouldShowYoudao && renderYoudaoContent(translation)}
                     {!shouldShowYoudao && <div className="p-4 text-gray-500">无可用的字典信息</div>}
                 </div>

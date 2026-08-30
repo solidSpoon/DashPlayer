@@ -1,6 +1,10 @@
 {
-    "compatToastTitle": "This video may play without audio in the current player.",
-    "compatToastAction": "Generate compatible version",
+    "compatToastAudioTitle": "This video may play without sound",
+    "compatToastAudioDescription": "Its audio format may not be supported by the player. Converting it should fix this.",
+    "compatToastIssueTitle": "Having trouble playing this video?",
+    "compatToastIssueDescription": "Wait a moment to see if it resumes automatically. If it won't play, you can head over to convert its format.",
+    "compatToastIgnore": "Ignore for now",
+    "compatToastAction": "Convert",
     "emptyState": {
         "heroTitle": "Start your English learning journey",
         "heroDescription": "Pick a video and improve your English with bilingual subtitles and smart learning tools.",
@@ -49,8 +53,11 @@
     "transcript": {
         "button": "Generate subtitles",
         "modelMissing": "Please download the subtitle model first in Settings Center > Service Credentials.",
-        "statusInit": "Initializing...",
-        "statusInProgress": "Transcribing...",
+        "statusInit": "Preparing...",
+        "statusPreparing": "Preprocessing...",
+        "statusGenerating": "Generating {{progress}}%",
+        "statusFinishing": "Finishing...",
+        "statusInProgress": "Generating...",
         "tooltipTitle": "Generate subtitles",
         "tooltipBody": "Automatically generate subtitles using AI. Subtitles will be saved in the video folder and loaded automatically.",
         "noVideoSelected": "Please select a video file first.",

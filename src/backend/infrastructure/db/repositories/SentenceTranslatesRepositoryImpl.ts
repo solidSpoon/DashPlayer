@@ -1,4 +1,4 @@
-import { and, eq, inArray, isNotNull } from 'drizzle-orm';
+import { and, eq, inArray } from 'drizzle-orm';
 import { injectable } from 'inversify';
 
 import db from '@/backend/infrastructure/db';
@@ -20,22 +20,6 @@ export default class SentenceTranslatesRepositoryImpl implements SentenceTransla
             .select()
             .from(sentenceTranslates)
             .where(and(inArray(sentenceTranslates.sentence, sentences), eq(sentenceTranslates.mode, mode)));
-    }
-
-    public async findTranslatedBySentencesAndMode(sentences: string[], mode: string) {
-        if (sentences.length === 0) {
-            return [];
-        }
-        return db
-            .select()
-            .from(sentenceTranslates)
-            .where(
-                and(
-                    inArray(sentenceTranslates.sentence, sentences),
-                    eq(sentenceTranslates.mode, mode),
-                    isNotNull(sentenceTranslates.translate),
-                ),
-            );
     }
 
     public async upsert(params: SentenceTranslatesUpsertParams): Promise<void> {

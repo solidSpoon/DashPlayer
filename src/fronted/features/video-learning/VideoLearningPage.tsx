@@ -5,7 +5,8 @@ import { VideoLearningClipPage } from '@/common/types/vo/VideoLearningClipVO';
 import { VideoClip } from './types';
 import ClipGrid from '@/fronted/features/video-learning/components/ClipGrid';
 import VideoPlayerPane from '@/fronted/features/video-learning/components/VideoPlayerPane';
-import WordSidebar from '@/fronted/features/video-learning/components/WordSidebar';
+import WordSidebar, { WordItem } from '@/fronted/features/video-learning/components/WordSidebar';
+import WordEditDialog from '@/fronted/features/video-learning/components/WordEditDialog';
 import { videoLearningApi } from '@/fronted/features/video-learning/videoLearningApi';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import {
@@ -24,15 +25,6 @@ import { cn } from '@/fronted/lib/utils';
 const logger = getRendererLogger('VideoLearning');
 import PageHeader from '@/fronted/components/shared/common/PageHeader';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
-
-interface WordItem {
-  id: number;
-  word: string;
-  translate: string;
-  created_at: string;
-  updated_at: string;
-  videoCount?: number;
-}
 
 type PendingClipTarget = number | 'last';
 type PendingClipRequest = {
@@ -54,6 +46,8 @@ const DEFAULT_LEARNING_RESPONSE: { success: true; data: VideoLearningClipPage } 
 export default function VideoLearningPage() {
   const { t } = useI18nTranslation('pages');
   const [selectedWord, setSelectedWord] = useState<WordItem | null>(null);
+  // 正在编辑的单词；null 表示编辑弹窗关闭
+  const [editingWord, setEditingWord] = useState<WordItem | null>(null);
   const [words, setWords] = useState<WordItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -155,6 +149,20 @@ export default function VideoLearningPage() {
     setForcePlayKey(prev => prev + 1);
   }, [clips, findMainSentenceIndex]);
 
+  /**
+   * 仅选中片段（加载到播放器但不自动播放）。
+   *
+   * 用于进入页面、切换单词或翻页等场景：只有用户明确点击片段卡片时才出声。
+   *
+   * @param index 片段在当前页列表中的下标。
+   */
+  const selectClip = useCallback((index: number) => {
+    const clip = clips[index];
+    if (!clip) return;
+    setCurrentClipIndex(index);
+    setCurrentLineIndex(findMainSentenceIndex(clip));
+  }, [clips, findMainSentenceIndex]);
+
   const goToLine = useCallback((lineIdx: number) => {
     if (!currentClip) return;
     const safe = Math.max(0, Math.min(lineIdx, currentClip.clipContent.length - 1));
@@ -218,34 +226,27 @@ export default function VideoLearningPage() {
       if (result.success) {
         const wordData: WordItem[] = Array.isArray(result.data) ? result.data as WordItem[] : [];
 
-        let clipCounts: Record<string, number> = {};
+        let clipStats: Record<string, { count: number; lastAddedAt: string }> = {};
         try {
-          const countResult = await videoLearningApi.getClipCounts();
-          if (countResult?.success && countResult.data) {
-            clipCounts = countResult.data as Record<string, number>;
+          const statsResult = await videoLearningApi.getWordClipStats();
+          if (statsResult?.success && statsResult.data) {
+            clipStats = statsResult.data as Record<string, { count: number; lastAddedAt: string }>;
           }
         } catch (error) {
-          logger.error('获取视频片段数量失败', { error });
+          logger.error('获取视频片段统计失败', { error });
         }
 
         const wordsWithVideoCount = wordData.map((word) => {
           const lowerWord = word.word?.toLowerCase?.() ?? word.word;
-          const videoCount = clipCounts[lowerWord] ?? 0;
+          const stat = clipStats[lowerWord];
           return {
             ...word,
-            videoCount
+            videoCount: stat?.count ?? 0,
+            lastClipAddedAt: stat?.lastAddedAt || null
           };
         });
 
-        const sortedWords = wordsWithVideoCount.sort((a, b) => {
-          if ((a.videoCount || 0) > 0 && (b.videoCount || 0) === 0) return -1;
-          if ((a.videoCount || 0) === 0 && (b.videoCount || 0) > 0) return 1;
-          if ((a.videoCount || 0) > (b.videoCount || 0)) return -1;
-          if ((a.videoCount || 0) < (b.videoCount || 0)) return 1;
-          return 0;
-        });
-
-        setWords(sortedWords);
+        setWords(wordsWithVideoCount);
       }
     } catch (error) {
       logger.error('获取单词失败', { error });
@@ -382,7 +383,7 @@ export default function VideoLearningPage() {
     return () => window.clearTimeout(timer);
   }, [clips, ensureThumbnails]);
 
-  // 初始化：有列表则默认播放第一个视频的中间句
+  // 初始化：有列表则默认选中第一个视频（不自动播放），用户点击片段卡片后才出声
   useEffect(() => {
     if (!clips.length) {
       const timer = window.setTimeout(() => {
@@ -399,15 +400,15 @@ export default function VideoLearningPage() {
       const targetIndex = pendingClip.index === 'last'
         ? clips.length - 1
         : Math.max(0, Math.min(pendingClip.index, clips.length - 1));
-      window.setTimeout(() => playClip(targetIndex), 0);
+      window.setTimeout(() => selectClip(targetIndex), 0);
       window.setTimeout(() => setPendingClip(null), 0);
       return;
     }
 
     if (currentClipIndex < 0 || currentClipIndex >= clips.length) {
-      window.setTimeout(() => playClip(0), 0);
+      window.setTimeout(() => selectClip(0), 0);
     }
-  }, [clips, currentClipIndex, loadedPage, pendingClip, playClip, setPendingClip]);
+  }, [clips, currentClipIndex, loadedPage, pendingClip, selectClip, setPendingClip]);
 
   // 初始化加载单词
   useEffect(() => {
@@ -429,6 +430,30 @@ export default function VideoLearningPage() {
     setSelectedWord(null);
     handlePageChange(1, { targetIndex: 0 });
   }, [handlePageChange, setSelectedWord]);
+
+  /**
+   * 编辑弹窗保存成功后刷新列表，并在编辑了选中词时同步选中态。
+   *
+   * @param newWord 保存后的单词（后端已小写化）。
+   */
+  const handleWordSaved = useCallback(async (newWord: string) => {
+    const editedId = editingWord?.id;
+    setSelectedWord((prev) => (prev && editedId != null && prev.id === editedId ? { ...prev, word: newWord } : prev));
+    setEditingWord(null);
+    await fetchWords();
+    await mutate(searchKey);
+  }, [editingWord, fetchWords, mutate, searchKey]);
+
+  /**
+   * 单词删除成功后刷新列表，并清除指向被删单词的选中态。
+   *
+   * @param deleted 被删除的单词。
+   */
+  const handleWordDeleted = useCallback(async (deleted: WordItem) => {
+    setSelectedWord((prev) => (prev && prev.id === deleted.id ? null : prev));
+    await fetchWords();
+    await mutate(searchKey);
+  }, [fetchWords, mutate, searchKey]);
 
   return (
     <div className="w-full h-full flex flex-col overflow-hidden select-none bg-background text-foreground">
@@ -454,6 +479,8 @@ export default function VideoLearningPage() {
             onClearSelection={handleClearSelection}
             onExportTemplate={exportTemplate}
             onImportWords={importWords}
+            onEditWord={setEditingWord}
+            onWordDeleted={handleWordDeleted}
           />
         </div>
 
@@ -617,6 +644,17 @@ export default function VideoLearningPage() {
           </div>
         </div>
       </div>
+
+      <WordEditDialog
+        open={!!editingWord}
+        wordItem={editingWord}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingWord(null);
+          }
+        }}
+        onSaved={handleWordSaved}
+      />
     </div>
   );
 }

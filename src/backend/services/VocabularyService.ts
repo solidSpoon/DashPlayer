@@ -1,14 +1,20 @@
 import * as XLSX from 'xlsx';
 import { promises as fs } from 'fs';
+import { generateText, Output } from 'ai';
 import { inject, injectable } from 'inversify';
+import { z } from 'zod';
 import TYPES from '@/backend/ioc/types';
 import { VideoLearningService } from '@/backend/services/VideoLearningService';
 import { WordMatchService } from '@/backend/services/WordMatchService';
+import AiProviderService from '@/backend/services/AiProviderService';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import WordsRepository from '@/backend/services/repositories/WordsRepository';
+import VideoLearningClipWordRepository from '@/backend/services/repositories/VideoLearningClipWordRepository';
 import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import { loadDefaultVocabulary } from '@/backend/utils/defaultVocabulary';
 import SubtitleService from '@/backend/services/SubtitleService';
+import { lemmatizeWord } from '@/backend/utils/language/VocabularyMatcher';
+import { concurrency } from '@/backend/utils/concurrency';
 
 export interface GetAllWordsParams {
     search?: string;
@@ -32,10 +38,69 @@ export interface ImportWordsResult {
     error?: string;
 }
 
+/**
+ * 收藏单词的返回数据。
+ */
+export interface FavoriteWordData {
+    /** 入库的单词（原始形态，小写）。 */
+    word: string;
+    /** 单词释义。 */
+    translate: string;
+    /** 单词此前是否已存在。 */
+    alreadyExists: boolean;
+}
+
+export interface FavoriteWordResult {
+    success: boolean;
+    data?: FavoriteWordData;
+    error?: string;
+}
+
+/**
+ * 编辑单词参数；单词本身是业务键，需用旧单词定位记录。
+ */
+export interface UpdateWordParams {
+    /** 编辑前的单词。 */
+    oldWord: string;
+    /** 编辑后的单词。 */
+    word: string;
+    /** 编辑后的释义。 */
+    translate: string;
+}
+
+export interface SimpleActionResult {
+    success: boolean;
+    error?: string;
+}
+
+export interface GenerateDefinitionResult {
+    success: boolean;
+    data?: string;
+    error?: string;
+}
+
 export default interface VocabularyService {
     getAllWords(params: GetAllWordsParams): Promise<GetAllWordsResult>;
     exportTemplate(): Promise<ExportTemplateResult>;
     importWords(filePath: string): Promise<ImportWordsResult>;
+    /**
+     * 收藏单词：还原为原始形态后入库，并由 AI 生成释义。
+     *
+     * @param word 用户点击的单词原文（可能是复数、时态等变体）。
+     */
+    favoriteWord(word: string): Promise<FavoriteWordResult>;
+    /**
+     * 编辑单词与释义；单词变化时同步迁移片段关联。
+     */
+    updateWord(params: UpdateWordParams): Promise<SimpleActionResult>;
+    /**
+     * 删除单词，并清理其片段关联。
+     */
+    deleteWord(word: string): Promise<SimpleActionResult>;
+    /**
+     * 调用 AI 为单词生成简明中文释义。
+     */
+    generateDefinition(word: string): Promise<GenerateDefinitionResult>;
 }
 
 
@@ -53,6 +118,12 @@ export class VocabularyServiceImpl implements VocabularyService {
 
     @inject(TYPES.WordMatchService)
     private wordMatchService!: WordMatchService;
+
+    @inject(TYPES.AiProviderService)
+    private aiProviderService!: AiProviderService;
+
+    @inject(TYPES.VideoLearningClipWordRepository)
+    private clipWordRepository!: VideoLearningClipWordRepository;
 
     @inject(TYPES.SubtitleService)
     private subtitleService!: SubtitleService;
@@ -296,4 +367,241 @@ export class VocabularyServiceImpl implements VocabularyService {
             };
         }
     }
+
+    /**
+     * 收藏单词。
+     *
+     * 行为说明：
+     * - 输入的变体（复数、时态等）先还原为原始形态（lemma）再查重入库；
+     * - 释义由 AI 生成，模型未配置或生成失败时整体失败且不写入单词；
+     * - 已存在的单词直接返回现有记录（幂等）。
+     *
+     * @param word 用户点击的单词原文。
+     * @returns 收藏结果；成功时携带入库单词与释义。
+     */
+    async favoriteWord(word: string): Promise<FavoriteWordResult> {
+        try {
+            const input = word?.trim() ?? '';
+            if (!input) {
+                return {
+                    success: false,
+                    error: '单词不能为空'
+                };
+            }
+
+            const lemma = lemmatizeWord(input);
+            const existing = await this.wordsRepository.findByWord(lemma);
+            if (existing) {
+                return {
+                    success: true,
+                    data: {
+                        word: existing.word,
+                        translate: existing.translate || '',
+                        alreadyExists: true
+                    }
+                };
+            }
+
+            const translate = await this.generateDefinitionText(lemma);
+            await this.wordsRepository.insertOne({ word: lemma, translate });
+            this.invalidateVocabularyCaches();
+
+            return {
+                success: true,
+                data: {
+                    word: lemma,
+                    translate,
+                    alreadyExists: false
+                }
+            };
+        } catch (error) {
+            this.logger.error('收藏单词失败', { error });
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : '收藏单词失败'
+            };
+        }
+    }
+
+    /**
+     * 编辑单词与释义。
+     *
+     * 行为说明：
+     * - 单词是业务键，用旧单词定位记录后整体替换；
+     * - 新单词统一小写，与其他单词冲突时明确报错；
+     * - 单词变化时同步迁移学习片段关联。
+     *
+     * @param params 旧单词、新单词与新释义。
+     * @returns 操作结果。
+     */
+    async updateWord(params: UpdateWordParams): Promise<SimpleActionResult> {
+        try {
+            const oldWord = params.oldWord?.trim().toLowerCase() ?? '';
+            const newWord = params.word?.trim().toLowerCase() ?? '';
+            if (!oldWord || !newWord) {
+                return {
+                    success: false,
+                    error: '单词不能为空'
+                };
+            }
+
+            const target = await this.wordsRepository.findByWord(oldWord);
+            if (!target) {
+                return {
+                    success: false,
+                    error: '未找到要编辑的单词'
+                };
+            }
+
+            if (newWord !== oldWord) {
+                const conflict = await this.wordsRepository.findByWord(newWord);
+                if (conflict) {
+                    return {
+                        success: false,
+                        error: '目标单词已存在'
+                    };
+                }
+            }
+
+            const translate = params.translate?.trim() ?? '';
+            await this.wordsRepository.updateByWord(oldWord, { word: newWord, translate });
+            if (newWord !== oldWord) {
+                await this.clipWordRepository.renameWord(oldWord, newWord);
+            }
+            this.invalidateVocabularyCaches();
+
+            return { success: true };
+        } catch (error) {
+            this.logger.error('更新单词失败', { error });
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : '更新单词失败'
+            };
+        }
+    }
+
+    /**
+     * 删除单词，并清理其学习片段关联。
+     *
+     * @param word 待删除的单词。
+     * @returns 操作结果。
+     */
+    async deleteWord(word: string): Promise<SimpleActionResult> {
+        try {
+            const key = word?.trim().toLowerCase() ?? '';
+            if (!key) {
+                return {
+                    success: false,
+                    error: '单词不能为空'
+                };
+            }
+
+            await this.wordsRepository.deleteByWord(key);
+            await this.clipWordRepository.deleteByWord(key);
+            this.invalidateVocabularyCaches();
+
+            return { success: true };
+        } catch (error) {
+            this.logger.error('删除单词失败', { error });
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : '删除单词失败'
+            };
+        }
+    }
+
+    /**
+     * 调用 AI 为单词生成简明中文释义。
+     *
+     * @param word 单词。
+     * @returns 生成结果；成功时携带释义文本。
+     */
+    async generateDefinition(word: string): Promise<GenerateDefinitionResult> {
+        try {
+            const input = word?.trim() ?? '';
+            if (!input) {
+                return {
+                    success: false,
+                    error: '单词不能为空'
+                };
+            }
+
+            const translate = await this.generateDefinitionText(input);
+            return {
+                success: true,
+                data: translate
+            };
+        } catch (error) {
+            this.logger.error('生成释义失败', { error });
+            return {
+                success: false,
+                error: error instanceof Error ? error.message : '生成释义失败'
+            };
+        }
+    }
+
+    /**
+     * 调用 AI 生成单词释义文本；失败时抛错，由调用方决定如何呈现。
+     *
+     * @param word 单词。
+     * @returns 生成的释义。
+     * @throws 模型未配置、请求失败或返回内容无效时抛出。
+     */
+    private async generateDefinitionText(word: string): Promise<string> {
+        const model = this.aiProviderService.getModel('dictionary');
+        if (!model) {
+            throw new Error('词典 AI 模型未配置，请先在设置中配置词典模型');
+        }
+
+        const schema = z.object({
+            translate: z.string().describe('单词的简明中文释义'),
+        });
+
+        const result = await concurrency.withRateLimit('gpt', () =>
+            generateText({
+                model,
+                reasoning: 'low',
+                output: Output.object({ schema }),
+                prompt: this.buildDefinitionPrompt(word),
+                maxRetries: 0,
+                timeout: DEFINITION_REQUEST_TIMEOUT_MS,
+            }));
+
+        const translate = result.output?.translate?.trim();
+        if (!translate) {
+            throw new Error('AI 未返回有效释义');
+        }
+        return translate;
+    }
+
+    /**
+     * 构建单词本释义生成提示词。
+     *
+     * @param word 查询单词。
+     * @returns 提示词文本。
+     */
+    private buildDefinitionPrompt(word: string): string {
+        return [
+            '你是一位专业的英汉词典助手。',
+            `请为英文单词 "${word}" 写一条适合记入单词本的简明中文释义。`,
+            '',
+            '要求：',
+            '1. 覆盖该词最常用的 1-3 个含义；',
+            '2. 每个义项以词性缩写开头（如 n.、v.、adj. 等），义项之间用中文分号分隔；',
+            '3. 总长度不超过 60 个字，语言精炼，不要例句，不要额外解释；',
+            '4. 结果放入 translate 字段。'
+        ].join('\n');
+    }
+
+    /**
+     * 词表发生变化后失效相关缓存，保证生词高亮与分析结果及时更新。
+     */
+    private invalidateVocabularyCaches(): void {
+        this.wordMatchService.invalidateVocabularyCache();
+        this.subtitleService.invalidateVocabularyAnalysisCache();
+        this.videoLearningService.invalidateClipAnalysisCache();
+    }
 }
+
+/** 释义生成请求超时时间（毫秒）。 */
+const DEFINITION_REQUEST_TIMEOUT_MS = 30_000;

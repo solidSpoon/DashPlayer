@@ -106,9 +106,9 @@ const TranscriptItem = ({ task, onStart, onDelete }: TranscriptItemProps) => {
         }
         if (status === TranscriptTaskState.INIT || status === TranscriptTaskState.IN_PROGRESS) {
             return (
-                <span className="inline-flex items-center gap-1.5 rounded-md bg-primary/10 px-2.5 py-1 text-xs font-medium text-primary border border-primary/20 animate-pulse">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    <span className="truncate max-w-[120px]" title={msg}>{msg}</span>
+                <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-500/10 dark:bg-amber-400/10 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 border border-amber-500/30 dark:border-amber-400/30 animate-pulse">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-600 dark:text-amber-400" />
+                    <span className="truncate max-w-[140px]" title={msg}>{msg}</span>
                 </span>
             );
         }

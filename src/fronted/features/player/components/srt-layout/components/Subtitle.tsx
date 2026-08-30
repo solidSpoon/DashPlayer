@@ -1,8 +1,7 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Virtuoso } from 'react-virtuoso';
 import { shallow } from 'zustand/shallow';
 import { twJoin } from 'tailwind-merge';
-import { AnimatePresence, motion } from 'framer-motion';
 import SideSentence from '../SideSentence';
 import { usePlayerState } from '@/fronted/features/player/playerState';
 import { playerActions } from '@/fronted/features/player/components/PlayerActions';
@@ -10,12 +9,9 @@ import useLayout from '@/fronted/hooks/useLayout';
 import { cn } from '@/fronted/lib/utils';
 import useSubtitleScroll, { useSubtitleScrollState } from '@/fronted/features/player/hooks/useSubtitleScroll';
 import useBoundary from '@/fronted/features/player/hooks/useBoundary';
-import { FlipVertical2 } from 'lucide-react';
-import { Button } from '@/fronted/components/ui/button';
 import { Sentence } from '@/common/types/SentenceC';
 
 export default function Subtitle() {
-    const [mouseOver, setMouseOver] = useState(false);
     const showSideBar = useLayout((state) => state.showSideBar);
     const { currentSentence, subtitle, singleRepeat, virtualGroup } = usePlayerState((s) => ({
         currentSentence: s.currentSentence,
@@ -26,108 +22,103 @@ export default function Subtitle() {
     const { setBoundaryRef } = useBoundary();
 
     const scrollerRef = useRef<HTMLElement | Window | null>(null);
+    /** 卸载当前滚动容器上用户输入监听的函数；容器（重）挂载时先卸载旧监听 */
+    const detachUserInputRef = useRef<(() => void) | null>(null);
 
     const {
         scrollState,
         onScrolling,
-        onUserFinishScrolling,
         updateCurrentRef,
         setVirtuoso,
         updateVisibleRange,
         delaySetNormal,
-        syncIndexIntoView,
+        syncIntoView,
     } = useSubtitleScrollState((s) => ({
         scrollState: s.scrollState,
         onScrolling: s.onScrolling,
         updateCurrentRef: s.updateCurrentRef,
-        onUserFinishScrolling: s.onUserFinishScrolling,
         setVirtuoso: s.setVirtuoso,
         updateVisibleRange: s.updateVisibleRange,
         delaySetNormal: s.delaySetNormal,
-        syncIndexIntoView: s.syncIndexIntoView,
+        syncIntoView: s.syncIntoView,
     }), shallow);
 
-    const currentIndex = currentSentence?.index ?? -1;
+    const currentListPosition = useMemo(() => {
+        if (!currentSentence || subtitle.length === 0) {
+            return -1;
+        }
+        return subtitle.findIndex(
+            (item) => item.index === currentSentence.index && item.fileHash === currentSentence.fileHash
+        );
+    }, [currentSentence, subtitle]);
 
     useEffect(() => {
-        if (currentIndex < 0) {
+        if (currentListPosition < 0) {
             return;
         }
-        syncIndexIntoView(currentIndex);
-    }, [currentIndex, syncIndexIntoView]);
+        syncIntoView(currentListPosition);
+    }, [currentListPosition, syncIntoView]);
 
     useEffect(() => {
-        const handleWheel = (e: { preventDefault: () => void }) => {
-            if (useSubtitleScroll.getState().scrollState === 'AUTO_SCROLLING') {
-                e.preventDefault();
-            }
-        };
-        const listRefCurrent = scrollerRef.current; // listRef 是你的 ref
-        if (listRefCurrent) {
-            listRefCurrent.addEventListener('wheel', handleWheel, {
-                passive: false,
-            });
-        }
         return () => {
-            if (listRefCurrent) {
-                listRefCurrent.removeEventListener('wheel', handleWheel);
-            }
+            detachUserInputRef.current?.();
+            detachUserInputRef.current = null;
         };
     }, []);
     const dragStateRef = useRef<{
         active: boolean;
-        startIndex: number | null;
-        lastIndex: number | null;
+        startListPosition: number | null;
+        lastListPosition: number | null;
         sentence: Sentence | null;
     }>({
         active: false,
-        startIndex: null,
-        lastIndex: null,
+        startListPosition: null,
+        lastListPosition: null,
         sentence: null,
     });
 
-    const selectionRangeRef = useRef<{ start: number; end: number } | null>(null);
+    const selectionRangeRef = useRef<{ startPos: number; endPos: number } | null>(null);
 
     const virtualGroupMeta = useMemo(() => {
         if (!virtualGroup.active || virtualGroup.sentences.length < 2) {
             return {
                 hasGroup: false,
-                indexSet: new Set<number>(),
-                min: null as number | null,
-                max: null as number | null,
+                keyGroupSet: new Set<string>(),
+                firstKey: null as string | null,
+                lastKey: null as string | null,
             };
         }
 
-        const sorted = [...virtualGroup.sentences]
-            .map((s) => s.index)
-            .sort((a, b) => a - b);
-        const indexSet = new Set(sorted);
+        const keyGroupSet = new Set(virtualGroup.sentences.map((s) => `${s.fileHash}-${s.index}`));
+        const first = virtualGroup.sentences[0];
+        const last = virtualGroup.sentences[virtualGroup.sentences.length - 1];
         return {
             hasGroup: true,
-            indexSet,
-            min: sorted[0] ?? null,
-            max: sorted[sorted.length - 1] ?? null,
+            keyGroupSet,
+            firstKey: first ? `${first.fileHash}-${first.index}` : null,
+            lastKey: last ? `${last.fileHash}-${last.index}` : null,
         };
     }, [virtualGroup]);
 
-    const applySelectionRange = useCallback((startIndex: number, endIndex: number) => {
-        const normalizedStart = Math.min(startIndex, endIndex);
-        const normalizedEnd = Math.max(startIndex, endIndex);
+    const applySelectionRange = useCallback((startPos: number, endPos: number) => {
+        const normalizedStart = Math.min(startPos, endPos);
+        const normalizedEnd = Math.max(startPos, endPos);
 
         if (selectionRangeRef.current &&
-            selectionRangeRef.current.start === normalizedStart &&
-            selectionRangeRef.current.end === normalizedEnd) {
+            selectionRangeRef.current.startPos === normalizedStart &&
+            selectionRangeRef.current.endPos === normalizedEnd) {
             return;
         }
 
         if (normalizedEnd !== normalizedStart) {
-            selectionRangeRef.current = { start: normalizedStart, end: normalizedEnd };
-            playerActions.setVirtualGroupByIndexRange(normalizedStart, normalizedEnd);
+            selectionRangeRef.current = { startPos: normalizedStart, endPos: normalizedEnd };
+            const selectedSentences = subtitle.slice(normalizedStart, normalizedEnd + 1);
+            playerActions.setVirtualGroupBySentences(selectedSentences);
         } else {
             selectionRangeRef.current = null;
             playerActions.clearVirtualGroup();
         }
-    }, []);
+    }, [subtitle]);
 
     const finalizeSelection = useCallback(() => {
         const state = dragStateRef.current;
@@ -136,14 +127,14 @@ export default function Subtitle() {
         }
 
         state.active = false;
-        const { startIndex, lastIndex, sentence } = state;
+        const { startListPosition, lastListPosition, sentence } = state;
 
         if (
-            startIndex !== null &&
-            lastIndex !== null &&
-            Math.abs(lastIndex - startIndex) >= 1
+            startListPosition !== null &&
+            lastListPosition !== null &&
+            Math.abs(lastListPosition - startListPosition) >= 1
         ) {
-            applySelectionRange(startIndex, lastIndex);
+            applySelectionRange(startListPosition, lastListPosition);
         } else if (sentence) {
             playerActions.clearVirtualGroup();
             playerActions.gotoSentence(sentence);
@@ -155,8 +146,8 @@ export default function Subtitle() {
         selectionRangeRef.current = null;
         dragStateRef.current = {
             active: false,
-            startIndex: null,
-            lastIndex: null,
+            startListPosition: null,
+            lastListPosition: null,
             sentence: null,
         };
     }, [applySelectionRange, delaySetNormal, scrollState]);
@@ -168,52 +159,86 @@ export default function Subtitle() {
         };
     }, [finalizeSelection]);
 
-    const handleMouseDown = useCallback((sentence: Sentence) => (event: React.MouseEvent) => {
+    const handleMouseDown = useCallback((sentence: Sentence, listPosition: number) => (event: React.MouseEvent) => {
         event.preventDefault();
         dragStateRef.current = {
             active: true,
-            startIndex: sentence.index,
-            lastIndex: sentence.index,
+            startListPosition: listPosition,
+            lastListPosition: listPosition,
             sentence,
         };
         selectionRangeRef.current = null;
     }, []);
 
-    const handleMouseEnter = useCallback((sentence: Sentence) => () => {
+    const handleMouseEnter = useCallback((_sentence: Sentence, listPosition: number) => () => {
         const state = dragStateRef.current;
-        if (!state.active || state.startIndex === null) {
+        if (!state.active || state.startListPosition === null) {
             return;
         }
 
-        state.lastIndex = sentence.index;
-        applySelectionRange(state.startIndex, sentence.index);
+        state.lastListPosition = listPosition;
+        applySelectionRange(state.startListPosition, listPosition);
     }, [applySelectionRange]);
 
     const handleMouseUp = useCallback(() => {
         finalizeSelection();
     }, [finalizeSelection]);
 
+    /**
+     * Virtuoso 滚动容器（重）挂载时挂载/卸载用户输入监听。
+     * 滚轮、滚动条拖拽、翻页键发生在自动滚动（AUTO_SCROLLING）期间时立即中断跟读，
+     * 避免平滑动画与用户输入争夺滚动位置；其他状态下 onUserInterrupt 自身为空操作。
+     */
     const handleScrollerRef = useCallback((ref: unknown) => {
-        scrollerRef.current = ref as HTMLElement;
+        detachUserInputRef.current?.();
+        detachUserInputRef.current = null;
+        const scroller = ref as HTMLElement | null;
+        scrollerRef.current = scroller;
+        if (!scroller) {
+            return;
+        }
+        const interruptAutoScroll = () => {
+            useSubtitleScroll.getState().onUserInterrupt();
+        };
+        const handlePointerDown = (e: PointerEvent) => {
+            // 事件 target 为滚动容器本身说明按下的是滚动条区域，而非字幕行
+            if (e.target === scroller) {
+                interruptAutoScroll();
+            }
+        };
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (['PageUp', 'PageDown', 'Home', 'End', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+                interruptAutoScroll();
+            }
+        };
+        scroller.addEventListener('wheel', interruptAutoScroll, { passive: true });
+        scroller.addEventListener('pointerdown', handlePointerDown);
+        scroller.addEventListener('keydown', handleKeyDown);
+        detachUserInputRef.current = () => {
+            scroller.removeEventListener('wheel', interruptAutoScroll);
+            scroller.removeEventListener('pointerdown', handlePointerDown);
+            scroller.removeEventListener('keydown', handleKeyDown);
+        };
     }, []);
 
     const handleRangeChanged = useCallback(({ startIndex, endIndex }: { startIndex: number; endIndex: number }) => {
         updateVisibleRange([startIndex, endIndex]);
     }, [updateVisibleRange]);
 
-    const renderItem = useCallback((_index: number, item: Sentence) => {
+    const renderItem = useCallback((listPosition: number, item: Sentence) => {
         const isCurrent = !!currentSentence && item.index === currentSentence.index && item.fileHash === currentSentence.fileHash;
+        const itemKey = `${item.fileHash}-${item.index}`;
         const isSelected =
             virtualGroupMeta.hasGroup &&
-            virtualGroupMeta.indexSet.has(item.index);
-        const isGroupStart = isSelected && item.index === virtualGroupMeta.min;
-        const isGroupEnd = isSelected && item.index === virtualGroupMeta.max;
+            virtualGroupMeta.keyGroupSet.has(itemKey);
+        const isGroupStart = isSelected && itemKey === virtualGroupMeta.firstKey;
+        const isGroupEnd = isSelected && itemKey === virtualGroupMeta.lastKey;
         return (
             // 拖拽选区容器：鼠标按下/进入/抬起用于区间选择，不承担点击交互
             // eslint-disable-next-line jsx-a11y/no-static-element-interactions
             <div
-                onMouseDown={handleMouseDown(item)}
-                onMouseEnter={handleMouseEnter(item)}
+                onMouseDown={handleMouseDown(item, listPosition)}
+                onMouseEnter={handleMouseEnter(item, listPosition)}
                 onMouseUp={handleMouseUp}
             >
                 <SideSentence
@@ -234,10 +259,7 @@ export default function Subtitle() {
                     }
                     ref={(ref) => {
                         if (isCurrent) {
-                            updateCurrentRef(
-                                ref,
-                                currentSentence?.index ?? -1
-                            );
+                            updateCurrentRef(ref, listPosition);
                         }
                     }}
                 />
@@ -256,49 +278,17 @@ export default function Subtitle() {
     const render = () => {
         return (
             <div className="w-full h-full relative" ref={setBoundaryRef}>
-                <AnimatePresence>
-                    {scrollState === 'USER_BROWSING' && (
-                        <motion.div
-                            initial={{
-                                scale: 0,
-                                opacity: 0,
-                            }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0, opacity: 0 }}
-                            onClick={() => {
-                                onUserFinishScrolling();
-                            }}
-                            className={cn(
-                                'absolute top-12 right-12  z-50 ',
-                            )}
-                        >
-                            <Button size={'icon'}
-                                    className={cn('bg-purple-600 hover:bg-purple-700',
-                                        'dark:bg-purple-700 dark:hover:bg-purple-800',
-                                        'transition-colors duration-200 rounded-full drop-shadow-md')}
-                            >
-                                <FlipVertical2 className={'text-purple-50'}/>
-                            </Button>
-                        </motion.div>
-                    )}
-                </AnimatePresence>
                 <Virtuoso
                     onScroll={onScrolling}
                     scrollerRef={handleScrollerRef}
-                    onMouseOver={() => {
-                        setMouseOver(true);
-                    }}
-                    onMouseLeave={() => {
-                        setMouseOver(false);
-                    }}
                     increaseViewportBy={200}
+                    minOverscanItemCount={{ top: 3, bottom: 6 }}
                     defaultItemHeight={55}
                     ref={setVirtuoso}
                     className={twJoin(
-                        'h-full w-full overflow-y-scroll text-stone-600 dark:text-neutral-200',
+                        'h-full w-full overflow-y-auto text-stone-600 dark:text-neutral-200 py-2',
                         'scrollbar-thin scrollbar-thumb-rounded-full',
-                        mouseOver &&
-                            'scrollbar-thumb-zinc-400 dark:scrollbar-thumb-stone-400 hover:scrollbar-thumb-zinc-500 dark:hover:scrollbar-thumb-stone-300',
+                        'scrollbar-thumb-stone-300/60 dark:scrollbar-thumb-neutral-700/60 hover:scrollbar-thumb-stone-400 dark:hover:scrollbar-thumb-neutral-500',
                         showSideBar && 'scrollbar-none'
                     )}
                     data={subtitle}

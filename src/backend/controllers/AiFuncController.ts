@@ -18,6 +18,8 @@ export default class AiFuncController implements Controller {
         registerRoute('transcript/enqueue', (p) => this.aiFuncService.enqueueTranscription(p));
         registerRoute('transcript/remove', (p) => this.aiFuncService.removeTranscription(p));
         registerRoute('transcript/start', (p) => this.aiFuncService.transcript(p));
+        registerRoute('transcript/update-demand', (p) => this.aiFuncService.updateTranscriptionDemand(p));
+        registerRoute('transcript/session-snapshot', (p) => this.aiFuncService.getTranscriptionSnapshot(p));
         registerRoute('transcript/cancel', (p) => this.aiFuncService.cancelTranscription(p));
     }
 }

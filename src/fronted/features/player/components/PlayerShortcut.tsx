@@ -64,16 +64,15 @@ export default function PlayerShortCut() {
         createFromCurrent: s.createFromCurrent
     })));
 
-    const setSingleRepeat = usePlayer((s) => s.setSingleRepeat);
-    const setAutoPause = usePlayer((s) => s.setAutoPause);
+    // 模式开关的写入统一走 PlayerActions，此处只订阅展示用的值
     const singleRepeat = usePlayer((s) => s.singleRepeat);
     const autoPause = usePlayer((s) => s.autoPause);
 
     const toggleSingleRepeat = () => {
-        setSingleRepeat(!singleRepeat);
+        playerActions.setSingleRepeat(!singleRepeat);
     };
     const toggleAutoPause = () => {
-        setAutoPause(!autoPause);
+        playerActions.setAutoPause(!autoPause);
     };
 
     useHotkeys('left', () => {

@@ -27,7 +27,7 @@ const defaultTheme: TransLineTheme = {
   container: [
     'flex justify-between items-start rounded-lg drop-shadow-md mx-10 mt-2.5 shadow-inner z-50',
     'bg-stone-200 dark:bg-neutral-700',
-    'text-stone-700 dark:text-neutral-100',
+    'text-stone-700 dark:text-neutral-200',
     'shadow-stone-100 dark:shadow-neutral-600'
   ].join(' '),
   leftIcon: 'w-10 m-2.5 h-10 flex-shrink-0',
@@ -36,9 +36,9 @@ const defaultTheme: TransLineTheme = {
     root: 'px-10 pt-2.5 pb-2.5 text-center leading-relaxed box-border'
   },
   word: {
-    hoverBgClass: 'transition-colors hover:bg-stone-100/90 dark:hover:bg-neutral-600/90',
-    vocabHighlightClass: 'font-medium text-sky-700/85 dark:text-sky-300/85 underline decoration-sky-500/45 dark:decoration-sky-300/45 decoration-[1.5px] underline-offset-[0.14em] rounded-sm transition-colors hover:bg-sky-500/10 dark:hover:bg-sky-400/10',
-    popReferenceBgClass: 'bg-stone-100 dark:bg-neutral-600'
+    hoverBgClass: 'transition-colors duration-150 hover:bg-white/95 hover:shadow-xs hover:text-stone-950 dark:hover:bg-neutral-600/80 dark:hover:text-white rounded px-1',
+    vocabHighlightClass: 'text-emerald-700 dark:text-emerald-400 font-medium underline decoration-emerald-500/50 dark:decoration-emerald-400/40 decoration-[1.5px] underline-offset-[0.22em] rounded px-0.5 transition-colors duration-150 hover:bg-emerald-500/10 dark:hover:bg-emerald-400/10 hover:decoration-emerald-600 dark:hover:decoration-emerald-300',
+    popReferenceBgClass: 'bg-white/95 shadow-xs text-stone-950 dark:bg-neutral-600/80 dark:text-white'
   },
   pop: {
     container: 'select-text relative top-0 left-0 h-[500px] w-[500px] overflow-y-hidden flex flex-col items-start bg-popover text-popover-foreground shadow-lg border border-border rounded-xl px-4 scrollbar-none',

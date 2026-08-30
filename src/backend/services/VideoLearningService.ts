@@ -2,7 +2,7 @@ import path from 'path';
 import { InsertVideoLearningClip, VideoLearningClip } from '@/backend/infrastructure/db/tables/videoLearningClip';
 import { InsertVideoLearningClipWord } from '@/backend/infrastructure/db/tables/videoLearningClipWord';
 import VideoLearningClipRepository from '@/backend/services/repositories/VideoLearningClipRepository';
-import VideoLearningClipWordRepository from '@/backend/services/repositories/VideoLearningClipWordRepository';
+import VideoLearningClipWordRepository, { WordClipStats } from '@/backend/services/repositories/VideoLearningClipWordRepository';
 import ErrorConstants from '@/common/constants/error-constants';
 import TimeUtil from '@/common/utils/TimeUtil';
 import StrUtil from '@/common/utils/str-util';
@@ -79,9 +79,9 @@ export interface VideoLearningService {
     syncFromOss(): Promise<void>;
 
     /**
-     * 统计每个单词对应的视频片段数量
+     * 统计每个单词关联的视频片段数量及最近一次被添加视频的时间。
      */
-    countClipsGroupedByWord(): Promise<Record<string, number>>;
+    getWordClipStats(): Promise<Record<string, WordClipStats>>;
 
     /**
      * 检测视频裁切状态
@@ -386,10 +386,13 @@ export class VideoLearningServiceImpl implements VideoLearningService {
 
         const folder = await this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.TEMP);
         const tempName = path.join(folder, key + '.mp4');
+        /** 片段身份检索键，与 ffmpeg/存储日志共用同一个值。 */
+        const job = `clip:${key}`;
 
         try {
             const [trimStart, trimEnd] = this.mapTrimRange(srt, task.indexInSrt);
-            await this.ffmpegService.trimVideo(task.videoPath, trimStart, trimEnd, tempName);
+            this.logger.info('clip trim started', { job, videoPath: task.videoPath, trimStart, trimEnd });
+            await this.ffmpegService.trimVideo(task.videoPath, trimStart, trimEnd, tempName, job);
 
             await this.videoLearningOssService.putClip(key, tempName, metaData);
             const meta = await this.videoLearningOssService.get(key);
@@ -397,6 +400,7 @@ export class VideoLearningServiceImpl implements VideoLearningService {
                 throw new Error('上传学习片段后未找到片段元数据');
             }
             await this.addToDb(meta);
+            this.logger.info('clip ready', { job, clipFile: meta.clip_file });
         } finally {
             await this.fileSystemGateway.removeFileIfExists(tempName);
         }
@@ -864,12 +868,12 @@ export class VideoLearningServiceImpl implements VideoLearningService {
     }
 
     /**
-     * 统计每个单词关联的学习片段数量。
+     * 统计每个单词关联的学习片段数量与最近一次被添加视频的时间。
      *
-     * @returns 以单词索引的片段数量。
+     * @returns 以单词索引的片段统计（数量 + 最近添加视频时间）。
      */
-    public async countClipsGroupedByWord(): Promise<Record<string, number>> {
-        return await this.videoLearningClipWordRepository.countGroupedByWord();
+    public async getWordClipStats(): Promise<Record<string, WordClipStats>> {
+        return await this.videoLearningClipWordRepository.statsGroupedByWord();
     }
 
     /**

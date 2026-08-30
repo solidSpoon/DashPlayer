@@ -1,6 +1,7 @@
 import { ipcMain } from 'electron';
 
 import { ApiMap } from '@/common/api/api-def';
+import { isUserCancellation } from '@/common/utils/cancellation';
 import container from '@/backend/ioc/inversify.config';
 import TYPES from '@/backend/ioc/types';
 import { getMainLogger, resolveTraceId, runWithTrace } from '@/backend/infrastructure/logger';
@@ -13,21 +14,6 @@ const logger = getMainLogger('ipc');
 const QUIET_PATH_POLICIES: Partial<Record<string, { logParam: boolean; logResult: boolean }>> = {
     'watch-history/progress/update': { logParam: false, logResult: false },
 };
-
-/**
- * 判断异常是否为用户主动取消（axios CanceledError / AbortError / 取消语义消息）。
- * @param error 捕获到的未知异常。
- * @returns 属于用户主动取消时返回 true。
- * 取消属预期行为，不应按 error 记录。
- */
-function isUserCancellation(error: unknown): boolean {
-    if (!(error instanceof Error)) {
-        return false;
-    }
-    return error.name === 'CanceledError'
-        || error.name === 'AbortError'
-        || /cancel|取消/i.test(error.message);
-}
 
 /**
  * 注册 IPC 路由并统一记录调用日志。

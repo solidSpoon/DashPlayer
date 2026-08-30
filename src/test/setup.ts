@@ -35,6 +35,25 @@ Object.defineProperty(window, 'electronAPI', {
   writable: true,
 })
 
+// Mock window.electron
+const mockElectron = {
+  call: vi.fn().mockResolvedValue({}),
+  registerRendererApi: vi.fn(),
+  onTaskUpdate: vi.fn(),
+  onStoreUpdate: vi.fn(),
+  onErrorMsg: vi.fn(),
+  onInfoMsg: vi.fn(),
+  dpLogger: {
+    write: vi.fn(),
+  },
+};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(globalThis as any).electron = mockElectron;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+(window as any).electron = mockElectron;
+
+
+
 // Mock IntersectionObserver
 globalThis.IntersectionObserver = class IntersectionObserver {
   observe() {

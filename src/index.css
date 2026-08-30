@@ -209,3 +209,5 @@
   .dark [class~="dark:scrollbar-track-gray-600"] { --scrollbar-track: #52525b; }
   .dark [class~="dark:scrollbar-track-gray-800"] { --scrollbar-track: #1f2937; }
 }
+
+

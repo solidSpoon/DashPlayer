@@ -7,7 +7,7 @@ import DpTaskService from '@/backend/services/DpTaskService';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { VideoInfo } from '@/common/types/video-info';
 import { CancelByUserError } from '@/backend/utils/errors/errors';
-import FfmpegGateway from '@/backend/services/gateways/media/FfmpegGateway';
+import FfmpegGateway, { FfmpegExecutionError } from '@/backend/services/gateways/media/FfmpegGateway';
 import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 
 export default interface FfmpegService {
@@ -105,7 +105,7 @@ export default interface FfmpegService {
         en: boolean
     }): Promise<string>;
 
-    trimVideo(inputPath: string, startTime: number, endTime: number, outputPath: string): Promise<void>;
+    trimVideo(inputPath: string, startTime: number, endTime: number, outputPath: string, job?: string): Promise<void>;
 
     /**
      * Get video information
@@ -124,6 +124,7 @@ export default interface FfmpegService {
         inputFile: string;
         ranges: Array<{ start: number; end: number }>;
         outputFolder: string;
+        job?: string;
     }): Promise<string[]>;
 
     /**
@@ -142,6 +143,15 @@ export default interface FfmpegService {
     }): Promise<string[]>;
 }
 
+
+/**
+ * 把 dp_task ID 转成统一日志检索键，用于把一次后台任务的子进程日志串起来。
+ * @param taskId 任务 ID；缺失时不伪造身份。
+ * @returns `dp_task:<id>` 形式的 job 值，或 undefined。
+ */
+function dpTaskJob(taskId?: number): string | undefined {
+    return taskId ? `dp_task:${taskId}` : undefined;
+}
 
 /**
  * FFmpeg 业务服务实现。
@@ -207,6 +217,8 @@ export class FfmpegServiceImpl implements FfmpegService {
             inputFile,
             times,
             outputPattern,
+        }, {
+            job: `split:${outputFolder}`,
         });
 
         return await this.getOutputFiles(outputFolder, outputFilePrefix);
@@ -326,6 +338,7 @@ export class FfmpegServiceImpl implements FfmpegService {
                         inputDurationSecond,
                         onProgress,
                         onCancelable,
+                        job: dpTaskJob(taskId),
                     },
                 );
             },
@@ -389,6 +402,7 @@ export class FfmpegServiceImpl implements FfmpegService {
                     inputDurationSecond,
                     onProgress,
                     onCancelable,
+                    job: dpTaskJob(taskId),
                 });
             },
         );
@@ -431,6 +445,7 @@ export class FfmpegServiceImpl implements FfmpegService {
                     {
                         onProgress,
                         onCancelable,
+                        job: dpTaskJob(taskId),
                     },
                 );
             },
@@ -441,6 +456,11 @@ export class FfmpegServiceImpl implements FfmpegService {
 
     /**
      * 裁剪视频。
+     * @param inputPath 源视频绝对路径。
+     * @param startTime 起始时间（秒）。
+     * @param endTime 结束时间（秒）。
+     * @param outputPath 输出视频绝对路径。
+     * @param job 所属后台任务身份标识，如 `clip:<clipKey>`。
      */
     @WithSemaphore('ffmpeg')
     public async trimVideo(
@@ -448,6 +468,7 @@ export class FfmpegServiceImpl implements FfmpegService {
         startTime: number,
         endTime: number,
         outputPath: string,
+        job?: string,
     ): Promise<void> {
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputPath);
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(outputPath);
@@ -462,7 +483,7 @@ export class FfmpegServiceImpl implements FfmpegService {
             crf: 28,
             audioChannels: 1,
             audioBitrate: '64k',
-        });
+        }, { job });
     }
 
     /**
@@ -547,6 +568,7 @@ export class FfmpegServiceImpl implements FfmpegService {
         inputFile: string;
         ranges: Array<{ start: number; end: number }>;
         outputFolder: string;
+        job?: string;
     }): Promise<string[]> {
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(args.inputFile);
         await fs.promises.mkdir(args.outputFolder, { recursive: true });
@@ -561,6 +583,8 @@ export class FfmpegServiceImpl implements FfmpegService {
                 channels: 1,
                 startSecond: range.start,
                 endSecond: range.end,
+            }, {
+                job: args.job,
             });
             outputs.push(outputPath);
         }
@@ -569,6 +593,9 @@ export class FfmpegServiceImpl implements FfmpegService {
 
     /**
      * 执行支持取消的任务，并统一处理取消异常。
+     * @param taskId dp_task ID；缺失时无法注册取消回调也不参与 job 归因。
+     * @param context 输入时长与进度回调等执行上下文。
+     * @param runner 接收取消注册回调的任务体。
      */
     private async runCancelableTask(
         taskId: number | undefined,
@@ -578,6 +605,7 @@ export class FfmpegServiceImpl implements FfmpegService {
         },
         runner: (onCancelable: (cancel: () => void) => void) => Promise<void>,
     ): Promise<void> {
+        const job = dpTaskJob(taskId);
         let cancelledByUser = false;
         let hasCancelable = false;
 
@@ -597,27 +625,33 @@ export class FfmpegServiceImpl implements FfmpegService {
             return;
         } catch (error) {
             const normalized = error instanceof Error ? error : new Error(String(error));
-            this.logger.error('an error occurred while executing ffmpeg command', {
-                error: normalized,
-                context,
-            });
+            // 子进程退出与取消已由网关作为唯一证据点记录，这里只补记网关看不到的任务体异常。
+            const alreadyReported = error instanceof FfmpegExecutionError
+                || error instanceof CancelByUserError
+                || cancelledByUser;
+            if (!alreadyReported) {
+                this.logger.error('ffmpeg task failed', {
+                    job,
+                    inputDurationSecond: context.inputDurationSecond,
+                    error: normalized,
+                });
+            }
             throw this.processError(normalized, cancelledByUser);
         } finally {
             if (taskId && !hasCancelable) {
-                this.logger.debug('ffmpeg task finished without cancel handle', { taskId });
+                this.logger.debug('ffmpeg task finished without cancel handle', { job });
             }
         }
     }
 
     /**
      * 统一错误处理。
+     * @param error 任务体抛出的异常。
+     * @param cancelledByUser 任务是否已被用户标记取消。
+     * @returns 取消场景归一为 CancelByUserError，其余原样透出。
      */
     private processError(error: Error, cancelledByUser = false): Error {
         if (cancelledByUser) {
-            return new CancelByUserError();
-        }
-
-        if (/SIGKILL|SIGTERM|killed/i.test(error.message)) {
             return new CancelByUserError();
         }
 
