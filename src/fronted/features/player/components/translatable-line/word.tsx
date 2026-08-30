@@ -8,6 +8,8 @@ import {
     type Feature,
     type Polygon,
 } from '@turf/helpers';
+import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import WordPop from './word-pop';
 import { playUrl, playWord, getTtsUrl, playAudioUrl } from '@/fronted/infrastructure/audio/AudioPlayer';
 import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
@@ -23,6 +25,7 @@ import { usePlayer } from '@/fronted/features/player/playerStore';
 import useDictionaryStream, { createDictionaryRequestId } from '@/fronted/features/player/dictionaryStore';
 import useSetting from '@/fronted/features/settings/settingsStore';
 import { playerApi } from '@/fronted/features/player/playerApi';
+import { videoLearningApi } from '@/fronted/features/video-learning/videoLearningApi';
 
 const logger = getRendererLogger('Word');
 export interface WordParam {
@@ -66,9 +69,12 @@ export const getBox = (ele: HTMLElement): Feature<Polygon> => {
 const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNames}: WordParam) => {
     const pause = usePlayer((s) => s.pause);
     const vocabularyStore = useVocabulary();
+    const { t } = useTranslation('common');
     const [hovered, setHovered] = useState(false);
     const [playLoading, setPlayLoading] = useState(false);
     const [isRefreshing, setIsRefreshing] = useState(false);
+    // 收藏状态：idle 未收藏；saving 提交中；saved 已加入收藏
+    const [favoriteState, setFavoriteState] = useState<'idle' | 'saving' | 'saved'>('idle');
     const [referenceElement, setReferenceElement] = useState<HTMLSpanElement | null>(null);
 
     const theme = useTransLineTheme();
@@ -166,6 +172,38 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
             setIsRefreshing(false);
         }
     };
+
+    /**
+     * 收藏当前单词到词汇工坊。
+     *
+     * 行为说明：
+     * - 传递点击原文，由后端还原为原始形态后入库；
+     * - 成功后立即把入库单词加入生词高亮词表；
+     * - 已存在的单词给出提示并保持已收藏态。
+     */
+    const handleFavorite = async () => {
+        if (favoriteState !== 'idle') {
+            return;
+        }
+
+        setFavoriteState('saving');
+        try {
+            const result = await videoLearningApi.favoriteWord(original);
+            if (result.success && result.data) {
+                vocabularyStore.addVocabularyWords([result.data.word]);
+                setFavoriteState('saved');
+                toast.success(result.data.alreadyExists ? t('wordAlreadyFavorited') : t('wordFavorited'));
+            } else {
+                setFavoriteState('idle');
+                toast.error(result.error || t('favoriteWordFailed'));
+            }
+        } catch (error) {
+            logger.error('failed to favorite word', { error: error instanceof Error ? error.message : error });
+            setFavoriteState('idle');
+            toast.error(t('favoriteWordFailed'));
+        }
+    };
+
     const eleRef = useRef<HTMLSpanElement | null>(null);
     const popperRef = useRef<HTMLDivElement | null>(null);
     const resquested = useRef(false);
@@ -322,6 +360,9 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
                         openaiStreamingData={openaiDictionaryEnabled ? dictionaryEntry?.data : null}
                         isStreaming={openaiDictionaryEnabled && !!dictionaryEntry && !dictionaryEntry.isComplete}
                         onRefresh={handleRefresh}
+                        onFavorite={handleFavorite}
+                        isFavorited={favoriteState === 'saved'}
+                        isFavoriting={favoriteState === 'saving'}
                     />
                 </Eb>
             ) : null}

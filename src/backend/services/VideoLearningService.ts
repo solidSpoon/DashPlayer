@@ -2,7 +2,7 @@ import path from 'path';
 import { InsertVideoLearningClip, VideoLearningClip } from '@/backend/infrastructure/db/tables/videoLearningClip';
 import { InsertVideoLearningClipWord } from '@/backend/infrastructure/db/tables/videoLearningClipWord';
 import VideoLearningClipRepository from '@/backend/services/repositories/VideoLearningClipRepository';
-import VideoLearningClipWordRepository from '@/backend/services/repositories/VideoLearningClipWordRepository';
+import VideoLearningClipWordRepository, { WordClipStats } from '@/backend/services/repositories/VideoLearningClipWordRepository';
 import ErrorConstants from '@/common/constants/error-constants';
 import TimeUtil from '@/common/utils/TimeUtil';
 import StrUtil from '@/common/utils/str-util';
@@ -79,9 +79,9 @@ export interface VideoLearningService {
     syncFromOss(): Promise<void>;
 
     /**
-     * 统计每个单词对应的视频片段数量
+     * 统计每个单词关联的视频片段数量及最近一次被添加视频的时间。
      */
-    countClipsGroupedByWord(): Promise<Record<string, number>>;
+    getWordClipStats(): Promise<Record<string, WordClipStats>>;
 
     /**
      * 检测视频裁切状态
@@ -864,12 +864,12 @@ export class VideoLearningServiceImpl implements VideoLearningService {
     }
 
     /**
-     * 统计每个单词关联的学习片段数量。
+     * 统计每个单词关联的学习片段数量与最近一次被添加视频的时间。
      *
-     * @returns 以单词索引的片段数量。
+     * @returns 以单词索引的片段统计（数量 + 最近添加视频时间）。
      */
-    public async countClipsGroupedByWord(): Promise<Record<string, number>> {
-        return await this.videoLearningClipWordRepository.countGroupedByWord();
+    public async getWordClipStats(): Promise<Record<string, WordClipStats>> {
+        return await this.videoLearningClipWordRepository.statsGroupedByWord();
     }
 
     /**

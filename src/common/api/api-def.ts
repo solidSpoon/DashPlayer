@@ -314,6 +314,26 @@ interface VocabularyDef {
         params: { filePath: string },
         return: { success: boolean; message?: string; error?: string }
     };
+    'vocabulary/favorite': {
+        params: { word: string },
+        return: {
+            success: boolean;
+            data?: { word: string; translate: string; alreadyExists: boolean };
+            error?: string
+        }
+    };
+    'vocabulary/update': {
+        params: { oldWord: string; word: string; translate: string },
+        return: { success: boolean; error?: string }
+    };
+    'vocabulary/delete': {
+        params: { word: string },
+        return: { success: boolean; error?: string }
+    };
+    'vocabulary/generate-definition': {
+        params: { word: string },
+        return: { success: boolean; data?: string; error?: string }
+    };
 }
 
 interface VideoLearningDef {
@@ -349,9 +369,9 @@ interface VideoLearningDef {
         params: void,
         return: { success: boolean }
     };
-    'video-learning/clip-counts': {
+    'video-learning/word-clip-stats': {
         params: void,
-        return: { success: boolean; data: Record<string, number> }
+        return: { success: boolean; data: Record<string, { count: number; lastAddedAt: string }> }
     };
 }
 

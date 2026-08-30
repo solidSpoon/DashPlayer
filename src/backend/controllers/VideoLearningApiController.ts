@@ -61,8 +61,8 @@ export default class VideoLearningApiController implements Controller {
             return { success: true };
         });
 
-        registerRoute('video-learning/clip-counts', async () => {
-            const data = await this.videoLearningService.countClipsGroupedByWord();
+        registerRoute('video-learning/word-clip-stats', async () => {
+            const data = await this.videoLearningService.getWordClipStats();
             return { success: true, data };
         });
     }

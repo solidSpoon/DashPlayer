@@ -22,11 +22,11 @@ export const videoLearningApi = {
     getVocabulary: () => backendClient.call('vocabulary/get-all', {}),
 
     /**
-     * 查询片段数量统计。
+     * 查询每个单词的片段统计。
      *
-     * @returns 按词汇或分类聚合的片段数量。
+     * @returns 单词到片段数量与最近添加视频时间的映射。
      */
-    getClipCounts: () => backendClient.call('video-learning/clip-counts'),
+    getWordClipStats: () => backendClient.call('video-learning/word-clip-stats'),
 
     /**
      * 从远端同步视频学习数据。
@@ -49,6 +49,41 @@ export const videoLearningApi = {
      * @returns 导入结果。
      */
     importVocabulary: (filePath: string) => backendClient.call('vocabulary/import', { filePath }),
+
+    /**
+     * 收藏单词到词汇工坊；后端负责还原为原始形态并生成释义。
+     *
+     * @param word 用户点击的单词原文（可能是变体）。
+     * @returns 收藏结果，成功时携带入库单词与释义。
+     */
+    favoriteWord: (word: string) => backendClient.call('vocabulary/favorite', { word }),
+
+    /**
+     * 编辑单词与释义；单词本身是业务键，需用旧单词定位。
+     *
+     * @param oldWord 编辑前的单词。
+     * @param word 编辑后的单词。
+     * @param translate 编辑后的释义。
+     * @returns 操作结果。
+     */
+    updateWord: (oldWord: string, word: string, translate: string) =>
+        backendClient.call('vocabulary/update', { oldWord, word, translate }),
+
+    /**
+     * 删除单词。
+     *
+     * @param word 待删除的单词。
+     * @returns 操作结果。
+     */
+    deleteWord: (word: string) => backendClient.call('vocabulary/delete', { word }),
+
+    /**
+     * 调用 AI 为单词生成简明中文释义。
+     *
+     * @param word 单词。
+     * @returns 生成结果，成功时携带释义文本。
+     */
+    generateDefinition: (word: string) => backendClient.call('vocabulary/generate-definition', { word }),
 
     /**
      * 打开词汇导入文件选择器。

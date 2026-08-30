@@ -58,3 +58,31 @@ export class WinkVocabularyMatcher<TPayload> implements VocabularyMatcher<TPaylo
         return values.map((value, index) => ({ text: value, lemma: lemmas[index] ?? value, type: types[index] ?? 'text' }));
     }
 }
+
+/**
+ * 将单个单词或词组的变体（复数、时态等）还原为原始形态（lemma）。
+ *
+ * 行为说明：
+ * - 对每个 word token 取 wink 推导的 lemma 并用空格拼接，兼容词组；
+ * - 输入不含任何 word token 时，返回清理后的原文（小写）；
+ * - 输入为空时返回空字符串。
+ *
+ * @param text 原形未知的单词或词组原文。
+ * @returns 还原后的原形（小写）。
+ */
+export function lemmatizeWord(text: string): string {
+    const cleaned = text?.trim() ?? '';
+    if (!cleaned) {
+        return '';
+    }
+
+    const doc = nlp.readDoc(cleaned);
+    const lemmas = doc.tokens().out(nlp.its.lemma as unknown as ItsFunction<string>) as string[];
+    const types = doc.tokens().out(nlp.its.type as unknown as ItsFunction<string>) as string[];
+
+    const parts = types
+        .map((type, index) => (type === 'word' ? (lemmas[index] ?? '').toLowerCase() : ''))
+        .filter((part) => part.length > 0);
+
+    return parts.length > 0 ? parts.join(' ') : cleaned.toLowerCase();
+}

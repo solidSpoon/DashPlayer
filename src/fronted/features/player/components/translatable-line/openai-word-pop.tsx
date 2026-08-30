@@ -1,5 +1,5 @@
 import React from 'react';
-import { RefreshCw } from 'lucide-react';
+import { RefreshCw, Star, Loader2 } from 'lucide-react';
 import { OpenAIDictionaryResult } from '@/common/types/YdRes';
 import Playable from '@/fronted/components/shared/common/Playable';
 import { cn } from '@/fronted/lib/utils';
@@ -26,6 +26,12 @@ interface OpenAIWordPopProps {
     isLoading?: boolean;
     isStreaming?: boolean;
     onRefresh?: () => void;
+    /** 点击收藏按钮；未提供时不渲染收藏入口。 */
+    onFavorite?: () => void;
+    /** 当前单词是否已收藏。 */
+    isFavorited?: boolean;
+    /** 收藏请求是否进行中。 */
+    isFavoriting?: boolean;
     className?: string;
 }
 
@@ -34,6 +40,9 @@ const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({
     isLoading = false,
     isStreaming = false,
     onRefresh,
+    onFavorite,
+    isFavorited = false,
+    isFavoriting = false,
     className
 }) => {
     const { t } = useTranslation('common');
@@ -94,20 +103,39 @@ const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({
                         )}
                     </div>
 
-                    {onRefresh && (
-                        <button
-                            type="button"
-                            onClick={onRefresh}
-                            disabled={isLoading || isStreaming}
-                            className={cn(
-                                'p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors cursor-pointer shrink-0 ml-2',
-                                (isLoading || isStreaming) && 'opacity-50 cursor-not-allowed'
-                            )}
-                            title={t('forceRefresh')}
-                        >
-                            <RefreshCw size={14} className={isLoading || isStreaming ? 'animate-spin' : ''} />
-                        </button>
-                    )}
+                    <div className="flex items-center gap-0.5 shrink-0 ml-2">
+                        {onFavorite && (
+                            <button
+                                type="button"
+                                onClick={onFavorite}
+                                disabled={isFavoriting || isFavorited}
+                                className={cn(
+                                    'p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors cursor-pointer',
+                                    isFavorited && 'text-amber-500 hover:text-amber-500',
+                                    (isFavoriting || isFavorited) && 'cursor-default'
+                                )}
+                                title={t('favoriteWord')}
+                            >
+                                {isFavoriting
+                                    ? <Loader2 size={14} className="animate-spin" />
+                                    : <Star size={14} fill={isFavorited ? 'currentColor' : 'none'} />}
+                            </button>
+                        )}
+                        {onRefresh && (
+                            <button
+                                type="button"
+                                onClick={onRefresh}
+                                disabled={isLoading || isStreaming}
+                                className={cn(
+                                    'p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors cursor-pointer',
+                                    (isLoading || isStreaming) && 'opacity-50 cursor-not-allowed'
+                                )}
+                                title={t('forceRefresh')}
+                            >
+                                <RefreshCw size={14} className={isLoading || isStreaming ? 'animate-spin' : ''} />
+                            </button>
+                        )}
+                    </div>
                 </div>
 
                 {/* 滚动区域：释义与例句列表 */}
