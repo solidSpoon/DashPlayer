@@ -272,9 +272,7 @@ const PlayerWithControlsPage = () => {
         runEffect();
     }, [video, showAudioCompatToast]);
     useEffect(() => {
-        // 卡死提示 / 播放错误提示：
-        // 1. mediaErrorCode !== null: 完全无法播放（解码错误/不支持格式）
-        // 2. playbackStallCount > 0: 播放中卡死，看门狗检测并正在自愈恢复
+        // 卡死提示 / 播放错误提示：媒体报错或看门狗判定卡死触发
         if (mediaErrorCode === null && playbackStallCount === 0) {
             return;
         }
@@ -286,14 +284,10 @@ const PlayerWithControlsPage = () => {
             return;
         }
 
-        const isFatalError = mediaErrorCode !== null;
-        const titleKey = isFatalError ? 'compatToastErrorTitle' : 'compatToastStallTitle';
-        const descKey = isFatalError ? 'compatToastErrorDescription' : 'compatToastStallDescription';
-
-        sonnerToast(t(titleKey), {
+        sonnerToast(t('compatToastIssueTitle'), {
             id: COMPAT_TOAST_ID,
             className: 'compat-toast',
-            description: t(descKey),
+            description: t('compatToastIssueDescription'),
             duration: 8000,
             position: 'top-right',
             action: {

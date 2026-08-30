@@ -1,10 +1,8 @@
 {
     "compatToastAudioTitle": "该视频可能没有声音",
     "compatToastAudioDescription": "它的音频格式可能不被播放器支持，转换一下就能正常出声了。",
-    "compatToastErrorTitle": "视频无法直接播放",
-    "compatToastErrorDescription": "该视频格式暂不支持直接播放，点击“去转换”即可快速转为兼容格式。",
-    "compatToastStallTitle": "播放似乎卡住了",
-    "compatToastStallDescription": "系统正在尝试自动恢复，请稍等片刻看看；如果依然无法播放，建议点击“去转换”。",
+    "compatToastIssueTitle": "视频播放不顺畅？",
+    "compatToastIssueDescription": "可以稍等片刻看看是否会自动恢复；如果一直无法播放，建议前往转换页面转一下格式。",
     "compatToastIgnore": "暂时忽略",
     "compatToastAction": "去转换",
     "emptyState": {
