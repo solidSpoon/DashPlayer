@@ -209,3 +209,21 @@
   .dark [class~="dark:scrollbar-track-gray-600"] { --scrollbar-track: #52525b; }
   .dark [class~="dark:scrollbar-track-gray-800"] { --scrollbar-track: #1f2937; }
 }
+
+/* 播放异常提示：标题与描述独占整行，操作按钮换行靠右排到底部，避免与长文案挤在同一行 */
+[data-sonner-toast].compat-toast {
+  flex-wrap: wrap;
+  row-gap: 10px;
+}
+
+[data-sonner-toast].compat-toast [data-content] {
+  flex: 1 0 100%;
+}
+
+[data-sonner-toast].compat-toast [data-cancel] {
+  margin-left: auto;
+}
+
+[data-sonner-toast].compat-toast [data-action] {
+  margin-left: 10px;
+}

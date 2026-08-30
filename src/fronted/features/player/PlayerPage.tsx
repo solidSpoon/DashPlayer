@@ -68,23 +68,26 @@ const PlayerWithControlsPage = () => {
     const referrer = location.state && location.state.referrer;
     logger.debug('page referrer', {referrer});
     const windowButtonsVisibleRef = useRef<boolean | null>(null);
-    // 兼容性提示去重：key 形如 `${场景}:${视频路径}`，同场景同文件只提示一次
-    const compatToastShownRef = useRef<Set<string>>(new Set());
+    // 疑似无声的音频兼容提示去重：同文件只提示一次
+    const audioCompatToastShownRef = useRef<Set<string>>(new Set());
+    // 音频兼容预检去重：会话内每个文件只探测一次
+    const audioProbeDoneRef = useRef<Set<string>>(new Set());
+    // 卡死提示的"暂时忽略"：记录被忽略的视频 id，本次运行内该视频不再提示（不持久化）
+    const stallIgnoreVideoIdRef = useRef<string | null>(null);
     const mediaErrorCode = usePlayer((s) => s.mediaErrorCode);
+    const playbackStallCount = usePlayer((s) => s.playbackStallCount);
     /**
-     * 弹出兼容性引导 toast（按"场景+文件"去重），按钮会把视频加入待转换列表并跳转转码页。
-     * @param kind audio=疑似无声预检；playback=实际播放失败
+     * 弹出音频无声的兼容性引导 toast（按文件去重），按钮会把视频加入待转换列表并跳转转码页。
      * @param videoPath 视频绝对路径
      */
-    const showCompatToast = useCallback((kind: 'audio' | 'playback', videoPath: string) => {
-        const key = `${kind}:${videoPath}`;
-        if (compatToastShownRef.current.has(key)) {
+    const showAudioCompatToast = useCallback((videoPath: string) => {
+        if (audioCompatToastShownRef.current.has(videoPath)) {
             return;
         }
-        compatToastShownRef.current.add(key);
-        sonnerToast(kind === 'audio' ? t('compatToastAudioTitle') : t('compatToastErrorTitle'), {
+        audioCompatToastShownRef.current.add(videoPath);
+        sonnerToast(t('compatToastAudioTitle'), {
             id: COMPAT_TOAST_ID,
-            description: kind === 'audio' ? t('compatToastAudioDescription') : t('compatToastErrorDescription'),
+            description: t('compatToastAudioDescription'),
             duration: 8000,
             position: 'top-right',
             action: {
@@ -189,11 +192,11 @@ const PlayerWithControlsPage = () => {
             // 音频兼容预检：音频编码可疑时视频会"能播但无声"，播放错误检测发现不了，只能提前探测
             setTimeout(() => {
                 (async () => {
-                    if (!videoPath || compatToastShownRef.current.has(`probed:${videoPath}`)) {
+                    if (!videoPath || audioProbeDoneRef.current.has(videoPath)) {
                         return;
                     }
                     // 先登记再探测，保证会话内每个文件只探测一次
-                    compatToastShownRef.current.add(`probed:${videoPath}`);
+                    audioProbeDoneRef.current.add(videoPath);
                     try {
                         const suggested = await playerApi.suggestHtml5Video(videoPath);
                         if (suggested) {
@@ -204,7 +207,7 @@ const PlayerWithControlsPage = () => {
                         if (audioCodec.length > 0 && !SUSPICIOUS_AUDIO_CODECS.has(audioCodec)) {
                             return;
                         }
-                        showCompatToast('audio', videoPath);
+                        showAudioCompatToast(videoPath);
                     } catch (error) {
                         logger.debug('compat probe failed', { error: error instanceof Error ? error.message : String(error) });
                     }
@@ -267,18 +270,47 @@ const PlayerWithControlsPage = () => {
             }
         };
         runEffect();
-    }, [video, showCompatToast]);
+    }, [video, showAudioCompatToast]);
     useEffect(() => {
-        // 乐观播放：真的播不了（解码失败/格式不支持）时才提示转换
-        if (!video || mediaErrorCode === null) {
+        // 卡死提示 / 播放错误提示：
+        // 1. mediaErrorCode !== null: 完全无法播放（解码错误/不支持格式）
+        // 2. playbackStallCount > 0: 播放中卡死，看门狗检测并正在自愈恢复
+        if (mediaErrorCode === null && playbackStallCount === 0) {
             return;
         }
-        const videoPath = PathUtil.join(video.basePath, video.fileName);
-        if (!videoPath) {
+        const { videoId, videoPath } = useFile.getState();
+        if (!videoId || !videoPath) {
             return;
         }
-        showCompatToast('playback', videoPath);
-    }, [video, mediaErrorCode, showCompatToast]);
+        if (stallIgnoreVideoIdRef.current === videoId) {
+            return;
+        }
+
+        const isFatalError = mediaErrorCode !== null;
+        const titleKey = isFatalError ? 'compatToastErrorTitle' : 'compatToastStallTitle';
+        const descKey = isFatalError ? 'compatToastErrorDescription' : 'compatToastStallDescription';
+
+        sonnerToast(t(titleKey), {
+            id: COMPAT_TOAST_ID,
+            className: 'compat-toast',
+            description: t(descKey),
+            duration: 8000,
+            position: 'top-right',
+            action: {
+                label: t('compatToastAction'),
+                onClick: () => {
+                    useConvert.getState().addFiles([videoPath]);
+                    navigate('/convert');
+                },
+            },
+            cancel: {
+                label: t('compatToastIgnore'),
+                onClick: () => {
+                    stallIgnoreVideoIdRef.current = videoId;
+                },
+            },
+        });
+    }, [mediaErrorCode, playbackStallCount, navigate, t]);
     useEffect(() => {
         let cancelled = false;
 

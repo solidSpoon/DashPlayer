@@ -1,8 +1,11 @@
 {
     "compatToastAudioTitle": "This video may play without sound",
     "compatToastAudioDescription": "Its audio format may not be supported by the player. Converting it should fix this.",
-    "compatToastErrorTitle": "This video can't play properly",
-    "compatToastErrorDescription": "Its format may not be supported by the player. Converting it should fix this.",
+    "compatToastErrorTitle": "Unable to play this video",
+    "compatToastErrorDescription": "This video format isn't supported directly. Click \"Convert\" to convert it for smooth playback.",
+    "compatToastStallTitle": "Playback seems stuck",
+    "compatToastStallDescription": "We're trying to resume playback automatically. Please wait a moment, or convert the video if it doesn't recover.",
+    "compatToastIgnore": "Ignore for now",
     "compatToastAction": "Convert",
     "emptyState": {
         "heroTitle": "Start your English learning journey",

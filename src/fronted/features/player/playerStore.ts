@@ -126,6 +126,8 @@ interface PlayerState {
   playRequestId: number;
   /** 最近一次"解码失败/格式不支持"类媒体错误码（MediaError code）；切换源时重置，null 表示无此类错误。 */
   mediaErrorCode: number | null;
+  /** 看门狗判定播放卡死的次数：每次判定 +1，切换源时重置；UI 据此弹出卡死提示（同 id toast 不叠加）。 */
+  playbackStallCount: number;
 
   // 模式
   autoPause: boolean;
@@ -172,6 +174,9 @@ interface PlayerState {
    * @param code MediaError 错误码
    */
   reportMediaError: (code: number) => void;
+
+  /** 上报一次播放卡死判定（由 PlayerEngine 看门狗调用），计数递增通知 UI 弹提示。 */
+  reportPlaybackStall: () => void;
 
   // 基础 seek（保留）：按时间立即匹配高亮（用于进度条等）
   seekTo: (seekTime: SeekAction) => void;
@@ -809,6 +814,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
     seekTime: { time: 0 },
     playRequestId: 0,
     mediaErrorCode: null,
+    playbackStallCount: 0,
 
     autoPause: false,
     singleRepeat: false,
@@ -855,6 +861,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
         seekTime: { time: 0 },
         playRequestId: 0,
         mediaErrorCode: null,
+        playbackStallCount: 0,
         shadowingPause: null,
         activePlan: null,
         virtualGroup: { active: false, sentences: [] },
@@ -952,6 +959,8 @@ export const usePlayer = create<PlayerState>((set, get) => {
 
     // 相同错误码重复上报时值不变，订阅方不会重复触发
     reportMediaError: (code) => set({ mediaErrorCode: code }),
+
+    reportPlaybackStall: () => set((s) => ({ playbackStallCount: s.playbackStallCount + 1 })),
 
     /**
      * 基础 seek：按时间匹配高亮，用于进度条拖动等通用场景。

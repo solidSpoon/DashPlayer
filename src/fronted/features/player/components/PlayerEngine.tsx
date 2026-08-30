@@ -227,6 +227,8 @@ const PlayerEngine: React.FC<PlayerEngineProps> = ({
 
       const attempt = stallAttemptRef.current + 1;
       stallAttemptRef.current = attempt;
+      // 每次判定卡死都通知 UI 弹提示；同一提示框由 toast id 去重，不会叠加
+      usePlayer.getState().reportPlaybackStall();
       logger.warn('playback stall detected, attempt recovery', {
         attempt,
         currentTime: video.currentTime,
