@@ -5,7 +5,7 @@ import { Button } from '@/fronted/components/ui/button';
 import { FolderOpen, HardDrive, RefreshCw, Trash2, FolderSync } from 'lucide-react';
 import { swrApiMutate } from '@/fronted/lib/swr-util';
 import useFile from '@/fronted/features/file-browser/fileStore';
-import { useToast } from '@/fronted/components/ui/use-toast';
+import toast from 'react-hot-toast';
 import { useForm, Controller } from 'react-hook-form';
 import { Input } from '@/fronted/components/ui/input';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
@@ -22,7 +22,6 @@ type StorageFormValues = StorageSettingVO;
  */
 const StorageSetting = () => {
     const { t } = useI18nTranslation('settings');
-    const { toast } = useToast();
     const [size, setSize] = React.useState<string>('--');
     const [storageStatus, setStorageStatus] = React.useState<StorageStatusVO | null>(null);
 
@@ -95,16 +94,10 @@ const StorageSetting = () => {
             await settingsApi.syncFavouriteFromOss();
             await swrApiMutate('favorite-clips/search');
             useFile.setState({ subtitlePath: null });
-            toast({
-                title: t('storage.collectionSync.success'),
-            });
+            toast.success(t('storage.collectionSync.success'));
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            toast({
-                variant: 'destructive',
-                title: t('storage.collectionSync.error'),
-                description: message,
-            });
+            toast.error(`${t('storage.collectionSync.error')}\n${message}`);
         }
     }
 
@@ -116,32 +109,20 @@ const StorageSetting = () => {
                 throw new Error(t('storage.syncWordClipsFailed'));
             }
             await swrApiMutate('video-learning/search');
-            toast({
-                title: t('storage.wordClipsSync.success'),
-            });
+            toast.success(t('storage.wordClipsSync.success'));
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            toast({
-                variant: 'destructive',
-                title: t('storage.wordClipsSync.error'),
-                description: message,
-            });
+            toast.error(`${t('storage.wordClipsSync.error')}\n${message}`);
         }
     }
 
     const handleClear = async () => {
         try {
             await settingsApi.resetDatabase();
-            toast({
-                title: t('storage.resetSuccess', { defaultValue: '数据库已成功重置' }),
-            });
+            toast.success(t('storage.resetSuccess', { defaultValue: '数据库已成功重置' }));
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            toast({
-                variant: 'destructive',
-                title: t('storage.resetFailed', { defaultValue: '数据库重置失败' }),
-                description: message,
-            });
+            toast.error(`${t('storage.resetFailed', { defaultValue: '数据库重置失败' })}\n${message}`);
         }
     };
 

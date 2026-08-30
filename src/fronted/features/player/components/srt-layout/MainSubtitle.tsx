@@ -32,6 +32,12 @@ import {
 } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import {
+    Popover,
+    PopoverContent,
+    PopoverTrigger,
+} from '@/fronted/components/ui/popover';
+import { Input } from '@/fronted/components/ui/input';
+import {
     DropdownMenu,
     DropdownMenuCheckboxItem,
     DropdownMenuContent,
@@ -52,6 +58,50 @@ export default function MainSubtitle() {
     const playbackRate = usePlayerState((s) => s.playbackRate);
     const srtTender = usePlayerState((s) => s.srtTender);
     const adjusted = useMemo(() => (sentence && srtTender ? (srtTender.adjusted(sentence) ?? false) : false), [sentence, srtTender]);
+
+    // 当前句时间戳偏移（秒）：仅在存在调整时计算，用于胶囊控制栏的常显偏移 Badge
+    const adjustDiff = useMemo(() => {
+        if (!sentence || !srtTender || !adjusted) return null;
+        return srtTender.timeDiff(sentence);
+    }, [sentence, srtTender, adjusted]);
+
+    // 时间戳调整配置弹层：打开时以当前偏移初始化草稿输入
+    const [adjustPopoverOpen, setAdjustPopoverOpen] = useState(false);
+    const [adjustDraft, setAdjustDraft] = useState<{ start: string; end: string }>({ start: '0', end: '0' });
+
+    /**
+     * Popover 打开状态变化：打开瞬间把当前句的起/终偏移写入草稿。
+     */
+    const handleAdjustPopoverChange = (open: boolean) => {
+        if (open) {
+            const diff = srtTender && sentence && adjusted ? srtTender.timeDiff(sentence) : { start: 0, end: 0 };
+            setAdjustDraft({ start: diff.start.toFixed(2), end: diff.end.toFixed(2) });
+        }
+        setAdjustPopoverOpen(open);
+    };
+
+    /**
+     * 应用草稿中的绝对偏移：与当前偏移求差后走增量调整动作（保留虚拟组归属与重播语义）。
+     * 当前偏移从 store 实时读取，避免连续应用起点/终点时用到过期闭包值。
+     *
+     * @param field 要应用的偏移字段
+     * @param raw 输入框原始文本
+     */
+    const applyAdjustDraft = (field: 'start' | 'end', raw: string) => {
+        const next = Number(raw);
+        if (!Number.isFinite(next)) return;
+        const { srtTender: tender, currentSentence } = usePlayer.getState();
+        const current = tender && currentSentence && tender.adjusted(currentSentence)
+            ? tender.timeDiff(currentSentence)[field]
+            : 0;
+        const delta = next - current;
+        if (Math.abs(delta) < 0.005) return;
+        if (field === 'start') {
+            playerActions.adjustCurrentBegin(delta);
+        } else {
+            playerActions.adjustCurrentEnd(delta);
+        }
+    };
 
     const singleRepeat = usePlayer((s) => s.singleRepeat);
     const setSingleRepeat = usePlayer((s) => s.setSingleRepeat);
@@ -459,20 +509,78 @@ export default function MainSubtitle() {
                                 <TooltipContent side="top">收藏当前句{formatShortcut(favShortcut)}</TooltipContent>
                             </Tooltip>
 
-                            {/* 时间戳重置（有调整时显示） */}
-                            {adjusted && (
+                            {/* 时间戳调整配置（常驻）：点击弹层直接编辑当前句起/终偏移 */}
+                            <Popover open={adjustPopoverOpen} onOpenChange={handleAdjustPopoverChange}>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
-                                        <button
-                                            onClick={() => { void playerActions.clearAdjust(); }}
-                                            className="p-1 rounded-full text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/60 transition-colors"
-                                        >
-                                            <History className="w-3.5 h-3.5 stroke-[2]" />
-                                        </button>
+                                        <PopoverTrigger asChild>
+                                            <button
+                                                className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full transition-colors ${
+                                                    adjusted
+                                                        ? 'text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/60 hover:bg-amber-200 dark:hover:bg-amber-900/80'
+                                                        : 'text-stone-600 dark:text-neutral-400 hover:text-stone-900 dark:hover:text-white hover:bg-stone-300/60 dark:hover:bg-neutral-600/60'
+                                                }`}
+                                            >
+                                                <History className="w-3.5 h-3.5 stroke-[2]" />
+                                                <span className="font-mono text-[10px] font-semibold leading-none tabular-nums">
+                                                    {`${adjustDiff && adjustDiff.start >= 0 ? '+' : ''}${(adjustDiff?.start ?? 0).toFixed(2)}/${adjustDiff && adjustDiff.end >= 0 ? '+' : ''}${(adjustDiff?.end ?? 0).toFixed(2)}s`}
+                                                </span>
+                                            </button>
+                                        </PopoverTrigger>
                                     </TooltipTrigger>
-                                    <TooltipContent side="top">重置当前句时间戳</TooltipContent>
+                                    <TooltipContent side="top">配置当前句时间戳偏移</TooltipContent>
                                 </Tooltip>
-                            )}
+                                <PopoverContent side="top" align="end" className="w-64 p-3 gap-2">
+                                    <div className="text-xs font-semibold text-foreground">当前句时间戳偏移</div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-8 text-xs text-muted-foreground shrink-0">起点</span>
+                                        <Input
+                                            type="number"
+                                            step={0.05}
+                                            className="h-8 flex-1 font-mono text-xs"
+                                            value={adjustDraft.start}
+                                            onChange={(e) => setAdjustDraft((d) => ({ ...d, start: e.target.value }))}
+                                            onBlur={() => applyAdjustDraft('start', adjustDraft.start)}
+                                            onKeyDown={(e) => { if (e.key === 'Enter') applyAdjustDraft('start', adjustDraft.start); }}
+                                        />
+                                        <span className="text-[10px] text-muted-foreground shrink-0">s</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <span className="w-8 text-xs text-muted-foreground shrink-0">终点</span>
+                                        <Input
+                                            type="number"
+                                            step={0.05}
+                                            className="h-8 flex-1 font-mono text-xs"
+                                            value={adjustDraft.end}
+                                            onChange={(e) => setAdjustDraft((d) => ({ ...d, end: e.target.value }))}
+                                            onBlur={() => applyAdjustDraft('end', adjustDraft.end)}
+                                            onKeyDown={(e) => { if (e.key === 'Enter') applyAdjustDraft('end', adjustDraft.end); }}
+                                        />
+                                        <span className="text-[10px] text-muted-foreground shrink-0">s</span>
+                                    </div>
+                                    <p className="text-[10px] leading-tight text-muted-foreground">
+                                        相对原始字幕的偏移秒数，失焦或回车即生效
+                                    </p>
+                                </PopoverContent>
+                            </Popover>
+
+                            {/* 时间戳重置（常驻）：无调整时禁用 */}
+                            <Tooltip>
+                                <TooltipTrigger asChild>
+                                    <button
+                                        onClick={() => { if (adjusted) void playerActions.clearAdjust(); }}
+                                        disabled={!adjusted}
+                                        className={`p-1 rounded-full transition-colors ${
+                                            adjusted
+                                                ? 'text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/60'
+                                                : 'text-stone-400/60 dark:text-neutral-600 cursor-default'
+                                        }`}
+                                    >
+                                        <RotateCcw className="w-3.5 h-3.5" />
+                                    </button>
+                                </TooltipTrigger>
+                                <TooltipContent side="top">{adjusted ? '重置当前句时间戳' : '当前句没有时间戳调整'}</TooltipContent>
+                            </Tooltip>
 
                             {/* 字幕轨道开关下拉菜单（直观展示当前是双语/单英文/单中文/全关状态） */}
                             <DropdownMenu>

@@ -1,18 +1,13 @@
-import React, { ReactElement, useCallback, useEffect, useRef, useState } from 'react';
+import React, { ReactElement, useCallback, useEffect, useRef } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { playerActions } from '@/fronted/features/player/components/PlayerActions';
 import PlayerEngine from '@/fronted/features/player/components/PlayerEngine';
 import { usePlayerState } from '@/fronted/features/player/playerState';
-import { getRendererLogger } from '@/fronted/log/simple-logger';
 import useLayout from '@/fronted/hooks/useLayout';
 import PlaybackControlBar from './ControlBar';
 import FullscreenSubtitleOverlay from '@/fronted/features/player/components/subtitles/FullscreenSubtitleOverlay';
-import PlaySpeedToaster from '@/fronted/features/player/components/PlaySpeedToaster';
-import PlayerToaster from '@/fronted/features/player/components/PlayerToaster';
 import { cn } from '@/fronted/lib/utils';
-
-const logger = getRendererLogger('PlaybackStage');
 
 type PlaybackStageProps = {
     className?: string;
@@ -24,13 +19,11 @@ type PlaybackStageProps = {
 export default function PlaybackStage({ className, onReady, onEnded, onProvideVideoElement }: PlaybackStageProps): ReactElement {
     const {
         playing,
-        playbackRate,
         src,
         hasSource
     } = usePlayerState(
         (state) => ({
             playing: state.playing,
-            playbackRate: state.playbackRate,
             src: state.src,
             hasSource: !!state.src
         }),
@@ -87,8 +80,6 @@ export default function PlaybackStage({ className, onReady, onEnded, onProvideVi
                     />
                 )}
                 {fullScreen && <FullscreenSubtitleOverlay />}
-                <PlaySpeedToaster speed={playbackRate} className="absolute top-3 left-3" />
-                <PlayerToaster className="absolute top-3 left-3" />
             </div>
         </div>
     );

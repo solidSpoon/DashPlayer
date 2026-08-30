@@ -4,6 +4,7 @@ import hash from 'object-hash';
 import { RendererTranslationItem, TranslationMode } from '@/common/types/TranslationResult';
 import { playerApi } from '@/fronted/features/player/playerApi';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import { showNotification } from '@/fronted/components/shared/toasts/notification';
 import { rendererSessionId } from '@/fronted/infrastructure/electron/rendererSession';
 
 /**
@@ -123,16 +124,13 @@ const showRequestFailure = (
 ): void => {
     logger.error('subtitle translation demand request failed', { error });
     const message = error instanceof Error ? error.message : String(error);
-    window.dispatchEvent(new CustomEvent('show-toast', {
-        detail: {
-            title: '字幕翻译失败',
-            message,
-            variant: 'error',
-            position: 'top-left',
-            bubble: true,
-            dedupeKey: `subtitle-translation-request:${engine}:${hash(message)}`,
-        },
-    }));
+    showNotification({
+        title: '字幕翻译失败',
+        message,
+        variant: 'error',
+        bubble: true,
+        dedupeKey: `subtitle-translation-request:${engine}:${hash(message)}`,
+    });
 };
 
 const useTranslation = create(

@@ -6,7 +6,6 @@ import { Sentence } from '@/common/types/SentenceC';
 import { SrtTender, SrtTenderImpl } from '@/fronted/lib/SrtTender';
 import StrUtil from '@/common/utils/str-util';
 import useFile from '@/fronted/features/file-browser/fileStore';
-import usePlayerToaster from '@/fronted/features/player/playerToasterStore';
 import useSetting from '@/fronted/features/settings/settingsStore';
 import { useTrainingModeStore } from '@/fronted/features/player/trainingStore';
 import { playerApi } from '@/fronted/features/player/playerApi';
@@ -615,7 +614,6 @@ export const usePlayer = create<PlayerState>((set, get) => {
           if (plan?.rates && plan.rates[done] !== undefined) {
             set({ playbackRate: plan.rates[done] });
           }
-          usePlayerToaster.getState().setNotification({ type: 'info', text: `第 ${done + 1}/${transientPlan.loopTotal} 遍` });
           get().seekToTarget({ time: transientPlan.range.start, target: transientPlan.anchor });
         }
       }
@@ -775,7 +773,6 @@ export const usePlayer = create<PlayerState>((set, get) => {
     if (mode.rates?.[0] !== undefined) {
       set({ playbackRate: mode.rates[0] });
     }
-    usePlayerToaster.getState().setNotification({ type: 'info', text: `第 1/${mode.times} 遍` });
     if (seekToStart) {
       get().seekToTarget({ time: range.start, target: anchor });
     }
@@ -1375,10 +1372,6 @@ export const usePlayer = create<PlayerState>((set, get) => {
         return;
       }
 
-      const diff = srtTender.timeDiff(updated).start;
-      const diffStr = diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2);
-      usePlayerToaster.getState().setNotification({ type: 'info', text: `start: ${diffStr} s` });
-
       const { start: start2, end: end2 } = srtTender.mapSeekTime(updated);
       void playerApi.updateTimestampAdjustment({
         key: updated.key,
@@ -1421,10 +1414,6 @@ export const usePlayer = create<PlayerState>((set, get) => {
 
       const { subtitlePath } = useFile.getState();
       if (!StrUtil.isBlank(subtitlePath)) {
-        const diff = srtTender.timeDiff(updated).end;
-        const diffStr = diff > 0 ? `+${diff.toFixed(2)}` : diff.toFixed(2);
-        usePlayerToaster.getState().setNotification({ type: 'info', text: `end: ${diffStr} s` });
-
         const { start: start2, end: end2 } = srtTender.mapSeekTime(updated);
       void playerApi.updateTimestampAdjustment({
           key: updated.key,

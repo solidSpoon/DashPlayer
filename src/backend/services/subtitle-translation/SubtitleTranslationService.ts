@@ -1009,7 +1009,6 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             title: '字幕翻译失败',
             message: combinedMessage,
             variant: 'error',
-            position: 'top-left',
             bubble: true,
             dedupeKey,
             duration: 6500,

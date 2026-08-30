@@ -40,30 +40,6 @@ export function initRendererApis(): () => void {
         unregisters.push(registerRendererApi(path, wrappedHandler as RendererApiMap[K]));
     };
 
-    register('ui/show-notification', async (params) => {
-        logger.debug('Show notification', { params });
-
-        if ('Notification' in window && Notification.permission === 'granted') {
-            new Notification(params.title, {
-                body: params.message,
-                icon: '/icon.png',
-            });
-            return;
-        }
-
-        alert(`${params.title}: ${params.message}`);
-    });
-
-    register('ui/show-confirm-dialog', async (params) => {
-        logger.debug('Show confirmation dialog', { params });
-        return true;
-    });
-
-    register('ui/update-progress', async (params) => {
-        logger.debug('Update progress', { params });
-        window.dispatchEvent(new CustomEvent('progress-update', { detail: params }));
-    });
-
     register('ui/show-toast', async (params) => {
         logger.debug('Show toast', { params });
         window.dispatchEvent(new CustomEvent('show-toast', { detail: params }));

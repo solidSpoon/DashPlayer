@@ -31,7 +31,8 @@ import {Button} from "@/fronted/components/ui/button";
 
 const logger = getRendererLogger('PlayerWithControlsPage');
 const MODE_SWITCH_TOAST_ID = 'mode-switch-toast';
-const COMPAT_TOAST_ID = 'compat-playback-toast';
+const AUDIO_COMPAT_TOAST_ID = 'audio-compat-toast';
+const PLAYBACK_ISSUE_TOAST_ID = 'playback-issue-toast';
 // 疑似播放器不支持的音频编码：命中时视频可能"能播但无声"（DTS 可能显示为 dts/dca，TrueHD 可能显示为 truehd/mlp）
 const SUSPICIOUS_AUDIO_CODECS = new Set([
     'dts',
@@ -107,9 +108,8 @@ const PlayerWithControlsPage = () => {
                 </div>
             ),
             {
-                id: COMPAT_TOAST_ID,
+                id: AUDIO_COMPAT_TOAST_ID,
                 duration: 8000,
-                position: 'top-right',
             }
         );
     }, [navigate, t]);
@@ -313,9 +313,8 @@ const PlayerWithControlsPage = () => {
                 />
             ),
             {
-                id: COMPAT_TOAST_ID,
+                id: PLAYBACK_ISSUE_TOAST_ID,
                 duration: 8000,
-                position: 'top-right',
             }
         );
     }, [mediaErrorCode, playbackStallCount, navigate, t]);

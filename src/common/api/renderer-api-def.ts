@@ -18,16 +18,12 @@ interface RendererApiDefinition {
 
 // UI相关的前端API定义
 interface UIRendererDef {
-    'ui/show-notification': { params: { title: string, message: string, type?: 'info' | 'success' | 'warning' | 'error' }, return: void };
-    'ui/show-confirm-dialog': { params: { title: string, message: string }, return: boolean };
-    'ui/update-progress': { params: { taskId: string, progress: number, message?: string }, return: void };
     'ui/show-toast': {
         params: {
             title?: string;
             message: string;
             variant?: 'default' | 'success' | 'info' | 'warning' | 'error';
             duration?: number;
-            position?: 'top-left' | 'top-center' | 'top-right' | 'bottom-left' | 'bottom-center' | 'bottom-right';
             bubble?: boolean;
             dedupeKey?: string;
             id?: string;
