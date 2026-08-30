@@ -2,7 +2,7 @@ import React from 'react';
 import { cn } from '@/fronted/lib/utils';
 import { Separator } from '@/fronted/components/ui/separator';
 
-export interface SettingCardProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface SettingCardProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
     title?: React.ReactNode;
     description?: React.ReactNode;
     icon?: React.ElementType;
@@ -10,7 +10,7 @@ export interface SettingCardProps extends React.HTMLAttributes<HTMLDivElement> {
     children: React.ReactNode;
 }
 
-export interface SettingRowProps extends React.HTMLAttributes<HTMLDivElement> {
+export interface SettingRowProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
     title: React.ReactNode;
     description?: React.ReactNode;
     icon?: React.ElementType;

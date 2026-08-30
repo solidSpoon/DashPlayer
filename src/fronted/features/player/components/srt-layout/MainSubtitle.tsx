@@ -140,6 +140,11 @@ export default function MainSubtitle() {
     const repeatShortcut = useSetting((s) => s.setting('shortcut.repeatSingleSentence'));
     const autoPauseShortcut = useSetting((s) => s.setting('shortcut.autoPause'));
     const favShortcut = useSetting((s) => s.setting('shortcut.addClip'));
+    const adjustBeginMinusShortcut = useSetting((s) => s.setting('shortcut.adjustBeginMinus'));
+    const adjustBeginPlusShortcut = useSetting((s) => s.setting('shortcut.adjustBeginPlus'));
+    const adjustEndMinusShortcut = useSetting((s) => s.setting('shortcut.adjustEndMinus'));
+    const adjustEndPlusShortcut = useSetting((s) => s.setting('shortcut.adjustEndPlus'));
+    const clearAdjustShortcut = useSetting((s) => s.setting('shortcut.clearAdjust'));
 
     const formatShortcut = (k?: string) => (k ? ` (${k})` : '');
 
@@ -509,78 +514,157 @@ export default function MainSubtitle() {
                                 <TooltipContent side="top">收藏当前句{formatShortcut(favShortcut)}</TooltipContent>
                             </Tooltip>
 
-                            {/* 时间戳调整配置（常驻）：点击弹层直接编辑当前句起/终偏移 */}
+                            {/* 时间戳调整与重置（合并为一个触发器）：未调整时仅展示轻量图标，调整后展示高亮偏移 Badge */}
                             <Popover open={adjustPopoverOpen} onOpenChange={handleAdjustPopoverChange}>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <PopoverTrigger asChild>
                                             <button
-                                                className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full transition-colors ${
+                                                className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full transition-all text-[10px] font-medium leading-none ${
                                                     adjusted
-                                                        ? 'text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/60 hover:bg-amber-200 dark:hover:bg-amber-900/80'
+                                                        ? 'text-amber-700 dark:text-amber-300 bg-amber-200/70 dark:bg-amber-900/60 shadow-xs ring-1 ring-amber-500/30'
                                                         : 'text-stone-600 dark:text-neutral-400 hover:text-stone-900 dark:hover:text-white hover:bg-stone-300/60 dark:hover:bg-neutral-600/60'
                                                 }`}
                                             >
                                                 <History className="w-3.5 h-3.5 stroke-[2]" />
-                                                <span className="font-mono text-[10px] font-semibold leading-none tabular-nums">
-                                                    {`${adjustDiff && adjustDiff.start >= 0 ? '+' : ''}${(adjustDiff?.start ?? 0).toFixed(2)}/${adjustDiff && adjustDiff.end >= 0 ? '+' : ''}${(adjustDiff?.end ?? 0).toFixed(2)}s`}
-                                                </span>
+                                                {adjusted && (
+                                                    <span className="font-mono text-[10px] font-semibold leading-none tabular-nums">
+                                                        {`${adjustDiff && adjustDiff.start >= 0 ? '+' : ''}${(adjustDiff?.start ?? 0).toFixed(2)}/${adjustDiff && adjustDiff.end >= 0 ? '+' : ''}${(adjustDiff?.end ?? 0).toFixed(2)}s`}
+                                                    </span>
+                                                )}
                                             </button>
                                         </PopoverTrigger>
                                     </TooltipTrigger>
-                                    <TooltipContent side="top">配置当前句时间戳偏移</TooltipContent>
+                                    <TooltipContent side="top">
+                                        {adjusted
+                                            ? `字幕微调已生效 (${(adjustDiff?.start ?? 0) >= 0 ? '+' : ''}${(adjustDiff?.start ?? 0).toFixed(2)}s / ${(adjustDiff?.end ?? 0) >= 0 ? '+' : ''}${(adjustDiff?.end ?? 0).toFixed(2)}s)`
+                                            : '调整当前句字幕时间轴'}
+                                    </TooltipContent>
                                 </Tooltip>
-                                <PopoverContent side="top" align="end" className="w-64 p-3 gap-2">
-                                    <div className="text-xs font-semibold text-foreground">当前句时间戳偏移</div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="w-8 text-xs text-muted-foreground shrink-0">起点</span>
-                                        <Input
-                                            type="number"
-                                            step={0.05}
-                                            className="h-8 flex-1 font-mono text-xs"
-                                            value={adjustDraft.start}
-                                            onChange={(e) => setAdjustDraft((d) => ({ ...d, start: e.target.value }))}
-                                            onBlur={() => applyAdjustDraft('start', adjustDraft.start)}
-                                            onKeyDown={(e) => { if (e.key === 'Enter') applyAdjustDraft('start', adjustDraft.start); }}
-                                        />
-                                        <span className="text-[10px] text-muted-foreground shrink-0">s</span>
+                                <PopoverContent side="top" align="end" className="w-72 p-3.5 gap-3 shadow-xl border-border/80 bg-popover/95 backdrop-blur-md">
+                                    <div className="flex items-center justify-between border-b border-border/50 pb-2">
+                                        <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
+                                            <History className="w-3.5 h-3.5 text-amber-500" />
+                                            <span>字幕时间微调</span>
+                                        </div>
+                                        <button
+                                            onClick={() => {
+                                                if (adjusted) {
+                                                    void playerActions.clearAdjust();
+                                                    setAdjustDraft({ start: '0.00', end: '0.00' });
+                                                }
+                                            }}
+                                            disabled={!adjusted}
+                                            className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md transition-colors ${
+                                                adjusted
+                                                    ? 'text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/60 font-medium cursor-pointer'
+                                                    : 'text-muted-foreground/40 cursor-default'
+                                            }`}
+                                        >
+                                            <RotateCcw className="w-3 h-3" />
+                                            <span>重置</span>
+                                        </button>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="w-8 text-xs text-muted-foreground shrink-0">终点</span>
-                                        <Input
-                                            type="number"
-                                            step={0.05}
-                                            className="h-8 flex-1 font-mono text-xs"
-                                            value={adjustDraft.end}
-                                            onChange={(e) => setAdjustDraft((d) => ({ ...d, end: e.target.value }))}
-                                            onBlur={() => applyAdjustDraft('end', adjustDraft.end)}
-                                            onKeyDown={(e) => { if (e.key === 'Enter') applyAdjustDraft('end', adjustDraft.end); }}
-                                        />
-                                        <span className="text-[10px] text-muted-foreground shrink-0">s</span>
+
+                                    {/* 句首时间调整 */}
+                                    <div className="flex flex-col gap-1.5">
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="text-muted-foreground font-medium">句首 (开始)</span>
+                                            <span className="font-mono text-xs font-semibold text-foreground tabular-nums">
+                                                {`${(adjustDiff?.start ?? 0) >= 0 ? '+' : ''}${(adjustDiff?.start ?? 0).toFixed(2)}s`}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            <button
+                                                type="button"
+                                                onClick={() => playerActions.adjustCurrentBegin(-0.2)}
+                                                className="flex-1 h-7 rounded-md border border-border/60 bg-muted/40 hover:bg-muted text-[11px] font-mono font-medium text-foreground transition-colors flex items-center justify-center active:scale-95"
+                                            >
+                                                -0.2s
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => playerActions.adjustCurrentBegin(0.2)}
+                                                className="flex-1 h-7 rounded-md border border-border/60 bg-muted/40 hover:bg-muted text-[11px] font-mono font-medium text-foreground transition-colors flex items-center justify-center active:scale-95"
+                                            >
+                                                +0.2s
+                                            </button>
+                                            <div className="flex items-center gap-1 w-20 shrink-0">
+                                                <Input
+                                                    type="number"
+                                                    step={0.05}
+                                                    className="h-7 text-[11px] font-mono px-1.5 text-center"
+                                                    value={adjustDraft.start}
+                                                    onChange={(e) => setAdjustDraft((d) => ({ ...d, start: e.target.value }))}
+                                                    onBlur={() => applyAdjustDraft('start', adjustDraft.start)}
+                                                    onKeyDown={(e) => { if (e.key === 'Enter') applyAdjustDraft('start', adjustDraft.start); }}
+                                                />
+                                                <span className="text-[10px] text-muted-foreground">s</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    <p className="text-[10px] leading-tight text-muted-foreground">
-                                        相对原始字幕的偏移秒数，失焦或回车即生效
-                                    </p>
+
+                                    {/* 句尾时间调整 */}
+                                    <div className="flex flex-col gap-1.5">
+                                        <div className="flex items-center justify-between text-xs">
+                                            <span className="text-muted-foreground font-medium">句尾 (结束)</span>
+                                            <span className="font-mono text-xs font-semibold text-foreground tabular-nums">
+                                                {`${(adjustDiff?.end ?? 0) >= 0 ? '+' : ''}${(adjustDiff?.end ?? 0).toFixed(2)}s`}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-1.5">
+                                            <button
+                                                type="button"
+                                                onClick={() => playerActions.adjustCurrentEnd(-0.2)}
+                                                className="flex-1 h-7 rounded-md border border-border/60 bg-muted/40 hover:bg-muted text-[11px] font-mono font-medium text-foreground transition-colors flex items-center justify-center active:scale-95"
+                                            >
+                                                -0.2s
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => playerActions.adjustCurrentEnd(0.2)}
+                                                className="flex-1 h-7 rounded-md border border-border/60 bg-muted/40 hover:bg-muted text-[11px] font-mono font-medium text-foreground transition-colors flex items-center justify-center active:scale-95"
+                                            >
+                                                +0.2s
+                                            </button>
+                                            <div className="flex items-center gap-1 w-20 shrink-0">
+                                                <Input
+                                                    type="number"
+                                                    step={0.05}
+                                                    className="h-7 text-[11px] font-mono px-1.5 text-center"
+                                                    value={adjustDraft.end}
+                                                    onChange={(e) => setAdjustDraft((d) => ({ ...d, end: e.target.value }))}
+                                                    onBlur={() => applyAdjustDraft('end', adjustDraft.end)}
+                                                    onKeyDown={(e) => { if (e.key === 'Enter') applyAdjustDraft('end', adjustDraft.end); }}
+                                                />
+                                                <span className="text-[10px] text-muted-foreground">s</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {/* 快捷键指引 */}
+                                    <div className="border-t border-border/50 pt-2 text-[10px] text-muted-foreground/80 flex flex-col gap-1 leading-normal">
+                                        <div className="flex items-center justify-between">
+                                            <span>句首提前/延后:</span>
+                                            <span className="font-mono text-[10px] text-foreground/80">
+                                                {adjustBeginMinusShortcut || '['} / {adjustBeginPlusShortcut || ']'}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span>句尾提前/延后:</span>
+                                            <span className="font-mono text-[10px] text-foreground/80">
+                                                {adjustEndMinusShortcut || '{'} / {adjustEndPlusShortcut || '}'}
+                                            </span>
+                                        </div>
+                                        {clearAdjustShortcut && (
+                                            <div className="flex items-center justify-between">
+                                                <span>重置本句微调:</span>
+                                                <span className="font-mono text-[10px] text-foreground/80">{clearAdjustShortcut}</span>
+                                            </div>
+                                        )}
+                                    </div>
                                 </PopoverContent>
                             </Popover>
-
-                            {/* 时间戳重置（常驻）：无调整时禁用 */}
-                            <Tooltip>
-                                <TooltipTrigger asChild>
-                                    <button
-                                        onClick={() => { if (adjusted) void playerActions.clearAdjust(); }}
-                                        disabled={!adjusted}
-                                        className={`p-1 rounded-full transition-colors ${
-                                            adjusted
-                                                ? 'text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-950/60'
-                                                : 'text-stone-400/60 dark:text-neutral-600 cursor-default'
-                                        }`}
-                                    >
-                                        <RotateCcw className="w-3.5 h-3.5" />
-                                    </button>
-                                </TooltipTrigger>
-                                <TooltipContent side="top">{adjusted ? '重置当前句时间戳' : '当前句没有时间戳调整'}</TooltipContent>
-                            </Tooltip>
 
                             {/* 字幕轨道开关下拉菜单（直观展示当前是双语/单英文/单中文/全关状态） */}
                             <DropdownMenu>

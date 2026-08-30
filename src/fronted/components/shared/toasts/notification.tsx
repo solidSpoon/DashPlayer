@@ -70,29 +70,28 @@ function BubbleToastContent(props: {
     const toneClass = (() => {
         switch (variant) {
             case 'success':
-                return 'border-emerald-500/30 bg-emerald-500/10 text-emerald-50';
+                return 'border-emerald-500/40 bg-emerald-50/95 text-emerald-950 dark:bg-emerald-950/90 dark:text-emerald-50 dark:border-emerald-500/30';
             case 'info':
-                return 'border-sky-500/30 bg-sky-500/10 text-sky-50';
+                return 'border-sky-500/40 bg-sky-50/95 text-sky-950 dark:bg-sky-950/90 dark:text-sky-50 dark:border-sky-500/30';
             case 'warning':
-                return 'border-amber-500/30 bg-amber-500/10 text-amber-50';
+                return 'border-amber-500/40 bg-amber-50/95 text-amber-950 dark:bg-amber-950/90 dark:text-amber-50 dark:border-amber-500/30';
             case 'error':
-                return 'border-red-500/30 bg-red-500/10 text-red-50';
+                return 'border-red-500/40 bg-red-50/95 text-red-950 dark:bg-red-950/90 dark:text-red-50 dark:border-red-500/30';
             case 'default':
             default:
-                return 'border-white/15 bg-zinc-900/90 text-zinc-50';
+                return 'border-border/80 bg-background/95 text-foreground dark:border-border/60 shadow-md';
         }
     })();
 
     return (
-        <div className={`relative rounded-xl border px-3 py-2 shadow-lg backdrop-blur ${toneClass}`}>
-            <div className="absolute left-3 top-0 -translate-y-1/2 h-2.5 w-2.5 rotate-45 bg-inherit" />
-            <div className="flex items-start gap-2">
+        <div className={`relative rounded-xl border px-3.5 py-2.5 shadow-lg backdrop-blur-md transition-all ${toneClass}`}>
+            <div className="flex items-start gap-2.5">
                 <div className="min-w-0">
-                    {title ? <div className="text-sm font-medium leading-5">{title}</div> : null}
-                    <div className="text-sm leading-5 opacity-95 break-words">{message}</div>
+                    {title ? <div className="text-xs font-semibold leading-5">{title}</div> : null}
+                    <div className="text-xs leading-relaxed opacity-90 break-words">{message}</div>
                 </div>
                 {count > 1 ? (
-                    <div className="shrink-0 rounded-full bg-white/10 px-2 py-0.5 text-xs leading-4 text-white/80">
+                    <div className="shrink-0 rounded-full bg-foreground/10 px-2 py-0.5 text-[10px] font-mono font-semibold leading-4 text-foreground/80">
                         x{count}
                     </div>
                 ) : null}
