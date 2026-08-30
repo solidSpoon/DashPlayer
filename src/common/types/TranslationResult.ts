@@ -4,10 +4,11 @@ export type TranslationMode = 'zh' | 'simple_en' | 'custom';
 
 /**
  * 渲染层使用的字幕翻译条目。
- * 说明：`key` 固定为稳定句子键（`fileHash:index`），用于前后端按句对齐结果。
+ * 说明：`key` 固定为 renderer 定位键（`fileHash:index`），用于前后端按句对齐结果；
+ * 翻译缓存按句子内容派生键，与该键无关。
  */
 export type RendererTranslationItem = {
-    /** 稳定句子键，格式为 `fileHash:index`。 */
+    /** renderer 定位键，格式为 `fileHash:index`。 */
     key: string;
     /** 当前字幕文件哈希，用于过滤跨文件的过期结果。 */
     fileHash: string;

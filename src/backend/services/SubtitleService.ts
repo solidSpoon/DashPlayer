@@ -55,7 +55,6 @@ export default interface SubtitleService {
      *
      * @param lines 已按时间排序并赋予全局稳定序号的 SrtLine 数组。
      * @param identityOverride 用作 fileHash 的稳定标识（如转录会话 sessionId）。
-     * @param options.transient 为 true 时标记缓存条目为临时数据，翻译结果不落库。
      * @param options.reuseSentences 按稳定序号索引的已构建句子；命中时直接复用
      *        （含句法解析结果），跳过昂贵的逐句重新解析。已完成块的行内容不可变，
      *        因此按序号复用是安全的。
@@ -65,7 +64,6 @@ export default interface SubtitleService {
         lines: SrtLine[],
         identityOverride: string,
         options?: {
-            transient?: boolean;
             reuseSentences?: Map<number, Sentence>;
         }
     ): SrtSentence;
@@ -113,12 +111,13 @@ export default interface SubtitleService {
 
 
 /**
- * 生成稳定句子翻译键。
- * 说明：翻译结果按句保存时，仅需要稳定定位，不应混入上下文窗口语义。
+ * 生成 renderer 定位键。
+ * 说明：后端回推译文时前端靠它找到对应句子；翻译缓存已改为按句子内容派生键，
+ * 该键不参与数据库寻址。
  *
  * @param fileHash 字幕文件哈希。
  * @param index 当前句索引。
- * @returns 稳定句子翻译键。
+ * @returns renderer 定位键。
  */
 function generateTranslationKey(fileHash: string, index: number): string {
     return `${fileHash}:${index}`;
@@ -237,7 +236,6 @@ export class SubtitleServiceImpl implements SubtitleService {
         lines: SrtLine[],
         identityOverride: string,
         options?: {
-            transient?: boolean;
             reuseSentences?: Map<number, Sentence>;
         }
     ): SrtSentence {
@@ -270,7 +268,6 @@ export class SubtitleServiceImpl implements SubtitleService {
             fileHash: identityOverride,
             filePath: '',
             sentences: subtitles,
-            transient: options?.transient ?? false,
         };
         this.cacheService.set('cache:srt', identityOverride, res);
         return res;

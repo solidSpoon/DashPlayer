@@ -356,7 +356,6 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             .sort((a, b) => a.chunkIndex - b.chunkIndex)
             .flatMap((c) => c.sentences);
         const { sentences } = this.subtitleService.buildSentencesFromLines(allLines, session.sessionId, {
-            transient: true,
             reuseSentences: session.builtSentences,
         });
         return { sessionId: session.sessionId, sentences };
@@ -496,7 +495,6 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                     .sort((a, b) => a.chunkIndex - b.chunkIndex)
                     .flatMap((c) => c.sentences);
                 const { sentences } = this.subtitleService.buildSentencesFromLines(allLines, session.sessionId, {
-                    transient: true,
                     reuseSentences: session.builtSentences,
                 });
                 sentences.forEach((sentence) => session.builtSentences.set(sentence.index, sentence));
