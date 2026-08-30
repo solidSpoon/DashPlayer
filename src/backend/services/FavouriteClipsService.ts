@@ -296,7 +296,7 @@ export class FavouriteClipsServiceImpl implements FavouriteClipsService {
         }
         try {
             const [trimStart, trimEnd] = this.mapTrimRange(srt, task.indexInSrt);
-            await this.ffmpegService.trimVideo(task.videoPath, trimStart, trimEnd, tempName);
+            await this.ffmpegService.trimVideo(task.videoPath, trimStart, trimEnd, tempName, `clip:${key}`);
             await this.clipOssService.putClip(key, tempName, metaData);
             const meta = await this.clipOssService.get(key);
             if (!meta) {

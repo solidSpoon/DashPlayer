@@ -8,7 +8,7 @@ import { isSensitiveKey, maskSensitiveValues } from '@/common/log/mask';
 import { SimpleEvent, SimpleLevel } from '@/common/log/simple-types';
 import { AppStateDirectoryType, getAppStatePath } from '@/backend/infrastructure/system/AppStatePath';
 import { isDevelopmentMode } from '@/backend/utils/runtimeEnv';
-import { getCurrentTraceId, isTraceId } from './trace-context';
+import { createTraceId, getCurrentTraceId, isTraceId } from './trace-context';
 
 /** 写入 JSON Lines 文件的稳定日志结构。 */
 interface JsonLogRecord {
@@ -16,6 +16,14 @@ interface JsonLogRecord {
     schemaVersion: 1;
     /** 产生日志时运行的软件版本。 */
     appVersion: string;
+    /**
+     * 一次应用生命周期的标识。
+     * 崩溃循环会把多次启动写进同一天的同一个文件，只靠时间戳无法切分"哪一段属于本次故障"。
+     * renderer 日志统一由 main 落盘，因此 renderer 记录的 runId 与 pid 都表示主进程侧的会话。
+     */
+    runId: string;
+    /** 主进程号，用于把日志与系统层进程事件（崩溃、被 kill）对齐。 */
+    pid: number;
     /** 事件发生时间，ISO 8601 格式。 */
     timestamp: string;
     /** 日志级别。 */
@@ -32,13 +40,12 @@ interface JsonLogRecord {
     data?: unknown;
 }
 
-/** 日志器公开能力；`withTrace` 用于脱离自动异步上下文的显式追踪。 */
+/** 日志器公开能力；trace ID 由异步上下文自动附带，无需显式传入。 */
 export interface MainLogger {
     debug: (msg: string, data?: unknown) => void;
     info: (msg: string, data?: unknown) => void;
     warn: (msg: string, data?: unknown) => void;
     error: (msg: string, data?: unknown) => void;
-    withTrace: (traceId: string) => MainLogger;
 }
 
 const logPath = getAppStatePath(AppStateDirectoryType.LOGS);
@@ -46,6 +53,32 @@ const MAX_DATA_DEPTH = 5;
 const MAX_OBJECT_KEYS = 50;
 const MAX_ARRAY_ITEMS = 50;
 const MAX_STRING_LENGTH = 4000;
+
+/** 单个日志文件的上限，超过即归档；electron-log 默认的 1 MiB 在开发级日志下几分钟就会翻档。 */
+const LOG_FILE_MAX_BYTES = 4 * 1024 * 1024;
+/** 日志目录总容量预算，超出后按修改时间升序删除已归档文件。 */
+const LOG_DIR_BUDGET_BYTES = 128 * 1024 * 1024;
+/** 日志文件保留天数。 */
+const LOG_RETENTION_DAYS = 14;
+/** 日志文件名前缀，扩展名统一为 .jsonl。 */
+const LOG_FILE_PREFIX = 'main';
+/**
+ * 匹配全部受管日志文件名：当天主文件 `main-YYYY-MM-DD.jsonl`、归档 `main-YYYY-MM-DD.<seq>.jsonl`，
+ * 以及历史遗留的 `main-YYYY-MM-DD.old.jsonl`（旧归档策略的产物）。
+ */
+const LOG_FILE_PATTERN = /^main-\d{4}-\d{2}-\d{2}(?:\.\d+)?(?:\.old)?\.(?:jsonl|log)$/;
+
+/**
+ * 本次应用生命周期的标识。
+ * 与 trace ID 同构，便于分析脚本用同一套 32 位十六进制规则处理。
+ */
+const RUN_ID = createTraceId();
+
+/** 归档回调期间产生、需等日志出口安全时补记的告警。 */
+const pendingRotationNotices: { level: SimpleLevel; msg: string; data: unknown }[] = [];
+
+/** 标记正在补记归档告警，避免补记自身再次触发补记。 */
+let isFlushingRotationNotices = false;
 
 if (!fs.existsSync(logPath)) {
     fs.mkdirSync(logPath, { recursive: true });
@@ -58,7 +91,7 @@ if (!fs.existsSync(logPath)) {
 function todayFile(): string {
     const date = new Date();
     const day = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    return path.join(logPath, `main-${day}.jsonl`);
+    return path.join(logPath, `${LOG_FILE_PREFIX}-${day}.jsonl`);
 }
 
 /**
@@ -88,6 +121,8 @@ function formatTransportLine(data: unknown[], level: string, timestamp: Date): s
     return JSON.stringify({
         schemaVersion: 1,
         appVersion: app.getVersion(),
+        runId: RUN_ID,
+        pid: process.pid,
         timestamp: timestamp.toISOString(),
         level: normalizeLevel(level) ?? 'error',
         process: 'main',
@@ -195,9 +230,54 @@ function isBrokenConsolePipeError(error: unknown): boolean {
         && (error.code === 'EIO' || error.code === 'EPIPE' || error.code === 'ERR_STREAM_DESTROYED');
 }
 
+/**
+ * 把归档期间的结果暂存起来，等日志出口安全时再写入日志文件。
+ *
+ * 归档回调运行在 file transport 内部，此时外层 transport 还没执行 `file.reset()`，
+ * 文件依旧被判定为超限；在这里直接写日志会重新进入 transport 并再次触发归档，形成递归。
+ * @param notice 待补记的事件。
+ */
+function deferRotationNotice(notice: { level: SimpleLevel; msg: string; data: unknown }): void {
+    pendingRotationNotices.push(notice);
+}
+
+/**
+ * 自定义日志归档：把超限文件重命名为带序号的归档文件，避免默认策略互相覆盖。
+ *
+ * 行为说明：
+ * - 归档名形如 `main-YYYY-MM-DD.<seq>.jsonl`，seq 从 1 递增到第一个不存在的编号，因此进程重启后仍会续号；
+ * - 归档结果不在此处写日志，统一经 `deferRotationNotice` 延后补记，防止 transport 重入；
+ * - rename 失败时先入队 error 再重新抛出，让这一行被丢弃而不是继续往超限文件追加。
+ * @param oldLogFile 达到大小上限的日志文件。
+ */
+function archiveLogFile(oldLogFile: { path: string; size: number }): void {
+    const oldPath = oldLogFile.path;
+    const dir = path.dirname(oldPath);
+    const parsed = path.parse(oldPath);
+
+    let seq = 1;
+    let archivedPath = path.join(dir, `${parsed.name}.${seq}${parsed.ext}`);
+    while (fs.existsSync(archivedPath)) {
+        seq += 1;
+        archivedPath = path.join(dir, `${parsed.name}.${seq}${parsed.ext}`);
+    }
+
+    const bytes = oldLogFile.size;
+    try {
+        fs.renameSync(oldPath, archivedPath);
+    } catch (error) {
+        deferRotationNotice({ level: 'error', msg: 'log archive failed', data: { error, oldPath, archivedPath } });
+        throw error;
+    }
+
+    deferRotationNotice({ level: 'info', msg: 'log archived', data: { archivedPath, bytes } });
+}
+
 log.initialize({ preload: true });
 log.transports.file.resolvePathFn = todayFile;
 log.transports.file.level = 'silly';
+log.transports.file.maxSize = LOG_FILE_MAX_BYTES;
+log.transports.file.archiveLogFn = archiveLogFile;
 log.transports.file.format = ({ data, level, message }) => [
     formatTransportLine(data, level, message.date),
 ];
@@ -258,44 +338,6 @@ export function setLogLevel(level: SimpleLevel): void {
  */
 function shouldLog(level: SimpleLevel): boolean {
     return levelOrder[level] >= levelOrder[CURRENT_LEVEL];
-}
-
-/**
- * 解析逗号分隔的模块过滤配置。
- * @param input 环境变量原始值。
- * @returns 去除空白和空项后的模块名。
- */
-function normalizeCsvInput(input?: string): string[] {
-    if (!input) return [];
-    return input.split(',').map((item) => item.trim()).filter(Boolean);
-}
-
-/**
- * 创建模块过滤集合。
- * @param input 逗号分隔的模块名。
- * @returns 模块集合；未配置时返回 null。
- */
-function createModuleFilterSet(input?: string): Set<string> | null {
-    const modules = normalizeCsvInput(input);
-    return modules.length > 0 ? new Set(modules) : null;
-}
-
-const INCLUDE_MODULE_FILTER = createModuleFilterSet(process.env.DP_LOG_INCLUDE_MODULES);
-const EXCLUDE_MODULE_FILTER = createModuleFilterSet(process.env.DP_LOG_EXCLUDE_MODULES);
-
-/**
- * 判断模块是否通过 allowlist/denylist。
- * @param moduleName 日志模块名。
- * @returns 应输出时返回 true。
- */
-function shouldLogModule(moduleName: string): boolean {
-    if (INCLUDE_MODULE_FILTER && !INCLUDE_MODULE_FILTER.has(moduleName)) {
-        return false;
-    }
-    if (EXCLUDE_MODULE_FILTER && EXCLUDE_MODULE_FILTER.has(moduleName)) {
-        return false;
-    }
-    return true;
 }
 
 /**
@@ -380,6 +422,8 @@ function createRecord(event: SimpleEvent): JsonLogRecord {
     const record: JsonLogRecord = {
         schemaVersion: 1,
         appVersion: app.getVersion(),
+        runId: RUN_ID,
+        pid: process.pid,
         timestamp: event.ts || new Date().toISOString(),
         level: event.level,
         process: event.process,
@@ -396,16 +440,50 @@ function createRecord(event: SimpleEvent): JsonLogRecord {
 }
 
 /**
+ * 将归档期间暂存的事件补记到日志文件。
+ *
+ * 只能由日志出口在安全时机调用；补记自身若再次触发归档，靠 `isFlushingRotationNotices`
+ * 守卫避免递归，剩余告警留到下一次写入继续补记。
+ */
+function flushRotationNotices(): void {
+    if (isFlushingRotationNotices || pendingRotationNotices.length === 0) {
+        return;
+    }
+
+    isFlushingRotationNotices = true;
+    try {
+        const notices = pendingRotationNotices.splice(0);
+        notices.forEach((notice) => {
+            const line = JSON.stringify(createRecord({
+                ts: new Date().toISOString(),
+                level: notice.level,
+                process: 'main',
+                module: 'logger-rotate',
+                msg: notice.msg,
+                data: notice.data,
+            }));
+            log[notice.level](line);
+        });
+    } finally {
+        isFlushingRotationNotices = false;
+    }
+}
+
+/**
  * 将日志事件写入对应 transport。
  * @param event 原始日志事件；调用方需提供明确的进程、模块和级别。
  */
 export function writeEvent(event: SimpleEvent): void {
-    if (!shouldLog(event.level) || !shouldLogModule(event.module)) {
+    if (!shouldLog(event.level)) {
         return;
     }
 
     const line = JSON.stringify(createRecord(event));
-    log[event.level](line);
+    try {
+        log[event.level](line);
+    } finally {
+        flushRotationNotices();
+    }
 }
 
 /**
@@ -414,9 +492,8 @@ export function writeEvent(event: SimpleEvent): void {
  * @param level 日志级别。
  * @param msg 事件描述。
  * @param data 可选结构化上下文。
- * @param traceId 显式 trace ID；未提供时读取当前异步上下文。
  */
-function logAt(moduleName: string, level: SimpleLevel, msg: string, data?: unknown, traceId?: string): void {
+function logAt(moduleName: string, level: SimpleLevel, msg: string, data?: unknown): void {
     writeEvent({
         ts: new Date().toISOString(),
         level,
@@ -424,23 +501,21 @@ function logAt(moduleName: string, level: SimpleLevel, msg: string, data?: unkno
         module: moduleName,
         msg,
         data,
-        traceId: traceId ?? getCurrentTraceId(),
+        traceId: getCurrentTraceId(),
     });
 }
 
 /**
  * 创建指定模块的 main 进程日志器。
  * @param moduleName 稳定模块名。
- * @param traceId 可选的显式 trace ID。
- * @returns 可复用日志器。
+ * @returns 可复用日志器；trace ID 由当前异步上下文自动附带。
  */
-function createLogger(moduleName: string, traceId?: string): MainLogger {
+function createLogger(moduleName: string): MainLogger {
     return {
-        debug: (msg, data) => logAt(moduleName, 'debug', msg, data, traceId),
-        info: (msg, data) => logAt(moduleName, 'info', msg, data, traceId),
-        warn: (msg, data) => logAt(moduleName, 'warn', msg, data, traceId),
-        error: (msg, data) => logAt(moduleName, 'error', msg, data, traceId),
-        withTrace: (nextTraceId) => createLogger(moduleName, nextTraceId),
+        debug: (msg, data) => logAt(moduleName, 'debug', msg, data),
+        info: (msg, data) => logAt(moduleName, 'info', msg, data),
+        warn: (msg, data) => logAt(moduleName, 'warn', msg, data),
+        error: (msg, data) => logAt(moduleName, 'error', msg, data),
     };
 }
 
@@ -453,25 +528,79 @@ export function getMainLogger(moduleName: string): MainLogger {
     return createLogger(moduleName);
 }
 
-/**
- * 删除超过保留期的新旧格式日志文件。
- * @param days 保留天数，默认 14 天。
- */
-export function pruneOldLogs(days = 14): void {
-    const keepMs = days * 24 * 60 * 60 * 1000;
-    const now = Date.now();
+/** 受管日志文件的磁盘条目快照。 */
+interface LogFileEntry {
+    /** 绝对路径。 */
+    fullPath: string;
+    /** 文件字节数。 */
+    size: number;
+    /** 最后修改时间（毫秒）。 */
+    mtimeMs: number;
+}
 
-    try {
-        const files = fs.readdirSync(logPath);
-        files.forEach((file) => {
-            if (!/^main-\d{4}-\d{2}-\d{2}(?:\.old)?\.(?:jsonl|log)$/.test(file)) return;
+/**
+ * 列出目录下所有受管日志文件。
+ * @returns 按文件名正则筛选后的文件条目。
+ */
+function listManagedLogFiles(): LogFileEntry[] {
+    return fs.readdirSync(logPath)
+        .filter((file) => LOG_FILE_PATTERN.test(file))
+        .map((file) => {
             const fullPath = path.join(logPath, file);
             const fileStat = fs.statSync(fullPath);
-            if (now - fileStat.mtimeMs > keepMs) fs.unlinkSync(fullPath);
+            return { fullPath, size: fileStat.size, mtimeMs: fileStat.mtimeMs };
         });
+}
+
+/**
+ * 删除超过保留期或超出目录容量预算的日志文件。
+ *
+ * 行为说明：
+ * - 超过 `days` 的文件先删，当天正在写入的主文件即使过期也保留，避免与 transport 争抢同一文件；
+ * - 剩余文件总大小仍超过 `budgetBytes` 时，按修改时间升序删除最旧的归档直到回到预算内；
+ * - 当天主文件不参与预算裁剪，因此预算是"归档总量 + 主文件"的软上限。
+ * @param days 保留天数。
+ * @param budgetBytes 日志目录总容量预算（字节）。
+ */
+export function pruneOldLogs(days = LOG_RETENTION_DAYS, budgetBytes = LOG_DIR_BUDGET_BYTES): void {
+    const keepMs = days * 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const liveFile = todayFile();
+
+    try {
+        let totalBytes = 0;
+        const retained: LogFileEntry[] = [];
+
+        listManagedLogFiles().forEach((entry) => {
+            const expired = now - entry.mtimeMs > keepMs;
+            if (expired && entry.fullPath !== liveFile) {
+                fs.unlinkSync(entry.fullPath);
+                return;
+            }
+            totalBytes += entry.size;
+            retained.push(entry);
+        });
+
+        if (totalBytes <= budgetBytes) {
+            return;
+        }
+
+        const archivable = retained
+            .filter((entry) => entry.fullPath !== liveFile)
+            .sort((a, b) => a.mtimeMs - b.mtimeMs);
+
+        for (const entry of archivable) {
+            if (totalBytes <= budgetBytes) {
+                break;
+            }
+            fs.unlinkSync(entry.fullPath);
+            totalBytes -= entry.size;
+        }
     } catch (error) {
         getMainLogger('logger-prune').error('prune old logs failed', { error });
     }
 }
 
+// 短时会话可能活不到下一个 24 小时周期，因此启动后先跑一次预算与保留期清理。
+setTimeout(() => pruneOldLogs(), 60 * 1000).unref();
 setInterval(() => pruneOldLogs(), 24 * 60 * 60 * 1000).unref();

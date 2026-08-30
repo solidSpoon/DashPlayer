@@ -38,7 +38,6 @@ Object.defineProperty(window, 'electronAPI', {
 // Mock window.electron
 const mockElectron = {
   call: vi.fn().mockResolvedValue({}),
-  safeCall: vi.fn().mockResolvedValue({}),
   registerRendererApi: vi.fn(),
   onTaskUpdate: vi.fn(),
   onStoreUpdate: vi.fn(),

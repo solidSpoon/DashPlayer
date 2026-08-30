@@ -1,6 +1,44 @@
 import { VideoInfo } from '@/common/types/video-info';
 
 /**
+ * FFmpeg 进程非零退出错误。
+ *
+ * 定义在网关契约中，保证业务服务只需依赖端口即可读取结构化失败信息。
+ */
+export class FfmpegExecutionError extends Error {
+    /** 进程退出码。 */
+    public readonly exitCode: number;
+    /** 退出前保留的 stderr 尾部行；以数组入日志可绕开单字段长度截断。 */
+    public readonly stderrTail: string[];
+    /** 执行耗时，单位毫秒。 */
+    public readonly durationMs: number;
+    /** 关联的子进程身份标识。 */
+    public readonly job?: string;
+    /** 操作系统进程号；spawn 立即失败时可能为空。 */
+    public readonly pid?: number;
+
+    /**
+     * 构造非零退出错误。
+     * @param params 退出码、stderr 尾部行、耗时、身份与进程号。
+     */
+    public constructor(params: {
+        exitCode: number;
+        stderrTail: string[];
+        durationMs: number;
+        job?: string;
+        pid?: number;
+    }) {
+        super(`FFmpeg 退出码 ${params.exitCode}\n${params.stderrTail.join('\n')}`);
+        this.name = 'FfmpegExecutionError';
+        this.exitCode = params.exitCode;
+        this.stderrTail = params.stderrTail;
+        this.durationMs = params.durationMs;
+        this.job = params.job;
+        this.pid = params.pid;
+    }
+}
+
+/**
  * FFmpeg 任务可选执行参数。
  */
 export interface FfmpegRunOptions {
@@ -10,6 +48,11 @@ export interface FfmpegRunOptions {
     inputDurationSecond?: number;
     /** 任务启动后回调取消函数。 */
     onCancelable?: (cancel: () => void) => void;
+    /**
+     * 子进程身份标识，用于把同一次后台任务的日志串起来。
+     * 约定取值：`dp_task:<id>` / `transcription:<filePath>` / `clip:<clipKey>` / `split:<folder>`。
+     */
+    job?: string;
 }
 
 /**

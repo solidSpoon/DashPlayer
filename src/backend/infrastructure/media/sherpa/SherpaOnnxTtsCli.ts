@@ -3,12 +3,21 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { injectable } from 'inversify';
 import { getRuntimeResourcePath } from '@/backend/utils/runtimeEnv';
+import { getMainLogger } from '@/backend/infrastructure/logger';
+
+/** 进程存活期内在内存中保留的 stderr 尾部行数上限。 */
+const STDERR_BUFFER_LINES = 120;
+
+/** 失败时结构化进日志的子进程输出尾部行数。 */
+const STDERR_LOG_TAIL_LINES = 20;
 
 /**
  * 调用随应用分发的 Sherpa-ONNX TTS 命令行程序。
  */
 @injectable()
 export class SherpaOnnxTtsCli {
+    private readonly logger = getMainLogger('SherpaTts');
+
     /**
      * 解析当前平台的 TTS 可执行文件。
      * @returns TTS 可执行文件绝对路径。
@@ -47,18 +56,47 @@ export class SherpaOnnxTtsCli {
                 cwd: path.dirname(executablePath),
                 stdio: ['ignore', 'ignore', 'pipe'],
             });
+            this.logger.info('spawned sherpa-onnx tts', {
+                pid: child.pid,
+                outputPath: params.outputPath,
+                textLength: params.text.length,
+            });
+            const stderrLines: string[] = [];
             let stderr = '';
-            child.stderr.on('data', (chunk) => { stderr += String(chunk); });
-            child.on('error', reject);
+            child.stderr.on('data', (chunk) => {
+                const text = String(chunk);
+                stderr += text;
+                for (const line of text.split(/\r?\n/).filter(Boolean)) {
+                    stderrLines.push(line);
+                    if (stderrLines.length > STDERR_BUFFER_LINES) {
+                        stderrLines.shift();
+                    }
+                }
+            });
+            child.on('error', (error) => {
+                this.logger.error('sherpa-onnx tts spawn failed', { pid: child.pid, error });
+                reject(error);
+            });
             child.on('close', (code, signal) => {
                 if (code === 0) {
                     resolve();
                     return;
                 }
+                this.logger.error('sherpa-onnx tts exited abnormally', {
+                    pid: child.pid,
+                    exitCode: code,
+                    signal,
+                    outputPath: params.outputPath,
+                    // 尾部行数组入日志，避免整段文本被单字段长度上限截掉关键原因。
+                    stderrTail: stderrLines.slice(-STDERR_LOG_TAIL_LINES),
+                });
                 reject(new Error(`sherpa-onnx TTS ${signal ? `被信号 ${signal} 终止` : `退出码 ${code}`}：${stderr.slice(-2000)}`));
             });
         });
-        if (!fs.existsSync(params.outputPath)) throw new Error('sherpa-onnx TTS 未生成音频文件');
+        if (!fs.existsSync(params.outputPath)) {
+            this.logger.error('sherpa-onnx tts produced no audio file', { outputPath: params.outputPath });
+            throw new Error('sherpa-onnx TTS 未生成音频文件');
+        }
         return params.outputPath;
     }
 }

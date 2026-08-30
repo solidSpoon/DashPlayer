@@ -9,8 +9,7 @@ import {
 } from '@/fronted/components/ui/table';
 import React from 'react';
 import useSplit, { TaskChapterParseResult } from '../splitStore';
-import { ErrorBoundary } from 'react-error-boundary';
-import FallBack from '@/fronted/components/shared/common/FallBack';
+import Eb from '@/fronted/components/shared/common/Eb';
 import StrUtil from '@/common/utils/str-util';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import TimeUtil from '@/common/utils/TimeUtil';
@@ -102,7 +101,7 @@ const SplitPreview = ({ className }: {
                     <TableHead className="text-xs font-semibold py-2 px-3">{t('sentenceSplitter.preview.title')}</TableHead>
                 </TableRow>
             </TableHeader>
-            <ErrorBoundary fallback={<FallBack />}>
+            <Eb>
                 <TableBody className="scrollbar-none">
                     {lines.map((line, idx) => (
                         <SplitRow
@@ -112,7 +111,7 @@ const SplitPreview = ({ className }: {
                         />
                     ))}
                 </TableBody>
-            </ErrorBoundary>
+            </Eb>
         </Table>
     );
 };

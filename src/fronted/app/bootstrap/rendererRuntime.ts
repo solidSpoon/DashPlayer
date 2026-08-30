@@ -1,6 +1,7 @@
 import { initRendererApis } from '@/fronted/app/bootstrap/initRendererApis';
 import { initSettingsSync } from '@/fronted/app/bootstrap/initSettingsSync';
 import { initIpcMessageToasts } from '@/fronted/app/bootstrap/initIpcMessageToasts';
+import { startGlobalErrorLogging } from '@/fronted/app/bootstrap/initGlobalErrorLogging';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import {
     startListeningToDpTasks,
@@ -63,6 +64,8 @@ export function startRendererRuntime(): () => void {
     const cleanups: Array<() => void> = [];
 
     try {
+        // 先注册异常兜底，后续任一步骤失败都能留下日志证据。
+        cleanups.push(startGlobalErrorLogging());
         cleanups.push(initRendererApis());
         cleanups.push(initSettingsSync());
         cleanups.push(initIpcMessageToasts());

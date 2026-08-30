@@ -386,10 +386,13 @@ export class VideoLearningServiceImpl implements VideoLearningService {
 
         const folder = await this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.TEMP);
         const tempName = path.join(folder, key + '.mp4');
+        /** 片段身份检索键，与 ffmpeg/存储日志共用同一个值。 */
+        const job = `clip:${key}`;
 
         try {
             const [trimStart, trimEnd] = this.mapTrimRange(srt, task.indexInSrt);
-            await this.ffmpegService.trimVideo(task.videoPath, trimStart, trimEnd, tempName);
+            this.logger.info('clip trim started', { job, videoPath: task.videoPath, trimStart, trimEnd });
+            await this.ffmpegService.trimVideo(task.videoPath, trimStart, trimEnd, tempName, job);
 
             await this.videoLearningOssService.putClip(key, tempName, metaData);
             const meta = await this.videoLearningOssService.get(key);
@@ -397,6 +400,7 @@ export class VideoLearningServiceImpl implements VideoLearningService {
                 throw new Error('上传学习片段后未找到片段元数据');
             }
             await this.addToDb(meta);
+            this.logger.info('clip ready', { job, clipFile: meta.clip_file });
         } finally {
             await this.fileSystemGateway.removeFileIfExists(tempName);
         }

@@ -16,6 +16,8 @@ export interface SpeechRecognitionRequest {
     audioPath: string;
     /** 模型根目录。 */
     modelsRoot: string;
+    /** 所属后台任务身份标识，如 `transcription:<filePath>`。 */
+    job?: string;
     /** 任务是否已取消。 */
     isCancelled?: () => boolean;
     /** 无原生百分比时用于刷新界面的心跳回调。 */

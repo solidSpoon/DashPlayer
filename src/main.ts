@@ -16,6 +16,7 @@ import TYPES from '@/backend/ioc/types';
 import { FavouriteClipsService } from '@/backend/services/FavouriteClipsService';
 import { VideoLearningService } from '@/backend/services/VideoLearningService';
 import { getMainLogger } from '@/backend/infrastructure/logger';
+import { initProcessWatchdog } from '@/backend/startup/initProcessWatchdog';
 import { RESET_DB_RESYNC_FLAG } from '@/common/constants/resetDb';
 import { isDevelopmentMode } from '@/backend/utils/runtimeEnv';
 import { storeGet } from '@/backend/infrastructure/settings/store';
@@ -33,6 +34,8 @@ const devtoolsLogger = getMainLogger('devtools');
 const startupStartedAt = performance.now();
 // 组合根运行期注入并发工具日志端口，保持通用工具不依赖基础设施。
 setConcurrencyLogger(getMainLogger('concurrency'));
+// 进程级崩溃不经过 JS 异常通道，监听必须在任何初始化工作之前挂上。
+initProcessWatchdog();
 
 /**
  * 记录主进程启动阶段耗时，统一使用进程启动后的相对毫秒数。
@@ -187,6 +190,10 @@ const createWindow = () => {
         logger.info('renderer finished loading', {
             durationMs: Math.round(performance.now() - startupStartedAt),
         });
+        // GPU 加速特性（含视频硬解）要等首次渲染后才稳定，因此环境快照记在这里而不是 app ready。
+        logger.info('gpu feature status', {
+            gpuFeatureStatus: app.getGPUFeatureStatus(),
+        });
     });
     // and load the index.html of the app.
     if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
@@ -226,6 +233,12 @@ app.on('ready', async () => {
     logger.info('app ready', {
         version: app.getVersion(),
         platform: process.platform,
+        arch: process.arch,
+        runtimeVersions: {
+            electron: process.versions.electron,
+            chrome: process.versions.chrome,
+            node: process.versions.node,
+        },
         mode: isDevelopmentMode() ? 'development' : 'production',
         proxyMode: storeGet('proxy.mode'),
     });

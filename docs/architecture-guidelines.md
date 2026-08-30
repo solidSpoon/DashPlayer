@@ -373,6 +373,9 @@ Repository。
 - 日志参数应放进结构化 `data`，不要把 `path=value`、对象预览等信息拼进 `message`；
 - 不要在业务代码中留下长期的临时调试日志；
 - 日志中不能写入 API Key、Authorization、完整敏感配置或不必要的大对象。
+- 日志文件的位置、命名、按日切分、轮转序列与目录容量预算，见 `docs/observability.md` 第 1 节；
+- 检索键约定（`traceId` 表示一次 IPC、`job` 表示一次后台任务、`module` 清单）见 `docs/observability.md` 第 3 节；
+- 禁止把 IPC 的 `traceId` 继承给后台长任务：队列延后 drain 时沿用的 traceId 属于另一次请求，比没有 trace 更误导，后台任务链路一律用 `job`。
 
 ## 10. 依赖方向
 

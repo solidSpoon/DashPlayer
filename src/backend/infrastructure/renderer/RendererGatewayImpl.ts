@@ -33,6 +33,8 @@ export default class RendererGatewayImpl implements RendererGateway {
     ): Promise<RendererApiDefinitions[K]['return']> {
         const mainWindow = this.mainWindowRegistry.tryGetMainWindow();
         if (!mainWindow) {
+            // 这条路径不会进入 settled 日志，必须在这里显式留下丢弃原因。
+            this.logger.warn('renderer api call dropped', { path, reason: 'no main window' });
             throw new Error('Main window is not available');
         }
 
@@ -100,7 +102,10 @@ export default class RendererGatewayImpl implements RendererGateway {
     }
 
     /**
-     * 异步通知 renderer；失败仅记录日志，不阻塞调用方业务流程。
+     * 异步通知 renderer；不阻塞调用方业务流程。
+     *
+     * 失败与超时不在此处记录：`call()` 已经为每条失败路径留下唯一一条日志
+     * （settled 带 callId 与 outcome，无主窗口时记 dropped），重复记录只会淹没时间线。
      *
      * @param path renderer API 路径。
      * @param params 传递给 renderer handler 的参数。
@@ -109,11 +114,6 @@ export default class RendererGatewayImpl implements RendererGateway {
         path: K,
         params: RendererApiDefinitions[K]['params'],
     ): void {
-        this.call(path, params).catch((error) => {
-            this.logger.warn('renderer api call failed', {
-                path,
-                error: error instanceof Error ? error.message : String(error),
-            });
-        });
+        this.call(path, params).catch(() => undefined);
     }
 }

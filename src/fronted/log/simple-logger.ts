@@ -1,13 +1,12 @@
 import type { SimpleLevel } from '@/common/log/simple-types';
 import { writeRendererLog } from '@/fronted/infrastructure/electron/logWriter';
 
-/** renderer 日志器；显式 `withTrace` 可关联已知的跨进程调用链。 */
-interface RendererLogger {
+/** renderer 日志器；跨进程关联由 IPC 边界自动附加的 trace ID 负责。 */
+export interface RendererLogger {
     debug: (msg: string, data?: unknown) => void;
     info: (msg: string, data?: unknown) => void;
     warn: (msg: string, data?: unknown) => void;
     error: (msg: string, data?: unknown) => void;
-    withTrace: (traceId: string) => RendererLogger;
 }
 
 const levelOrder: Record<SimpleLevel, number> = {
@@ -37,45 +36,8 @@ function getDefaultLevel(): SimpleLevel {
     return normalizeLevel(import.meta.env.VITE_DP_LOG_LEVEL) ?? 'info';
 }
 
-/**
- * 解析逗号分隔的模块过滤配置。
- * @param input 环境变量原始值。
- * @returns 去除空白和空项后的模块名。
- */
-function normalizeCsvInput(input?: string): string[] {
-    if (!input) return [];
-    return input.split(',').map((item) => item.trim()).filter(Boolean);
-}
-
-/**
- * 创建模块过滤集合。
- * @param input 逗号分隔的模块名。
- * @returns 模块集合；未配置时返回 null。
- */
-function createModuleFilterSet(input?: string): Set<string> | null {
-    const modules = normalizeCsvInput(input);
-    return modules.length > 0 ? new Set(modules) : null;
-}
-
 const CURRENT_LEVEL = getDefaultLevel();
-const INCLUDE_MODULE_FILTER = createModuleFilterSet(import.meta.env.VITE_DP_LOG_INCLUDE_MODULES);
-const EXCLUDE_MODULE_FILTER = createModuleFilterSet(import.meta.env.VITE_DP_LOG_EXCLUDE_MODULES);
 const RENDERER_LOGGER_CACHE = new Map<string, RendererLogger>();
-
-/**
- * 判断模块是否通过 allowlist/denylist。
- * @param moduleName 日志模块名。
- * @returns 应输出时返回 true。
- */
-function shouldLogModule(moduleName: string): boolean {
-    if (INCLUDE_MODULE_FILTER && !INCLUDE_MODULE_FILTER.has(moduleName)) {
-        return false;
-    }
-    if (EXCLUDE_MODULE_FILTER && EXCLUDE_MODULE_FILTER.has(moduleName)) {
-        return false;
-    }
-    return true;
-}
 
 /**
  * 输出 renderer 日志到开发控制台并发送给 main 进程落盘。
@@ -83,9 +45,8 @@ function shouldLogModule(moduleName: string): boolean {
  * @param level 日志级别。
  * @param msg 事件描述。
  * @param data 可选结构化上下文。
- * @param traceId 可选 trace ID。
  */
-function write(moduleName: string, level: SimpleLevel, msg: string, data?: unknown, traceId?: string): void {
+function write(moduleName: string, level: SimpleLevel, msg: string, data?: unknown): void {
     if (import.meta.env.DEV) {
         const method = level === 'error' ? 'error' : level === 'warn' ? 'warn' : level === 'debug' ? 'debug' : 'log';
         // eslint-disable-next-line no-console
@@ -100,7 +61,6 @@ function write(moduleName: string, level: SimpleLevel, msg: string, data?: unkno
             module: moduleName,
             msg,
             data,
-            traceId,
         });
     } catch {
         // renderer 日志失败不能反向打断用户操作。
@@ -110,15 +70,14 @@ function write(moduleName: string, level: SimpleLevel, msg: string, data?: unkno
 /**
  * 创建 renderer 日志器。
  * @param moduleName 稳定模块名。
- * @param traceId 可选的显式 trace ID。
  * @returns 可复用日志器。
  */
-function createLogger(moduleName: string, traceId?: string): RendererLogger {
+function createLogger(moduleName: string): RendererLogger {
     const at = (level: SimpleLevel, msg: string, data?: unknown): void => {
-        if (levelOrder[level] < levelOrder[CURRENT_LEVEL] || !shouldLogModule(moduleName)) {
+        if (levelOrder[level] < levelOrder[CURRENT_LEVEL]) {
             return;
         }
-        write(moduleName, level, msg, data, traceId);
+        write(moduleName, level, msg, data);
     };
 
     return {
@@ -126,7 +85,6 @@ function createLogger(moduleName: string, traceId?: string): RendererLogger {
         info: (msg, data) => at('info', msg, data),
         warn: (msg, data) => at('warn', msg, data),
         error: (msg, data) => at('error', msg, data),
-        withTrace: (nextTraceId) => createLogger(moduleName, nextTraceId),
     };
 }
 

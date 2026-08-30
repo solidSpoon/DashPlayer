@@ -31,7 +31,6 @@ export default class SherpaOnnxGatewayImpl implements SpeechRecognitionGateway {
         }
 
         const output = await this.cli.run({
-            executablePath: this.cli.resolveExecutablePath(),
             args: [
                 `--encoder=${files.encoder}`,
                 `--decoder=${files.decoder}`,
@@ -41,6 +40,8 @@ export default class SherpaOnnxGatewayImpl implements SpeechRecognitionGateway {
                 '--num-threads=2',
                 request.audioPath,
             ],
+            audioPath: request.audioPath,
+            job: request.job,
             isCancelled: request.isCancelled,
             onHeartbeat: request.onHeartbeat,
         });

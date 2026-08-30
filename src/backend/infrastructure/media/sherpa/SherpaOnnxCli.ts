@@ -3,6 +3,10 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { injectable } from 'inversify';
 import { getRuntimeResourcePath } from '@/backend/utils/runtimeEnv';
+import { getMainLogger } from '@/backend/infrastructure/logger';
+
+/** 失败时结构化进日志的子进程输出尾部行数。 */
+const STDERR_LOG_TAIL_LINES = 20;
 
 /**
  * sherpa-onnx 离线识别器的原始 JSON 输出。
@@ -17,10 +21,28 @@ export interface SherpaOnnxOutput {
 }
 
 /**
+ * sherpa-onnx CLI 单次执行请求。
+ */
+export interface SherpaOnnxRunRequest {
+    /** CLI 参数列表，末位为待识别音频。 */
+    args: string[];
+    /** 待识别音频路径，用于日志归因。 */
+    audioPath: string;
+    /** 所属后台任务身份标识。 */
+    job?: string;
+    /** 取消判定；返回 true 时立即终止识别。 */
+    isCancelled?: () => boolean;
+    /** 识别进程存活期间的心跳回调。 */
+    onHeartbeat?: () => void;
+}
+
+/**
  * 管理 sherpa-onnx CLI 路径、执行与取消。
  */
 @injectable()
 export class SherpaOnnxCli {
+    private readonly logger = getMainLogger('SherpaOnnx');
+
     private activeProcess: ChildProcess | null = null;
 
     /**
@@ -40,49 +62,69 @@ export class SherpaOnnxCli {
 
     /**
      * 执行离线识别并解析 CLI 输出中的 JSON。
-     * @param params 可执行文件、参数与任务生命周期回调。
+     * @param request 模型目录、音频路径、CLI 参数与任务生命周期回调。
      * @returns sherpa-onnx 的结构化输出。
      */
-    public async run(params: {
-        executablePath: string;
-        args: string[];
-        isCancelled?: () => boolean;
-        onHeartbeat?: () => void;
-    }): Promise<SherpaOnnxOutput> {
-        if (params.isCancelled?.()) {
+    public async run(request: SherpaOnnxRunRequest): Promise<SherpaOnnxOutput> {
+        if (request.isCancelled?.()) {
             throw new Error('Transcription cancelled by user');
         }
+        const executablePath = this.resolveExecutablePath();
 
         try {
             return await new Promise<SherpaOnnxOutput>((resolve, reject) => {
-                const child = spawn(params.executablePath, params.args, {
-                    cwd: path.dirname(params.executablePath),
+                const child = spawn(executablePath, request.args, {
+                    cwd: path.dirname(executablePath),
                     stdio: ['ignore', 'pipe', 'pipe'],
                 });
                 this.activeProcess = child;
+                this.logger.info('spawned sherpa-onnx', {
+                    job: request.job,
+                    pid: child.pid,
+                    audioPath: request.audioPath,
+                });
                 let stdout = '';
                 let stderr = '';
                 child.stdout.on('data', (chunk) => { stdout += String(chunk); });
                 child.stderr.on('data', (chunk) => { stderr += String(chunk); });
                 const heartbeat = setInterval(() => {
-                    if (!params.isCancelled?.()) params.onHeartbeat?.();
+                    if (!request.isCancelled?.()) request.onHeartbeat?.();
                 }, 4000);
 
-                child.on('error', reject);
+                child.on('error', (error) => {
+                    this.logger.error('sherpa-onnx spawn failed', { job: request.job, pid: child.pid, error });
+                    reject(error);
+                });
                 child.on('close', (code, signal) => {
                     clearInterval(heartbeat);
-                    if (params.isCancelled?.()) {
+                    if (request.isCancelled?.()) {
+                        this.logger.warn('sherpa-onnx cancelled', { job: request.job, pid: child.pid, exitCode: code, signal });
                         reject(new Error('Transcription cancelled by user'));
                         return;
                     }
                     if (code !== 0) {
                         const exitReason = signal ? `被信号 ${signal} 终止` : `退出码 ${code}`;
+                        this.logger.error('sherpa-onnx exited abnormally', {
+                            job: request.job,
+                            pid: child.pid,
+                            exitCode: code,
+                            signal,
+                            // 尾部行数组入日志，避免整段文本被单字段长度上限截掉关键原因。
+                            stderrTail: this.tailLines(stderr),
+                            stdoutTail: this.tailLines(stdout),
+                        });
                         reject(new Error(`sherpa-onnx ${exitReason}：${stderr.slice(-2000)}`));
                         return;
                     }
                     try {
                         resolve(this.parseOutput(stdout));
                     } catch (error) {
+                        this.logger.error('sherpa-onnx output rejected', {
+                            job: request.job,
+                            pid: child.pid,
+                            error,
+                            stdoutTail: this.tailLines(stdout),
+                        });
                         reject(error);
                     }
                 });
@@ -95,6 +137,15 @@ export class SherpaOnnxCli {
     /** 终止当前识别进程。 */
     public killActive(): void {
         this.activeProcess?.kill('SIGKILL');
+    }
+
+    /**
+     * 取输出末尾若干非空行，用于结构化日志。
+     * @param text 子进程累计输出文本。
+     * @returns 最多 {@link STDERR_LOG_TAIL_LINES} 行尾部文本。
+     */
+    private tailLines(text: string): string[] {
+        return text.split(/\r?\n/).filter(Boolean).slice(-STDERR_LOG_TAIL_LINES);
     }
 
     /**

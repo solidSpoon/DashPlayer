@@ -2,6 +2,7 @@ import {
     AcquireOptions,
     ConcurrencyCancelledError,
     ConcurrencyTimeoutError,
+    CONCURRENCY_HOLD_LOG_THRESHOLD_MS,
     CONCURRENCY_WAIT_LOG_THRESHOLD_MS,
     Permit,
     safeLog,
@@ -57,6 +58,7 @@ export function createSemaphore(options: SemaphoreOptions): Semaphore {
     }
 
     const name = options.name ?? 'semaphore';
+    const kind = options.kind ?? 'semaphore';
     const loggerRef = options.logger;
     const capacity = options.capacity;
     let inUse = 0;
@@ -64,16 +66,31 @@ export function createSemaphore(options: SemaphoreOptions): Semaphore {
 
     /**
      * 构造幂等许可对象。
+     *
+     * 持有时长超过阈值时记一条 warn：任务卡死把锁占住这类故障不会抛异常，
+     * 只有"占用时长 + 当时排队人数"能把问题定位到具体原语上。
      * @returns 许可。
      */
     function createPermit(): Permit {
         let released = false;
+        const acquiredAt = Date.now();
         return {
             release: () => {
                 if (released) {
                     return;
                 }
                 released = true;
+                const holdMs = Date.now() - acquiredAt;
+                if (holdMs > CONCURRENCY_HOLD_LOG_THRESHOLD_MS) {
+                    safeLog(loggerRef, 'warn', 'long hold released', {
+                        name,
+                        kind,
+                        holdMs,
+                        queueLen: waiters.length,
+                        inUse,
+                        capacity,
+                    });
+                }
                 if (inUse > 0) {
                     inUse -= 1;
                 }
@@ -97,7 +114,7 @@ export function createSemaphore(options: SemaphoreOptions): Semaphore {
             waiter.resolve(createPermit());
             const waitMs = Date.now() - waiter.queuedAt;
             if (waitMs > CONCURRENCY_WAIT_LOG_THRESHOLD_MS) {
-                safeLog(loggerRef, 'debug', 'semaphore wait passed', { name, waitMs, queueLen: waiters.length });
+                safeLog(loggerRef, 'debug', 'semaphore wait passed', { name, kind, waitMs, queueLen: waiters.length });
             }
         }
     }
@@ -158,7 +175,7 @@ export function createSemaphore(options: SemaphoreOptions): Semaphore {
 
                 if (acquireOptions?.signal?.aborted) {
                     settleWaiterError(waiter, new ConcurrencyCancelledError(`[${name}] 获取许可已取消`));
-                    safeLog(loggerRef, 'debug', 'semaphore acquire cancelled', { name, queueLen: waiters.length });
+                    safeLog(loggerRef, 'debug', 'semaphore acquire cancelled', { name, kind, queueLen: waiters.length });
                     return;
                 }
 
@@ -167,6 +184,7 @@ export function createSemaphore(options: SemaphoreOptions): Semaphore {
                         settleWaiterError(waiter, new ConcurrencyTimeoutError(`[${name}] 获取许可超时`));
                         safeLog(loggerRef, 'warn', 'semaphore acquire timeout', {
                             name,
+                            kind,
                             waitMs: Date.now() - waiter.queuedAt,
                             queueLen: waiters.length,
                         });
@@ -176,7 +194,7 @@ export function createSemaphore(options: SemaphoreOptions): Semaphore {
                 if (acquireOptions?.signal) {
                     abortListener = () => {
                         settleWaiterError(waiter, new ConcurrencyCancelledError(`[${name}] 获取许可已取消`));
-                        safeLog(loggerRef, 'debug', 'semaphore acquire cancelled', { name, queueLen: waiters.length });
+                        safeLog(loggerRef, 'debug', 'semaphore acquire cancelled', { name, kind, queueLen: waiters.length });
                     };
                     acquireOptions.signal.addEventListener('abort', abortListener, { once: true });
                 }

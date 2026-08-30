@@ -4,6 +4,7 @@ import FfmpegGateway, {
     ConvertToWavArgs,
     CreateThumbnailArgs,
     ExtractSubtitleArgs,
+    FfmpegExecutionError,
     FfmpegRunOptions,
     SplitAudioArgs,
     SplitVideoByTimesArgs,
@@ -226,6 +227,8 @@ export default class FfmpegGatewayImpl implements FfmpegGateway {
 
     /**
      * 执行 FFmpeg 命令并透出进度与取消。
+     * @param commandArgs 完整参数列表。
+     * @param options 进度、取消与 job 身份等执行选项。
      */
     private async executeCommand(commandArgs: string[], options: FfmpegRunOptions): Promise<void> {
         const startedAt = Date.now();
@@ -234,13 +237,14 @@ export default class FfmpegGatewayImpl implements FfmpegGateway {
                 ffmpegPath: getRuntimeResourcePath('lib', 'ffmpeg'),
                 args: commandArgs,
                 inputDurationSecond: options.inputDurationSecond,
+                job: options.job,
             },
             {
-                onStart: (commandLine) => {
-                    this.logger.info('spawned ffmpeg', { command: commandLine });
+                onStart: (commandLine, pid) => {
+                    this.logger.info('spawned ffmpeg', { job: options.job, pid, command: commandLine });
                 },
                 onStderrLine: (line) => {
-                    this.logger.debug('ffmpeg stderr line', { line });
+                    this.logger.debug('ffmpeg stderr line', { job: options.job, line });
                 },
                 onProgress: (event) => {
                     if (typeof event.percent !== 'number') return;
@@ -256,9 +260,16 @@ export default class FfmpegGatewayImpl implements FfmpegGateway {
         try {
             const outcome = await runningTask.result;
             // 命令已在 onStart 记录，这里只补退出码与耗时，便于慢环节归因。
-            this.logger.info('FFmpeg 执行完成', { exitCode: outcome.exitCode, durationMs: outcome.durationMs });
+            this.logger.info('FFmpeg 执行完成', { job: options.job, exitCode: outcome.exitCode, durationMs: outcome.durationMs });
         } catch (error) {
-            this.logger.warn('FFmpeg 执行失败', { durationMs: Date.now() - startedAt, error });
+            this.logger.warn('FFmpeg 执行失败', {
+                job: options.job,
+                durationMs: Date.now() - startedAt,
+                ...(error instanceof FfmpegExecutionError
+                    ? { exitCode: error.exitCode, pid: error.pid, stderrTail: error.stderrTail }
+                    : {}),
+                error,
+            });
             throw error;
         }
     }

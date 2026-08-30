@@ -1,4 +1,5 @@
 import { ChildProcess, spawn } from 'child_process';
+import { FfmpegExecutionError } from '@/backend/services/gateways/media/FfmpegGateway';
 
 /**
  * FFmpeg 执行请求。
@@ -12,6 +13,8 @@ export interface FfmpegRunRequest {
     inputDurationSecond?: number;
     /** 进程工作目录；默认使用当前进程目录。 */
     cwd?: string;
+    /** 子进程身份标识，随错误对象透传，便于上层归因。 */
+    job?: string;
 }
 
 /**
@@ -52,13 +55,19 @@ export interface FfmpegRunningTask {
  * FFmpeg 运行时事件回调。
  */
 export interface FfmpegRunHooks {
-    /** 命令启动时触发，提供完整命令行字符串。 */
-    onStart?: (commandLine: string) => void;
+    /** 命令启动时触发，提供完整命令行字符串与子进程 pid（spawn 立即失败时为空）。 */
+    onStart?: (commandLine: string, pid?: number) => void;
     /** 接收到 stderr 行时触发。 */
     onStderrLine?: (line: string) => void;
     /** 解析到进度信息时触发。 */
     onProgress?: (event: FfmpegProgressEvent) => void;
 }
+
+/** 进程存活期内在内存中保留的 stderr 尾部行数上限。 */
+const STDERR_BUFFER_LINES = 120;
+
+/** 失败时结构化进日志的 stderr 尾部行数：ffmpeg 致命错误集中在输出末尾。 */
+const STDERR_ERROR_TAIL_LINES = 20;
 
 /**
  * 统一 FFmpeg 进程执行器。
@@ -81,12 +90,12 @@ export class FfmpegProcessRunner {
             });
             processRef = child;
 
-            hooks.onStart?.(this.composeCommandLine(request.ffmpegPath, request.args));
+            hooks.onStart?.(this.composeCommandLine(request.ffmpegPath, request.args), child.pid);
 
             child.stderr.on('data', (chunk) => {
                 const text = chunk.toString('utf8');
                 for (const line of text.split(/\r?\n/).filter(Boolean)) {
-                    this.appendTail(stderrTail, line, 120);
+                    this.appendTail(stderrTail, line, STDERR_BUFFER_LINES);
                     hooks.onStderrLine?.(line);
                     const progress = this.tryParseProgress(line, request.inputDurationSecond);
                     if (progress) {
@@ -111,8 +120,15 @@ export class FfmpegProcessRunner {
                     return;
                 }
 
-                const stderrBlock = stderrTail.join('\n');
-                reject(new Error(`FFmpeg 退出码 ${exitCode}\n${stderrBlock}`));
+                /** 尾部有限行数组结构化透出，避免整段 stderr 文本被日志长度上限截掉关键错误。 */
+                const tailForLog = stderrTail.slice(-STDERR_ERROR_TAIL_LINES);
+                reject(new FfmpegExecutionError({
+                    exitCode,
+                    stderrTail: tailForLog,
+                    durationMs,
+                    job: request.job,
+                    pid: child.pid,
+                }));
             });
         });
 

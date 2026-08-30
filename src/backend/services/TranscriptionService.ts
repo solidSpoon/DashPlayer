@@ -90,6 +90,17 @@ const MAX_CHUNK_RETRY = 2;
 const CHUNK_OVERLAP_SECONDS = 1;
 
 /**
+ * 转录任务的日志检索键。
+ *
+ * 本地转录不挂 dp_task，媒体绝对路径即为其稳定身份，与 ffmpeg/识别子进程的 job 约定一致。
+ * @param filePath 归一化后的媒体绝对路径。
+ * @returns `transcription:<filePath>` 形式的 job 值。
+ */
+function transcriptionJob(filePath: string): string {
+    return `transcription:${filePath}`;
+}
+
+/**
  * 使用后端数据库维护转录列表，并通过并发内核串行执行本地识别任务。
  */
 @injectable()
@@ -388,6 +399,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
      */
     private async transcribeWithSherpaOnnx(opts: { filePath: string; tempFolder: string; signal: AbortSignal }): Promise<void> {
         const { filePath, tempFolder, signal } = opts;
+        const job = transcriptionJob(filePath);
         const modelsRoot = await this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.MODELS);
         await this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 0, { phase: 'preparing' });
         if (signal.aborted) throw new Error('Transcription cancelled by user');
@@ -401,10 +413,12 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             const overlapStart = Math.max(0, start - CHUNK_OVERLAP_SECONDS);
             ranges.push({ start: overlapStart, end: Math.min(duration, start + chunkDuration) });
         }
+        this.logger.info('transcription started', { job, durationSecond: duration, chunkCount: ranges.length });
         const wavPaths = await this.ffmpegService.createRecognitionWavChunks({
             inputFile: filePath,
             ranges,
             outputFolder: tempFolder,
+            job,
         });
         await this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 0, { phase: 'preparing' });
 
@@ -433,6 +447,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                 signal,
                 filePath,
                 progress,
+                job,
             });
             const timeline = result.tokens.map((token) => ({ ...token, start: token.start + offset }));
             chunkTimelines[index] = timeline;
@@ -479,8 +494,9 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         signal: AbortSignal;
         filePath: string;
         progress: number;
+        job: string;
     }): Promise<SpeechRecognitionResult> {
-        const { wavPath, modelsRoot, signal, filePath, progress } = opts;
+        const { wavPath, modelsRoot, signal, filePath, progress, job } = opts;
         for (let attempt = 1; attempt <= MAX_CHUNK_RETRY; attempt++) {
             if (signal.aborted) throw new Error('Transcription cancelled by user');
             try {
@@ -489,6 +505,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                     return await this.speechRecognitionGateway.transcribe({
                         audioPath: wavPath,
                         modelsRoot,
+                        job,
                         isCancelled: () => signal.aborted,
                         onHeartbeat: () => {
                             void this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, progress);
@@ -502,10 +519,10 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                 }
                 const message = error instanceof Error ? error.message : String(error);
                 if (attempt >= MAX_CHUNK_RETRY) {
-                    this.logger.error('Chunk transcription failed after retries', { wavPath, attempt, message });
+                    this.logger.error('Chunk transcription failed after retries', { job, wavPath, attempt, message });
                     throw error;
                 }
-                this.logger.warn('Chunk transcription failed, retrying', { wavPath, attempt, message });
+                this.logger.warn('Chunk transcription failed, retrying', { job, wavPath, attempt, message });
             }
         }
         // 仅当 MAX_CHUNK_RETRY 为 0 时到达；保持类型完整。
