@@ -9,6 +9,7 @@ import {
     SemaphoreOptions,
     SemaphoreSnapshot,
 } from '@/backend/utils/concurrency/types';
+import { detachTimer } from '@/common/utils/detach-timer';
 
 type QueueWaiter = {
     resolve: (permit: Permit) => void;
@@ -67,30 +68,31 @@ export function createSemaphore(options: SemaphoreOptions): Semaphore {
     /**
      * 构造幂等许可对象。
      *
-     * 持有时长超过阈值时记一条 warn：任务卡死把锁占住这类故障不会抛异常，
-     * 只有"占用时长 + 当时排队人数"能把问题定位到具体原语上。
+     * 持有期间超过阈值即记一条 warn：任务卡死把锁占死这类故障永远走不到 release，
+     * 只有持有期间的定时器能在卡住的当场留下"占用时长 + 当时排队人数"的证据。
      * @returns 许可。
      */
     function createPermit(): Permit {
         let released = false;
         const acquiredAt = Date.now();
+        const holdTimer = setTimeout(() => {
+            safeLog(loggerRef, 'warn', 'long hold detected', {
+                name,
+                kind,
+                heldMs: Date.now() - acquiredAt,
+                queueLen: waiters.length,
+                inUse,
+                capacity,
+            });
+        }, CONCURRENCY_HOLD_LOG_THRESHOLD_MS);
+        detachTimer(holdTimer);
         return {
             release: () => {
                 if (released) {
                     return;
                 }
                 released = true;
-                const holdMs = Date.now() - acquiredAt;
-                if (holdMs > CONCURRENCY_HOLD_LOG_THRESHOLD_MS) {
-                    safeLog(loggerRef, 'warn', 'long hold released', {
-                        name,
-                        kind,
-                        holdMs,
-                        queueLen: waiters.length,
-                        inUse,
-                        capacity,
-                    });
-                }
+                clearTimeout(holdTimer);
                 if (inUse > 0) {
                     inUse -= 1;
                 }

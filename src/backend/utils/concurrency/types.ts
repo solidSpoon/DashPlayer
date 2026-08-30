@@ -236,7 +236,7 @@ export function safeLog(
 /** 等待超过该阈值（毫秒）时记 debug，用于观测限流/信号量竞争。 */
 export const CONCURRENCY_WAIT_LOG_THRESHOLD_MS = 500;
 
-/** 持锁超过该阈值（毫秒）时记 warn，用于定位"任务卡住把锁占死"这类无法从异常发现的故障。 */
+/** 持锁达到该阈值（毫秒）时（仍在持有期间）记 warn，用于定位"任务卡住把锁占死"这类永远走不到 release 的故障。 */
 export const CONCURRENCY_HOLD_LOG_THRESHOLD_MS = 5000;
 
 /**

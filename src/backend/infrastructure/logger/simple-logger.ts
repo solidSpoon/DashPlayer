@@ -1,8 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import util from 'util';
 import { app } from 'electron';
-import log from 'electron-log/main';
 
 import { isSensitiveKey, maskSensitiveValues } from '@/common/log/mask';
 import { SimpleEvent, SimpleLevel } from '@/common/log/simple-types';
@@ -54,7 +52,7 @@ const MAX_OBJECT_KEYS = 50;
 const MAX_ARRAY_ITEMS = 50;
 const MAX_STRING_LENGTH = 4000;
 
-/** 单个日志文件的上限，超过即归档；electron-log 默认的 1 MiB 在开发级日志下几分钟就会翻档。 */
+/** 单个日志文件的上限，超过即归档为带序号文件。 */
 const LOG_FILE_MAX_BYTES = 4 * 1024 * 1024;
 /** 日志目录总容量预算，超出后按修改时间升序删除已归档文件。 */
 const LOG_DIR_BUDGET_BYTES = 128 * 1024 * 1024;
@@ -74,12 +72,6 @@ const LOG_FILE_PATTERN = /^main-\d{4}-\d{2}-\d{2}(?:\.\d+)?(?:\.old)?\.(?:jsonl|
  */
 const RUN_ID = createTraceId();
 
-/** 归档回调期间产生、需等日志出口安全时补记的告警。 */
-const pendingRotationNotices: { level: SimpleLevel; msg: string; data: unknown }[] = [];
-
-/** 标记正在补记归档告警，避免补记自身再次触发补记。 */
-let isFlushingRotationNotices = false;
-
 if (!fs.existsSync(logPath)) {
     fs.mkdirSync(logPath, { recursive: true });
 }
@@ -94,126 +86,125 @@ function todayFile(): string {
     return path.join(logPath, `${LOG_FILE_PREFIX}-${day}.jsonl`);
 }
 
-/**
- * 将 electron-log 自身捕获的异常也包装成合法 JSON，保证文件每一行都可独立解析。
- * @param data electron-log 收到的原始参数。
- * @param level electron-log 日志级别。
- * @param timestamp 日志发生时间。
- * @returns 单行 JSON 字符串。
- */
-function formatTransportLine(data: unknown[], level: string, timestamp: Date): string {
-    if (data.length === 1 && typeof data[0] === 'string') {
-        try {
-            const parsed = JSON.parse(data[0]) as Partial<JsonLogRecord>;
-            if (parsed.schemaVersion === 1
-                && typeof parsed.appVersion === 'string'
-                && typeof parsed.timestamp === 'string'
-                && typeof parsed.module === 'string'
-                && typeof parsed.message === 'string') {
-                return data[0];
-            }
-        } catch {
-            // 非结构化的 electron-log 内部消息在下面统一包装。
-        }
-    }
+/** 当前正在写入的主文件路径；跨天时重算。 */
+let liveFilePath = '';
+/** 当前主文件的字节数，由写入路径内存维护，避免每行 stat。 */
+let liveBytes = 0;
+/** 落盘路径自身最近一次失败，下一次成功写入时补记；只保留最新错误与累计次数。 */
+let pendingWriteFailure: { error: unknown; count: number } | null = null;
+/** 标记正在补记落盘失败，避免补记自身再次触发补记。 */
+let isFlushingWriteFailure = false;
 
-    const sanitizedData = sanitizeValue(data);
-    return JSON.stringify({
-        schemaVersion: 1,
-        appVersion: app.getVersion(),
-        runId: RUN_ID,
-        pid: process.pid,
-        timestamp: timestamp.toISOString(),
-        level: normalizeLevel(level) ?? 'error',
-        process: 'main',
-        module: 'electron-log',
-        message: maskSensitiveValues(util.format(...(sanitizedData as unknown[]))),
-        data: sanitizedData,
-    } satisfies JsonLogRecord);
+/**
+ * 校准当前主文件路径与字节数；跨天时重新定位到新文件。
+ */
+function ensureLiveFile(): void {
+    const filePath = todayFile();
+    if (filePath === liveFilePath) {
+        return;
+    }
+    liveFilePath = filePath;
+    liveBytes = fs.existsSync(filePath) ? fs.statSync(filePath).size : 0;
 }
 
 /**
- * 将结构化日志压缩为适合开发控制台阅读的单行文本。
- * @param data electron-log 收到的原始参数。
- * @param level electron-log 日志级别。
- * @param message electron-log 的日志消息元数据。
- * @returns 控制台 transport 要输出的单行文本数组。
+ * 生成 logger 自身事件（module: logger-rotate）的一行 JSON。
+ * @param level 日志级别。
+ * @param msg 事件描述。
+ * @param data 结构化上下文。
+ * @returns 单行 JSON 字符串。
  */
-function formatConsoleLine({
-    data,
-    level,
-    message,
-}: {
-    data: unknown[];
-    level: string;
-    message: { date: Date };
-}): string[] {
-    const date = message.date;
-    const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
-    const levelText = level.toUpperCase().padEnd(5, ' ');
-    const rawMessage = data.length === 1 && typeof data[0] === 'string'
-        ? data[0]
-        : util.format(...data);
+function loggerSelfRecord(level: SimpleLevel, msg: string, data: unknown): string {
+    return JSON.stringify(createRecord({
+        ts: new Date().toISOString(),
+        level,
+        process: 'main',
+        module: 'logger-rotate',
+        msg,
+        data,
+    }));
+}
 
-    try {
-        const record = JSON.parse(rawMessage) as Partial<JsonLogRecord>;
-        if (record.schemaVersion === 1
-            && typeof record.process === 'string'
-            && typeof record.module === 'string'
-            && typeof record.message === 'string') {
-            const context = record.data === undefined ? '' : ` ${JSON.stringify(record.data)}`;
-            const line = `${time} ${levelText} [${record.process}/${record.module}] ${record.message}${context}`;
-            return [`${line.slice(0, 1200)}${line.length > 1200 ? '…' : ''}`];
-        }
-    } catch {
-        // 非结构化消息直接按 electron-log 原始内容输出。
+/**
+ * 归档达到大小上限的主文件：重命名为 `main-<day>.<seq>.jsonl`，seq 递增到第一个空位。
+ *
+ * 成功后主文件由后续 append 重建为空，并立刻补记一条归档事实；
+ * rename 失败时异常抛给 `writeLineToFile`，该行被丢弃并进入落盘失败补记，
+ * 后续每次写入都会重试归档（rename 幂等，目录恢复可写即自动恢复）。
+ * @throws 重命名失败时透传文件系统异常。
+ */
+function rotateLiveFile(): void {
+    const parsed = path.parse(liveFilePath);
+    let seq = 1;
+    let archivedPath = path.join(parsed.dir, `${parsed.name}.${seq}${parsed.ext}`);
+    while (fs.existsSync(archivedPath)) {
+        seq += 1;
+        archivedPath = path.join(parsed.dir, `${parsed.name}.${seq}${parsed.ext}`);
     }
 
-    return [`${time} ${levelText} ${rawMessage}`];
+    const bytes = liveBytes;
+    fs.renameSync(liveFilePath, archivedPath);
+    liveBytes = 0;
+    fs.appendFileSync(liveFilePath, `${loggerSelfRecord('info', 'log archived', { archivedPath, bytes })}\n`);
+}
+
+/**
+ * 把一次落盘/归档失败暂存为补记候选。
+ * @param error 文件系统异常。
+ */
+function recordWriteFailure(error: unknown): void {
+    pendingWriteFailure = pendingWriteFailure
+        ? { error, count: pendingWriteFailure.count + 1 }
+        : { error, count: 1 };
+}
+
+/**
+ * 落盘恢复成功后补记此前累计的落盘失败，保证"日志系统自己出过问题"也有证据。
+ * 补记再次失败时原样放回，等待下一次成功写入。
+ */
+function flushPendingWriteFailure(): void {
+    if (isFlushingWriteFailure || !pendingWriteFailure) {
+        return;
+    }
+    const failure = pendingWriteFailure;
+    pendingWriteFailure = null;
+    isFlushingWriteFailure = true;
+    try {
+        const line = loggerSelfRecord('error', 'log write failed', {
+            error: failure.error,
+            failedCount: failure.count,
+        });
+        fs.appendFileSync(liveFilePath, `${line}\n`);
+        liveBytes += Buffer.byteLength(line, 'utf8') + 1;
+    } catch {
+        pendingWriteFailure = failure;
+    } finally {
+        isFlushingWriteFailure = false;
+    }
+}
+
+/**
+ * 向日志文件追加一行；这里是轮转与磁盘预算的第一道执行点。
+ * @param line 单行 JSON。
+ */
+function writeLineToFile(line: string): void {
+    try {
+        ensureLiveFile();
+        const bytes = Buffer.byteLength(line, 'utf8') + 1;
+        if (liveBytes + bytes > LOG_FILE_MAX_BYTES) {
+            rotateLiveFile();
+        }
+        fs.appendFileSync(liveFilePath, `${line}\n`);
+        liveBytes += bytes;
+    } catch (error) {
+        recordWriteFailure(error);
+        return;
+    }
+    flushPendingWriteFailure();
 }
 
 // 终端管道关闭后不再发起新的输出写入。
 let isDevelopmentConsoleAvailable = true;
-
-/**
- * 处理开发终端输出流错误。
- * @param error stdout 或 stderr 发出的异步错误。
- * @throws 非终端断开导致的错误，避免掩盖真正的运行时问题。
- */
-function handleDevelopmentConsoleStreamError(error: Error): void {
-    if (isBrokenConsolePipeError(error)) {
-        isDevelopmentConsoleAvailable = false;
-        return;
-    }
-
-    throw error;
-}
-
-/**
- * 将日志写入开发终端。
- *
- * 开发服务器终止时，Electron 主进程可能仍在处理任务取消日志，而 Forge 已关闭
- * stdout/stderr 对应的管道。socket 会以 error 事件报告异步 EIO，因此在初始化时
- * 注册监听器并在管道断开后停止输出；日志文件 transport 不受影响。
- *
- * @param options electron-log 已格式化的控制台日志消息。
- */
-function writeToDevelopmentConsole({ message }: { message: { data: unknown[]; level: string } }): void {
-    if (!isDevelopmentConsoleAvailable) {
-        return;
-    }
-
-    const stream = message.level === 'error' || message.level === 'warn' ? process.stderr : process.stdout;
-
-    try {
-        stream.write(`${util.format(...message.data)}\n`, () => undefined);
-    } catch (error) {
-        if (isBrokenConsolePipeError(error)) {
-            return;
-        }
-        throw error;
-    }
-}
 
 /**
  * 判断终端输出管道是否已被开发服务器关闭。
@@ -231,64 +222,70 @@ function isBrokenConsolePipeError(error: unknown): boolean {
 }
 
 /**
- * 把归档期间的结果暂存起来，等日志出口安全时再写入日志文件。
- *
- * 归档回调运行在 file transport 内部，此时外层 transport 还没执行 `file.reset()`，
- * 文件依旧被判定为超限；在这里直接写日志会重新进入 transport 并再次触发归档，形成递归。
- * @param notice 待补记的事件。
+ * 处理开发终端输出流错误。
+ * @param error stdout 或 stderr 发出的异步错误。
+ * @throws 非终端断开导致的错误，避免掩盖真正的运行时问题。
  */
-function deferRotationNotice(notice: { level: SimpleLevel; msg: string; data: unknown }): void {
-    pendingRotationNotices.push(notice);
+function handleDevelopmentConsoleStreamError(error: Error): void {
+    if (isBrokenConsolePipeError(error)) {
+        isDevelopmentConsoleAvailable = false;
+        return;
+    }
+
+    throw error;
 }
 
 /**
- * 自定义日志归档：把超限文件重命名为带序号的归档文件，避免默认策略互相覆盖。
- *
- * 行为说明：
- * - 归档名形如 `main-YYYY-MM-DD.<seq>.jsonl`，seq 从 1 递增到第一个不存在的编号，因此进程重启后仍会续号；
- * - 归档结果不在此处写日志，统一经 `deferRotationNotice` 延后补记，防止 transport 重入；
- * - rename 失败时先入队 error 再重新抛出，让这一行被丢弃而不是继续往超限文件追加。
- * @param oldLogFile 达到大小上限的日志文件。
+ * 将结构化日志压缩为适合开发控制台阅读的单行文本。
+ * @param record 已规范化的日志记录。
+ * @returns 控制台输出用的单行文本。
  */
-function archiveLogFile(oldLogFile: { path: string; size: number }): void {
-    const oldPath = oldLogFile.path;
-    const dir = path.dirname(oldPath);
-    const parsed = path.parse(oldPath);
-
-    let seq = 1;
-    let archivedPath = path.join(dir, `${parsed.name}.${seq}${parsed.ext}`);
-    while (fs.existsSync(archivedPath)) {
-        seq += 1;
-        archivedPath = path.join(dir, `${parsed.name}.${seq}${parsed.ext}`);
-    }
-
-    const bytes = oldLogFile.size;
-    try {
-        fs.renameSync(oldPath, archivedPath);
-    } catch (error) {
-        deferRotationNotice({ level: 'error', msg: 'log archive failed', data: { error, oldPath, archivedPath } });
-        throw error;
-    }
-
-    deferRotationNotice({ level: 'info', msg: 'log archived', data: { archivedPath, bytes } });
+function formatConsoleLine(record: JsonLogRecord): string {
+    const date = new Date(record.timestamp);
+    const time = `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
+    const levelText = record.level.toUpperCase().padEnd(5, ' ');
+    const context = record.data === undefined ? '' : ` ${JSON.stringify(record.data)}`;
+    const line = `${time} ${levelText} [${record.process}/${record.module}] ${record.message}${context}`;
+    return `${line.slice(0, 1200)}${line.length > 1200 ? '…' : ''}`;
 }
 
-log.initialize({ preload: true });
-log.transports.file.resolvePathFn = todayFile;
-log.transports.file.level = 'silly';
-log.transports.file.maxSize = LOG_FILE_MAX_BYTES;
-log.transports.file.archiveLogFn = archiveLogFile;
-log.transports.file.format = ({ data, level, message }) => [
-    formatTransportLine(data, level, message.date),
-];
-log.transports.console.level = isDevelopmentMode() ? 'silly' : 'warn';
-log.transports.console.format = formatConsoleLine;
-log.transports.console.writeFn = writeToDevelopmentConsole;
+/**
+ * 将日志记录写入开发终端。
+ *
+ * 开发服务器终止时，Electron 主进程可能仍在处理任务取消日志，而 Forge 已关闭
+ * stdout/stderr 对应的管道，因此管道断开后停止控制台输出；文件落盘不受影响。
+ * @param record 已规范化的日志记录。
+ */
+function writeToDevelopmentConsole(record: JsonLogRecord): void {
+    if (!isDevelopmentConsoleAvailable) {
+        return;
+    }
+
+    const stream = record.level === 'error' || record.level === 'warn' ? process.stderr : process.stdout;
+    stream.write(`${formatConsoleLine(record)}\n`, () => undefined);
+}
+
 if (isDevelopmentMode()) {
     process.stdout.on('error', handleDevelopmentConsoleStreamError);
     process.stderr.on('error', handleDevelopmentConsoleStreamError);
 }
-log.errorHandler.startCatching();
+
+/**
+ * 输出一条日志记录：文件落盘是主证据面，先写文件；控制台仅作开发辅助。
+ * @param record 已规范化的日志记录。
+ */
+function emitRecord(record: JsonLogRecord): void {
+    writeLineToFile(JSON.stringify(record));
+
+    const shouldPrint = isDevelopmentMode() || record.level === 'warn' || record.level === 'error';
+    if (shouldPrint) {
+        try {
+            writeToDevelopmentConsole(record);
+        } catch {
+            // 控制台输出异常不影响文件证据，已在落盘失败路径中另行处理。
+        }
+    }
+}
 
 const levelOrder: Record<SimpleLevel, number> = {
     debug: 20,
@@ -440,37 +437,7 @@ function createRecord(event: SimpleEvent): JsonLogRecord {
 }
 
 /**
- * 将归档期间暂存的事件补记到日志文件。
- *
- * 只能由日志出口在安全时机调用；补记自身若再次触发归档，靠 `isFlushingRotationNotices`
- * 守卫避免递归，剩余告警留到下一次写入继续补记。
- */
-function flushRotationNotices(): void {
-    if (isFlushingRotationNotices || pendingRotationNotices.length === 0) {
-        return;
-    }
-
-    isFlushingRotationNotices = true;
-    try {
-        const notices = pendingRotationNotices.splice(0);
-        notices.forEach((notice) => {
-            const line = JSON.stringify(createRecord({
-                ts: new Date().toISOString(),
-                level: notice.level,
-                process: 'main',
-                module: 'logger-rotate',
-                msg: notice.msg,
-                data: notice.data,
-            }));
-            log[notice.level](line);
-        });
-    } finally {
-        isFlushingRotationNotices = false;
-    }
-}
-
-/**
- * 将日志事件写入对应 transport。
+ * 将日志事件落盘。
  * @param event 原始日志事件；调用方需提供明确的进程、模块和级别。
  */
 export function writeEvent(event: SimpleEvent): void {
@@ -478,12 +445,7 @@ export function writeEvent(event: SimpleEvent): void {
         return;
     }
 
-    const line = JSON.stringify(createRecord(event));
-    try {
-        log[event.level](line);
-    } finally {
-        flushRotationNotices();
-    }
+    emitRecord(createRecord(event));
 }
 
 /**
@@ -528,6 +490,29 @@ export function getMainLogger(moduleName: string): MainLogger {
     return createLogger(moduleName);
 }
 
+let uncaughtLoggingStarted = false;
+
+/**
+ * 注册 main 进程未捕获异常与未处理拒绝的落盘兜底。
+ *
+ * 这些异常不经过任何业务日志点，不接住就永远消失；与 electron 进程事件看门狗互补：
+ * 看门狗管"进程级死亡"，这里管"JS 层未处理异常"。只记录、不改变进程行为。
+ * 幂等：重复调用不会重复注册监听。
+ */
+export function startUncaughtErrorLogging(): void {
+    if (uncaughtLoggingStarted) {
+        return;
+    }
+    uncaughtLoggingStarted = true;
+
+    process.on('uncaughtException', (error) => {
+        getMainLogger('MainUncaught').error('main uncaught exception', { error });
+    });
+    process.on('unhandledRejection', (reason) => {
+        getMainLogger('MainUncaught').error('main unhandled rejection', { reason });
+    });
+}
+
 /** 受管日志文件的磁盘条目快照。 */
 interface LogFileEntry {
     /** 绝对路径。 */
@@ -556,7 +541,7 @@ function listManagedLogFiles(): LogFileEntry[] {
  * 删除超过保留期或超出目录容量预算的日志文件。
  *
  * 行为说明：
- * - 超过 `days` 的文件先删，当天正在写入的主文件即使过期也保留，避免与 transport 争抢同一文件；
+ * - 超过 `days` 的文件先删，当天正在写入的主文件即使过期也保留，避免与写入路径争抢同一文件；
  * - 剩余文件总大小仍超过 `budgetBytes` 时，按修改时间升序删除最旧的归档直到回到预算内；
  * - 当天主文件不参与预算裁剪，因此预算是"归档总量 + 主文件"的软上限。
  * @param days 保留天数。
@@ -600,7 +585,3 @@ export function pruneOldLogs(days = LOG_RETENTION_DAYS, budgetBytes = LOG_DIR_BU
         getMainLogger('logger-prune').error('prune old logs failed', { error });
     }
 }
-
-// 短时会话可能活不到下一个 24 小时周期，因此启动后先跑一次预算与保留期清理。
-setTimeout(() => pruneOldLogs(), 60 * 1000).unref();
-setInterval(() => pruneOldLogs(), 24 * 60 * 60 * 1000).unref();

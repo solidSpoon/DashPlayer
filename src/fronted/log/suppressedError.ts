@@ -1,24 +1,23 @@
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import { createWindowedDeduper } from '@/common/log/windowed-dedup';
 
 /**
  * 同一异常的合并窗口（毫秒）。
  *
  * renderer 侧存在批量重复抛错的真实场景：播放器在解码故障时会高频重复同一异常，
  * 一个组件树崩溃会同时触发挂在每个子树上的 ErrorBoundary。历史上就出现过提示洪水，
- * 因此这里窗口内只落第一条，窗口结束时补记被合并的条数，既不丢证据也不制造噪声。
+ * 因此合并语义为"窗口内只落首条 + 窗口结束补记一条带 suppressedCount 的同名事件"，
+ * 既不丢"发生过多少次"的证据，也不制造噪声。
  */
 const SUPPRESS_WINDOW_MS = 5000;
 
-/** 单个异常键在合并窗口内的累计状态。 */
-interface SuppressionState {
-    /** 窗口内被合并掉的重复次数。 */
-    suppressedCount: number;
-    /** 窗口结束时用来补记次数的定时器。 */
-    timer: number;
-}
-
-/** 按 `module + signature` 维度统计的在途合并窗口。 */
-const suppressions = new Map<string, SuppressionState>();
+/** 与 main 侧共用的窗口去重核，落盘出口为 renderer 日志通道。 */
+const deduper = createWindowedDeduper({
+    windowMs: SUPPRESS_WINDOW_MS,
+    emit: (report) => {
+        getRendererLogger(report.module)[report.level](report.msg, report.data);
+    },
+});
 
 /** 上报一条可能被合并的异常事件。 */
 export interface SuppressedErrorReport {
@@ -69,33 +68,21 @@ export function buildErrorSignature(message: string, stack?: string): string {
 /**
  * 上报 renderer 侧异常，并在合并窗口内折叠重复项。
  *
- * 重复被折叠时不会留下逐条记录，但窗口结束会补记一条带 `suppressedCount` 的事件，
- * 因此"发生过多少次"这一证据仍然保留。
+ * 折叠不丢证据：首条与窗口结束的补记使用同一个 `msg`，补记的 `data` 额外带
+ * `suppressedCount` 与 `windowMs`，按事件名检索时首条与总量都在。
  * @param report 待上报的异常事件。
  */
 export function reportSuppressedError(report: SuppressedErrorReport): void {
-    const key = `${report.module}::${report.signature}`;
-    const existing = suppressions.get(key);
-    if (existing) {
-        existing.suppressedCount += 1;
-        return;
-    }
-
-    getRendererLogger(report.module)[report.level](report.msg, report.data);
-
-    const timer = window.setTimeout(() => {
-        const state = suppressions.get(key);
-        suppressions.delete(key);
-        if (state && state.suppressedCount > 0) {
-            getRendererLogger(report.module)[report.level]('repeated error suppressed', {
-                signature: report.signature,
-                suppressedCount: state.suppressedCount,
-                windowMs: SUPPRESS_WINDOW_MS,
-            });
-        }
-    }, SUPPRESS_WINDOW_MS);
-
-    suppressions.set(key, { suppressedCount: 0, timer });
+    deduper.report({
+        key: `${report.module}::${report.signature}`,
+        module: report.module,
+        level: report.level,
+        msg: report.msg,
+        data: {
+            signature: report.signature,
+            ...(report.data as Record<string, unknown> | undefined),
+        },
+    });
 }
 
 /**
@@ -104,6 +91,5 @@ export function reportSuppressedError(report: SuppressedErrorReport): void {
  * 仅在 renderer 运行时停止时调用，避免热重载后遗留定时器补记到已卸载的上下文。
  */
 export function clearSuppressedErrorWindows(): void {
-    suppressions.forEach((state) => window.clearTimeout(state.timer));
-    suppressions.clear();
+    deduper.clear();
 }

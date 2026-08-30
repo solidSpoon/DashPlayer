@@ -62,8 +62,10 @@ function write(moduleName: string, level: SimpleLevel, msg: string, data?: unkno
             msg,
             data,
         });
-    } catch {
-        // renderer 日志失败不能反向打断用户操作。
+    } catch (error) {
+        // 日志通道故障必须显式可见，否则整条证据链会静默断裂；仍不向上抛以免打断用户操作。
+        // eslint-disable-next-line no-console
+        console.error(`[dp-log] renderer log write failed (module=${moduleName}, msg=${msg})`, error);
     }
 }
 

@@ -138,7 +138,6 @@
     "dotenv": "^17.2.3",
     "drizzle-kit": "^0.26.2",
     "drizzle-orm": "^0.35.2",
-    "electron-log": "^5.2.0",
     "electron-squirrel-startup": "^1.0.0",
     "electron-store": "^8.1.0",
     "embla-carousel-react": "^8.6.0",

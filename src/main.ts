@@ -17,6 +17,7 @@ import { FavouriteClipsService } from '@/backend/services/FavouriteClipsService'
 import { VideoLearningService } from '@/backend/services/VideoLearningService';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { initProcessWatchdog } from '@/backend/startup/initProcessWatchdog';
+import { initLogMaintenance } from '@/backend/startup/initLogMaintenance';
 import { RESET_DB_RESYNC_FLAG } from '@/common/constants/resetDb';
 import { isDevelopmentMode } from '@/backend/utils/runtimeEnv';
 import { storeGet } from '@/backend/infrastructure/settings/store';
@@ -36,6 +37,8 @@ const startupStartedAt = performance.now();
 setConcurrencyLogger(getMainLogger('concurrency'));
 // 进程级崩溃不经过 JS 异常通道，监听必须在任何初始化工作之前挂上。
 initProcessWatchdog();
+// JS 层未捕获异常落盘与日志目录预算清理，紧随进程级监听。
+initLogMaintenance();
 
 /**
  * 记录主进程启动阶段耗时，统一使用进程启动后的相对毫秒数。

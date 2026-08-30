@@ -11,8 +11,9 @@
   - macOS 生产：`~/Library/Application Support/DashPlayer/logs/`
 - 文件名 `main-YYYY-MM-DD.jsonl`，按**本地日期**切分；记录内部时间戳一律 UTC ISO 8601，两者不要混淆。
 - 单文件超过 **4 MiB** 即归档为 `main-YYYY-MM-DD.<seq>.jsonl`（`seq` 从 1 递增到第一个空位）。归档用序号而不是默认的固定 `.old`，因为固定名会在同日第二次轮转时**覆盖上一份证据**。
-- 清理策略：保留 14 天；同时整个目录预算 **128 MiB**，超预算时按修改时间升序删除已归档文件，**当天正在写入的文件永不删除**。进程启动 60 秒后先跑一次，之后每 24 小时跑一次。
-- renderer 进程没有独立日志文件：它经 `preload` 的 `dpLogger.write` 发 `dp-log/write` 送到 main 统一落盘。
+- 落盘、轮转与预算清理都由 `simple-logger` 自己实现（同步 `appendFileSync` + 同进程内序号重命名），不依赖任何第三方日志库，因此"什么时候归档、归档会不会丢证据"完全由本项目语义决定。每次归档当场补记一条 `module: logger-rotate` 的 `log archived`（含 `archivedPath`、`bytes`）；落盘本身失败时不抛给业务，恢复成功后补记 `log write failed`（含 `error` 与累计 `failedCount`）——日志系统自身的故障也必须有证据。
+- 清理策略：保留 14 天；同时整个目录预算 **128 MiB**，超预算时按修改时间升序删除已归档文件，**当天正在写入的文件永不删除**。进程启动 60 秒后先跑一次，之后每 24 小时跑一次（`initLogMaintenance`）。
+- renderer 进程没有独立日志文件：它经 `preload` 的 `dpLogger.write` 发 `dp-log/write` 送到 main 统一落盘。该投递若失败（preload 未挂载、通道不可用），会直接在浏览器控制台打 `[dp-log] renderer log write failed`，不会静默断链——排查 renderer"日志为什么没落盘"时先看 DevTools。
 
 排查前先看目录状态：
 
@@ -83,16 +84,17 @@ preload 每次 `invoke` 生成一个 trace id，main 在 `registerRoute` 边界�
 | `MainStartup` | main | `app ready`（含 `runtimeVersions`）、`gpu feature status` |
 | `ProcessWatchdog` | main | 崩溃/白屏/卡死类进程事件（见第 5 节） |
 | `RendererGateway` | main | renderer API 调用生命周期：`renderer api call dispatched` / `renderer api call settled`（带 `callId`、`outcome`、`elapsedMs`）/ `renderer api call dropped` |
-| `RendererEvents` | main | main → renderer 的推送；窗口不可用时的 `renderer event dropped`；`task status pushed to renderer` 状态跃迁 |
-| `FfmpegServiceImpl` | main | ffmpeg 业务层失败（`ffmpeg command failed`，含 `job`、`exitCode`、`pid`、`stderrTail`） |
-| `FfmpegGatewayImpl` | main | `spawned ffmpeg`（`job`/`pid`/`command`）、`FFmpeg 执行完成`、`FFmpeg 执行失败` |
-| `SherpaOnnx` / `SherpaTts` | main | 识别/合成子进程启停与异常退出 |
+| `RendererEvents` | main | main → renderer 的推送；窗口不可用时的 `renderer event dropped`（按通道窗口合并，带 `suppressedCount`）；`task status pushed to renderer` 只在状态跃迁时记录 |
+| `FfmpegServiceImpl` | main | 只记录网关看不到的任务体异常（`ffmpeg task failed`，含 `job`）；子进程失败与取消不在这里重复 |
+| `FfmpegGatewayImpl` | main | `spawned ffmpeg`（`job`/`pid`/`command`）、`FFmpeg 执行完成`、`FFmpeg 执行失败`（error，含 `exitCode`/`pid`/`stderrTail`）、`FFmpeg 已取消`（info）——子进程维度的唯一证据点 |
+| `SherpaOnnx` / `SherpaTts` | main | 识别/合成子进程启停与异常退出：`spawned sherpa-onnx`、`sherpa-onnx exited abnormally`、`sherpa-onnx output rejected`、`sherpa-onnx cancelled` |
 | `LocalTranscriptionService` | main | `transcription started`、分段识别重试与耗尽 |
 | `VideoLearningServiceImpl` | main | `clip trim started` / `clip ready` / 片段任务失败 |
 | `concurrency` | main | 信号量/限流等待与持锁超阈值（见第 4 节） |
 | `GlobalError` | renderer | `uncaught exception`、`unhandled rejection`、`resource load failed` |
 | `ErrorBoundary` | renderer | `react render error`，唯一带 React `componentStack` 的记录 |
-| `logger-rotate` / `logger-prune` | main | 归档与清理自身的结果 |
+| `MainUncaught` | main | `main uncaught exception`、`main unhandled rejection`：JS 层未被任何 catch 接住的异常，不接住就永远消失 |
+| `logger-rotate` / `logger-prune` | main | 归档事实（`log archived`）、落盘失败补记（`log write failed`）、目录清理结果 |
 
 ## 4. 级别与噪声预算
 
@@ -102,8 +104,9 @@ preload 每次 `invoke` 生成一个 trace id，main 在 `registerRoute` 边界�
   - `info`：一次操作的边界事件（启动、完成、状态跃迁），要能凭它画出时间线；
   - `warn`：可继续但需要解释的现象（用户取消、事件被丢弃、重试、慢等待）；
   - `error`：需要人看的原因（异常退出、渲染崩溃、加载失败）。
-- 重复抑制：renderer 侧同名异常在 5 秒窗口内合并，只保留首条 + 一条 `repeated error suppressed`（带 `suppressedCount`）。这是因为 `ErrorBoundary` 会被逐字组件复用，一次崩溃可能触发 N 次回调。
-- 并发内核阈值：等待 > 500ms 记 `semaphore wait passed`（debug）；持锁 > 5s 记 `long hold released`（warn，字段 `name`/`kind`/`holdMs`/`queueLen`/`inUse`/`capacity`）；`kind` 为 `mutex` 时说明是排他锁排队。
+- 重复抑制（共享实现 `createWindowedDeduper`）：renderer 侧同名异常、main 侧按通道丢弃都走同一套语义——窗口内只落首条，**窗口结束时补记的仍是首条原消息**，附带 `suppressedCount` 与 `windowMs`（历史遗留的 `repeated error suppressed` 独立消息已废弃）。因此按 `message` 聚合时不会丢掉计数，也不会因为换了消息文本而看不出刷屏源头。之所以要合并，是 `ErrorBoundary` 会被逐字组件复用，一次崩溃可能触发 N 次回调。
+- 并发内核阈值：等待 > 500ms 记 `semaphore wait passed`（debug）；**持有期间**满 5s 当场记 `long hold detected`（warn，字段 `name`/`kind`/`heldMs`/`queueLen`/`inUse`/`capacity`），不等 release——任务卡死把锁占死这类故障永远走不到释放，只有持有期间的定时器能在卡住的当场留下证据；`kind` 为 `mutex` 时说明是排他锁排队。
+- 取消判定只认异常类型名（`isUserCancellation`：`AbortError`/`CanceledError`/`CancelByUserError`，常量集中在 `common/utils/cancellation`，抛出端与判定端共用同一字面量），不再用消息正则。原因：`/cancel|取消/i` 会把 `Failed to cancel the download`、以及 stderr 正文里带 `SIGTERM`/`killed` 的真实故障误判成预期取消并降级。子进程被用户取消时由执行器直接抛 `CancelByUserError`，被系统 OOM kill 则仍是失败记录。
 - 禁止用 fallback 掩盖问题：日志层面同样成立——归档失败先记 `error` 再抛出，窗口销毁丢事件必须记 `renderer event dropped`，而不是静默 `return`。
 
 ## 5. 崩溃面清单
@@ -128,7 +131,7 @@ renderer 侧异常由 `initGlobalErrorLogging`（`module: GlobalError`）落盘�
 
 **刻意不接** `console-message`：它与既有 renderer 结构化日志重复，且会吃掉配额。
 
-主进程未捕获异常由 `log.errorHandler.startCatching()` 兜底，无需业务代码处理。
+主进程 JS 层未捕获异常由 `initLogMaintenance` 注册的 `process.on('uncaughtException' / 'unhandledRejection')` 兜底，落盘为 `module: MainUncaught` 的 `main uncaught exception` / `main unhandled rejection`（只记录，不改变进程行为）。它与 `ProcessWatchdog` 互补：看门狗管"进程级死亡"，这里管"异常没被任何 catch 接住"。
 
 ## 6. 环境变量
 
@@ -218,14 +221,17 @@ grep '"message":"ipc request completed"' "$LATEST" | jq -r 'select(.data.duratio
 ### 7.8 并发瓶颈
 
 ```bash
-grep '"module":"concurrency"' "$LATEST" | grep -E 'long hold released|wait passed|acquire timeout' | jq -c '{timestamp,message,name:.data.name,kind:.data.kind,holdMs:.data.holdMs,waitMs:.data.waitMs,queueLen:.data.queueLen}'
+grep '"module":"concurrency"' "$LATEST" | grep -E 'long hold detected|wait passed|acquire timeout' | jq -c '{timestamp,message,name:.data.name,kind:.data.kind,heldMs:.data.heldMs,waitMs:.data.waitMs,queueLen:.data.queueLen}'
 ```
+
+`long hold detected` 在锁被占住的当场就会触发，因此它后面若一直没有对应的释放/完成记录，就是任务把锁占死；用同一条记录的 `name` 与时间窗去对齐 `job` 或 `traceId`，即可定位卡住的具体任务。
 
 ### 7.9 自检：轮转是否真的生效
 
 ```bash
 ls | grep -E 'main-[0-9]{4}-[0-9]{2}-[0-9]{2}\.[0-9]+\.jsonl' || echo "尚无归档：未触发轮转或日志量不足"
 ls | grep -E '\.old\.jsonl' && echo "存在历史 .old 文件（旧策略遗留），确认它没被当成当前归档"
+grep -E '"message":"(log archived|log write failed)"' "$LATEST" | jq -c '{timestamp,message,archivedPath:.data.archivedPath,bytes:.data.bytes,failedCount:.data.failedCount}'
 ```
 
 若某天的主文件仍停留在 1 MiB 附近却没有 `.1.jsonl`，说明轮转配置未生效（多半是运行中的实例仍是改动前的构建）。
@@ -237,10 +243,10 @@ ls | grep -E '\.old\.jsonl' && echo "存在历史 .old 文件（旧策略遗留�
 | 播放黑屏/画面卡住、硬解异常 | `GlobalError` 的 `resource load failed`、`PlayerEngine` 的 media 事件、`ProcessWatchdog` 的 GPU 进程消失 | `grep -E 'resource load failed\|child process gone'` |
 | 界面白屏、窗口打开即空 | `renderer did fail load`、`renderer preload error` | 看 `errorCode`、`validatedURL` |
 | 整个应用偶发闪退 | `render process gone` / `child process gone`，再往前 20 行看最后一条 info | 用 `runId` 限定本次会话 |
-| 字幕转录卡住不动 | `transcription started` 是否有、分段重试 warn、`long hold released`（whisper 锁） | `grep '"job":"transcription:<路径>"'` |
-| 转录/转码报错但没有原因 | `FFmpeg 执行失败` / `ffmpeg command failed` 的 `stderrTail` 数组 | `jq '.data.stderrTail'`，不要看 `error.message`（会被截断） |
+| 字幕转录卡住不动 | `transcription started` 是否有、分段重试 warn、`long hold detected`（whisper 锁） | `grep '"job":"transcription:<路径>"'` |
+| 转录/转码报错但没有原因 | `FfmpegGatewayImpl` 的 `FFmpeg 执行失败`、`SherpaOnnx` 的 `sherpa-onnx exited abnormally` 的 `stderrTail` 数组 | `jq '.data.stderrTail'`，不要看 `error.message`（会被截断） |
 | 学习片段没生成 | `clip trim started` 有、`clip ready` 没有 → 中间失败；再查片段任务失败 error | `grep '"job":"clip:'` |
 | 提示没弹出来 / 状态没刷新 | `RendererEvents` 的 `renderer event dropped`（窗口销毁/不可用）与 `web contents destroyed` 对齐 | `grep -E 'renderer event dropped|web contents destroyed'` |
-| 操作很慢 | `ipc request completed` 的 `durationMs`；再看 `concurrency` 的 `wait passed` / `long hold released` | 见 7.7、7.8 |
+| 操作很慢 | `ipc request completed` 的 `durationMs`；再看 `concurrency` 的 `wait passed` / `long hold detected` | 见 7.7、7.8 |
 | 反应崩溃、组件树报错 | `ErrorBoundary` 的 `react render error`（含 `componentStack`） | `jq '.data.componentStack'` |
-| 同一错误刷屏 | `repeated error suppressed` 的 `suppressedCount` | 说明抑制生效，不必再逐条看 |
+| 同一错误刷屏 | 窗口结束补记的那条就是原消息，带 `suppressedCount` | `jq -c 'select(.data.suppressedCount) | {module,message,count:.data.suppressedCount}'`，说明抑制生效，不必再逐条看 |
