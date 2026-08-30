@@ -5,14 +5,11 @@ import { Captions } from 'lucide-react';
 import TooltippedButton from '@/fronted/components/shared/common/TooltippedButton';
 import useFile from '@/fronted/features/file-browser/fileStore';
 import StrUtil from '@/common/utils/str-util';
-import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { SWR_KEY } from '@/fronted/lib/swr-util';
 import { transcriptApi } from '@/fronted/features/transcript/transcriptApi';
 import { usePlayer } from '@/fronted/features/player/playerStore';
-
-const logger = getRendererLogger('TranscriptButton');
 
 /** 播放器转录按钮属性。 */
 interface TranscriptButtonProps {
@@ -29,7 +26,6 @@ interface TranscriptButtonProps {
 export default function TranscriptButton({ className }: TranscriptButtonProps) {
   const { t } = useI18nTranslation('player');
   const videoPath = useFile((s) => s.videoPath);
-  const currentPosition = usePlayer((s) => s.internal.exactPlayTime);
   const { data: tasks = [], error, mutate } = useSWR(
     SWR_KEY.TRANSCRIPTION_TASKS,
     transcriptApi.listTasks,
@@ -75,13 +71,6 @@ export default function TranscriptButton({ className }: TranscriptButtonProps) {
     }
   };
 
-  logger.debug('transcript task status', {
-    videoPath,
-    currentVideoTask,
-    isInProgress,
-    statusText: getStatusText()
-  });
-
   const tooltipMd = codeBlock`
   #### ${t('transcript.tooltipTitle')}
   ${t('transcript.tooltipBody')}
@@ -96,6 +85,8 @@ export default function TranscriptButton({ className }: TranscriptButtonProps) {
       toast.error(t('transcript.noVideoSelected'));
       return;
     }
+    // 仅在点击瞬间读取播放位置作为转录起点，避免订阅高频播放时钟导致组件跟随渲染
+    const currentPosition = usePlayer.getState().getExactPlayTime();
     const result = await transcriptApi.startTranscription(srtPath, currentPosition);
     await mutate();
     if (result === 'model_missing') {
