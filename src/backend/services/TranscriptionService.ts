@@ -18,6 +18,7 @@ import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGat
 import EnglishSubtitleSegmenter from '@/backend/utils/subtitle/EnglishSubtitleSegmenter';
 import { concurrency } from '@/backend/utils/concurrency';
 import {
+    TRANSCRIPTION_CHUNK_SECONDS,
     TranscriptTask,
     TranscriptTaskResult,
     TranscriptTaskState,
@@ -26,6 +27,7 @@ import {
 import TranscriptionTaskRepository from '@/backend/services/repositories/TranscriptionTaskRepository';
 import SubtitleService from '@/backend/services/SubtitleService';
 import { Sentence } from '@/common/types/SentenceC';
+import { CancelByUserError } from '@/backend/utils/errors/errors';
 
 /**
  * 本地转录任务的持久化、排队、执行与取消契约。
@@ -300,7 +302,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         concurrency.withMutex('transcription', async () => {
             // 若在排队等待期间被取消，不再执行转录。
             if (controller.signal.aborted) {
-                throw new Error('Transcription cancelled by user');
+                throw new CancelByUserError('Transcription cancelled by user');
             }
             this.activeFilePath = normalizedFilePath;
             await this.doTranscribe(normalizedFilePath, controller.signal);
@@ -310,7 +312,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                 await this.sendProgress(0, normalizedFilePath, TranscriptTaskState.CANCELLED, 0, {
                     message: '转录任务已取消',
                 });
-                throw new Error('Transcription cancelled by user');
+                throw new CancelByUserError('Transcription cancelled by user');
             }
 
             await this.sendProgress(0, normalizedFilePath, TranscriptTaskState.FAILED, 0, {
@@ -333,7 +335,14 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         return taskPromise;
     }
 
-    /** 更新尚未开始的块的调度位置；当前识别块不会被中断。 */
+    /**
+     * 更新播放位置需求，用于调整尚未开始的识别块的优先级。
+     *
+     * 只写入会话状态，由逐块识别循环在每轮取队首前读取并重排队列，因此当前正在识别的块不会被中断。
+     * 没有运行中的转录会话（session 不存在）时为空操作。
+     * @param filePath 媒体绝对路径，与启动任务时使用的路径一致。
+     * @param currentPosition 当前播放位置（秒）；非有限数时忽略。
+     */
     public updateDemand(filePath: string, currentPosition: number): void {
         const session = this.sessions.get(this.normalizeFilePath(filePath));
         if (session && Number.isFinite(currentPosition)) session.currentPosition = Math.max(0, currentPosition);
@@ -365,7 +374,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(filePath);
             // 开始
             await this.sendProgress(0, filePath, TranscriptTaskState.INIT, 0);
-            if (signal.aborted) throw new Error('Transcription cancelled by user');
+            if (signal.aborted) throw new CancelByUserError('Transcription cancelled by user');
 
             // 临时目录
             // 包含时间戳，避免同一文件并发任务相互覆盖
@@ -402,11 +411,11 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         const job = transcriptionJob(filePath);
         const modelsRoot = await this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.MODELS);
         await this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 0, { phase: 'preparing' });
-        if (signal.aborted) throw new Error('Transcription cancelled by user');
+        if (signal.aborted) throw new CancelByUserError('Transcription cancelled by user');
         const duration = await this.ffmpegService.duration(filePath);
         if (!Number.isFinite(duration) || duration <= 0) throw new Error(`无法读取音频时长：${duration}`);
 
-        const chunkDuration = 2 * 60;
+        const chunkDuration = TRANSCRIPTION_CHUNK_SECONDS;
         const ranges: Array<{ start: number; end: number }> = [];
         for (let start = 0; start < duration; start += chunkDuration) {
             // 非首段向前多留出重叠区，保证切分边界处的单词完整出现在相邻两段中。
@@ -424,15 +433,42 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
 
         const chunkTimelines: SpeechRecognitionToken[][] = Array.from({ length: wavPaths.length }, () => []);
         const session = this.sessions.get(filePath);
-        const order = wavPaths.map((_, index) => index).sort((a, b) => {
+        /** 待识别块队列；每轮取队首前沿最新播放位置重排，因此队列内容会随用户跳转变化。 */
+        const pending: number[] = wavPaths.map((_, index) => index);
+        /**
+         * 按当前播放位置重排待识别队列：距离越近越优先，已整段播过的块沉到最后补齐。
+         */
+        const sortByDemand = (): void => {
             const position = session?.currentPosition ?? 0;
-            const distance = (index: number) => ranges[index].end <= position ? Number.MAX_SAFE_INTEGER : Math.abs(ranges[index].start - position);
-            return distance(a) - distance(b);
-        });
-        const totalChunks = order.length;
+            const distance = (index: number): number => ranges[index].end <= position
+                ? Number.MAX_SAFE_INTEGER
+                : Math.abs(ranges[index].start - position);
+            pending.sort((a, b) => distance(a) - distance(b));
+        };
+        /** 上一轮实际识别的块序号，用于判断本轮选择是否被播放需求带离自然顺序。 */
+        let previousIndex: number | null = null;
+        /**
+         * 上一轮选块时的播放位置。任务起步时就近向两侧展开本身就会偏离自然顺序，
+         * 只有位置确实变过之后的偏离才算需求驱动的重排。
+         */
+        let previousPosition: number | null = null;
+        const totalChunks = pending.length;
         for (let processed = 0; processed < totalChunks; processed++) {
-            const index = order[processed];
-            if (signal.aborted) throw new Error('Transcription cancelled by user');
+            // 上一块的识别耗时内用户可能已经跳转，因此必须在取队首前重排，否则跳转不会改变优先级。
+            sortByDemand();
+            const index = pending.shift()!;
+            const position = session?.currentPosition ?? 0;
+            if (previousIndex !== null && position !== previousPosition && index !== previousIndex + 1) {
+                this.logger.info('chunk selection diverted by playback demand', {
+                    job,
+                    previousChunkIndex: previousIndex,
+                    chunkIndex: index,
+                    currentPosition: position,
+                });
+            }
+            previousIndex = index;
+            previousPosition = position;
+            if (signal.aborted) throw new CancelByUserError('Transcription cancelled by user');
             // 真实的生成进度百分比：从 0% 到 99%
             const progress = Math.min(99, Math.floor((processed / Math.max(totalChunks, 1)) * 100));
             await this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, progress, {
@@ -467,7 +503,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                 this.rendererGateway.fireAndForget('transcript/chunk-result', { filePath, sessionId: session.sessionId, sentences });
             }
         }
-        if (signal.aborted) throw new Error('Transcription cancelled by user');
+        if (signal.aborted) throw new CancelByUserError('Transcription cancelled by user');
         await this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 100, { phase: 'finishing' });
         const lines = this.subtitleSegmenter.segment(
             chunkTimelines,
@@ -498,7 +534,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
     }): Promise<SpeechRecognitionResult> {
         const { wavPath, modelsRoot, signal, filePath, progress, job } = opts;
         for (let attempt = 1; attempt <= MAX_CHUNK_RETRY; attempt++) {
-            if (signal.aborted) throw new Error('Transcription cancelled by user');
+            if (signal.aborted) throw new CancelByUserError('Transcription cancelled by user');
             try {
                 // whisper 信号量统一限制识别任务并发；未配置时跳过锁顺序校验。
                 return await concurrency.withSemaphore('whisper', async () => {
@@ -515,7 +551,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             } catch (error) {
                 if (signal.aborted) {
                     // 主动取消：不再重试。
-                    throw new Error('Transcription cancelled by user');
+                    throw new CancelByUserError('Transcription cancelled by user');
                 }
                 const message = error instanceof Error ? error.message : String(error);
                 if (attempt >= MAX_CHUNK_RETRY) {
