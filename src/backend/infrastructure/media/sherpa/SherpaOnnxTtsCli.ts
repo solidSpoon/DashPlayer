@@ -4,12 +4,7 @@ import * as path from 'path';
 import { injectable } from 'inversify';
 import { getRuntimeResourcePath } from '@/backend/utils/runtimeEnv';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-
-/** 进程存活期内在内存中保留的 stderr 尾部行数上限。 */
-const STDERR_BUFFER_LINES = 120;
-
-/** 失败时结构化进日志的子进程输出尾部行数。 */
-const STDERR_LOG_TAIL_LINES = 20;
+import { OutputTail } from '@/backend/utils/output-tail';
 
 /**
  * 调用随应用分发的 Sherpa-ONNX TTS 命令行程序。
@@ -61,17 +56,9 @@ export class SherpaOnnxTtsCli {
                 outputPath: params.outputPath,
                 textLength: params.text.length,
             });
-            const stderrLines: string[] = [];
-            let stderr = '';
+            const stderr = new OutputTail();
             child.stderr.on('data', (chunk) => {
-                const text = String(chunk);
-                stderr += text;
-                for (const line of text.split(/\r?\n/).filter(Boolean)) {
-                    stderrLines.push(line);
-                    if (stderrLines.length > STDERR_BUFFER_LINES) {
-                        stderrLines.shift();
-                    }
-                }
+                stderr.push(String(chunk));
             });
             child.on('error', (error) => {
                 this.logger.error('sherpa-onnx tts spawn failed', { pid: child.pid, error });
@@ -88,9 +75,9 @@ export class SherpaOnnxTtsCli {
                     signal,
                     outputPath: params.outputPath,
                     // 尾部行数组入日志，避免整段文本被单字段长度上限截掉关键原因。
-                    stderrTail: stderrLines.slice(-STDERR_LOG_TAIL_LINES),
+                    stderrTail: stderr.logTail(),
                 });
-                reject(new Error(`sherpa-onnx TTS ${signal ? `被信号 ${signal} 终止` : `退出码 ${code}`}：${stderr.slice(-2000)}`));
+                reject(new Error(`sherpa-onnx TTS ${signal ? `被信号 ${signal} 终止` : `退出码 ${code}`}：${stderr.bufferedText()}`));
             });
         });
         if (!fs.existsSync(params.outputPath)) {

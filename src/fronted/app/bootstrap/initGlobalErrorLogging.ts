@@ -77,8 +77,8 @@ function handleUnhandledRejection(event: PromiseRejectionEvent): void {
 /**
  * 注册 renderer 全局异常落盘。
  *
- * 这是 renderer 侧唯一的异常兜底入口：electron-log 自带的 renderer 错误处理依赖其
- * session 级 preload 注入，而本项目窗口使用自定义 `preload.js`，因此必须自行监听。
+ * 这是 renderer 侧唯一的异常兜底入口：renderer 没有独立日志文件，所有日志经
+ * `dp-log/write` 送到 main 统一落盘，未捕获异常若不在此处接住就永远消失，因此必须自行监听。
  * @returns 注销监听并清理在途合并窗口的函数。
  */
 export function startGlobalErrorLogging(): () => void {

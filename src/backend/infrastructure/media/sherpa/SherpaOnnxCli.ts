@@ -4,9 +4,8 @@ import * as path from 'path';
 import { injectable } from 'inversify';
 import { getRuntimeResourcePath } from '@/backend/utils/runtimeEnv';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-
-/** 失败时结构化进日志的子进程输出尾部行数。 */
-const STDERR_LOG_TAIL_LINES = 20;
+import { CancelByUserError } from '@/backend/utils/errors/errors';
+import { LOG_TAIL_LINES, OutputTail, tailLines } from '@/backend/utils/output-tail';
 
 /**
  * sherpa-onnx 离线识别器的原始 JSON 输出。
@@ -67,7 +66,7 @@ export class SherpaOnnxCli {
      */
     public async run(request: SherpaOnnxRunRequest): Promise<SherpaOnnxOutput> {
         if (request.isCancelled?.()) {
-            throw new Error('Transcription cancelled by user');
+            throw new CancelByUserError('Transcription cancelled by user');
         }
         const executablePath = this.resolveExecutablePath();
 
@@ -83,10 +82,11 @@ export class SherpaOnnxCli {
                     pid: child.pid,
                     audioPath: request.audioPath,
                 });
+                // stdout 需整体解析出识别 JSON，只能全文累积；stderr 用环形行缓冲。
                 let stdout = '';
-                let stderr = '';
+                const stderr = new OutputTail();
                 child.stdout.on('data', (chunk) => { stdout += String(chunk); });
-                child.stderr.on('data', (chunk) => { stderr += String(chunk); });
+                child.stderr.on('data', (chunk) => { stderr.push(String(chunk)); });
                 const heartbeat = setInterval(() => {
                     if (!request.isCancelled?.()) request.onHeartbeat?.();
                 }, 4000);
@@ -99,7 +99,7 @@ export class SherpaOnnxCli {
                     clearInterval(heartbeat);
                     if (request.isCancelled?.()) {
                         this.logger.warn('sherpa-onnx cancelled', { job: request.job, pid: child.pid, exitCode: code, signal });
-                        reject(new Error('Transcription cancelled by user'));
+                        reject(new CancelByUserError('Transcription cancelled by user'));
                         return;
                     }
                     if (code !== 0) {
@@ -110,10 +110,10 @@ export class SherpaOnnxCli {
                             exitCode: code,
                             signal,
                             // 尾部行数组入日志，避免整段文本被单字段长度上限截掉关键原因。
-                            stderrTail: this.tailLines(stderr),
-                            stdoutTail: this.tailLines(stdout),
+                            stderrTail: stderr.logTail(),
+                            stdoutTail: tailLines(stdout, LOG_TAIL_LINES),
                         });
-                        reject(new Error(`sherpa-onnx ${exitReason}：${stderr.slice(-2000)}`));
+                        reject(new Error(`sherpa-onnx ${exitReason}：${stderr.bufferedText()}`));
                         return;
                     }
                     try {
@@ -123,7 +123,7 @@ export class SherpaOnnxCli {
                             job: request.job,
                             pid: child.pid,
                             error,
-                            stdoutTail: this.tailLines(stdout),
+                            stdoutTail: tailLines(stdout, LOG_TAIL_LINES),
                         });
                         reject(error);
                     }
@@ -137,15 +137,6 @@ export class SherpaOnnxCli {
     /** 终止当前识别进程。 */
     public killActive(): void {
         this.activeProcess?.kill('SIGKILL');
-    }
-
-    /**
-     * 取输出末尾若干非空行，用于结构化日志。
-     * @param text 子进程累计输出文本。
-     * @returns 最多 {@link STDERR_LOG_TAIL_LINES} 行尾部文本。
-     */
-    private tailLines(text: string): string[] {
-        return text.split(/\r?\n/).filter(Boolean).slice(-STDERR_LOG_TAIL_LINES);
     }
 
     /**

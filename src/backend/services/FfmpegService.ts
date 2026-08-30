@@ -625,14 +625,17 @@ export class FfmpegServiceImpl implements FfmpegService {
             return;
         } catch (error) {
             const normalized = error instanceof Error ? error : new Error(String(error));
-            this.logger.error('ffmpeg command failed', {
-                job,
-                inputDurationSecond: context.inputDurationSecond,
-                ...(error instanceof FfmpegExecutionError
-                    ? { exitCode: error.exitCode, pid: error.pid, stderrTail: error.stderrTail }
-                    : {}),
-                error: normalized,
-            });
+            // 子进程退出与取消已由网关作为唯一证据点记录，这里只补记网关看不到的任务体异常。
+            const alreadyReported = error instanceof FfmpegExecutionError
+                || error instanceof CancelByUserError
+                || cancelledByUser;
+            if (!alreadyReported) {
+                this.logger.error('ffmpeg task failed', {
+                    job,
+                    inputDurationSecond: context.inputDurationSecond,
+                    error: normalized,
+                });
+            }
             throw this.processError(normalized, cancelledByUser);
         } finally {
             if (taskId && !hasCancelable) {
@@ -643,13 +646,12 @@ export class FfmpegServiceImpl implements FfmpegService {
 
     /**
      * 统一错误处理。
+     * @param error 任务体抛出的异常。
+     * @param cancelledByUser 任务是否已被用户标记取消。
+     * @returns 取消场景归一为 CancelByUserError，其余原样透出。
      */
     private processError(error: Error, cancelledByUser = false): Error {
         if (cancelledByUser) {
-            return new CancelByUserError();
-        }
-
-        if (/SIGKILL|SIGTERM|killed/i.test(error.message)) {
             return new CancelByUserError();
         }
 

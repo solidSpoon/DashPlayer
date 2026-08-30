@@ -16,6 +16,7 @@ import { VideoInfo } from '@/common/types/video-info';
 import fs from 'fs';
 import path from 'path';
 import { getMainLogger } from '@/backend/infrastructure/logger';
+import { CancelByUserError } from '@/backend/utils/errors/errors';
 import { DefaultFfmpegCommandBuilder, FfmpegCommandBuilder } from '@/backend/infrastructure/media/ffmpeg/FfmpegCommandBuilder';
 import { FfmpegProcessRunner } from '@/backend/infrastructure/media/ffmpeg/FfmpegProcessRunner';
 import { getRuntimeResourcePath } from '@/backend/utils/runtimeEnv';
@@ -262,9 +263,15 @@ export default class FfmpegGatewayImpl implements FfmpegGateway {
             // 命令已在 onStart 记录，这里只补退出码与耗时，便于慢环节归因。
             this.logger.info('FFmpeg 执行完成', { job: options.job, exitCode: outcome.exitCode, durationMs: outcome.durationMs });
         } catch (error) {
-            this.logger.warn('FFmpeg 执行失败', {
+            const durationMs = Date.now() - startedAt;
+            if (error instanceof CancelByUserError) {
+                this.logger.info('FFmpeg 已取消', { job: options.job, durationMs });
+                throw error;
+            }
+            // 子进程失败的唯一证据点：退出码、pid 与 stderr 尾部行都在这里落盘，上层不再重复记录。
+            this.logger.error('FFmpeg 执行失败', {
                 job: options.job,
-                durationMs: Date.now() - startedAt,
+                durationMs,
                 ...(error instanceof FfmpegExecutionError
                     ? { exitCode: error.exitCode, pid: error.pid, stderrTail: error.stderrTail }
                     : {}),

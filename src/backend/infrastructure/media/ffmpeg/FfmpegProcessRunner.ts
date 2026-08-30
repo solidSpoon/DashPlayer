@@ -1,5 +1,7 @@
 import { ChildProcess, spawn } from 'child_process';
 import { FfmpegExecutionError } from '@/backend/services/gateways/media/FfmpegGateway';
+import { CancelByUserError } from '@/backend/utils/errors/errors';
+import { OutputTail } from '@/backend/utils/output-tail';
 
 /**
  * FFmpeg 执行请求。
@@ -63,12 +65,6 @@ export interface FfmpegRunHooks {
     onProgress?: (event: FfmpegProgressEvent) => void;
 }
 
-/** 进程存活期内在内存中保留的 stderr 尾部行数上限。 */
-const STDERR_BUFFER_LINES = 120;
-
-/** 失败时结构化进日志的 stderr 尾部行数：ffmpeg 致命错误集中在输出末尾。 */
-const STDERR_ERROR_TAIL_LINES = 20;
-
 /**
  * 统一 FFmpeg 进程执行器。
  */
@@ -78,7 +74,9 @@ export class FfmpegProcessRunner {
      */
     public start(request: FfmpegRunRequest, hooks: FfmpegRunHooks = {}): FfmpegRunningTask {
         const startedAt = Date.now();
-        const stderrTail: string[] = [];
+        const stderrTail = new OutputTail();
+        /** 上层是否已发起取消；置位后子进程非零退出按预期取消处理。 */
+        let cancelRequested = false;
 
         /** 用于跟踪当前子进程，便于取消时发送信号。 */
         let processRef: ChildProcess | null = null;
@@ -94,8 +92,8 @@ export class FfmpegProcessRunner {
 
             child.stderr.on('data', (chunk) => {
                 const text = chunk.toString('utf8');
+                stderrTail.push(text);
                 for (const line of text.split(/\r?\n/).filter(Boolean)) {
-                    this.appendTail(stderrTail, line, STDERR_BUFFER_LINES);
                     hooks.onStderrLine?.(line);
                     const progress = this.tryParseProgress(line, request.inputDurationSecond);
                     if (progress) {
@@ -114,17 +112,22 @@ export class FfmpegProcessRunner {
                 if (exitCode === 0) {
                     resolve({
                         exitCode,
-                        stderrTail: stderrTail.slice(),
+                        stderrTail: stderrTail.allLines(),
                         durationMs,
                     });
                     return;
                 }
 
-                /** 尾部有限行数组结构化透出，避免整段 stderr 文本被日志长度上限截掉关键错误。 */
-                const tailForLog = stderrTail.slice(-STDERR_ERROR_TAIL_LINES);
+                // 取消导致的退出属于预期行为，用显式类型区分，上层无需再靠消息文本猜测。
+                if (cancelRequested) {
+                    reject(new CancelByUserError(`FFmpeg 已取消（退出码 ${exitCode}）`));
+                    return;
+                }
+
+                // 尾部有限行数组结构化透出，避免整段 stderr 文本被日志长度上限截掉关键错误。
                 reject(new FfmpegExecutionError({
                     exitCode,
-                    stderrTail: tailForLog,
+                    stderrTail: stderrTail.logTail(),
                     durationMs,
                     job: request.job,
                     pid: child.pid,
@@ -133,6 +136,7 @@ export class FfmpegProcessRunner {
         });
 
         const cancel = () => {
+            cancelRequested = true;
             if (!processRef || processRef.killed) return;
             processRef.kill('SIGTERM');
             setTimeout(() => {
@@ -165,16 +169,6 @@ export class FfmpegProcessRunner {
     private quotePart(part: string): string {
         if (!part.includes(' ')) return part;
         return `"${part.replace(/"/g, '\\"')}"`;
-    }
-
-    /**
-     * 维护固定长度的 stderr 尾部缓存。
-     */
-    private appendTail(lines: string[], line: string, maxLines: number): void {
-        lines.push(line);
-        if (lines.length > maxLines) {
-            lines.shift();
-        }
     }
 
     /**
