@@ -41,6 +41,9 @@ export interface TranslationActions {
     /**
      * 向后端报告当前播放位置。
      *
+     * 经 150ms trailing 防抖合并连续请求：键盘快跳等场景下仅发送停稳后的
+     * 最后一个目标句，避免提交注定被新 demandId 作废的中间态需求。
+     *
      * @param fileHash 字幕文件哈希。
      * @param currentIndex 当前播放字幕索引。
      */
@@ -84,6 +87,12 @@ const logger = getRendererLogger('useTranslation');
 
 /** 保证后端只接受当前 renderer 会话内最新播放位置的递增需求标记。 */
 let nextSubtitleDemandId = 1;
+
+/** 需求防抖窗口：连续请求合并为停稳后的一次发送，窗口取值需远小于正常句间隔。 */
+const DEMAND_DEBOUNCE_MS = 150;
+let demandDebounceTimer: ReturnType<typeof setTimeout> | null = null;
+/** 防抖期间暂存的目标需求；定时器触发时仅发送最后一份，中间态不产生 demandId。 */
+let pendingDemand: { fileHash: string; currentIndex: number } | null = null;
 
 /**
  * 通知后端释放指定字幕文件的翻译会话。
@@ -154,22 +163,39 @@ const useTranslation = create(
                 });
                 return;
             }
-            const demandId = nextSubtitleDemandId;
-            nextSubtitleDemandId += 1;
-            logger.info('subtitle translation request sent', {
-                fileHash,
-                currentIndex,
-                demandId,
-                engine: state.engine,
-                openAiMode: state.openAiMode,
-            });
-            playerApi.updateSubtitleTranslationDemand(
-                fileHash,
-                currentIndex,
-                demandId,
-                rendererSessionId,
-            )
-                .catch((error) => showRequestFailure(state.engine, error));
+            pendingDemand = { fileHash, currentIndex };
+            if (demandDebounceTimer) {
+                clearTimeout(demandDebounceTimer);
+            }
+            demandDebounceTimer = setTimeout(() => {
+                demandDebounceTimer = null;
+                const target = pendingDemand;
+                pendingDemand = null;
+                if (!target) {
+                    return;
+                }
+                // 发送瞬间重新校验：防抖窗口内引擎/会话可能已切换，旧文件需求直接丢弃
+                const latest = get();
+                if (latest.engine === 'none' || latest.activeFileHash !== target.fileHash) {
+                    return;
+                }
+                const demandId = nextSubtitleDemandId;
+                nextSubtitleDemandId += 1;
+                logger.info('subtitle translation request sent', {
+                    fileHash: target.fileHash,
+                    currentIndex: target.currentIndex,
+                    demandId,
+                    engine: latest.engine,
+                    openAiMode: latest.openAiMode,
+                });
+                playerApi.updateSubtitleTranslationDemand(
+                    target.fileHash,
+                    target.currentIndex,
+                    demandId,
+                    rendererSessionId,
+                )
+                    .catch((error) => showRequestFailure(latest.engine, error));
+            }, DEMAND_DEBOUNCE_MS);
         },
 
         updateTranslations: (items: RendererTranslationItem[]) => {
