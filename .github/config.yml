@@ -1,6 +1,8 @@
+# Config support for issue templates
+
+blank_issues_enabled: false
+contact_links: []
+
 requiredHeaders:
-  - Prerequisites
-  - Expected Behavior
-  - Current Behavior
-  - Possible Solution
-  - Your Environment
+  - 问题描述
+  - 运行环境

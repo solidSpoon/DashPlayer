@@ -1,67 +1,42 @@
+name: 🐞 Bug report
+about: 遇到了技术问题？在这里反馈
+labels: ['bug']
 ---
-name: Bug report
-about: You're having technical issues. 🐞
-labels: 'bug'
----
 
-<!-- Please use the following issue template or your issue will be closed -->
+<!-- 请尽量填写以下模板，信息越完整，问题越容易被定位和修复 -->
 
-## Prerequisites
+## 问题描述
 
-<!-- If the following boxes are not ALL checked, your issue is likely to be closed -->
+<!-- 发生了什么？期望发生什么？ -->
 
-- [ ] Using npm
-- [ ] Using an up-to-date [`main` branch](https://github.com/electron-react-boilerplate/electron-react-boilerplate/tree/main)
-- [ ] Using latest version of devtools. [Check the docs for how to update](https://electron-react-boilerplate.js.org/docs/dev-tools/)
-- [ ] Tried solutions mentioned in [#400](https://github.com/electron-react-boilerplate/electron-react-boilerplate/issues/400)
-- [ ] For issue in production release, add devtools output of `DEBUG_PROD=true npm run build && npm start`
-
-## Expected Behavior
-
-<!--- What should have happened? -->
-
-## Current Behavior
-
-<!--- What went wrong? -->
-
-## Steps to Reproduce
-
-<!-- Add relevant code and/or a live example -->
-<!-- Add stack traces -->
+## 复现步骤
 
 1.
-
 2.
 
-3.
+## 运行环境
 
-4.
+<!-- 以下信息可在「设置 → 关于」或日志文件中找到，完整日志路径见文末 -->
 
-## Possible Solution (Not obligatory)
+- DashPlayer 版本：
+- 安装包类型：exe / msi / dmg / deb / rpm
+- 操作系统及版本：
+- 是否从旧版本升级而来：是 / 否（旧版本号：）
 
-<!--- Suggest a reason for the bug or how to fix it. -->
+## 日志
 
-## Context
+<!-- 应用内日志目录：设置 → 存储设置 中可以打开日志所在文件夹 -->
 
-<!--- How has this issue affected you? What are you trying to accomplish? -->
-<!--- Did you make any changes to the boilerplate after cloning it? -->
-<!--- Providing context helps us come up with a solution that is most useful in the real world -->
+<details><summary>日志内容（可折叠长日志）</summary>
 
-## Your Environment
+```
+在此粘贴相关日志片段
+```
 
-<!--- Include as many relevant details about the environment you experienced the bug in -->
+</details>
 
-- Node version :
-- electron-react-boilerplate version or branch :
-- Operating System and version :
-- Link to your project :
+## 补充信息
 
-<!---
-❗️❗️ Also, please consider donating (https://opencollective.com/electron-react-boilerplate-594) ❗️❗️
+截图、视频或其他有助于定位问题的材料。
 
-Donations will ensure the following:
-
-🔨 Long term maintenance of the project
-🛣 Progress on the roadmap
-🐛 Quick responses to bug reports and help requests
- -->
+> 安装遇到问题？请先阅读[安装指南（含常见安装失败排查）](https://solidspoon.xyz/DashPlayer/installation.html)。
