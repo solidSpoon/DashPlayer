@@ -11,6 +11,14 @@ export enum TranscriptTaskState {
     FAILED = 'failed',
 }
 
+/**
+ * 增量转录单个识别分块的时长（秒）。
+ *
+ * 后端据此切分音频块，前端据此推导播放位置的上报去重粒度；两侧必须共用同一来源，
+ * 否则前端会按错误的边界判断"块优先级是否可能变化"。
+ */
+export const TRANSCRIPTION_CHUNK_SECONDS = 120;
+
 /** 转录阶段枚举 */
 export type TranscriptPhase = 'preparing' | 'generating' | 'finishing';
 

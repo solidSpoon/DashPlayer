@@ -13,6 +13,7 @@ import { playerApi } from '@/fronted/features/player/playerApi';
 import useTranslation from '@/fronted/features/player/translationStore';
 import useVocabulary from '@/fronted/features/player/vocabularyStore';
 import { transcriptApi } from '@/fronted/features/transcript/transcriptApi';
+import { TRANSCRIPTION_CHUNK_SECONDS } from '@/common/contracts/transcript/transcript-task';
 
 const logger = getRendererLogger('usePlayerBridge');
 
@@ -135,8 +136,21 @@ export function usePlayerBridge(navigate: (path: string) => void) {
 
     useEffect(() => {
         if (StrUtil.isBlank(videoPath)) return;
+        /**
+         * 上报播放位置驱动后端调整待识别块优先级。
+         *
+         * 块的就近顺序只在相邻块起点的中点附近翻转，中点距半块（chunk/2）网格边界最多偏半秒
+         * （来自 1 秒块重叠），因此按半块区间去重的代价是不超过 0.5 秒的需求延迟。
+         * 效果：暂停时零上报，正常播放每分钟至多一次，快跳必然跨区间并立即上报。
+         */
+        const demandGranularity = TRANSCRIPTION_CHUNK_SECONDS / 2;
+        /** 最近一次已上报位置所在的半块区间；-1 保证首次检查必定上报一次。 */
+        let lastReportedBucket = -1;
         const reportDemand = () => {
             const position = usePlayer.getState().internal.exactPlayTime;
+            const bucket = Math.floor(position / demandGranularity);
+            if (bucket === lastReportedBucket) return;
+            lastReportedBucket = bucket;
             void transcriptApi.updateDemand(videoPath!, position).catch(() => undefined);
         };
         const timer = window.setInterval(reportDemand, 2000);
