@@ -20,6 +20,22 @@ Windows 提供两种安装包格式，请根据需求选择其一：
 3. 如果提示不安全，可以点击 `更多信息` -> `仍要运行` 进行安装
 4. 开始使用吧！
 
+### 故障排除
+
+#### 双击 `.exe` 后提示 "Installation has failed"
+
+弹窗里的 `Open Setup Log` 按钮有时打不开（安装器在很早阶段失败时还来不及生成日志），这是正常现象。可以按下面的顺序排查：
+
+1. **确认没有残留进程占用**：打开任务管理器，结束所有 `DashPlayer` 相关进程后重试
+2. **清理旧版本残留**：如果你之前安装过 DashPlayer，先卸载旧版本，再删除 `%LocalAppData%\DashPlayer` 目录后重试
+3. **检查杀毒软件拦截记录**：未签名应用的安装器可能被杀毒软件静默拦截，将其加入白名单后重试
+4. **查看安装日志**：用文件管理器打开 `%LocalAppData%\SquirrelTemp`，把 `SquirrelSetup.log` 里最后一段报错贴到 [issue](https://github.com/solidSpoon/DashPlayer/issues) 中
+5. **换用 `.msi` 安装包**：MSI 与 EXE 是两套独立的安装方式，EXE 安装失败时 MSI 通常可以正常安装
+
+#### 安装成功后无法启动
+
+若安装完成但应用无法启动，请携带 `%LocalAppData%\DashPlayer` 下的日志文件[提交 issue](https://github.com/solidSpoon/DashPlayer/issues)。
+
 ## MacOS
 
 ### 手动安装
