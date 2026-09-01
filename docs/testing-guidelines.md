@@ -1,15 +1,13 @@
 # 测试规范
 
-> 目标：让测试反映真实业务行为，成为 AI 与人类共同信任的回归防线；删除无价值测试，禁止"测 mock 编排"式的负资产测试。
->
-> 写或改任何测试前，先读本文档。修改公开行为时必须同步更新对应测试；禁止为让测试通过而放松断言或加 skip。
+> 测试断言真实业务行为，不测 mock 编排。写或改测试前先读本文档。
 
 ## 1. 核心原则
 
 1. **测行为，不测实现**：断言的必须是可观测结果——返回值、数据库状态、渲染出的 DOM、抛出的错误。禁止把 `expect(mock).toHaveBeenCalledXxx` 作为主断言（可作为交互边界条件的辅助断言）。
 2. **用真实依赖，少 mock**：项目使用 SQLite + drizzle，起内存库（`createMemoryDb()`）比 mock 仓储便宜且真实。服务层测试一律走内存库，禁止 mock 仓储层。
 3. **不测第三方库**：`src/fronted/components/ui/`（shadcn 生成）、lucide 图标等第三方代码不写测试。它们坏了应该升级依赖，而不是用测试钉住现状。
-4. **测试跟着源码走**：删除或重构模块时，同步删除对应测试文件；不留孤儿测试，也不留 `test:bdd` 这类没有目标文件的死配置。
+4. **测试跟着源码走**：删除或重构模块时，同步删除对应测试文件；不留孤儿测试与死配置。
 5. **失败要修根因**：测试挂了先判断是"实现错了"还是"测试错了"。禁止通过加 `.skip`、删断言、放宽期望值让测试变绿。
 
 ## 2. 分层策略
@@ -60,7 +58,7 @@ afterEach(() => {
 });
 ```
 
-注意：`better-sqlite3` 由 Electron Forge 按 Electron ABI 重编译，vitest 所在的 Node 进程加载它需要 ABI 匹配。若出现 `NODE_MODULE_VERSION` 不匹配，用与 Electron 兼容的 Node 版本跑测试（详见 `.github/workflows` 或 README 的说明），不要为绕开它把内存库测试改成 mock。
+注意：`better-sqlite3` 被 Electron Forge 按 Electron ABI 重编译后，Node 版 vitest 可能报 `NODE_MODULE_VERSION` 不匹配。解决方式是让跑测试的 Node 与 Electron ABI 匹配（或单独装一份 Node 版依赖），不要为绕开它把内存库测试改成 mock。
 
 ## 5. 编写规范
 
@@ -83,4 +81,4 @@ yarn test:watch      # 迭代
 yarn test:coverage   # PR 前检查覆盖率
 ```
 
-覆盖率只作为发现盲区的工具，不作为 KPI 追求；覆盖率好看但全是 mock 编排的测试按负资产处理，见第 1 节第 5 条。
+覆盖率只作为发现盲区的工具，不作为 KPI 追求；mock 编排堆出来的覆盖率是负资产（见第 1 节原则 1/2）。

@@ -22,7 +22,6 @@ Write TypeScript/TSX with 4-space indentation, single quotes, and trailing comma
 - `src/fronted/components/ui/`（shadcn 生成）等第三方代码不写测试；删除模块时同步删除对应测试，不留孤儿测试与死配置。
 - 禁止用 `.skip`、删断言、放宽期望值让测试变绿；测试挂了先修根因。
 - 修改公开行为时必须同步更新对应测试；`describe` / `it` 文案统一使用中文白话，表达真实业务行为，避免过度技术术语。
-- 需要 DOM 全局时 import `src/test/setup.ts`；PR 前用 `yarn test:coverage` 检查覆盖率盲区。
 
 ## Commit & Pull Request Guidelines
 Use Conventional Commits for commit messages (e.g., `feat: ...`, `fix: ...`, `chore: ...`, `docs: ...`, `refactor: ...`, `test: ...`, `build: ...`, `ci: ...`). Keep each commit scoped to a single feature or fix; do not bundle unrelated changes. PRs should explain context, list verification steps, attach UI captures when flows change, and link issues. Call out migration updates in `drizzle/` or scripts, and mention when contributors must rerun `yarn run download`.
