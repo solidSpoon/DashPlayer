@@ -86,6 +86,26 @@
                     }
                 ]
             }
+        },
+        {
+            "files": ["src/**/__tests__/**/*.{ts,tsx,js,jsx}", "src/**/*.{test,spec}.{ts,tsx,js,jsx}"],
+            "rules": {
+                "no-restricted-syntax": [
+                    "error",
+                    {
+                        "selector": "CallExpression[callee.object.name='describe'][callee.property.name='only']",
+                        "message": "禁止提交 describe.only，调试完请移除。"
+                    },
+                    {
+                        "selector": "CallExpression[callee.object.name='it'][callee.property.name='only']",
+                        "message": "禁止提交 it.only，调试完请移除。"
+                    },
+                    {
+                        "selector": "CallExpression[callee.object.name='test'][callee.property.name='only']",
+                        "message": "禁止提交 test.only，调试完请移除。"
+                    }
+                ]
+            }
         }
     ]
 }

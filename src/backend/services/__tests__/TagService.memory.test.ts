@@ -1,17 +1,16 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { tag } from '@/backend/infrastructure/db/tables/tag';
 import FavouriteClipsRepositoryImpl from '@/backend/infrastructure/db/repositories/FavouriteClipsRepositoryImpl';
 import { TagServiceImpl } from '../TagService';
 import { createMemoryDb, type MemoryDb } from '@/test/database';
 
-// 场景测试不依赖 inversify 容器，直接把真实仓储注入服务；
-// 装饰器在这里只保留类型约束，实际装配由测试手动完成。
-vi.mock('inversify', () => ({
-    injectable: () => (target: unknown) => target,
-    inject: () => (target: unknown, _propertyKey: string) => target,
-}));
-
+/**
+ * 标签服务与真实数据库 schema 的集成场景测试。
+ *
+ * 与 TagService.test.ts 的区别：这里绕过服务接口，直接操作表预置
+ * "用户历史数据"，验证服务行为与已有数据叠加时的真实表现。
+ */
 describe('标签服务在内存数据库中的真实场景', () => {
     let memoryDb: MemoryDb;
     let tagService: TagServiceImpl;
@@ -19,8 +18,7 @@ describe('标签服务在内存数据库中的真实场景', () => {
     beforeEach(() => {
         memoryDb = createMemoryDb();
         const repository = new FavouriteClipsRepositoryImpl(memoryDb.db);
-        tagService = new TagServiceImpl();
-        (tagService as unknown as { favouriteClipsRepository: FavouriteClipsRepositoryImpl }).favouriteClipsRepository = repository;
+        tagService = new TagServiceImpl(repository);
     });
 
     afterEach(() => {

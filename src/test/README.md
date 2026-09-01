@@ -1,71 +1,9 @@
-# Testing in DashPlayer
+# 测试辅助目录
 
-This project uses Vitest for testing with React Testing Library for frontend component tests.
+本目录存放测试基建，规约见 `docs/testing-guidelines.md`。
 
-## Running Tests
+- `setup.ts`：vitest 全局 setup（DOM globals、Electron API mock 等），由 `vitest.config.ts` 的 `setupFiles` 加载。
+- `database.ts`：`createMemoryDb()` 内存 SQLite 工厂，跑完全部 drizzle 迁移，服务层测试的统一数据层方案，禁止在服务测试中 mock 仓储。
+- `aiSdkTestConfig.ts`：AI SDK 集成测试的环境变量门控配置，默认跳过 live 测试。
 
-```bash
-# Run all tests
-yarn test
-
-# Run tests in watch mode
-yarn test:watch
-
-# Run tests once
-yarn test:run
-
-# Run tests with UI
-yarn test:ui
-
-# Run tests with coverage (when coverage package is installed)
-yarn test:coverage
-```
-
-## Test Structure
-
-- **Frontend Tests**: Located in `src/fronted/components/__tests__/`
-- **Backend Tests**: Located in `src/backend/services/__tests__/`
-- **Test Setup**: Configuration in `src/test/setup.ts`
-
-## Writing Tests
-
-### Frontend Component Tests
-
-Use React Testing Library for component testing:
-
-```typescript
-import { render, screen, fireEvent } from '@testing-library/react'
-import { describe, it, expect, vi } from 'vitest'
-import MyComponent from '../MyComponent'
-
-describe('MyComponent', () => {
-  it('renders correctly', () => {
-    render(<MyComponent title="Test" />)
-    expect(screen.getByText('Test')).toBeInTheDocument()
-  })
-})
-```
-
-### Backend Service Tests
-
-Mock dependencies and test business logic:
-
-```typescript
-import { describe, it, expect, vi } from 'vitest'
-
-// Mock external dependencies
-vi.mock('@/backend/db', () => ({
-  default: { /* mock implementation */ }
-}))
-
-describe('MyService', () => {
-  it('handles business logic correctly', async () => {
-    // Test implementation
-  })
-})
-```
-
-## Configuration
-
-- **Vitest Config**: `vitest.config.ts`
-- **Test Setup**: `src/test/setup.ts` - includes mocks for Electron APIs and testing utilities
+运行方式见项目根 `package.json` scripts（`yarn test:run` / `yarn test:watch` / `yarn test:coverage`）。

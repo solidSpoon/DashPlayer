@@ -15,9 +15,14 @@ Write TypeScript/TSX with 4-space indentation, single quotes, and trailing comma
 - 类型注释：对新增/修改的 `type`/`interface`/`class`，必须写顶部 JSDoc；对关键字段写字段级注释（解释含义、单位/格式、约束）。
 
 ## Testing Guidelines
-Vitest with Testing Library and JSDOM powers unit and integration coverage. Place specs beside source in `__tests__/` directories or as `*.test.ts(x)` siblings (`src/fronted/components/__tests__/Button.test.tsx`). Import `src/test/setup.ts` when DOM globals are needed. Assert user-visible behavior and IPC contracts, and keep coverage healthy via `yarn test:coverage`.
+写或改测试前，先读 `docs/testing-guidelines.md`（测试规约：分层策略、依赖注入约定、内存库基建、mock 边界）。核心红线：
 
-- 测试代码描述规范：`describe` / `it` 文案统一使用中文，且尽量白话、易懂，优先表达真实业务行为，避免过度技术术语。
+- 测试必须断言真实业务行为（返回值、数据库状态、DOM），禁止以 mock 调用断言为主；服务层测试一律使用内存 SQLite（`createMemoryDb()`），禁止 mock 仓储层。
+- 服务类依赖一律构造函数注入，禁止属性注入后测试强转私有字段。
+- `src/fronted/components/ui/`（shadcn 生成）等第三方代码不写测试；删除模块时同步删除对应测试，不留孤儿测试与死配置。
+- 禁止用 `.skip`、删断言、放宽期望值让测试变绿；测试挂了先修根因。
+- 修改公开行为时必须同步更新对应测试；`describe` / `it` 文案统一使用中文白话，表达真实业务行为，避免过度技术术语。
+- 需要 DOM 全局时 import `src/test/setup.ts`；PR 前用 `yarn test:coverage` 检查覆盖率盲区。
 
 ## Commit & Pull Request Guidelines
 Use Conventional Commits for commit messages (e.g., `feat: ...`, `fix: ...`, `chore: ...`, `docs: ...`, `refactor: ...`, `test: ...`, `build: ...`, `ci: ...`). Keep each commit scoped to a single feature or fix; do not bundle unrelated changes. PRs should explain context, list verification steps, attach UI captures when flows change, and link issues. Call out migration updates in `drizzle/` or scripts, and mention when contributors must rerun `yarn run download`.

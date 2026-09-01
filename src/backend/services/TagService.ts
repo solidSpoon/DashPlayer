@@ -46,8 +46,20 @@ export default interface TagService {
  */
 @injectable()
 export class TagServiceImpl implements TagService {
-    @inject(TYPES.FavouriteClipsRepository)
-    private favouriteClipsRepository!: FavouriteClipsRepository;
+    private readonly favouriteClipsRepository: FavouriteClipsRepository;
+
+    /**
+     * 通过构造函数显式注入仓储依赖，便于测试直接传入真实内存库仓储，
+     * 无需 mock inversify 或强转私有字段。
+     *
+     * @param favouriteClipsRepository 标签数据仓储，由 IoC 容器或测试装配。
+     */
+    constructor(
+        @inject(TYPES.FavouriteClipsRepository)
+        favouriteClipsRepository: FavouriteClipsRepository
+    ) {
+        this.favouriteClipsRepository = favouriteClipsRepository;
+    }
 
     /**
      * 创建标签，已存在的标签由仓储返回原记录。
