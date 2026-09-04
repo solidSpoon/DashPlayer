@@ -81,6 +81,11 @@
         "openReleases": "前往发布页",
         "failedTitle": "检查更新失败",
         "failedDescription": "暂时无法获取更新信息，请稍后重试。",
+        "errors": {
+            "rate_limited": "GitHub 请求频率受限，请几分钟后再试。",
+            "network": "暂时无法连接 GitHub，请检查网络后重试。",
+            "payload": "GitHub 返回了无法解析的数据，请稍后重试。"
+        },
         "latestTitle": "当前已是最新版本",
         "tips": {
             "transcriptionBackground": "转录时，你可以离开当前页面继续观看视频，转录会在后台进行并在完成后自动更新字幕。",
