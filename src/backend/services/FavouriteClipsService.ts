@@ -388,10 +388,30 @@ export class FavouriteClipsServiceImpl implements FavouriteClipsService {
 
     public async search(query?: ClipQuery): Promise<(OssBaseMeta & ClipMeta)[]> {
         const keys = await this.favouriteClipsRepository.searchClipKeys(query);
-        return Promise.all(keys
-            .map((key) => this.clipOssService.get(key)))
-            .then((res) => res.filter((item) => item !== null)) as Promise<(OssBaseMeta & ClipMeta)[]>;
+        const { clips, failedKeys } = await this.clipOssService.getAll(keys);
+        this.notifyCorruptClips(failedKeys);
+        return clips;
+    }
 
+    /**
+     * 向用户汇总提示无法读取的收藏片段数量。
+     *
+     * 行为说明：
+     * - 单条损坏不阻断列表展示，健康的片段照常返回；
+     * - 提示去重，避免每次刷新列表都重复弹窗。
+     *
+     * @param failedKeys 元数据损坏、无法读取的片段 key。
+     */
+    private notifyCorruptClips(failedKeys: string[]): void {
+        if (failedKeys.length === 0) {
+            return;
+        }
+        this.rendererGateway.fireAndForget('ui/show-toast', {
+            message: `有 ${failedKeys.length} 条收藏片段无法读取，已跳过；详情见日志`,
+            variant: 'warning',
+            duration: 5000,
+            dedupeKey: 'favourite-clip-corrupt',
+        });
     }
 
     private async addToDb(metaData: ClipMeta & OssBaseMeta) {
@@ -457,12 +477,10 @@ export class FavouriteClipsServiceImpl implements FavouriteClipsService {
     async syncFromOss() {
         await concurrency.withMutex('favourite-clip-sync', async () => {
             const keys = await this.clipOssService.list();
+            const { clips: metas, failedKeys } = await this.clipOssService.getAll(keys);
+            this.notifyCorruptClips(failedKeys);
             const clips: FavouriteClipsReplaceAllItem[] = [];
-            for (const key of keys) {
-                const clip = await this.clipOssService.get(key);
-                if (!clip) {
-                    continue;
-                }
+            for (const clip of metas) {
                 const srtLines = clip.clip_content ?? [];
                 const srtContext = srtLines.filter(e => !e.isClip).map(e => e.contentEn).join('\n');
                 const srtClip = srtLines.filter(e => e.isClip).map(e => e.contentEn).join('\n');

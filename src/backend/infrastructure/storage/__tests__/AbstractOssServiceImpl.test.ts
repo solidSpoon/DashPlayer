@@ -143,6 +143,31 @@ describe('片段本地存储抽象类', () => {
         });
     });
 
+    describe('批量读取元数据', () => {
+        it('逐条返回健康的片段，不存在的 key 静默跳过', async () => {
+            await storage.updateMetadata('k1', { label: 'a' });
+            await storage.updateMetadata('k2', { label: 'b' });
+
+            const { clips, failedKeys } = await storage.getAll(['k1', 'not-exist', 'k2']);
+
+            expect(clips.map((clip) => clip.label)).toEqual(['a', 'b']);
+            expect(failedKeys).toEqual([]);
+        });
+
+        it('单条元数据损坏只影响当条，不会拖垮整批', async () => {
+            await storage.updateMetadata('k1', { label: 'a' });
+            const corruptDir = path.join(basePath, 'k2');
+            await gateway.ensureDirectory(corruptDir);
+            await gateway.writeTextFile(path.join(corruptDir, 'metadata.json'), '{oops');
+            await storage.updateMetadata('k3', { label: 'c' });
+
+            const { clips, failedKeys } = await storage.getAll(['k1', 'k2', 'k3']);
+
+            expect(clips.map((clip) => clip.label)).toEqual(['a', 'c']);
+            expect(failedKeys).toEqual(['k2']);
+        });
+    });
+
     describe('更新元数据', () => {
         it('校验失败时不落盘也不留临时文件', async () => {
             await expect(
