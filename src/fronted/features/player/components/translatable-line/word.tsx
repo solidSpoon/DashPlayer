@@ -28,6 +28,55 @@ import { playerApi } from '@/fronted/features/player/playerApi';
 import { videoLearningApi } from '@/fronted/features/video-learning/videoLearningApi';
 
 const logger = getRendererLogger('Word');
+
+/** OpenAI 词典词性到缩写的映射；未知词性保留原文。 */
+const PART_OF_SPEECH_ABBR: Record<string, string> = {
+    noun: 'n.',
+    verb: 'v.',
+    adjective: 'adj.',
+    adverb: 'adv.',
+    preposition: 'prep.',
+    conjunction: 'conj.',
+    pronoun: 'pron.',
+    interjection: 'int.',
+    numeral: 'num.',
+};
+
+const isOpenAIDictionaryResult = (data: unknown): data is OpenAIDictionaryResult => {
+    return typeof data === 'object' && data !== null && 'definitions' in data;
+};
+
+const isYoudaoResult = (data: unknown): data is YdRes => {
+    return typeof data === 'object' && data !== null && 'speakUrl' in data;
+};
+
+/**
+ * 从弹窗词典结果中提取简明中文释义。
+ *
+ * 收藏时把已查到的释义一并传给后端入库，避免后端再调一次词典 AI。
+ *
+ * @param data 弹窗当前的词典结果；可能还在加载中或已失败。
+ * @returns 可入库的释义文本；提取不到时返回空字符串，由后端自行生成。
+ */
+const buildFavoriteTranslate = (data: YdRes | OpenAIDictionaryResult | null | undefined): string => {
+    if (!data || typeof data !== 'object') {
+        return '';
+    }
+    if (isOpenAIDictionaryResult(data)) {
+        return data.definitions
+            .map((definition) => {
+                const abbr = PART_OF_SPEECH_ABBR[definition.partOfSpeech] ?? definition.partOfSpeech;
+                return `${abbr} ${definition.meaning}`.trim();
+            })
+            .filter((entry) => entry.length > 0)
+            .join('；');
+    }
+    if (isYoudaoResult(data)) {
+        return data.basic?.explains?.join('；') || data.translation?.join('；') || '';
+    }
+    return '';
+};
+
 export interface WordParam {
     word: string;
     original: string;
@@ -177,7 +226,7 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
      * 收藏当前单词到词汇工坊。
      *
      * 行为说明：
-     * - 传递点击原文，由后端还原为原始形态后入库；
+     * - 传递点击原文与弹窗已查到的释义，由后端还原为原始形态后入库；
      * - 成功后立即把入库单词加入生词高亮词表；
      * - 已存在的单词给出提示并保持已收藏态。
      */
@@ -188,7 +237,7 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
 
         setFavoriteState('saving');
         try {
-            const result = await videoLearningApi.favoriteWord(original);
+            const result = await videoLearningApi.favoriteWord(original, buildFavoriteTranslate(dictionaryResponse));
             if (result.success && result.data) {
                 vocabularyStore.addVocabularyWords([result.data.word]);
                 setFavoriteState('saved');
@@ -361,7 +410,7 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
                         isStreaming={openaiDictionaryEnabled && !!dictionaryEntry && !dictionaryEntry.isComplete}
                         onRefresh={handleRefresh}
                         onFavorite={handleFavorite}
-                        isFavorited={favoriteState === 'saved'}
+                        isFavorited={isVocabularyWord || favoriteState === 'saved'}
                         isFavoriting={favoriteState === 'saving'}
                     />
                 </Eb>

@@ -315,7 +315,7 @@ interface VocabularyDef {
         return: { success: boolean; message?: string; error?: string }
     };
     'vocabulary/favorite': {
-        params: { word: string },
+        params: { word: string; translate?: string },
         return: {
             success: boolean;
             data?: { word: string; translate: string; alreadyExists: boolean };

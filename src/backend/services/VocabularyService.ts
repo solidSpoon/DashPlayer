@@ -84,11 +84,18 @@ export default interface VocabularyService {
     exportTemplate(): Promise<ExportTemplateResult>;
     importWords(filePath: string): Promise<ImportWordsResult>;
     /**
-     * 收藏单词：还原为原始形态后入库，并由 AI 生成释义。
+     * 收藏单词：还原为原始形态后入库。
+     *
+     * 行为说明：
+     * - 输入的变体（复数、时态等）先还原为原始形态（lemma）再查重入库；
+     * - 释义优先使用调用方随交互携带的词典结果（如播放器弹窗已查到的释义），
+     *   未携带或为空时才调用词典 AI 生成；
+     * - 已存在的单词直接返回现有记录（幂等）。
      *
      * @param word 用户点击的单词原文（可能是复数、时态等变体）。
+     * @param translate 调用方已有的释义文本；为空时由 AI 生成。
      */
-    favoriteWord(word: string): Promise<FavoriteWordResult>;
+    favoriteWord(word: string, translate?: string): Promise<FavoriteWordResult>;
     /**
      * 编辑单词与释义；单词变化时同步迁移片段关联。
      */
@@ -373,13 +380,15 @@ export class VocabularyServiceImpl implements VocabularyService {
      *
      * 行为说明：
      * - 输入的变体（复数、时态等）先还原为原始形态（lemma）再查重入库；
-     * - 释义由 AI 生成，模型未配置或生成失败时整体失败且不写入单词；
-     * - 已存在的单词直接返回现有记录（幂等）。
+     * - 释义优先使用调用方携带的词典结果，未携带时才调用词典 AI 生成；
+     * - 已存在的单词直接返回现有记录（幂等）；
+     * - 并发收藏同一词的不同变体时，后落库的一方转为已存在返回，不再报错。
      *
      * @param word 用户点击的单词原文。
+     * @param translate 调用方已有的释义文本；为空时由 AI 生成。
      * @returns 收藏结果；成功时携带入库单词与释义。
      */
-    async favoriteWord(word: string): Promise<FavoriteWordResult> {
+    async favoriteWord(word: string, translate?: string): Promise<FavoriteWordResult> {
         try {
             const input = word?.trim() ?? '';
             if (!input) {
@@ -402,15 +411,32 @@ export class VocabularyServiceImpl implements VocabularyService {
                 };
             }
 
-            const translate = await this.generateDefinitionText(lemma);
-            await this.wordsRepository.insertOne({ word: lemma, translate });
+            const carriedTranslate = translate?.trim() ?? '';
+            const finalTranslate = carriedTranslate || await this.generateDefinitionText(lemma);
+            try {
+                await this.wordsRepository.insertOne({ word: lemma, translate: finalTranslate });
+            } catch (insertError) {
+                // 并发收藏同一词的不同变体时会撞唯一约束；重新查到记录即转为已存在返回。
+                const raced = await this.wordsRepository.findByWord(lemma);
+                if (raced) {
+                    return {
+                        success: true,
+                        data: {
+                            word: raced.word,
+                            translate: raced.translate || '',
+                            alreadyExists: true
+                        }
+                    };
+                }
+                throw insertError;
+            }
             this.invalidateVocabularyCaches();
 
             return {
                 success: true,
                 data: {
                     word: lemma,
-                    translate,
+                    translate: finalTranslate,
                     alreadyExists: false
                 }
             };
