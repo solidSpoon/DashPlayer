@@ -1,6 +1,5 @@
 import { Sentence } from '@/common/types/SentenceC';
 import CollUtil from '@/common/utils/CollUtil';
-import { ClipSrtLine } from '@/common/types/clipMeta';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const logger = getRendererLogger('SrtTender');
@@ -340,32 +339,4 @@ export class SrtTenderImpl extends AbstractSrtTender<Sentence> {
         return `${sentence.fileHash}-${sentence.index}`;
     }
 
-}
-
-export class ClipTenderImpl extends AbstractSrtTender<ClipSrtLine> {
-    private readonly srtKey: string;
-    constructor(sentences: ClipSrtLine[], key: string) {
-        super(sentences);
-        this.srtKey = key;
-    }
-
-    getOriginStart(sentence: ClipSrtLine): number {
-        return sentence.start;
-    }
-
-    getOriginEnd(sentence: ClipSrtLine): number {
-        return sentence.end;
-    }
-
-    getOriginAdjustedStart(): number | null {
-        return null;
-    }
-
-    getOriginAdjustedEnd(): number | null {
-        return null;
-    }
-
-    getOriginKey(sentence: ClipSrtLine): string {
-        return `${this.srtKey}-${sentence.index}`;
-    }
 }

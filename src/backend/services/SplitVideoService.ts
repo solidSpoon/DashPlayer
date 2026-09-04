@@ -8,7 +8,7 @@ import TYPES from '@/backend/ioc/types';
 import { ChapterParseResult } from '@/common/types/chapter-result';
 import MediaUtil from '@/common/utils/MediaUtil';
 import { parseSrt, parseAss, serializeSrt, timeTextToSeconds } from '@/common/utils/subtitle';
-import parseChapter from '@/common/utils/praser/chapter-parser';
+import parseChapter from '@/common/utils/parser/chapter-parser';
 import StrUtil from '@/common/utils/str-util';
 
 /** 视频章节切分请求。 */
