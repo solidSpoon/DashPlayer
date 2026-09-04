@@ -1,128 +1,117 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Tag } from '@/backend/infrastructure/db/tables/tag';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+
+import { tag } from '@/backend/infrastructure/db/tables/tag';
+import FavouriteClipsRepositoryImpl from '@/backend/infrastructure/db/repositories/FavouriteClipsRepositoryImpl';
+import { createMemoryDb, type MemoryDb } from '@/test/database';
 import { TagServiceImpl } from '../TagService';
 
-// Mock inversify
-vi.mock('inversify', () => ({
-    injectable: () => (target: unknown) => target,
-    inject: () => (target: unknown, _propertyKey: string) => target,
-}));
-
+/**
+ * 标签服务的内存数据库行为测试。
+ *
+ * 不 mock 仓储层，直接用真实 SQLite 内存库验证服务的可观测行为：
+ * 入库结果、查询结果和错误抛出，而不是断言内部方法调用。
+ */
 describe('标签服务', () => {
-  let tagService: TagServiceImpl;
-  let mockRepo: {
-    ensureTag: ReturnType<typeof vi.fn>;
-    deleteTagById: ReturnType<typeof vi.fn>;
-    updateTagName: ReturnType<typeof vi.fn>;
-    searchTagsByPrefix: ReturnType<typeof vi.fn>;
-  };
+    let memoryDb: MemoryDb;
+    let tagService: TagServiceImpl;
 
-  beforeEach(() => {
-    tagService = new TagServiceImpl();
-    mockRepo = {
-      ensureTag: vi.fn(),
-      deleteTagById: vi.fn(),
-      updateTagName: vi.fn(),
-      searchTagsByPrefix: vi.fn(),
-    };
-    (tagService as unknown as { favouriteClipsRepository: typeof mockRepo }).favouriteClipsRepository = mockRepo;
-    vi.clearAllMocks();
-  });
-
-  describe('添加标签', () => {
-    it('可以成功添加新标签', async () => {
-      const mockTag: Tag = {
-        id: 1,
-        name: 'test-tag',
-        created_at: '2023-01-01',
-        updated_at: '2023-01-01'
-      };
-      mockRepo.ensureTag.mockResolvedValue(mockTag);
-
-      const result = await tagService.addTag('test-tag');
-
-      expect(mockRepo.ensureTag).toHaveBeenCalledWith('test-tag');
-      expect(result).toEqual(mockTag);
+    beforeEach(() => {
+        memoryDb = createMemoryDb();
+        const repository = new FavouriteClipsRepositoryImpl(memoryDb.db);
+        tagService = new TagServiceImpl(repository);
     });
 
-    it('标签名称为空时会抛出错误', async () => {
-      await expect(tagService.addTag('')).rejects.toThrow('name is blank');
-      await expect(tagService.addTag('   ')).rejects.toThrow('name is blank');
-      await expect(tagService.addTag(null as unknown as string)).rejects.toThrow('name is blank');
-      await expect(tagService.addTag(undefined as unknown as string)).rejects.toThrow('name is blank');
+    afterEach(() => {
+        memoryDb.close();
     });
 
-    it('标签已存在时返回原标签', async () => {
-      const existingTag: Tag = {
-        id: 1,
-        name: 'existing-tag',
-        created_at: '2023-01-01',
-        updated_at: '2023-01-02'
-      };
-      mockRepo.ensureTag.mockResolvedValue(existingTag);
+    describe('添加标签', () => {
+        it('可以成功添加新标签', async () => {
+            const result = await tagService.addTag('test-tag');
 
-      const result = await tagService.addTag('existing-tag');
+            expect(result.name).toBe('test-tag');
+            expect(result.id).toBeGreaterThan(0);
+        });
 
-      expect(mockRepo.ensureTag).toHaveBeenCalledWith('existing-tag');
-      expect(result).toEqual(existingTag);
-    });
-  });
+        it('标签名称为空白时会抛出错误', async () => {
+            await expect(tagService.addTag('')).rejects.toThrow('name is blank');
+            await expect(tagService.addTag('   ')).rejects.toThrow('name is blank');
+        });
 
-  describe('删除标签', () => {
-    it('可以按编号删除标签', async () => {
-      mockRepo.deleteTagById.mockResolvedValue(undefined);
+        it('重复添加同名标签时返回原标签', async () => {
+            const first = await tagService.addTag('existing-tag');
+            const second = await tagService.addTag('existing-tag');
 
-      await tagService.deleteTag(1);
-
-      expect(mockRepo.deleteTagById).toHaveBeenCalledWith(1);
+            expect(second.id).toBe(first.id);
+            expect(second.name).toBe('existing-tag');
+        });
     });
 
-    it('删除不存在的标签时正常结束', async () => {
-      mockRepo.deleteTagById.mockResolvedValue(undefined);
+    describe('删除标签', () => {
+        it('可以删除已存在的标签', async () => {
+            const created = await tagService.addTag('to-delete');
 
-      await expect(tagService.deleteTag(999)).resolves.toBeUndefined();
-    });
-  });
+            await tagService.deleteTag(created.id);
 
-  describe('修改标签', () => {
-    it('可以修改标签名称', async () => {
-      mockRepo.updateTagName.mockResolvedValue(undefined);
+            const remaining = await tagService.search('to-delete');
+            expect(remaining).toEqual([]);
+        });
 
-      await tagService.updateTag(1, 'updated-name');
-
-      expect(mockRepo.updateTagName).toHaveBeenCalledWith(1, 'updated-name');
-    });
-  });
-
-  describe('搜索标签', () => {
-    it('可以按关键字搜索标签', async () => {
-      const mockTags: Tag[] = [
-        { id: 1, name: 'javascript', created_at: '2023-01-01', updated_at: '2023-01-01' },
-        { id: 2, name: 'java', created_at: '2023-01-01', updated_at: '2023-01-01' }
-      ];
-      mockRepo.searchTagsByPrefix.mockResolvedValue(mockTags);
-
-      const result = await tagService.search('java');
-
-      expect(mockRepo.searchTagsByPrefix).toHaveBeenCalledWith('java');
-      expect(result).toEqual(mockTags);
+        it('删除不存在的标签时正常结束不报错', async () => {
+            await expect(tagService.deleteTag(999)).resolves.toBeUndefined();
+        });
     });
 
-    it('没有匹配标签时返回空数组', async () => {
-      mockRepo.searchTagsByPrefix.mockResolvedValue([]);
+    describe('修改标签', () => {
+        it('可以修改标签名称', async () => {
+            const created = await tagService.addTag('old-name');
 
-      const result = await tagService.search('nonexistent');
+            await tagService.updateTag(created.id, 'new-name');
 
-      expect(result).toEqual([]);
+            const oldResult = await tagService.search('old-name');
+            const newResult = await tagService.search('new-name');
+            expect(oldResult).toEqual([]);
+            expect(newResult.map((item) => item.name)).toEqual(['new-name']);
+        });
     });
 
-    it('允许使用空关键字搜索', async () => {
-      mockRepo.searchTagsByPrefix.mockResolvedValue([]);
+    describe('搜索标签', () => {
+        it('可以按前缀搜索到匹配的标签', async () => {
+            await tagService.addTag('javascript');
+            await tagService.addTag('java');
+            await tagService.addTag('python');
 
-      const result = await tagService.search('');
+            const result = await tagService.search('java');
 
-      expect(mockRepo.searchTagsByPrefix).toHaveBeenCalledWith('');
-      expect(result).toEqual([]);
+            expect(result.map((item) => item.name).sort()).toEqual(['java', 'javascript']);
+        });
+
+        it('没有匹配标签时返回空数组', async () => {
+            await tagService.addTag('javascript');
+
+            const result = await tagService.search('python');
+
+            expect(result).toEqual([]);
+        });
+
+        it('空关键字可以搜到全部标签', async () => {
+            await tagService.addTag('javascript');
+            await tagService.addTag('python');
+
+            const result = await tagService.search('');
+
+            expect(result.map((item) => item.name).sort()).toEqual(['javascript', 'python']);
+        });
+
+        it('已有历史标签时，新增标签后能一并搜出', async () => {
+            // 直接插表预置一条历史标签，模拟用户已有数据。
+            memoryDb.db.insert(tag).values({ name: 'javascript' }).run();
+
+            await tagService.addTag('java');
+
+            const result = await tagService.search('java');
+
+            expect(result.map((item) => item.name).sort()).toEqual(['java', 'javascript']);
+        });
     });
-  });
 });
