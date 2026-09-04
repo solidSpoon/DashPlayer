@@ -82,6 +82,19 @@ export class MemoryFileSystemGateway implements FileSystemGateway {
     }
 
     /**
+     * 读取文件的原始字节内容；内存实现返回文本内容的 UTF-8 字节。
+     * @param filePath 文件绝对路径。
+     * @returns 文件的二进制内容。
+     */
+    public async readBinaryFile(filePath: string): Promise<Buffer> {
+        const content = this.files.get(this.normalize(filePath));
+        if (content === undefined) {
+            throw this.missingPathError(filePath);
+        }
+        return Buffer.from(content, 'utf-8');
+    }
+
+    /**
      * 计算目录内所有普通文件的总大小。
      * @param directoryPath 目录绝对路径。
      * @returns 文件总大小，单位为字节。
@@ -120,18 +133,39 @@ export class MemoryFileSystemGateway implements FileSystemGateway {
     }
 
     /**
-     * 移动或重命名文件。
-     * @param sourcePath 原文件绝对路径。
-     * @param targetPath 目标文件绝对路径。
+     * 移动或重命名文件或目录；目录移动时连同其下全部内容一起迁移。
+     * @param sourcePath 原文件或目录绝对路径。
+     * @param targetPath 目标绝对路径。
      */
     public async moveFile(sourcePath: string, targetPath: string): Promise<void> {
         const normalizedSource = this.normalize(sourcePath);
+        const normalizedTarget = this.normalize(targetPath);
+
+        if (this.directories.has(normalizedSource)) {
+            this.directories.delete(normalizedSource);
+            this.directories.add(normalizedTarget);
+            for (const filePath of [...this.files.keys()]) {
+                if (filePath.startsWith(normalizedSource + path.sep)) {
+                    const content = this.files.get(filePath)!;
+                    this.files.delete(filePath);
+                    this.files.set(normalizedTarget + filePath.slice(normalizedSource.length), content);
+                }
+            }
+            for (const childPath of [...this.directories]) {
+                if (childPath.startsWith(normalizedSource + path.sep)) {
+                    this.directories.delete(childPath);
+                    this.directories.add(normalizedTarget + childPath.slice(normalizedSource.length));
+                }
+            }
+            return;
+        }
+
         const content = this.files.get(normalizedSource);
         if (content === undefined) {
             throw this.missingPathError(sourcePath);
         }
         this.files.delete(normalizedSource);
-        this.files.set(this.normalize(targetPath), content);
+        this.files.set(normalizedTarget, content);
     }
 
     /**

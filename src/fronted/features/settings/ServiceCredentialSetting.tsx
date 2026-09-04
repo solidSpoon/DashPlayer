@@ -32,9 +32,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
 import { SettingCard, SettingsLoadingSkeleton } from '@/fronted/features/settings/components/form';
 import { OpenAiModelUsageFeature, ServiceCredentialSettingDetailVO, ServiceCredentialSettingSaveVO } from '@/common/types/vo/service-credentials-setting-vo';
-import { ParakeetModelStatusVO } from '@/common/types/vo/parakeet-model-vo';
-import { SherpaTtsModelStatusVO } from '@/common/types/vo/sherpa-tts-model-vo';
-import type { ParakeetModelPhase } from '@/common/contracts/parakeet-model-phase';
+import type { ModelInstallationStatusVO } from '@/common/types/vo/model-installation-vo';
+import type { ModelDownloadPhase } from '@/common/contracts/model-download-phase';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import toast from 'react-hot-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
@@ -82,16 +81,16 @@ const ServiceCredentialSetting = () => {
     const [testingTencent, setTestingTencent] = React.useState(false);
     const [testingYoudao, setTestingYoudao] = React.useState(false);
     const [testResults, setTestResults] = React.useState<Record<string, { success: boolean; message: string } | null>>({});
-    const [parakeetModelStatus, setParakeetModelStatus] = React.useState<ParakeetModelStatusVO | null>(null);
+    const [parakeetModelStatus, setParakeetModelStatus] = React.useState<ModelInstallationStatusVO | null>(null);
     const [downloadingParakeetModel, setDownloadingParakeetModel] = React.useState(false);
     const [deletingParakeetModel, setDeletingParakeetModel] = React.useState(false);
     const [parakeetDownloadProgress, setParakeetDownloadProgress] = React.useState(0);
-    const [parakeetDownloadPhase, setParakeetDownloadPhase] = React.useState<ParakeetModelPhase>('downloading');
-    const [sherpaTtsModelStatus, setSherpaTtsModelStatus] = React.useState<SherpaTtsModelStatusVO | null>(null);
+    const [parakeetDownloadPhase, setParakeetDownloadPhase] = React.useState<ModelDownloadPhase>('downloading');
+    const [sherpaTtsModelStatus, setSherpaTtsModelStatus] = React.useState<ModelInstallationStatusVO | null>(null);
     const [downloadingSherpaTtsModel, setDownloadingSherpaTtsModel] = React.useState(false);
     const [deletingSherpaTtsModel, setDeletingSherpaTtsModel] = React.useState(false);
     const [sherpaTtsDownloadProgress, setSherpaTtsDownloadProgress] = React.useState(0);
-    const [sherpaTtsDownloadPhase, setSherpaTtsDownloadPhase] = React.useState<ParakeetModelPhase>('downloading');
+    const [sherpaTtsDownloadPhase, setSherpaTtsDownloadPhase] = React.useState<ModelDownloadPhase>('downloading');
 
     /** 是否已由用户手动触发下载；用于丢弃过期的状态查询响应。 */
     const downloadingRef = React.useRef(false);
@@ -190,7 +189,7 @@ const ServiceCredentialSetting = () => {
 
     React.useEffect(() => {
         const handler = (evt: Event) => {
-            const detail = (evt as CustomEvent).detail as { percent: number; phase?: ParakeetModelPhase } | undefined;
+            const detail = (evt as CustomEvent).detail as { percent: number; phase?: ModelDownloadPhase } | undefined;
             if (!detail) return;
             // 终态事件：下载任务已在主进程结束（成功/失败/取消），直接复位 UI 并重新查询状态。
             if (detail.phase === 'idle') {
@@ -220,7 +219,7 @@ const ServiceCredentialSetting = () => {
 
     React.useEffect(() => {
         const handler = (evt: Event) => {
-            const detail = (evt as CustomEvent).detail as { percent: number; phase?: ParakeetModelPhase } | undefined;
+            const detail = (evt as CustomEvent).detail as { percent: number; phase?: ModelDownloadPhase } | undefined;
             if (!detail) return;
             if (detail.phase === 'idle') {
                 setDownloadingSherpaTtsModel(false);
@@ -409,7 +408,7 @@ const ServiceCredentialSetting = () => {
 
     const formatProgressPercent = (value: number) => `${Math.min(100, Math.max(0, Math.round(value)))}%`;
 
-    const getPhaseLabel = (phase: ParakeetModelPhase) => {
+    const getPhaseLabel = (phase: ModelDownloadPhase) => {
         if (phase === 'extracting') {
             return t('serviceCredentials.parakeet.extracting');
         }
