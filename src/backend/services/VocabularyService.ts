@@ -198,7 +198,8 @@ export class VocabularyServiceImpl implements VocabularyService {
      *
      * 行为说明：
      * - 仅解析第一个工作表。
-     * - 以单词为键去重，后出现的行覆盖前面的内容。
+     * - 单词统一小写归一，并以小写形式为键去重，后出现的行覆盖前面的内容，
+     *   避免同一单词的大小写变体分写成两条并撞唯一约束。
      * - 空行会被忽略。
      *
      * @param worksheet Excel 工作表。
@@ -217,7 +218,7 @@ export class VocabularyServiceImpl implements VocabularyService {
                 continue;
             }
 
-            const wordText = english.trim();
+            const wordText = english.trim().toLowerCase();
             importedWords.set(wordText, {
                 word: wordText,
                 translate: typeof translate === 'string' ? translate.trim() : null,
