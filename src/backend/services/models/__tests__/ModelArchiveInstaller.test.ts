@@ -174,6 +174,30 @@ describe('模型归档安装器', () => {
             expect(await installer.findModelDirectoryForTest(extractPath)).toBe(extractPath);
         });
 
+        it('必需条目是目录时，目录存在也算就绪', async () => {
+            // 回归场景：Sherpa 的 espeak-ng-data 是目录而非文件，
+            // 旧实现用严格只认普通文件的 fileExists 检查，导致已安装模型被误报损坏
+            const directoryOptions: ModelArchiveInstallerOptions = {
+                ...INSTALLER_OPTIONS,
+                requiredFiles: ['model.onnx', 'espeak-ng-data'],
+            };
+            const directoryInstaller = new ExposedModelArchiveInstaller(
+                directoryOptions,
+                rendererGateway,
+                new FixedStorageDirectoryProvider(),
+                gateway,
+            );
+            const modelPath = path.join('/', 'models', 'test-model');
+            await gateway.ensureDirectory(modelPath);
+            await gateway.writeTextFile(path.join(modelPath, 'model.onnx'), 'content');
+            await gateway.ensureDirectory(path.join(modelPath, 'espeak-ng-data'));
+
+            const status = await directoryInstaller.getStatus();
+
+            expect(status.ready).toBe(true);
+            expect(status.missingFiles).toEqual([]);
+        });
+
         it('找不到完整模型目录时报错', async () => {
             const extractPath = path.join('/', 'work', 'extract');
             await gateway.ensureDirectory(extractPath);

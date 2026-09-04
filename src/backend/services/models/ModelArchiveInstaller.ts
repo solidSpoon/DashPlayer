@@ -67,9 +67,9 @@ export class ModelArchiveInstaller {
         const modelPath = await this.getModelPath();
         const archivePath = path.join(path.dirname(modelPath), this.options.workDirectoryName, this.options.archiveFileName);
         const missingFiles: string[] = [];
-        for (const file of this.options.requiredFiles) {
-            if (!(await this.fileSystemGateway.fileExists(path.join(modelPath, file)))) {
-                missingFiles.push(file);
+        for (const entryName of this.options.requiredFiles) {
+            if (!(await this.hasRequiredEntry(modelPath, entryName))) {
+                missingFiles.push(entryName);
             }
         }
         return {
@@ -165,9 +165,9 @@ export class ModelArchiveInstaller {
             await this.extractArchive(archivePath, extractPath);
             const sourceDir = await this.findModelDirectory(extractPath);
             const missingFiles: string[] = [];
-            for (const file of this.options.requiredFiles) {
-                if (!(await this.fileSystemGateway.fileExists(path.join(sourceDir, file)))) {
-                    missingFiles.push(file);
+            for (const entryName of this.options.requiredFiles) {
+                if (!(await this.hasRequiredEntry(sourceDir, entryName))) {
+                    missingFiles.push(entryName);
                 }
             }
             if (missingFiles.length > 0) {
@@ -325,16 +325,31 @@ export class ModelArchiveInstaller {
         const subDirectoryNames = await this.fileSystemGateway.listDirectoryNames(extractPath);
         for (const directoryName of subDirectoryNames) {
             const candidate = path.join(extractPath, directoryName);
-            if (await this.hasAllRequiredFiles(candidate)) return candidate;
+            if (await this.hasAllRequiredEntries(candidate)) return candidate;
         }
-        if (await this.hasAllRequiredFiles(extractPath)) return extractPath;
+        if (await this.hasAllRequiredEntries(extractPath)) return extractPath;
         throw new Error(`${this.options.modelDisplayName} 模型归档中未找到完整模型目录`);
     }
 
-    /** @param directoryPath 待检查目录 @returns 必需文件是否齐全。 */
-    private async hasAllRequiredFiles(directoryPath: string): Promise<boolean> {
-        for (const file of this.options.requiredFiles) {
-            if (!(await this.fileSystemGateway.fileExists(path.join(directoryPath, file)))) {
+    /**
+     * 检查必需条目是否存在于指定目录。
+     *
+     * 必需清单中既有文件也有目录（如 Sherpa 的 espeak-ng-data），
+     * 因此这里检查的是“路径存在”（文件或目录均可），不能用严格只认
+     * 普通文件的 `fileExists`。
+     *
+     * @param directoryPath 待检查目录。
+     * @param entryName 必需条目名。
+     * @returns 条目存在时返回 `true`。
+     */
+    private async hasRequiredEntry(directoryPath: string, entryName: string): Promise<boolean> {
+        return !(await this.fileSystemGateway.pathIsMissing(path.join(directoryPath, entryName)));
+    }
+
+    /** @param directoryPath 待检查目录 @returns 必需条目是否齐全。 */
+    private async hasAllRequiredEntries(directoryPath: string): Promise<boolean> {
+        for (const entryName of this.options.requiredFiles) {
+            if (!(await this.hasRequiredEntry(directoryPath, entryName))) {
                 return false;
             }
         }
