@@ -10,6 +10,7 @@ import FfmpegGateway, {
     SplitVideoRangeArgs,
     TrimAudioArgs,
     TrimVideoArgs,
+    VideoSegment,
 } from '@/backend/services/gateways/media/FfmpegGateway';
 import { VideoInfo } from '@/common/types/video-info';
 import fs from 'fs';
@@ -125,10 +126,33 @@ export default class FfmpegGatewayImpl implements FfmpegGateway {
     }
 
     /**
-     * 按时间点切段视频。
+     * 按时间点切段视频；落刀点受关键帧影响，切分后逐段实测时长并累加出真实边界。
      */
-    public async splitVideoByTimes(args: SplitVideoByTimesArgs, options: FfmpegRunOptions = {}): Promise<void> {
+    public async splitVideoByTimes(args: SplitVideoByTimesArgs, options: FfmpegRunOptions = {}): Promise<VideoSegment[]> {
         await this.runCommand(args, (a) => this.commandBuilder.buildSplitVideoByTimes(a), options);
+        return await this.collectSegments(args.outputPattern);
+    }
+
+    /**
+     * 枚举切分产物文件并实测每段时长，累加得到各段在原视频中的实际起止时间。
+     * @param outputPattern 切分输出命名模板，如 /tmp/chunk_%03d.mp4。
+     */
+    private async collectSegments(outputPattern: string): Promise<VideoSegment[]> {
+        const directory = path.dirname(outputPattern);
+        const prefix = path.basename(outputPattern).split('%')[0];
+        const files = (await fs.promises.readdir(directory))
+            .filter(file => file.startsWith(prefix))
+            .sort()
+            .map(file => path.join(directory, file));
+
+        const segments: VideoSegment[] = [];
+        let start = 0;
+        for (const file of files) {
+            const duration = await this.duration(file);
+            segments.push({ file, start, end: start + duration });
+            start += duration;
+        }
+        return segments;
     }
 
     /**

@@ -1,5 +1,6 @@
 import { inject, injectable } from 'inversify';
 import { WithSemaphore } from '@/backend/utils/concurrency/decorators';
+import { randomUUID } from 'crypto';
 import path from 'path';
 import fs from 'fs';
 import TYPES from '@/backend/ioc/types';
@@ -7,7 +8,7 @@ import DpTaskService from '@/backend/services/DpTaskService';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { VideoInfo } from '@/common/types/video-info';
 import { CancelByUserError } from '@/backend/utils/errors/errors';
-import FfmpegGateway, { FfmpegExecutionError } from '@/backend/services/gateways/media/FfmpegGateway';
+import FfmpegGateway, { FfmpegExecutionError, VideoSegment } from '@/backend/services/gateways/media/FfmpegGateway';
 import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 
 export default interface FfmpegService {
@@ -23,17 +24,18 @@ export default interface FfmpegService {
         outputFile: string
     }): Promise<void>;
 
+    /**
+     * 按建议时间点切段视频；落刀点受关键帧影响，返回每段文件与切分后实测的真实起止时间。
+     */
     splitVideoByTimes({
-                          inputFile,
-                          times,
-                          outputFolder,
-                          outputFilePrefix
-                      }: {
+        inputFile,
+        times,
+        outputFolder
+    }: {
         inputFile: string,
         times: number[],
-        outputFolder: string,
-        outputFilePrefix: string
-    }): Promise<string[]>;
+        outputFolder: string
+    }): Promise<VideoSegment[]>;
 
     duration(filePath: string): Promise<number>;
 
@@ -195,33 +197,30 @@ export class FfmpegServiceImpl implements FfmpegService {
     }
 
     /**
-     * 按时间点分割视频。
+     * 按建议时间点切段视频；临时分段名用随机前缀避免与历史残留混淆，返回实测起止边界。
      */
     @WithSemaphore('ffmpeg')
     public async splitVideoByTimes({
                                        inputFile,
                                        times,
                                        outputFolder,
-                                       outputFilePrefix,
                                    }: {
         inputFile: string,
         times: number[],
         outputFolder: string,
-        outputFilePrefix: string,
-    }): Promise<string[]> {
+    }): Promise<VideoSegment[]> {
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputFile);
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(outputFolder);
-        const outputPattern = path.join(outputFolder, `${outputFilePrefix}_%03d${path.extname(inputFile)}`);
+        // 每次使用独立前缀，避免失败任务留下的旧分段混入本次结果。
+        const outputPattern = path.join(outputFolder, `split-${randomUUID()}_%03d${path.extname(inputFile)}`);
 
-        await this.ffmpegGateway.splitVideoByTimes({
+        return await this.ffmpegGateway.splitVideoByTimes({
             inputFile,
             times,
             outputPattern,
         }, {
             job: `split:${outputFolder}`,
         });
-
-        return await this.getOutputFiles(outputFolder, outputFilePrefix);
     }
 
     /**
