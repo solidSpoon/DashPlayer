@@ -51,6 +51,13 @@ export default interface FileSystemGateway {
     getDirectorySize(directoryPath: string): Promise<number>;
 
     /**
+     * 复制普通文件。
+     * @param sourcePath 源文件绝对路径。
+     * @param targetPath 目标文件绝对路径；目标路径的目录需已存在。
+     */
+    copyFile(sourcePath: string, targetPath: string): Promise<void>;
+
+    /**
      * 写入 UTF-8 文本文件。
      * @param filePath 文件绝对路径。
      * @param content 待写入的文本内容。

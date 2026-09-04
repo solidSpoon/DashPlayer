@@ -103,6 +103,15 @@ export default class FileSystemGatewayImpl implements FileSystemGateway {
     }
 
     /**
+     * 复制普通文件。
+     * @param sourcePath 源文件绝对路径。
+     * @param targetPath 目标文件绝对路径。
+     */
+    public async copyFile(sourcePath: string, targetPath: string): Promise<void> {
+        await fs.copyFile(sourcePath, targetPath);
+    }
+
+    /**
      * 写入 UTF-8 文本文件。
      * @param filePath 文件绝对路径。
      * @param content 待写入的文本内容。
