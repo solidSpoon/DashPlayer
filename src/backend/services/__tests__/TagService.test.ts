@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
+import { tag } from '@/backend/infrastructure/db/tables/tag';
 import FavouriteClipsRepositoryImpl from '@/backend/infrastructure/db/repositories/FavouriteClipsRepositoryImpl';
 import { createMemoryDb, type MemoryDb } from '@/test/database';
 import { TagServiceImpl } from '../TagService';
@@ -100,6 +101,17 @@ describe('标签服务', () => {
             const result = await tagService.search('');
 
             expect(result.map((item) => item.name).sort()).toEqual(['javascript', 'python']);
+        });
+
+        it('已有历史标签时，新增标签后能一并搜出', async () => {
+            // 直接插表预置一条历史标签，模拟用户已有数据。
+            memoryDb.db.insert(tag).values({ name: 'javascript' }).run();
+
+            await tagService.addTag('java');
+
+            const result = await tagService.search('java');
+
+            expect(result.map((item) => item.name).sort()).toEqual(['java', 'javascript']);
         });
     });
 });
