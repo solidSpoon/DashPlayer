@@ -1,19 +1,11 @@
 ---
-name: Question
-about: Ask a question.❓
-labels: 'question'
+name: ❓ Question
+about: 使用上遇到疑问？在这里提问
+labels: ['question']
 ---
 
-## Summary
+## 问题
 
-<!-- What do you need help with? -->
+<!-- 想了解什么？ -->
 
-<!---
-❗️❗️ Also, please consider donating (https://opencollective.com/electron-react-boilerplate-594) ❗️❗️
-
-Donations will ensure the following:
-
-🔨 Long term maintenance of the project
-🛣 Progress on the roadmap
-🐛 Quick responses to bug reports and help requests
- -->
+<!-- 使用问题也可以先查阅文档：https://solidspoon.xyz/DashPlayer/ -->

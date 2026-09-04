@@ -1,6 +1,4 @@
-requiredHeaders:
-  - Prerequisites
-  - Expected Behavior
-  - Current Behavior
-  - Possible Solution
-  - Your Environment
+# Config support for issue templates
+
+blank_issues_enabled: false
+contact_links: []
