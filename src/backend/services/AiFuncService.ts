@@ -7,7 +7,6 @@ import UrlUtil from '@/common/utils/UrlUtil';
 import { inject, injectable } from 'inversify';
 import ChatService from '@/backend/services/ChatService';
 import { AiFuncFormatSplitPrompt } from '@/common/types/aiRes/AiFuncFormatSplit';
-import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import ParakeetModelService from '@/backend/services/ParakeetModelService';
 import {
     TranscriptTask,
@@ -51,8 +50,6 @@ export class AiFuncServiceImpl implements AiFuncService {
     @inject(TYPES.ChatService)
     private chatService!: ChatService;
 
-    @inject(TYPES.StorageDirectoryProvider)
-    private storageDirectoryProvider!: StorageDirectoryProvider;
 
     @inject(TYPES.ParakeetModelService)
     private parakeetModelService!: ParakeetModelService;
@@ -113,7 +110,6 @@ export class AiFuncServiceImpl implements AiFuncService {
     public async transcript(params: { filePath: string; currentPosition?: number }): Promise<'started' | 'model_missing'> {
         const { filePath, currentPosition } = params;
         this.logger.info('Transcription task started', { filePath });
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(filePath);
         await this.localTranscriptionService.enqueue(filePath);
 
         const modelStatus = await this.parakeetModelService.getStatus();

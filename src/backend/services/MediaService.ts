@@ -143,7 +143,6 @@ export class MediaServiceImpl implements MediaService {
      * @param sourceFilePath 媒体文件绝对路径。
      */
     private async assertSourceFileExists(sourceFilePath: string): Promise<void> {
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(sourceFilePath);
         if (!(await this.fileSystemGateway.fileExists(sourceFilePath))) {
             throw new Error(`媒体文件不存在：${sourceFilePath}`);
         }

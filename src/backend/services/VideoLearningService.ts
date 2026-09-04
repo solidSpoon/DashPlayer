@@ -367,6 +367,27 @@ export class VideoLearningServiceImpl implements VideoLearningService {
     }
 
     /**
+     * 向用户汇总提示无法读取的单词视频片段数量。
+     *
+     * 行为说明：
+     * - 单条损坏不阻断列表展示，健康的片段照常返回；
+     * - 提示去重，避免每次刷新列表都重复弹窗。
+     *
+     * @param failedKeys 元数据损坏、无法读取的片段 key。
+     */
+    private notifyCorruptClips(failedKeys: string[]): void {
+        if (failedKeys.length === 0) {
+            return;
+        }
+        this.rendererGateway.fireAndForget('ui/show-toast', {
+            message: `有 ${failedKeys.length} 条单词视频片段无法读取，已跳过；详情见日志`,
+            variant: 'warning',
+            duration: 5000,
+            dedupeKey: 'video-learning-clip-corrupt',
+        });
+    }
+
+    /**
      * 裁切视频片段并写入对象存储和本地索引。
      *
      * @param task 待新增的片段任务。
@@ -723,10 +744,11 @@ export class VideoLearningServiceImpl implements VideoLearningService {
             });
 
             if (lines.length > 0) {
-                const ossMetas = await Promise.all(
-                    lines.map((line) => this.videoLearningOssService.get(line.key))
+                const { clips: ossMetas, failedKeys } = await this.videoLearningOssService.getAll(
+                    lines.map((line) => line.key)
                 );
-                const completedClips = ossMetas.filter((m): m is OssBaseMeta & ClipMeta => m !== null);
+                this.notifyCorruptClips(failedKeys);
+                const completedClips = ossMetas;
                 const completedWithSourceType = completedClips.map(clip => ({
                     ...clip,
                     sourceType: 'oss' as const
@@ -810,13 +832,11 @@ export class VideoLearningServiceImpl implements VideoLearningService {
     public async syncFromOss() {
         await concurrency.withMutex('video-learning-sync', async () => {
             const keys = await this.videoLearningOssService.list();
+            const { clips: metas, failedKeys } = await this.videoLearningOssService.getAll(keys);
+            this.notifyCorruptClips(failedKeys);
             const clips: InsertVideoLearningClip[] = [];
             const wordRelations: InsertVideoLearningClipWord[] = [];
-            for (const key of keys) {
-                const clip = await this.videoLearningOssService.get(key);
-                if (!clip) {
-                    continue;
-                }
+            for (const clip of metas) {
                 const srtLines = clip.clip_content ?? [];
                 const srtContext = srtLines.filter(e => !e.isClip).map(e => e.contentEn).join('\n');
                 const srtClip = srtLines.filter(e => e.isClip).map(e => e.contentEn).join('\n');

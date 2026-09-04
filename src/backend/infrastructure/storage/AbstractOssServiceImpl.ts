@@ -1,6 +1,6 @@
 import path from 'path';
 import { injectable } from 'inversify';
-import { OssService } from '@/backend/services/OssService';
+import { OssCollection, OssService } from '@/backend/services/OssService';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { OssBaseMeta } from '@/common/types/clipMeta';
 import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
@@ -113,6 +113,34 @@ export default abstract class AbstractOssServiceImpl<T> implements OssService<T>
             this.logger.error('failed to retrieve file', { error });
             throw error;
         }
+    }
+
+    /**
+     * 批量读取片段元数据，逐条隔离读取失败。
+     *
+     * 行为说明：
+     * - 片段不存在的 key 静默跳过，与 `get` 返回 `null` 语义一致；
+     * - 元数据损坏等读取失败只影响当条，记错误日志并计入 `failedKeys`，
+     *   不抛出，避免单条坏数据拖垮整个列表或同步流程。
+     *
+     * @param keys 片段 key 列表。
+     * @returns 读取成功的元数据与失败的 key。
+     */
+    public async getAll(keys: string[]): Promise<OssCollection<T>> {
+        const clips: (OssBaseMeta & T)[] = [];
+        const failedKeys: string[] = [];
+        for (const key of keys) {
+            try {
+                const clip = await this.get(key);
+                if (clip !== null) {
+                    clips.push(clip);
+                }
+            } catch (error) {
+                this.logger.error('片段元数据读取失败，已跳过', { key, error });
+                failedKeys.push(key);
+            }
+        }
+        return { clips, failedKeys };
     }
 
     /**

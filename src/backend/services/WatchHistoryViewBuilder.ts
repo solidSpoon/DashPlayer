@@ -3,7 +3,6 @@ import path from 'path';
 import MediaService from '@/backend/services/MediaService';
 import { WatchHistoryRecord } from '@/backend/services/repositories/WatchHistoryRepository';
 import WatchHistoryExtRepository from '@/backend/services/repositories/WatchHistoryExtRepository';
-import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import MatchSrt from '@/backend/utils/MatchSrt';
 import MediaUtil from '@/common/utils/MediaUtil';
 import StrUtil from '@/common/utils/str-util';
@@ -22,13 +21,11 @@ export default class WatchHistoryViewBuilder {
      *
      * @param mediaService 媒体信息服务。
      * @param watchHistoryExtRepository 观看历史扩展信息仓储。
-     * @param storageDirectoryProvider 存储目录与访问权限提供器。
      * @param fileSystemGateway 文件系统访问入口。
      */
     public constructor(
         private readonly mediaService: MediaService,
         private readonly watchHistoryExtRepository: WatchHistoryExtRepository,
-        private readonly storageDirectoryProvider: StorageDirectoryProvider,
         private readonly fileSystemGateway: FileSystemGateway,
     ) {
     }
@@ -61,7 +58,6 @@ export default class WatchHistoryViewBuilder {
      */
     public async buildPlayerDetail(history: WatchHistoryRecord): Promise<WatchHistoryVO | null> {
         const filePath = path.join(history.base_path, history.file_name);
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(filePath);
         if (!await this.fileSystemGateway.fileExists(filePath)) {
             return null;
         }
@@ -119,7 +115,6 @@ export default class WatchHistoryViewBuilder {
     private async resolveSubtitle(history: WatchHistoryRecord, videoPath: string): Promise<string> {
         const configuredSubtitle = history.srt_file;
         if (StrUtil.isNotBlank(configuredSubtitle)) {
-            await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(configuredSubtitle);
             const exists = await this.fileSystemGateway.fileExists(configuredSubtitle);
             if (exists) {
                 return configuredSubtitle;
@@ -141,7 +136,6 @@ export default class WatchHistoryViewBuilder {
      */
     public async resolveSubtitleForPlayback(history: WatchHistoryRecord): Promise<string | null> {
         const videoPath = path.join(history.base_path, history.file_name);
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(videoPath);
         if (!await this.fileSystemGateway.fileExists(videoPath)) {
             return null;
         }
@@ -155,7 +149,6 @@ export default class WatchHistoryViewBuilder {
      * @returns 字幕文件绝对路径列表。
      */
     private async listSubtitleFiles(folder: string): Promise<string[]> {
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(folder);
         const fileNames = await this.fileSystemGateway.listFileNames(folder);
         const subtitlePaths = fileNames
             .filter((fileName) => MediaUtil.isSubtitle(fileName))

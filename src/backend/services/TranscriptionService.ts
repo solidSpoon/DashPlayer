@@ -380,7 +380,6 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         let tempFolder: string | null = null;
 
         try {
-            await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(filePath);
             // 开始
             await this.sendProgress(0, filePath, TranscriptTaskState.INIT, 0);
             if (signal.aborted) throw new CancelByUserError('Transcription cancelled by user');
@@ -521,7 +520,6 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         if (lines.length === 0) throw new Error('Parakeet v3 未识别出可用字幕');
         const finalSrt = serializeSrt(lines, { reindex: true });
         const srtFileName = filePath.replace(/\.[^/.]+$/, '') + '.srt';
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(srtFileName);
         await this.fileSystemGateway.writeTextFile(srtFileName, finalSrt);
 
         await this.sendProgress(0, filePath, TranscriptTaskState.DONE, 100, { srtPath: srtFileName });

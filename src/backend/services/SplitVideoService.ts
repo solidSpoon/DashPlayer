@@ -1,7 +1,6 @@
 import path from 'path';
 import { inject, injectable } from 'inversify';
 import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
-import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import FfmpegService from '@/backend/services/FfmpegService';
 import { VideoSegment } from '@/backend/services/gateways/media/FfmpegGateway';
 import TYPES from '@/backend/ioc/types';
@@ -48,8 +47,6 @@ export class SplitVideoServiceImpl implements SplitVideoService {
     public constructor(
         @inject(TYPES.FfmpegService)
         private readonly ffmpegService: FfmpegService,
-        @inject(TYPES.StorageDirectoryProvider)
-        private readonly storageDirectoryProvider: StorageDirectoryProvider,
         @inject(TYPES.FileSystemGateway)
         private readonly fileSystemGateway: FileSystemGateway,
     ) {}
@@ -92,7 +89,6 @@ export class SplitVideoServiceImpl implements SplitVideoService {
      * @param request 待校验的切分请求。
      */
     private async validateRequest(request: SplitVideoRequest): Promise<void> {
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(request.videoPath);
         if (!(await this.fileSystemGateway.fileExists(request.videoPath))) {
             throw new Error(`视频文件不存在：${request.videoPath}`);
         }
@@ -131,7 +127,6 @@ export class SplitVideoServiceImpl implements SplitVideoService {
         if (StrUtil.isBlank(request.srtPath)) {
             throw new Error('字幕路径不能为空字符串；不切分字幕时请传入 null');
         }
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(request.srtPath);
         if (!(await this.fileSystemGateway.fileExists(request.srtPath))) {
             throw new Error(`字幕文件不存在：${request.srtPath}`);
         }
@@ -149,7 +144,6 @@ export class SplitVideoServiceImpl implements SplitVideoService {
         chapters: ChapterParseResult[],
         folderName: string,
     ): Promise<VideoSegment[]> {
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(folderName);
         await this.fileSystemGateway.ensureDirectory(folderName);
 
         const chapterStarts = chapters.map((chapter) => timeTextToSeconds(chapter.timestampStart));

@@ -139,7 +139,6 @@ export class WatchHistoryServiceImpl implements WatchHistoryService {
         this.watchHistoryViewBuilder = new WatchHistoryViewBuilder(
             mediaService,
             watchHistoryExtRepository,
-            storageDirectoryProvider,
             fileSystemGateway,
         );
     }
@@ -166,7 +165,6 @@ export class WatchHistoryServiceImpl implements WatchHistoryService {
                 return [];
             }
             if (refreshFolder) {
-                await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(folderPath);
                 if (!await this.fileSystemGateway.directoryExists(folderPath)) {
                     return [];
                 }
@@ -333,7 +331,6 @@ export class WatchHistoryServiceImpl implements WatchHistoryService {
      * @param srtPath 字幕路径；传入 `same` 时使用同名 SRT。
      */
     public async attachSrt(videoPath: string, srtPath: string | 'same'): Promise<void> {
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(videoPath);
         if (srtPath === 'same') {
             srtPath = path.join(path.dirname(videoPath), path.basename(videoPath, path.extname(videoPath)) + '.srt');
         }
@@ -493,7 +490,6 @@ export class WatchHistoryServiceImpl implements WatchHistoryService {
      */
     private async attachSrtInner(videoPath: string, srtPath: string): Promise<void> {
         videoPath = await this.watchHistoryLibrary.preferHtml5VideoPath(videoPath);
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(videoPath);
         if (!await this.fileSystemGateway.fileExists(videoPath)) {
             return;
         }
@@ -505,8 +501,6 @@ export class WatchHistoryServiceImpl implements WatchHistoryService {
         if (path.dirname(srtPath) === '.') {
             srtPath = path.join(folder, srtPath);
         }
-
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(srtPath);
         if (!await this.fileSystemGateway.fileExists(srtPath)) {
             return;
         }
@@ -530,7 +524,6 @@ export class WatchHistoryServiceImpl implements WatchHistoryService {
      */
     public async suggestSrt(file: string): Promise<string[]> {
         file = await this.watchHistoryLibrary.preferHtml5VideoPath(file);
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(file);
         const folder = path.dirname(file);
         const files = await this.fileSystemGateway.listFileNames(folder);
         const srtInFolder = files.filter(file => MediaUtil.isSubtitle(file))
