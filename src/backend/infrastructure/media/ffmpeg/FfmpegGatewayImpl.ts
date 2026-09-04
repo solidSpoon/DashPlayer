@@ -34,8 +34,8 @@ interface FfprobeStream {
  * FFprobe 格式元数据。
  */
 interface FfprobeFormat {
-    /** 媒体总时长，单位秒。 */
-    duration?: number;
+    /** 媒体总时长，单位秒；ffprobe JSON 中为字符串数字。 */
+    duration?: string;
     /** 总码率，字符串数字格式。 */
     bit_rate?: string;
 }
@@ -91,11 +91,11 @@ export default class FfmpegGatewayImpl implements FfmpegGateway {
      */
     public async duration(filePath: string): Promise<number> {
         this.assertInputFileExists(filePath);
-        const duration = (await this.probe(filePath)).format.duration;
-        if (typeof duration !== 'number' || !Number.isFinite(duration) || duration <= 0) {
+        const rawDuration = Number((await this.probe(filePath)).format.duration);
+        if (!Number.isFinite(rawDuration) || rawDuration <= 0) {
             throw new Error(`无法探测媒体时长：${filePath}`);
         }
-        return duration;
+        return rawDuration;
     }
 
     /**
@@ -107,7 +107,7 @@ export default class FfmpegGatewayImpl implements FfmpegGateway {
 
         return {
             filename: path.basename(filePath),
-            duration: probeData.format.duration || 0,
+            duration: Number(probeData.format.duration) || 0,
             size: stats.size,
             modifiedTime: stats.mtimeMs,
             createdTime: stats.ctimeMs,
