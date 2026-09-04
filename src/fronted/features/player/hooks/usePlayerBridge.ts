@@ -151,7 +151,13 @@ export function usePlayerBridge(navigate: (path: string) => void) {
             const bucket = Math.floor(position / demandGranularity);
             if (bucket === lastReportedBucket) return;
             lastReportedBucket = bucket;
-            void transcriptApi.updateDemand(videoPath!, position).catch(() => undefined);
+            void transcriptApi.updateDemand(videoPath!, position).catch((error) => {
+                logger.warn('failed to update transcription demand', {
+                    videoPath,
+                    position,
+                    error: error instanceof Error ? error.message : String(error),
+                });
+            });
         };
         const timer = window.setInterval(reportDemand, 2000);
         return () => window.clearInterval(timer);
