@@ -105,7 +105,6 @@ export class MediaServiceImpl implements MediaService {
             outputFolder: tempDirectory,
             outputFileName: path.basename(thumbnailPath),
             time: adjustedTimestamp,
-            inputDuration: duration,
             options,
         });
 

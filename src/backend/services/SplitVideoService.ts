@@ -1,9 +1,9 @@
 import path from 'path';
-import { randomUUID } from 'crypto';
 import { inject, injectable } from 'inversify';
 import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
 import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import FfmpegService from '@/backend/services/FfmpegService';
+import { VideoSegment } from '@/backend/services/gateways/media/FfmpegGateway';
 import TYPES from '@/backend/ioc/types';
 import { ChapterParseResult } from '@/common/types/chapter-result';
 import MediaUtil from '@/common/utils/MediaUtil';
@@ -78,10 +78,10 @@ export class SplitVideoServiceImpl implements SplitVideoService {
             path.dirname(request.videoPath),
             path.basename(request.videoPath, path.extname(request.videoPath)),
         );
-        const splitVideos = await this.splitVideoParts(request.videoPath, request.chapters, folderName);
+        const segments = await this.splitVideoParts(request.videoPath, request.chapters, folderName);
 
         if (request.srtPath !== null) {
-            await this.splitSubtitle(request.srtPath, splitVideos);
+            await this.splitSubtitle(request.srtPath, segments);
         }
 
         return folderName;
@@ -142,33 +142,30 @@ export class SplitVideoServiceImpl implements SplitVideoService {
      * @param videoPath 视频文件绝对路径。
      * @param chapters 有效章节列表。
      * @param folderName 输出目录绝对路径。
-     * @returns 重命名后的分段视频路径。
+     * @returns 各章节的段信息（路径已重命名，起止时间为切分后实测值）。
      */
     private async splitVideoParts(
         videoPath: string,
         chapters: ChapterParseResult[],
         folderName: string,
-    ): Promise<string[]> {
+    ): Promise<VideoSegment[]> {
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(folderName);
         await this.fileSystemGateway.ensureDirectory(folderName);
 
         const chapterStarts = chapters.map((chapter) => timeTextToSeconds(chapter.timestampStart));
-        // 每次使用独立前缀，避免失败任务留下的旧分段混入本次结果。
-        const outputFilePrefix = `split-${randomUUID()}`;
-        const outputFiles = await this.ffmpegService.splitVideoByTimes({
+        const segments = await this.ffmpegService.splitVideoByTimes({
             inputFile: videoPath,
             times: chapterStarts.filter((start) => start > 0),
             outputFolder: folderName,
-            outputFilePrefix,
         });
 
-        if (outputFiles.length !== chapters.length) {
-            throw new Error(`视频切分结果数量异常：预期 ${chapters.length} 个，实际 ${outputFiles.length} 个`);
+        if (segments.length !== chapters.length) {
+            throw new Error(`视频切分结果数量异常：预期 ${chapters.length} 个，实际 ${segments.length} 个`);
         }
 
-        const targetPaths = outputFiles.map((outputFile, index) => {
+        const targetPaths = segments.map((segment, index) => {
             const chapter = chapters[index];
-            const fileName = `${chapter.timestampStart}-${chapter.title}${path.extname(outputFile)}`.replaceAll(':', '');
+            const fileName = `${chapter.timestampStart}-${chapter.title}${path.extname(segment.file)}`.replaceAll(':', '');
             return path.join(folderName, fileName);
         });
         for (const targetPath of targetPaths) {
@@ -177,40 +174,38 @@ export class SplitVideoServiceImpl implements SplitVideoService {
             }
         }
 
-        for (let index = 0; index < outputFiles.length; index++) {
-            await this.fileSystemGateway.moveFile(outputFiles[index], targetPaths[index]);
+        for (let index = 0; index < segments.length; index++) {
+            await this.fileSystemGateway.moveFile(segments[index].file, targetPaths[index]);
+            segments[index].file = targetPaths[index];
         }
-        return targetPaths;
+        return segments;
     }
 
     /**
-     * 按已生成的视频分段时长切分字幕。
+     * 按切分返回的实测段落边界切分字幕，保证字幕与视频段落严丝合缝。
      * @param srtPath 原字幕文件绝对路径。
-     * @param splitVideos 分段视频文件绝对路径。
+     * @param segments 切分产物的段信息，含实测起止时间。
      */
-    private async splitSubtitle(srtPath: string, splitVideos: string[]): Promise<void> {
+    private async splitSubtitle(srtPath: string, segments: VideoSegment[]): Promise<void> {
         const content = await this.fileSystemGateway.readTextFile(srtPath);
         const subtitles = MediaUtil.isAss(srtPath)
             ? parseAss(content)
             : parseSrt(content);
 
-        let segmentStart = -0.2;
-        for (const splitVideo of splitVideos) {
-            const duration = await this.ffmpegService.duration(splitVideo);
-            const segmentEnd = segmentStart + duration;
+        for (const segment of segments) {
+            const duration = segment.end - segment.start;
             const lines = subtitles
-                .filter((line) => line.end >= segmentStart && line.start <= segmentEnd)
+                .filter((line) => line.end >= segment.start && line.start <= segment.end)
                 .map((line, index) => ({
                     index: index + 1,
-                    start: Math.max(line.start - segmentStart, 0),
-                    end: Math.min(line.end - segmentStart, duration),
+                    start: Math.max(line.start - segment.start, 0),
+                    end: Math.min(line.end - segment.start, duration),
                     contentEn: line.contentEn,
                     contentZh: line.contentZh,
                 }));
             const srtContent = serializeSrt(lines, { reindex: true });
-            const subtitlePath = splitVideo.replace(path.extname(splitVideo), '.srt');
+            const subtitlePath = segment.file.replace(path.extname(segment.file), '.srt');
             await this.fileSystemGateway.writeTextFile(subtitlePath, srtContent);
-            segmentStart = segmentEnd;
         }
     }
 }

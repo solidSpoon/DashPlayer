@@ -75,10 +75,22 @@ export interface SplitVideoRangeArgs {
 export interface SplitVideoByTimesArgs {
     /** 输入视频文件路径。 */
     inputFile: string;
-    /** 切段时间点（秒，严格递增）。 */
+    /** 切段时间点（秒，严格递增）；实际落刀点受关键帧位置影响。 */
     times: number[];
     /** 输出路径模板，如 /tmp/chunk_%03d.mp4。 */
     outputPattern: string;
+}
+
+/**
+ * 切分产物段信息。
+ */
+export interface VideoSegment {
+    /** 分段文件绝对路径。 */
+    file: string;
+    /** 该段在原视频中的实际起始时间（秒），由切分后实测得出。 */
+    start: number;
+    /** 该段在原视频中的实际结束时间（秒），由切分后实测得出。 */
+    end: number;
 }
 
 /**
@@ -198,8 +210,10 @@ export default interface FfmpegGateway {
     /** 按起止时间分割视频。 */
     splitVideo(args: SplitVideoRangeArgs, options?: FfmpegRunOptions): Promise<void>;
 
-    /** 按时间点切段视频。 */
-    splitVideoByTimes(args: SplitVideoByTimesArgs, options?: FfmpegRunOptions): Promise<void>;
+    /**
+     * 按时间点切段视频；落刀点受关键帧影响，返回的每段起止时间为切分后实测值。
+     */
+    splitVideoByTimes(args: SplitVideoByTimesArgs, options?: FfmpegRunOptions): Promise<VideoSegment[]>;
 
     /** 生成缩略图。 */
     createThumbnail(args: CreateThumbnailArgs, options?: FfmpegRunOptions): Promise<void>;

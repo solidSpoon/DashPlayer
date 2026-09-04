@@ -1,5 +1,6 @@
 import { inject, injectable } from 'inversify';
 import { WithSemaphore } from '@/backend/utils/concurrency/decorators';
+import { randomUUID } from 'crypto';
 import path from 'path';
 import fs from 'fs';
 import TYPES from '@/backend/ioc/types';
@@ -7,7 +8,7 @@ import DpTaskService from '@/backend/services/DpTaskService';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { VideoInfo } from '@/common/types/video-info';
 import { CancelByUserError } from '@/backend/utils/errors/errors';
-import FfmpegGateway, { FfmpegExecutionError } from '@/backend/services/gateways/media/FfmpegGateway';
+import FfmpegGateway, { FfmpegExecutionError, VideoSegment } from '@/backend/services/gateways/media/FfmpegGateway';
 import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 
 export default interface FfmpegService {
@@ -23,53 +24,41 @@ export default interface FfmpegService {
         outputFile: string
     }): Promise<void>;
 
+    /**
+     * 按建议时间点切段视频；落刀点受关键帧影响，返回每段文件与切分后实测的真实起止时间。
+     */
     splitVideoByTimes({
-                          inputFile,
-                          times,
-                          outputFolder,
-                          outputFilePrefix
-                      }: {
+        inputFile,
+        times,
+        outputFolder
+    }: {
         inputFile: string,
         times: number[],
-        outputFolder: string,
-        outputFilePrefix: string
-    }): Promise<string[]>;
+        outputFolder: string
+    }): Promise<VideoSegment[]>;
 
     duration(filePath: string): Promise<number>;
 
+    /**
+     * 生成缩略图；截图点超出视频长度时自动钳制到结尾前，时长由方法自行探测。
+     */
     thumbnail({
                   inputFile,
                   outputFileName,
                   outputFolder,
                   time,
-                  inputDuration,
                   options
               }: {
         inputFile: string,
         outputFileName: string,
         outputFolder: string,
         time: number,
-        inputDuration?: number,
         options?: {
             quality?: 'low' | 'medium' | 'high' | 'ultra';
             width?: number;
             format?: 'jpg' | 'png';
         }
     }): Promise<void>;
-
-    splitToAudio({
-                     taskId,
-                     inputFile,
-                     outputFolder,
-                     segmentTime,
-                     onProgress
-                 }: {
-        taskId: number,
-        inputFile: string,
-        outputFolder: string,
-        segmentTime: number,
-        onProgress?: (progress: number) => void
-    }): Promise<string[]>;
 
     toMp4({
               inputFile,
@@ -108,12 +97,12 @@ export default interface FfmpegService {
     trimVideo(inputPath: string, startTime: number, endTime: number, outputPath: string, job?: string): Promise<void>;
 
     /**
-     * Get video information
+     * 获取视频信息。
      */
     getVideoInfo(filePath: string): Promise<VideoInfo>;
 
     /**
-     * Convert audio file to WAV format
+     * 转换音频文件为 WAV 格式。
      */
     convertToWav(inputPath: string, outputPath: string): Promise<void>;
 
@@ -128,19 +117,9 @@ export default interface FfmpegService {
     }): Promise<string[]>;
 
     /**
-     * NEW: Trim audio by time range (re-encode to mp3 for compatibility)
+     * 按时间范围裁剪音频并转码为 MP3。
      */
     trimAudio(inputPath: string, startTime: number, endTime: number, outputPath: string): Promise<void>;
-
-    /**
-     * NEW: Split audio by VAD timeline ranges
-     */
-    splitAudioByTimeline(args: {
-        inputFile: string,
-        ranges: Array<{ start: number, end: number }>,
-        outputFolder: string,
-        outputFilePrefix?: string
-    }): Promise<string[]>;
 }
 
 
@@ -195,33 +174,30 @@ export class FfmpegServiceImpl implements FfmpegService {
     }
 
     /**
-     * 按时间点分割视频。
+     * 按建议时间点切段视频；临时分段名用随机前缀避免与历史残留混淆，返回实测起止边界。
      */
     @WithSemaphore('ffmpeg')
     public async splitVideoByTimes({
                                        inputFile,
                                        times,
                                        outputFolder,
-                                       outputFilePrefix,
                                    }: {
         inputFile: string,
         times: number[],
         outputFolder: string,
-        outputFilePrefix: string,
-    }): Promise<string[]> {
+    }): Promise<VideoSegment[]> {
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputFile);
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(outputFolder);
-        const outputPattern = path.join(outputFolder, `${outputFilePrefix}_%03d${path.extname(inputFile)}`);
+        // 每次使用独立前缀，避免失败任务留下的旧分段混入本次结果。
+        const outputPattern = path.join(outputFolder, `split-${randomUUID()}_%03d${path.extname(inputFile)}`);
 
-        await this.ffmpegGateway.splitVideoByTimes({
+        return await this.ffmpegGateway.splitVideoByTimes({
             inputFile,
             times,
             outputPattern,
         }, {
             job: `split:${outputFolder}`,
         });
-
-        return await this.getOutputFiles(outputFolder, outputFilePrefix);
     }
 
     /**
@@ -243,7 +219,7 @@ export class FfmpegServiceImpl implements FfmpegService {
     }
 
     /**
-     * 生成缩略图。
+     * 生成缩略图；截图点超出视频长度时自动钳制到结尾前。
      */
     @WithSemaphore('ffmpeg')
     public async thumbnail({
@@ -251,14 +227,12 @@ export class FfmpegServiceImpl implements FfmpegService {
                                outputFileName,
                                outputFolder,
                                time,
-                               inputDuration,
                                options = {},
                            }: {
         inputFile: string,
         outputFileName: string,
         outputFolder: string,
         time: number,
-        inputDuration?: number,
         options?: {
             quality?: 'low' | 'medium' | 'high' | 'ultra';
             width?: number;
@@ -267,12 +241,14 @@ export class FfmpegServiceImpl implements FfmpegService {
     }): Promise<void> {
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputFile);
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(outputFolder);
-        const totalDuration = Number.isFinite(inputDuration) ? Number(inputDuration) : await this.duration(inputFile);
-        const actualTime = Math.min(time, totalDuration);
 
         if (!fs.existsSync(outputFolder)) {
             fs.mkdirSync(outputFolder, { recursive: true });
         }
+
+        // 时长由方法自行探测，截图点钳制到视频结尾前，避免超出时长后 ffmpeg 静默产出空图。
+        const totalDuration = await this.duration(inputFile);
+        const actualTime = Math.min(time, totalDuration);
 
         const outputFile = path.join(outputFolder, outputFileName);
         const qualitySettings: Record<'low' | 'medium' | 'high' | 'ultra', { width: number; jpgQScale: number }> = {
@@ -293,58 +269,7 @@ export class FfmpegServiceImpl implements FfmpegService {
                 format: options.format ?? 'jpg',
                 jpgQScale: preset.jpgQScale,
             },
-            {
-                inputDurationSecond: totalDuration,
-            },
         );
-    }
-
-    /**
-     * 分割为音频文件。
-     */
-    @WithSemaphore('ffmpeg')
-    public async splitToAudio({
-                                  taskId,
-                                  inputFile,
-                                  outputFolder,
-                                  segmentTime,
-                                  onProgress,
-                              }: {
-        taskId?: number,
-        inputFile: string,
-        outputFolder: string,
-        segmentTime: number,
-        onProgress?: (percent: number) => void,
-    }): Promise<string[]> {
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputFile);
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(outputFolder);
-        const outputPattern = path.join(outputFolder, 'output_%03d.mp3');
-        const inputDurationSecond = await this.duration(inputFile);
-
-        await this.runCancelableTask(
-            taskId,
-            {
-                inputDurationSecond,
-                onProgress,
-            },
-            async (onCancelable) => {
-                await this.ffmpegGateway.splitAudio(
-                    {
-                        inputFile,
-                        segmentSecond: segmentTime,
-                        outputPattern,
-                    },
-                    {
-                        inputDurationSecond,
-                        onProgress,
-                        onCancelable,
-                        job: dpTaskJob(taskId),
-                    },
-                );
-            },
-        );
-
-        return await this.getOutputFiles(outputFolder, 'output_', '.mp3');
     }
 
     /**
@@ -359,14 +284,13 @@ export class FfmpegServiceImpl implements FfmpegService {
         onProgress?: (progress: number) => void,
     }): Promise<string> {
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputFile);
-        const outputFile = inputFile.replace(path.extname(inputFile), '.mp4');
+        const outputFile = path.join(
+            path.dirname(inputFile),
+            `${path.basename(inputFile, path.extname(inputFile))}.mp4`,
+        );
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(outputFile);
-        const inputDurationSecond = await this.duration(inputFile);
 
-        await this.ffmpegGateway.toMp4(inputFile, outputFile, {
-            onProgress,
-            inputDurationSecond,
-        });
+        await this.ffmpegGateway.toMp4(inputFile, outputFile, { onProgress });
 
         return outputFile;
     }
@@ -389,23 +313,14 @@ export class FfmpegServiceImpl implements FfmpegService {
         const finalOutputFile = outputFile ?? inputFile.replace(path.extname(inputFile), '.mp4');
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputFile);
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(finalOutputFile);
-        const inputDurationSecond = await this.duration(inputFile);
 
-        await this.runCancelableTask(
-            taskId,
-            {
-                inputDurationSecond,
+        await this.runCancelableTask(taskId, async (onCancelable) => {
+            await this.ffmpegGateway.mkvToMp4(inputFile, finalOutputFile, {
                 onProgress,
-            },
-            async (onCancelable) => {
-                await this.ffmpegGateway.mkvToMp4(inputFile, finalOutputFile, {
-                    inputDurationSecond,
-                    onProgress,
-                    onCancelable,
-                    job: dpTaskJob(taskId),
-                });
-            },
-        );
+                onCancelable,
+                job: dpTaskJob(taskId),
+            });
+        });
 
         return finalOutputFile;
     }
@@ -432,24 +347,20 @@ export class FfmpegServiceImpl implements FfmpegService {
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputFile);
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(finalOutputFile);
 
-        await this.runCancelableTask(
-            taskId,
-            { onProgress },
-            async (onCancelable) => {
-                await this.ffmpegGateway.extractSubtitles(
-                    {
-                        inputFile,
-                        outputFile: finalOutputFile,
-                        mapRule,
-                    },
-                    {
-                        onProgress,
-                        onCancelable,
-                        job: dpTaskJob(taskId),
-                    },
-                );
-            },
-        );
+        await this.runCancelableTask(taskId, async (onCancelable) => {
+            await this.ffmpegGateway.extractSubtitles(
+                {
+                    inputFile,
+                    outputFile: finalOutputFile,
+                    mapRule,
+                },
+                {
+                    onProgress,
+                    onCancelable,
+                    job: dpTaskJob(taskId),
+                },
+            );
+        });
 
         return finalOutputFile;
     }
@@ -502,7 +413,7 @@ export class FfmpegServiceImpl implements FfmpegService {
     }
 
     /**
-     * 裁剪音频（按时间，转码为 MP3 以保证兼容）。
+     * 裁剪音频（按时间，转码为 MP3 以保证兼容）；非法时间区间直接抛错，不静默产出空结果。
      */
     @WithSemaphore('ffmpeg')
     public async trimAudio(
@@ -511,11 +422,6 @@ export class FfmpegServiceImpl implements FfmpegService {
         endTime: number,
         outputPath: string,
     ): Promise<void> {
-        const duration = endTime - startTime;
-        if (!Number.isFinite(duration) || duration <= 0) {
-            return;
-        }
-
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputPath);
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(outputPath);
         await this.ffmpegGateway.trimAudio({
@@ -526,36 +432,6 @@ export class FfmpegServiceImpl implements FfmpegService {
             audioCodec: 'libmp3lame',
             audioBitrate: '192k',
         });
-    }
-
-    /**
-     * 基于时间线批量切段音频。
-     */
-    @WithSemaphore('ffmpeg')
-    public async splitAudioByTimeline(args: {
-        inputFile: string,
-        ranges: Array<{ start: number, end: number }>,
-        outputFolder: string,
-        outputFilePrefix?: string,
-    }): Promise<string[]> {
-        const { inputFile, ranges } = args;
-        const prefix = args.outputFilePrefix ?? 'segment_';
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputFile);
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(args.outputFolder);
-
-        if (!fs.existsSync(args.outputFolder)) {
-            await fs.promises.mkdir(args.outputFolder, { recursive: true });
-        }
-
-        const outputs: string[] = [];
-        for (let index = 0; index < ranges.length; index++) {
-            const range = ranges[index];
-            const outputPath = path.join(args.outputFolder, `${prefix}${String(index + 1).padStart(3, '0')}.mp3`);
-            await this.trimAudio(inputFile, range.start, range.end, outputPath);
-            outputs.push(outputPath);
-        }
-
-        return outputs;
     }
 
     /**
@@ -594,15 +470,10 @@ export class FfmpegServiceImpl implements FfmpegService {
     /**
      * 执行支持取消的任务，并统一处理取消异常。
      * @param taskId dp_task ID；缺失时无法注册取消回调也不参与 job 归因。
-     * @param context 输入时长与进度回调等执行上下文。
      * @param runner 接收取消注册回调的任务体。
      */
     private async runCancelableTask(
         taskId: number | undefined,
-        context: {
-            inputDurationSecond?: number;
-            onProgress?: (progress: number) => void;
-        },
         runner: (onCancelable: (cancel: () => void) => void) => Promise<void>,
     ): Promise<void> {
         const job = dpTaskJob(taskId);
@@ -630,11 +501,7 @@ export class FfmpegServiceImpl implements FfmpegService {
                 || error instanceof CancelByUserError
                 || cancelledByUser;
             if (!alreadyReported) {
-                this.logger.error('ffmpeg task failed', {
-                    job,
-                    inputDurationSecond: context.inputDurationSecond,
-                    error: normalized,
-                });
+                this.logger.error('ffmpeg task failed', { job, error: normalized });
             }
             throw this.processError(normalized, cancelledByUser);
         } finally {
@@ -656,16 +523,5 @@ export class FfmpegServiceImpl implements FfmpegService {
         }
 
         return error;
-    }
-
-    /**
-     * 获取输出文件列表。
-     */
-    private async getOutputFiles(outputFolder: string, prefix: string, ext?: string): Promise<string[]> {
-        const files = await fs.promises.readdir(outputFolder);
-        return files
-            .filter(file => file.startsWith(prefix) && (ext ? file.endsWith(ext) : true))
-            .sort()
-            .map(file => path.join(outputFolder, file));
     }
 }

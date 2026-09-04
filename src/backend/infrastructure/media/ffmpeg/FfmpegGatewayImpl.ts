@@ -1,5 +1,4 @@
 import { injectable } from 'inversify';
-import ffmpeg from 'fluent-ffmpeg';
 import FfmpegGateway, {
     ConvertToWavArgs,
     CreateThumbnailArgs,
@@ -11,6 +10,7 @@ import FfmpegGateway, {
     SplitVideoRangeArgs,
     TrimAudioArgs,
     TrimVideoArgs,
+    VideoSegment,
 } from '@/backend/services/gateways/media/FfmpegGateway';
 import { VideoInfo } from '@/common/types/video-info';
 import fs from 'fs';
@@ -35,8 +35,8 @@ interface FfprobeStream {
  * FFprobe 格式元数据。
  */
 interface FfprobeFormat {
-    /** 媒体总时长，单位秒。 */
-    duration?: number;
+    /** 媒体总时长，单位秒；ffprobe JSON 中为字符串数字。 */
+    duration?: string;
     /** 总码率，字符串数字格式。 */
     bit_rate?: string;
 }
@@ -62,6 +62,15 @@ interface FfmpegGatewayDeps {
 }
 
 /**
+ * 转码类命令参数的公共形状：至少有输入路径，输出为单文件或分段模板。
+ */
+type FfmpegCommandTarget = {
+    inputFile: string;
+    outputFile?: string;
+    outputPattern?: string;
+};
+
+/**
  * FFmpeg 基础设施网关实现。
  */
 @injectable()
@@ -76,38 +85,30 @@ export default class FfmpegGatewayImpl implements FfmpegGateway {
     constructor(deps: FfmpegGatewayDeps = {}) {
         this.commandBuilder = deps.commandBuilder ?? new DefaultFfmpegCommandBuilder();
         this.runner = deps.runner ?? new FfmpegProcessRunner();
-
-        ffmpeg.setFfmpegPath(getRuntimeResourcePath('lib', 'ffmpeg'));
-        ffmpeg.setFfprobePath(getRuntimeResourcePath('lib', 'ffprobe'));
     }
 
     /**
-     * 获取媒体时长。
+     * 获取媒体时长；探测不到有效时长属于数据异常，直接抛错而非返回 0。
      */
     public async duration(filePath: string): Promise<number> {
-        return new Promise<number>((resolve, reject) => {
-            ffmpeg.ffprobe(filePath, (err, metadata) => {
-                if (err) reject(err);
-                else resolve(metadata.format.duration ?? 0);
-            });
-        });
+        this.assertInputFileExists(filePath);
+        const rawDuration = Number((await this.probe(filePath)).format.duration);
+        if (!Number.isFinite(rawDuration) || rawDuration <= 0) {
+            throw new Error(`无法探测媒体时长：${filePath}`);
+        }
+        return rawDuration;
     }
 
     /**
      * 获取媒体信息。
      */
     public async getVideoInfo(filePath: string): Promise<VideoInfo> {
-        const stats = await fs.promises.stat(filePath);
-        const probeData = await new Promise<FfprobeData>((resolve, reject) => {
-            ffmpeg.ffprobe(filePath, (err, metadata) => {
-                if (err) reject(err);
-                else resolve(metadata as FfprobeData);
-            });
-        });
+        this.assertInputFileExists(filePath);
+        const [stats, probeData] = await Promise.all([fs.promises.stat(filePath), this.probe(filePath)]);
 
         return {
             filename: path.basename(filePath),
-            duration: probeData.format.duration || 0,
+            duration: Number(probeData.format.duration) || 0,
             size: stats.size,
             modifiedTime: stats.mtimeMs,
             createdTime: stats.ctimeMs,
@@ -121,109 +122,159 @@ export default class FfmpegGatewayImpl implements FfmpegGateway {
      * 按起止时间分割视频。
      */
     public async splitVideo(args: SplitVideoRangeArgs, options: FfmpegRunOptions = {}): Promise<void> {
-        const commandArgs = this.commandBuilder.buildSplitVideo({
-            inputFile: args.inputFile,
-            outputFile: args.outputFile,
-            startSecond: args.startSecond,
-            endSecond: args.endSecond,
-        });
-
-        await this.executeCommand(commandArgs, options);
+        await this.runCommand(args, (a) => this.commandBuilder.buildSplitVideo(a), options);
     }
 
     /**
-     * 按时间点切段视频。
+     * 按时间点切段视频；落刀点受关键帧影响，切分后逐段实测时长并累加出真实边界。
      */
-    public async splitVideoByTimes(args: SplitVideoByTimesArgs, options: FfmpegRunOptions = {}): Promise<void> {
-        const commandArgs = this.commandBuilder.buildSplitVideoByTimes({
-            inputFile: args.inputFile,
-            times: args.times,
-            outputPattern: args.outputPattern,
-        });
+    public async splitVideoByTimes(args: SplitVideoByTimesArgs, options: FfmpegRunOptions = {}): Promise<VideoSegment[]> {
+        await this.runCommand(args, (a) => this.commandBuilder.buildSplitVideoByTimes(a), options);
+        return await this.collectSegments(args.outputPattern);
+    }
 
-        await this.executeCommand(commandArgs, options);
+    /**
+     * 枚举切分产物文件并实测每段时长，累加得到各段在原视频中的实际起止时间。
+     * @param outputPattern 切分输出命名模板，如 /tmp/chunk_%03d.mp4。
+     */
+    private async collectSegments(outputPattern: string): Promise<VideoSegment[]> {
+        const directory = path.dirname(outputPattern);
+        const prefix = path.basename(outputPattern).split('%')[0];
+        const files = (await fs.promises.readdir(directory))
+            .filter(file => file.startsWith(prefix))
+            .sort()
+            .map(file => path.join(directory, file));
+
+        const segments: VideoSegment[] = [];
+        let start = 0;
+        for (const file of files) {
+            const duration = await this.duration(file);
+            segments.push({ file, start, end: start + duration });
+            start += duration;
+        }
+        return segments;
     }
 
     /**
      * 生成缩略图。
      */
     public async createThumbnail(args: CreateThumbnailArgs, options: FfmpegRunOptions = {}): Promise<void> {
-        const commandArgs = this.commandBuilder.buildThumbnail({
-            inputFile: args.inputFile,
-            outputFile: args.outputFile,
-            timeSecond: args.timeSecond,
-            width: args.width,
-            format: args.format,
-            jpgQScale: args.jpgQScale,
-        });
-
-        await this.executeCommand(commandArgs, options);
+        await this.runCommand(args, (a) => this.commandBuilder.buildThumbnail(a), options);
     }
 
     /**
      * 分段音频。
      */
     public async splitAudio(args: SplitAudioArgs, options: FfmpegRunOptions = {}): Promise<void> {
-        const commandArgs = this.commandBuilder.buildSplitAudio({
-            inputFile: args.inputFile,
-            segmentSecond: args.segmentSecond,
-            outputPattern: args.outputPattern,
-        });
-
-        await this.executeCommand(commandArgs, options);
+        await this.runCommand(args, (a) => this.commandBuilder.buildSplitAudio(a), options);
     }
 
     /**
-     * 转 MP4。
+     * 转换为 MP4。
      */
     public async toMp4(inputFile: string, outputFile: string, options: FfmpegRunOptions = {}): Promise<void> {
-        const commandArgs = this.commandBuilder.buildToMp4(inputFile, outputFile);
-        await this.executeCommand(commandArgs, options);
+        await this.runCommand(
+            { inputFile, outputFile },
+            (a) => this.commandBuilder.buildToMp4(a.inputFile, a.outputFile),
+            options,
+        );
     }
 
     /**
      * MKV 转 MP4。
      */
     public async mkvToMp4(inputFile: string, outputFile: string, options: FfmpegRunOptions = {}): Promise<void> {
-        const commandArgs = this.commandBuilder.buildMkvToMp4(inputFile, outputFile);
-        await this.executeCommand(commandArgs, options);
+        await this.runCommand(
+            { inputFile, outputFile },
+            (a) => this.commandBuilder.buildMkvToMp4(a.inputFile, a.outputFile),
+            options,
+        );
     }
 
     /**
      * 提取字幕。
      */
     public async extractSubtitles(args: ExtractSubtitleArgs, options: FfmpegRunOptions = {}): Promise<void> {
-        const commandArgs = this.commandBuilder.buildExtractSubtitle({
-            inputFile: args.inputFile,
-            outputFile: args.outputFile,
-            mapRule: args.mapRule,
-        });
-
-        await this.executeCommand(commandArgs, options);
+        await this.runCommand(args, (a) => this.commandBuilder.buildExtractSubtitle(a), options);
     }
 
     /**
      * 裁剪视频。
      */
     public async trimVideo(args: TrimVideoArgs, options: FfmpegRunOptions = {}): Promise<void> {
-        const commandArgs = this.commandBuilder.buildTrimVideo(args);
-        await this.executeCommand(commandArgs, options);
+        await this.runCommand(args, (a) => this.commandBuilder.buildTrimVideo(a), options);
     }
 
     /**
      * 转 WAV。
      */
     public async convertToWav(args: ConvertToWavArgs, options: FfmpegRunOptions = {}): Promise<void> {
-        const commandArgs = this.commandBuilder.buildConvertToWav(args);
-        await this.executeCommand(commandArgs, options);
+        await this.runCommand(args, (a) => this.commandBuilder.buildConvertToWav(a), options);
     }
 
     /**
      * 裁剪音频。
      */
     public async trimAudio(args: TrimAudioArgs, options: FfmpegRunOptions = {}): Promise<void> {
-        const commandArgs = this.commandBuilder.buildTrimAudio(args);
-        await this.executeCommand(commandArgs, options);
+        await this.runCommand(args, (a) => this.commandBuilder.buildTrimAudio(a), options);
+    }
+
+    /**
+     * 调用 ffprobe 获取媒体元数据，与 ffmpeg 共用同一条子进程执行路径。
+     * @param filePath 媒体文件路径。
+     */
+    private async probe(filePath: string): Promise<FfprobeData> {
+        const outcome = await this.runner.run({
+            ffmpegPath: getRuntimeResourcePath('lib', 'ffprobe'),
+            args: ['-v', 'error', '-print_format', 'json', '-show_format', '-show_streams', filePath],
+        });
+
+        try {
+            return JSON.parse(outcome.stdoutText) as FfprobeData;
+        } catch {
+            throw new Error(`ffprobe 输出无法解析：${filePath}\n${outcome.stdoutText.slice(0, 500)}`);
+        }
+    }
+
+    /**
+     * 转码类命令的统一执行入口：校验输入输出、按需探测输入时长、构建并执行命令。
+     * @param args 命令参数，含输入与输出路径。
+     * @param build 从参数构建 FFmpeg 参数列表的函数。
+     * @param options 进度、取消与 job 身份等执行选项。
+     */
+    private async runCommand<T extends FfmpegCommandTarget>(
+        args: T,
+        build: (args: T) => string[],
+        options: FfmpegRunOptions,
+    ): Promise<void> {
+        this.assertInputFileExists(args.inputFile);
+        this.assertOutputDirectoryExists(args.outputFile ?? args.outputPattern);
+
+        // 上层未显式提供时长时，只要关注进度就自动探测，进度回调不再依赖调用方记得传时长。
+        const inputDurationSecond = options.inputDurationSecond
+            ?? (options.onProgress ? await this.duration(args.inputFile) : undefined);
+
+        await this.executeCommand(build(args), { ...options, inputDurationSecond });
+    }
+
+    /**
+     * 校验输入文件存在，路径错误时尽早失败并给出明确路径。
+     */
+    private assertInputFileExists(inputFile: string): void {
+        if (!fs.existsSync(inputFile)) {
+            throw new Error(`输入文件不存在：${inputFile}`);
+        }
+    }
+
+    /**
+     * 校验输出路径所在目录存在；目录缺失时 ffmpeg 只会在深处报出模糊错误。
+     */
+    private assertOutputDirectoryExists(outputPath?: string): void {
+        if (!outputPath) return;
+        const directory = path.dirname(outputPath);
+        if (!fs.existsSync(directory)) {
+            throw new Error(`输出目录不存在：${directory}`);
+        }
     }
 
     /**
