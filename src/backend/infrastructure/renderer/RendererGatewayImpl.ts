@@ -55,7 +55,9 @@ export default class RendererGatewayImpl implements RendererGateway {
                 settled = true;
                 clearTimeout(timeoutId);
                 ipcMain.removeListener(eventName, responseListener);
-                this.logger[outcome === 'succeeded' ? 'info' : 'warn']('renderer api call settled', {
+                // 成功路径是常规节奏（翻译回推等高频推送都走这里），只留 debug；
+                // failed/timed-out 是需要解释的现象，保持 warn。
+                this.logger[outcome === 'succeeded' ? 'debug' : 'warn']('renderer api call settled', {
                     path,
                     callId,
                     outcome,
@@ -84,7 +86,7 @@ export default class RendererGatewayImpl implements RendererGateway {
             }, RENDERER_API_RESPONSE_TIMEOUT_MS);
 
             ipcMain.once(eventName, responseListener);
-            this.logger.info('renderer api call dispatched', {
+            this.logger.debug('renderer api call dispatched', {
                 path,
                 callId,
                 webContentsId: mainWindow.webContents.id,
