@@ -15,6 +15,7 @@ import { Button } from '@/fronted/components/ui/button';
 import { Play, Pause, RotateCcw, SkipBack, SkipForward } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { clipLinesToSentences } from '@/common/utils/subtitle';
+import TimeUtil from '@/common/utils/TimeUtil';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { favouriteApi } from '@/fronted/features/favourite/favouriteApi';
@@ -28,16 +29,10 @@ const FavouriteProgress = memo(function FavouriteProgress() {
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
 
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
-
   return (
     <div className="flex-1 flex items-center gap-2">
       <span className="text-xs text-muted-foreground w-10 text-right">
-        {formatTime(currentTime)}
+        {TimeUtil.secondToTimeStrCompact(currentTime)}
       </span>
       <div className="flex-1 relative">
         <div className="absolute inset-0 bg-muted rounded-full h-1.5" />
@@ -47,7 +42,7 @@ const FavouriteProgress = memo(function FavouriteProgress() {
         />
       </div>
       <span className="text-xs text-muted-foreground w-10">
-        {formatTime(duration)}
+        {TimeUtil.secondToTimeStrCompact(duration)}
       </span>
     </div>
   );

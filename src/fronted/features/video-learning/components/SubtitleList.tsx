@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useCallback } from 'react';
 import { ClipSrtLine } from '@/common/types/clipMeta';
 import { Play, Pause, CirclePause, Repeat } from 'lucide-react';
 import { useVocabularyState } from '@/fronted/features/player/vocabularyStore';
+import { splitWords, cleanWord } from '@/common/utils/subtitle';
 
 type Props = {
   lines: ClipSrtLine[];
@@ -14,9 +15,6 @@ type Props = {
   onToggleAutoPause?: () => void;
   onToggleSingleRepeat?: () => void;
 };
-
-const SPLIT_REGEX =
-  /((?<=.)(?=[^A-Za-z0-9\u4e00-\u9fa5-]))|((?<=[^A-Za-z0-9\u4e00-\u9fa5-])(?=.))/;
 
 /**
  * 渲染视频学习页的字幕列表。
@@ -60,13 +58,9 @@ export default function SubtitleList({
       return null;
     }
     const textHashBase = `${keyPrefix}-${vocabularyVersion}`;
-    const tokens = text
-      .replace(/\s+/g, ' ')
-      .split(SPLIT_REGEX)
-      .filter((token) => token);
-    return tokens.map((token, index) => {
-      const cleanToken = token.toLowerCase().replace(/[^\w-]/g, '');
-      const isVocab = cleanToken && isVocabularyWord(cleanToken);
+    return splitWords(text).map((token, index) => {
+      const cleaned = cleanWord(token);
+      const isVocab = cleaned && isVocabularyWord(cleaned);
       if (isVocab) {
         return (
           <span
