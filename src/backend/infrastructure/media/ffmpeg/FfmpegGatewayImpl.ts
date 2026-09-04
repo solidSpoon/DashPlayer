@@ -5,7 +5,6 @@ import FfmpegGateway, {
     ExtractSubtitleArgs,
     FfmpegExecutionError,
     FfmpegRunOptions,
-    SplitAudioArgs,
     SplitVideoByTimesArgs,
     SplitVideoRangeArgs,
     TrimAudioArgs,
@@ -22,13 +21,17 @@ import { FfmpegProcessRunner } from '@/backend/infrastructure/media/ffmpeg/Ffmpe
 import { getRuntimeResourcePath } from '@/backend/utils/runtimeEnv';
 
 /**
- * FFprobe 视频流元数据。
+ * FFprobe 流元数据。
  */
 interface FfprobeStream {
-    /** 流类型，例如 video 或 audio。 */
+    /** 流在输入媒体中的绝对索引，用于 -map 精确选流。 */
+    index?: number;
+    /** 流类型，例如 video、audio 或 subtitle。 */
     codec_type?: string;
-    /** 编码器名称，例如 h264。 */
+    /** 编码器名称，例如 h264、subrip、hdmv_pgs_subtitle。 */
     codec_name?: string;
+    /** 容器标签，MKV 等格式的语言信息存在这里。 */
+    tags?: { language?: string };
 }
 
 /**
@@ -69,6 +72,17 @@ type FfmpegCommandTarget = {
     outputFile?: string;
     outputPattern?: string;
 };
+
+/**
+ * 可转 srt 的文本字幕编码器白名单。
+ *
+ * PGS/DVB 等图形字幕无法转文本，命中它们时 ffmpeg 会报“Subtitle codec not supported”；
+ * 提取前先按此名单筛掉图形字幕，无文本字幕时直接返回“未提取到”。
+ */
+const TEXT_SUBTITLE_CODECS = new Set([
+    'subrip', 'srt', 'ass', 'ssa', 'webvtt', 'mov_text', 'text', 'sami',
+    'microdvd', 'subviewer', 'vplayer', 'mpl2', 'realtext', 'stl', 'pjs', 'jacosub',
+]);
 
 /**
  * FFmpeg 基础设施网关实现。
@@ -163,10 +177,42 @@ export default class FfmpegGatewayImpl implements FfmpegGateway {
     }
 
     /**
-     * 分段音频。
+     * 提取文本字幕；先用 ffprobe 选定单条文本字幕流，无候选时返回 false。
      */
-    public async splitAudio(args: SplitAudioArgs, options: FfmpegRunOptions = {}): Promise<void> {
-        await this.runCommand(args, (a) => this.commandBuilder.buildSplitAudio(a), options);
+    public async extractSubtitles(args: ExtractSubtitleArgs, options: FfmpegRunOptions = {}): Promise<boolean> {
+        this.assertInputFileExists(args.inputFile);
+        const streamIndex = this.selectTextSubtitleStream(
+            (await this.probe(args.inputFile)).streams,
+            args.preferLanguage,
+        );
+        if (streamIndex === undefined) {
+            return false;
+        }
+
+        await this.runCommand(
+            { inputFile: args.inputFile, outputFile: args.outputFile, streamIndex },
+            (a) => this.commandBuilder.buildExtractSubtitle(a),
+            options,
+        );
+        return true;
+    }
+
+    /**
+     * 从探测到的流列表中选定唯一文本字幕流：优先匹配偏好语言，否则取第一条。
+     * @param streams ffprobe 探测到的流列表。
+     * @param preferLanguage 偏好语言标签（如 eng）。
+     * @returns 选定流的绝对索引；无文本字幕时返回 undefined。
+     */
+    private selectTextSubtitleStream(streams: FfprobeStream[], preferLanguage?: string): number | undefined {
+        const textSubtitles = streams.filter((stream) =>
+            stream.codec_type === 'subtitle'
+            && typeof stream.index === 'number'
+            && typeof stream.codec_name === 'string'
+            && TEXT_SUBTITLE_CODECS.has(stream.codec_name));
+        const preferred = preferLanguage
+            ? textSubtitles.find(stream => stream.tags?.language === preferLanguage)
+            : undefined;
+        return (preferred ?? textSubtitles[0])?.index;
     }
 
     /**
@@ -189,13 +235,6 @@ export default class FfmpegGatewayImpl implements FfmpegGateway {
             (a) => this.commandBuilder.buildMkvToMp4(a.inputFile, a.outputFile),
             options,
         );
-    }
-
-    /**
-     * 提取字幕。
-     */
-    public async extractSubtitles(args: ExtractSubtitleArgs, options: FfmpegRunOptions = {}): Promise<void> {
-        await this.runCommand(args, (a) => this.commandBuilder.buildExtractSubtitle(a), options);
     }
 
     /**

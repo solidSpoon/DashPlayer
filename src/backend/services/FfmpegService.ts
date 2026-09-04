@@ -80,19 +80,21 @@ export default interface FfmpegService {
         onProgress?: (progress: number) => void
     }): Promise<string>;
 
+    /**
+     * 提取文本字幕；英语学习场景优先英文字幕轨，无匹配时回退第一条文本字幕。
+     * @returns 成功提取时返回 true；源媒体没有可转 srt 的文本字幕时返回 false。
+     */
     extractSubtitles({
                          taskId,
                          inputFile,
                          outputFile,
-                         onProgress,
-                         en
+                         onProgress
                      }: {
         taskId: number,
         inputFile: string,
         outputFile?: string,
-        onProgress?: (progress: number) => void,
-        en: boolean
-    }): Promise<string>;
+        onProgress?: (progress: number) => void
+    }): Promise<boolean>;
 
     trimVideo(inputPath: string, startTime: number, endTime: number, outputPath: string, job?: string): Promise<void>;
 
@@ -326,7 +328,7 @@ export class FfmpegServiceImpl implements FfmpegService {
     }
 
     /**
-     * 提取字幕。
+     * 提取文本字幕；优先英文字幕轨，无匹配时由网关回退第一条文本字幕，返回是否提取到。
      */
     @WithSemaphore('ffmpeg')
     public async extractSubtitles({
@@ -334,25 +336,24 @@ export class FfmpegServiceImpl implements FfmpegService {
                                       inputFile,
                                       outputFile,
                                       onProgress,
-                                      en,
                                   }: {
         taskId: number,
         inputFile: string,
         outputFile?: string,
         onProgress?: (progress: number) => void,
-        en: boolean,
-    }): Promise<string> {
+    }): Promise<boolean> {
         const finalOutputFile = outputFile ?? inputFile.replace(path.extname(inputFile), '.srt');
-        const mapRule = en ? '0:s:m:language:eng?' : '0:s:0?';
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputFile);
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(finalOutputFile);
 
+        let extracted = false;
         await this.runCancelableTask(taskId, async (onCancelable) => {
-            await this.ffmpegGateway.extractSubtitles(
+            extracted = await this.ffmpegGateway.extractSubtitles(
                 {
                     inputFile,
                     outputFile: finalOutputFile,
-                    mapRule,
+                    // 英语学习场景优先英文字幕，无匹配时回退第一条文本字幕。
+                    preferLanguage: 'eng',
                 },
                 {
                     onProgress,
@@ -361,8 +362,7 @@ export class FfmpegServiceImpl implements FfmpegService {
                 },
             );
         });
-
-        return finalOutputFile;
+        return extracted;
     }
 
     /**
@@ -389,6 +389,8 @@ export class FfmpegServiceImpl implements FfmpegService {
             startSecond: startTime,
             endSecond: endTime,
             videoCodec: 'libx265',
+            // x265 默认 medium 预设极慢；短片段用 veryfast 提速明显且质量差异不可感知。
+            videoPreset: 'veryfast',
             audioCodec: 'aac',
             outputWidth: 640,
             crf: 28,

@@ -2,8 +2,7 @@ import TimeUtil from '@/common/utils/TimeUtil';
 import type {
     ConvertToWavArgs,
     CreateThumbnailArgs,
-    ExtractSubtitleArgs,
-    SplitAudioArgs,
+    ExtractSubtitleCommandArgs,
     SplitVideoByTimesArgs,
     SplitVideoRangeArgs,
     TrimAudioArgs,
@@ -37,14 +36,9 @@ export interface FfmpegCommandBuilder {
     buildThumbnail(args: CreateThumbnailArgs): string[];
 
     /**
-     * 构建字幕提取命令参数。
+     * 构建字幕提取命令参数；字幕流必须由网关探测选定后传入，避免命中图形字幕或多流。
      */
-    buildExtractSubtitle(args: ExtractSubtitleArgs): string[];
-
-    /**
-     * 构建音频分段命令参数。
-     */
-    buildSplitAudio(args: SplitAudioArgs): string[];
+    buildExtractSubtitle(args: ExtractSubtitleCommandArgs): string[];
 
     /**
      * 构建转 MP4 命令参数。
@@ -123,9 +117,16 @@ export class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
             '-i', args.inputFile,
             '-t', `${duration}`,
             '-c:v', videoCodec,
-            '-c:a', audioCodec,
-            '-crf', `${crf}`,
+            // 强制 8bit yuv420p：源为 10bit 时 libx264/x265 会离出 High10/Main10，浏览器普遍无法播放。
+            '-pix_fmt', 'yuv420p',
         ];
+
+        if (args.videoPreset) {
+            result.push('-preset', args.videoPreset);
+        }
+
+        result.push('-crf', `${crf}`);
+        result.push('-c:a', audioCodec);
 
         if (typeof args.audioChannels === 'number' && args.audioChannels > 0) {
             result.push('-ac', `${Math.floor(args.audioChannels)}`);
@@ -136,7 +137,8 @@ export class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
         }
 
         if (typeof args.outputWidth === 'number' && args.outputWidth > 0) {
-            result.push('-vf', `scale=${Math.floor(args.outputWidth)}:-1`);
+            // -2 保证高度取偶：libx264/x265 编码 yuv420p 要求宽高均为偶数，奇数高度会直接报错。
+            result.push('-vf', `scale=${Math.floor(args.outputWidth)}:-2`);
         }
 
         result.push(args.outputFile);
@@ -171,35 +173,15 @@ export class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     }
 
     /**
-     * 构建字幕提取命令参数。
+     * 构建字幕提取命令参数；只映射探测选定的单条字幕流，避免多流写单文件报错。
      */
-    public buildExtractSubtitle(args: ExtractSubtitleArgs): string[] {
+    public buildExtractSubtitle(args: ExtractSubtitleCommandArgs): string[] {
         return [
             '-y',
             '-i', args.inputFile,
-            '-map', args.mapRule,
+            '-map', `0:${args.streamIndex}`,
             '-c:s', 'srt',
             args.outputFile,
-        ];
-    }
-
-    /**
-     * 构建音频分段命令参数。
-     */
-    public buildSplitAudio(args: SplitAudioArgs): string[] {
-        if (!Number.isFinite(args.segmentSecond) || args.segmentSecond <= 0) {
-            throw new Error('音频分段时长必须大于 0 秒');
-        }
-
-        return [
-            '-y',
-            '-i', args.inputFile,
-            '-vn',
-            '-f', 'segment',
-            '-segment_time', `${args.segmentSecond}`,
-            '-c:a', 'libmp3lame',
-            '-qscale:a', '4',
-            args.outputPattern,
         ];
     }
 
@@ -211,7 +193,10 @@ export class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
             '-y',
             '-i', inputFile,
             '-c:v', 'libx264',
+            // 强制 8bit yuv420p，保证产出在任何浏览器可播；与 mkvToMp4 一致补 faststart 便于流式播放。
+            '-pix_fmt', 'yuv420p',
             '-c:a', 'aac',
+            '-movflags', '+faststart',
             outputFile,
         ];
     }

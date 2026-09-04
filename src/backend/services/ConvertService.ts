@@ -206,9 +206,10 @@ export class ConvertServiceImpl implements ConvertService {
     }
 
     /**
-     * 尝试提取字幕；媒体中没有可用字幕时不影响视频转换结果。
+     * 提取字幕；无文本字幕或提取结果为空时返回 false，不影响视频转换结果。
      *
-     * 先尝试英语字幕轨道，未生成有效文件时再尝试第一条字幕轨道。
+     * 字幕流选择（优先英语、回退第一条文本字幕）由 FFmpeg 服务层一次性完成，
+     * 不再采用“跑失败再重试下一条轨道”的猜测式两段回退。
      * 用户取消必须继续向上抛出，由任务流程标记为已取消。
      *
      * @param taskId 转换任务 ID。
@@ -228,28 +229,14 @@ export class ConvertServiceImpl implements ConvertService {
         }
 
         try {
-            await this.ffmpegService.extractSubtitles({
+            const extracted = await this.ffmpegService.extractSubtitles({
                 taskId,
                 inputFile,
                 outputFile: subtitleFile,
                 onProgress,
-                en: true,
             });
 
-            if (await this.hasNonEmptyFile(subtitleFile)) {
-                return true;
-            }
-
-            await this.fileSystemGateway.removeFileIfExists(subtitleFile);
-            await this.ffmpegService.extractSubtitles({
-                taskId,
-                inputFile,
-                outputFile: subtitleFile,
-                onProgress,
-                en: false,
-            });
-
-            if (await this.hasNonEmptyFile(subtitleFile)) {
+            if (extracted && await this.hasNonEmptyFile(subtitleFile)) {
                 return true;
             }
 

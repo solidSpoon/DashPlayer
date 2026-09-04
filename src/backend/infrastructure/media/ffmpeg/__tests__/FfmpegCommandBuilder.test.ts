@@ -66,6 +66,40 @@ describe('DefaultFfmpegCommandBuilder', () => {
         expect(args).toContain('64k');
     });
 
+    it('裁剪视频缩放时应取偶数高度并强制 yuv420p，避免奇数高度编码报错', () => {
+        const args = builder.buildTrimVideo({
+            inputFile: '/in.mp4',
+            outputFile: '/out.mp4',
+            startSecond: 1,
+            endSecond: 3,
+            outputWidth: 641,
+            videoPreset: 'veryfast',
+        });
+
+        expect(args).toContain('-vf');
+        expect(args).toContain('scale=641:-2');
+        expect(args).toContain('-pix_fmt');
+        expect(args).toContain('yuv420p');
+        expect(args).toContain('-preset');
+        expect(args).toContain('veryfast');
+    });
+
+    it('提取字幕时应只映射探测选定的单条字幕流', () => {
+        const args = builder.buildExtractSubtitle({
+            inputFile: '/in.mkv',
+            outputFile: '/out.srt',
+            streamIndex: 2,
+        });
+
+        expect(args).toEqual([
+            '-y',
+            '-i', '/in.mkv',
+            '-map', '0:2',
+            '-c:s', 'srt',
+            '/out.srt',
+        ]);
+    });
+
     it('生成 jpg 缩略图时应注入 qscale 参数', () => {
         const args = builder.buildThumbnail({
             inputFile: '/input.mp4',
@@ -91,24 +125,16 @@ describe('DefaultFfmpegCommandBuilder', () => {
         expect(args).not.toContain('-q:v');
     });
 
-    it('音频分段时长小于等于零时应抛错', () => {
-        expect(() => {
-            builder.buildSplitAudio({
-                inputFile: '/in.mp4',
-                segmentSecond: 0,
-                outputPattern: '/tmp/seg_%03d.mp3',
-            });
-        }).toThrow('音频分段时长必须大于 0 秒');
-    });
-
-    it('构建转 mp4 参数时应包含默认编码器', () => {
+    it('构建转 mp4 参数时应包含浏览器兼容所需的像素格式与 faststart', () => {
         const args = builder.buildToMp4('/in.mkv', '/out.mp4');
 
         expect(args).toEqual([
             '-y',
             '-i', '/in.mkv',
             '-c:v', 'libx264',
+            '-pix_fmt', 'yuv420p',
             '-c:a', 'aac',
+            '-movflags', '+faststart',
             '/out.mp4',
         ]);
     });

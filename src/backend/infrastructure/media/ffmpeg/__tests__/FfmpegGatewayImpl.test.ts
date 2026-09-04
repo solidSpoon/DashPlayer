@@ -52,7 +52,6 @@ function createGateway(probeStdout = JSON.stringify({ format: { duration: 66.6 }
         buildTrimVideo: vi.fn(() => ['-trim-video']),
         buildThumbnail: vi.fn(() => ['-thumbnail']),
         buildExtractSubtitle: vi.fn(() => ['-extract-sub']),
-        buildSplitAudio: vi.fn(() => ['-split-audio']),
         buildToMp4: vi.fn(() => ['-to-mp4']),
         buildMkvToMp4: vi.fn(() => ['-mkv-to-mp4']),
         buildConvertToWav: vi.fn(() => ['-to-wav']),
@@ -217,6 +216,71 @@ describe('FfmpegGatewayImpl', () => {
 
         expect(deps.runMock).not.toHaveBeenCalled();
         expect(deps.startMock.mock.calls[0][0].inputDurationSecond).toBe(99);
+    });
+
+    it('extractSubtitles 有偏好语言的文本字幕时应优先选它并返回 true', async () => {
+        const { gateway, deps } = createGateway(JSON.stringify({
+            format: { duration: 66.6 },
+            streams: [
+                { index: 0, codec_type: 'video', codec_name: 'h264' },
+                { index: 1, codec_type: 'audio', codec_name: 'aac' },
+                { index: 2, codec_type: 'subtitle', codec_name: 'subrip', tags: { language: 'chi' } },
+                { index: 3, codec_type: 'subtitle', codec_name: 'subrip', tags: { language: 'eng' } },
+            ],
+        }));
+
+        const extracted = await gateway.extractSubtitles({
+            inputFile: inputFilePath,
+            outputFile: path.join(workDir, 'out.srt'),
+            preferLanguage: 'eng',
+        });
+
+        expect(extracted).toBe(true);
+        expect(deps.commandBuilder.buildExtractSubtitle).toHaveBeenCalledWith({
+            inputFile: inputFilePath,
+            outputFile: path.join(workDir, 'out.srt'),
+            streamIndex: 3,
+        });
+        expect(deps.startMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('extractSubtitles 只有图形字幕时应返回 false 且不启动 ffmpeg', async () => {
+        const { gateway, deps } = createGateway(JSON.stringify({
+            format: { duration: 66.6 },
+            streams: [
+                { index: 0, codec_type: 'video', codec_name: 'h264' },
+                { index: 1, codec_type: 'subtitle', codec_name: 'hdmv_pgs_subtitle', tags: { language: 'eng' } },
+            ],
+        }));
+
+        const extracted = await gateway.extractSubtitles({
+            inputFile: inputFilePath,
+            outputFile: path.join(workDir, 'out.srt'),
+        });
+
+        expect(extracted).toBe(false);
+        expect(deps.startMock).not.toHaveBeenCalled();
+    });
+
+    it('extractSubtitles 无偏好语言匹配时应回退第一条文本字幕', async () => {
+        const { gateway, deps } = createGateway(JSON.stringify({
+            format: { duration: 66.6 },
+            streams: [
+                { index: 2, codec_type: 'subtitle', codec_name: 'subrip' },
+                { index: 3, codec_type: 'subtitle', codec_name: 'ass', tags: { language: 'eng' } },
+            ],
+        }));
+
+        const extracted = await gateway.extractSubtitles({
+            inputFile: inputFilePath,
+            outputFile: path.join(workDir, 'out.srt'),
+            preferLanguage: 'jpn',
+        });
+
+        expect(extracted).toBe(true);
+        expect(deps.commandBuilder.buildExtractSubtitle).toHaveBeenCalledWith(
+            expect.objectContaining({ streamIndex: 2 }),
+        );
     });
 
     it('应把 runner 进度回调映射为向下取整的百分比', async () => {
