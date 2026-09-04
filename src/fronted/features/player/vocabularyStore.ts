@@ -1,5 +1,7 @@
 /**
  * 管理播放器生词表、词形映射和基于词形的命中判断。
+ *
+ * 词表以 Set 存储：字幕每个词渲染都会查询命中，数组扫描在词表较大时是热路径瓶颈。
  */
 import { create } from 'zustand';
 import { useStoreWithEqualityFn } from 'zustand/traditional';
@@ -7,8 +9,10 @@ import { useStoreWithEqualityFn } from 'zustand/traditional';
 type VocabularyFormsMap = Record<string, string>;
 
 interface VocabularyState {
-    vocabularyWords: string[]; // 缓存的词汇单词数组（基础形态）
-    vocabularyForms: VocabularyFormsMap; // 记录不同形态 -> 基础形态的映射
+    /** 生词基础形态集合。 */
+    vocabularyWords: Set<string>;
+    /** 不同形态 -> 基础形态的映射。 */
+    vocabularyForms: VocabularyFormsMap;
     version: number;
     setVocabularyWords: (words: string[]) => void;
     setVocabularyForms: (forms: VocabularyFormsMap) => void;
@@ -26,20 +30,19 @@ const normalizeWord = (word: string): string | null => {
     return normalized.length > 0 ? normalized : null;
 };
 
-const uniqueArray = (words: string[]): string[] => {
-    const set = new Set(words);
-    return Array.from(set);
-};
-
 const useVocabularyStore = create<VocabularyState>((set, get) => ({
-    vocabularyWords: [],
+    vocabularyWords: new Set<string>(),
     vocabularyForms: {},
     version: 0,
 
     setVocabularyWords: (words: string[]) => {
-        const normalized = uniqueArray(
-            words.map(normalizeWord).filter((word): word is string => !!word)
-        );
+        const normalized = new Set<string>();
+        for (const word of words) {
+            const cleaned = normalizeWord(word);
+            if (cleaned) {
+                normalized.add(cleaned);
+            }
+        }
         set((state) => ({
             vocabularyWords: normalized,
             version: state.version + 1
@@ -71,7 +74,10 @@ const useVocabularyStore = create<VocabularyState>((set, get) => ({
         }
 
         set((state) => {
-            const combined = uniqueArray([...state.vocabularyWords, ...normalized]);
+            const combined = new Set(state.vocabularyWords);
+            for (const word of normalized) {
+                combined.add(word);
+            }
             return {
                 vocabularyWords: combined,
                 version: state.version + 1
@@ -81,7 +87,7 @@ const useVocabularyStore = create<VocabularyState>((set, get) => ({
 
     clearVocabularyWords: () => {
         set((state) => ({
-            vocabularyWords: [],
+            vocabularyWords: new Set<string>(),
             vocabularyForms: {},
             version: state.version + 1
         }));
@@ -96,7 +102,7 @@ const useVocabularyStore = create<VocabularyState>((set, get) => ({
         if (vocabularyForms[normalized]) {
             return true;
         }
-        return vocabularyWords.includes(normalized);
+        return vocabularyWords.has(normalized);
     },
 
     getBaseWord: (word: string) => {
@@ -108,7 +114,7 @@ const useVocabularyStore = create<VocabularyState>((set, get) => ({
         if (vocabularyForms[normalized]) {
             return vocabularyForms[normalized];
         }
-        return vocabularyWords.includes(normalized) ? normalized : undefined;
+        return vocabularyWords.has(normalized) ? normalized : undefined;
     }
 	}));
 
