@@ -39,39 +39,26 @@ export default interface FfmpegService {
 
     duration(filePath: string): Promise<number>;
 
+    /**
+     * 生成缩略图；截图点超出视频长度时自动钳制到结尾前，时长由方法自行探测。
+     */
     thumbnail({
                   inputFile,
                   outputFileName,
                   outputFolder,
                   time,
-                  inputDuration,
                   options
               }: {
         inputFile: string,
         outputFileName: string,
         outputFolder: string,
         time: number,
-        inputDuration?: number,
         options?: {
             quality?: 'low' | 'medium' | 'high' | 'ultra';
             width?: number;
             format?: 'jpg' | 'png';
         }
     }): Promise<void>;
-
-    splitToAudio({
-                     taskId,
-                     inputFile,
-                     outputFolder,
-                     segmentTime,
-                     onProgress
-                 }: {
-        taskId: number,
-        inputFile: string,
-        outputFolder: string,
-        segmentTime: number,
-        onProgress?: (progress: number) => void
-    }): Promise<string[]>;
 
     toMp4({
               inputFile,
@@ -133,16 +120,6 @@ export default interface FfmpegService {
      * 按时间范围裁剪音频并转码为 MP3。
      */
     trimAudio(inputPath: string, startTime: number, endTime: number, outputPath: string): Promise<void>;
-
-    /**
-     * 按 VAD 时间线批量切段音频。
-     */
-    splitAudioByTimeline(args: {
-        inputFile: string,
-        ranges: Array<{ start: number, end: number }>,
-        outputFolder: string,
-        outputFilePrefix?: string
-    }): Promise<string[]>;
 }
 
 
@@ -242,7 +219,7 @@ export class FfmpegServiceImpl implements FfmpegService {
     }
 
     /**
-     * 生成缩略图。
+     * 生成缩略图；截图点超出视频长度时自动钳制到结尾前。
      */
     @WithSemaphore('ffmpeg')
     public async thumbnail({
@@ -250,14 +227,12 @@ export class FfmpegServiceImpl implements FfmpegService {
                                outputFileName,
                                outputFolder,
                                time,
-                               inputDuration,
                                options = {},
                            }: {
         inputFile: string,
         outputFileName: string,
         outputFolder: string,
         time: number,
-        inputDuration?: number,
         options?: {
             quality?: 'low' | 'medium' | 'high' | 'ultra';
             width?: number;
@@ -266,12 +241,14 @@ export class FfmpegServiceImpl implements FfmpegService {
     }): Promise<void> {
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputFile);
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(outputFolder);
-        const totalDuration = Number.isFinite(inputDuration) ? Number(inputDuration) : await this.duration(inputFile);
-        const actualTime = Math.min(time, totalDuration);
 
         if (!fs.existsSync(outputFolder)) {
             fs.mkdirSync(outputFolder, { recursive: true });
         }
+
+        // 时长由方法自行探测，截图点钳制到视频结尾前，避免超出时长后 ffmpeg 静默产出空图。
+        const totalDuration = await this.duration(inputFile);
+        const actualTime = Math.min(time, totalDuration);
 
         const outputFile = path.join(outputFolder, outputFileName);
         const qualitySettings: Record<'low' | 'medium' | 'high' | 'ultra', { width: number; jpgQScale: number }> = {
@@ -292,49 +269,7 @@ export class FfmpegServiceImpl implements FfmpegService {
                 format: options.format ?? 'jpg',
                 jpgQScale: preset.jpgQScale,
             },
-            {
-                inputDurationSecond: totalDuration,
-            },
         );
-    }
-
-    /**
-     * 分割为音频文件。
-     */
-    @WithSemaphore('ffmpeg')
-    public async splitToAudio({
-                                  taskId,
-                                  inputFile,
-                                  outputFolder,
-                                  segmentTime,
-                                  onProgress,
-                              }: {
-        taskId?: number,
-        inputFile: string,
-        outputFolder: string,
-        segmentTime: number,
-        onProgress?: (percent: number) => void,
-    }): Promise<string[]> {
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputFile);
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(outputFolder);
-        const outputPattern = path.join(outputFolder, 'output_%03d.mp3');
-
-        await this.runCancelableTask(taskId, async (onCancelable) => {
-            await this.ffmpegGateway.splitAudio(
-                {
-                    inputFile,
-                    segmentSecond: segmentTime,
-                    outputPattern,
-                },
-                {
-                    onProgress,
-                    onCancelable,
-                    job: dpTaskJob(taskId),
-                },
-            );
-        });
-
-        return await this.getOutputFiles(outputFolder, 'output_', '.mp3');
     }
 
     /**
@@ -349,7 +284,10 @@ export class FfmpegServiceImpl implements FfmpegService {
         onProgress?: (progress: number) => void,
     }): Promise<string> {
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputFile);
-        const outputFile = inputFile.replace(path.extname(inputFile), '.mp4');
+        const outputFile = path.join(
+            path.dirname(inputFile),
+            `${path.basename(inputFile, path.extname(inputFile))}.mp4`,
+        );
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(outputFile);
 
         await this.ffmpegGateway.toMp4(inputFile, outputFile, { onProgress });
@@ -497,36 +435,6 @@ export class FfmpegServiceImpl implements FfmpegService {
     }
 
     /**
-     * 基于时间线批量切段音频。
-     */
-    @WithSemaphore('ffmpeg')
-    public async splitAudioByTimeline(args: {
-        inputFile: string,
-        ranges: Array<{ start: number, end: number }>,
-        outputFolder: string,
-        outputFilePrefix?: string,
-    }): Promise<string[]> {
-        const { inputFile, ranges } = args;
-        const prefix = args.outputFilePrefix ?? 'segment_';
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputFile);
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(args.outputFolder);
-
-        if (!fs.existsSync(args.outputFolder)) {
-            await fs.promises.mkdir(args.outputFolder, { recursive: true });
-        }
-
-        const outputs: string[] = [];
-        for (let index = 0; index < ranges.length; index++) {
-            const range = ranges[index];
-            const outputPath = path.join(args.outputFolder, `${prefix}${String(index + 1).padStart(3, '0')}.mp3`);
-            await this.trimAudio(inputFile, range.start, range.end, outputPath);
-            outputs.push(outputPath);
-        }
-
-        return outputs;
-    }
-
-    /**
      * 将媒体直接裁剪并转换为语音识别需要的 WAV 分片，避免有损中间格式和嵌套信号量。
      * @param args 输入媒体、分片时间范围和输出目录。
      * @returns 与时间范围顺序一致的 WAV 文件路径。
@@ -615,16 +523,5 @@ export class FfmpegServiceImpl implements FfmpegService {
         }
 
         return error;
-    }
-
-    /**
-     * 获取输出文件列表。
-     */
-    private async getOutputFiles(outputFolder: string, prefix: string, ext?: string): Promise<string[]> {
-        const files = await fs.promises.readdir(outputFolder);
-        return files
-            .filter(file => file.startsWith(prefix) && (ext ? file.endsWith(ext) : true))
-            .sort()
-            .map(file => path.join(outputFolder, file));
     }
 }
