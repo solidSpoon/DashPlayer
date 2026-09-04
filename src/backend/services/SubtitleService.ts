@@ -104,6 +104,16 @@ export default interface SubtitleService {
     ): Promise<SubtitleVocabularyMatchResult>;
 
     /**
+     * 将任意英文文本解析为前端展示结构（分词、lemma、词性）。
+     *
+     * 用于非字幕文件场景（如收藏片段列表）获取与播放器一致的单词级结构。
+     *
+     * @param texts 待解析文本数组，返回结果与入参顺序一一对应。
+     * @returns 结构化句子数组。
+     */
+    parseStructs(texts: string[]): SentenceStruct[];
+
+    /**
      * 词表变化后清除共享字幕生词分析缓存。
      */
     invalidateVocabularyAnalysisCache(): void;
@@ -359,6 +369,11 @@ export class SubtitleServiceImpl implements SubtitleService {
      */
     public invalidateVocabularyAnalysisCache(): void {
         this.vocabularyAnalysisService.invalidate();
+    }
+
+    /** {@inheritDoc SubtitleService.parseStructs} */
+    public parseStructs(texts: string[]): SentenceStruct[] {
+        return texts.map((text) => this.processSentence(text));
     }
 
     /**

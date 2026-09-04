@@ -59,14 +59,17 @@ export function srtLineToSentence(
  * @param clipSrtLines 片段字幕行。
  * @param videoPath 源视频路径。
  * @param clipKey 片段稳定键，用作文件哈希。
+ * @param structs 可选的句法解析结果，与 clipSrtLines 顺序一一对应；
+ *        未提供时退化为无分词结构（整句纯文本渲染，不具备单词级交互）。
  * @returns 播放器句子数组。
  */
 export function clipLinesToSentences(
     clipSrtLines: ClipSrtLine[],
     videoPath: string,
-    clipKey: string
+    clipKey: string,
+    structs?: SentenceStruct[]
 ): Sentence[] {
-    return clipSrtLines.map((line) => ({
+    return clipSrtLines.map((line, position) => ({
         fileHash: clipKey,
         filePath: videoPath,
         index: line.index,
@@ -79,6 +82,6 @@ export function clipLinesToSentences(
         key: `${clipKey}-${line.index}`,
         transGroup: 1,
         translationKey: `${clipKey}:${line.index}`,
-        struct: { original: line.contentEn, blocks: [] } as SentenceStruct
+        struct: structs?.[position] ?? ({ original: line.contentEn, blocks: [] } as SentenceStruct)
     }));
 }

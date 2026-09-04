@@ -23,7 +23,7 @@ const FavouriteMainSrt = () => {
           className="w-full max-w-full text-base sm:text-lg md:text-xl font-medium tracking-tight text-foreground leading-relaxed break-words whitespace-normal px-2 text-center"
           wordClassNames={{
             hover: 'hover:bg-primary/20 rounded px-0.5 transition-colors',
-            vocab: '!text-purple-600 dark:!text-purple-400 !underline !decoration-purple-500 !decoration-1 !bg-purple-500/10 px-1 py-0.5 rounded font-semibold hover:!bg-purple-500/25'
+            vocab: 'text-purple-700 dark:text-purple-400 font-medium underline decoration-purple-500/50 dark:decoration-purple-400/40 decoration-[1.5px] underline-offset-[0.22em] rounded px-0.5 transition-colors duration-150 hover:bg-purple-500/10 dark:hover:bg-purple-400/10 hover:decoration-purple-600 dark:hover:decoration-purple-300'
           }}
         />
       </div>

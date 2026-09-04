@@ -19,6 +19,7 @@ import TimeUtil from '@/common/utils/TimeUtil';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { favouriteApi } from '@/fronted/features/favourite/favouriteApi';
+import { playerApi } from '@/fronted/features/player/playerApi';
 
 const logger = getRendererLogger('FavouritePlayer');
 
@@ -88,14 +89,29 @@ const FavouritePlayer = () => {
 
     if (!isSameClip) {
       playerActions.setSource(videoUrl);
-
-      if (video.clip_content) {
-        const sentencesConv = clipLinesToSentences(video.clip_content, videoKey, videoKey);
-        playerActions.loadSubtitles(sentencesConv);
-      }
       loadedKeyRef.current = videoKey;
       window.setTimeout(() => setReady(false), 0);
       bootOnceRef.current = false;
+
+      if (video.clip_content) {
+        const clipContent = video.clip_content;
+        // 先向后端取回句法结构，再加载字幕，使当前句支持单词级词典弹窗与生词高亮。
+        playerApi.parseTextStructs(clipContent.map((line) => line.contentEn))
+          .then((structs) => {
+            // 解析期间可能已切到其它片段，迟到结果不再加载。
+            if (loadedKeyRef.current !== videoKey) {
+              return;
+            }
+            const sentencesConv = clipLinesToSentences(clipContent, videoKey, videoKey, structs);
+            playerActions.loadSubtitles(sentencesConv);
+          })
+          .catch((error) => {
+            logger.error('failed to parse clip sentence structs', {
+              videoKey,
+              error: error instanceof Error ? error.message : error
+            });
+          });
+      }
       logger.debug('Loaded new clip', { key: videoKey });
     } else {
       if (ready) {
