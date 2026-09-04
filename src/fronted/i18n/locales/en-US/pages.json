@@ -23,6 +23,11 @@
             "error": "Failed to restore. Please try again later.",
             "button": "Restore Vocabulary Studio Clips from Local"
         },
+        "fetchWordsFailed": "Failed to load words",
+        "exportSuccess": "Template downloaded",
+        "exportFailed": "Export failed, please retry",
+        "importSuccess": "Import completed, vocabulary clips synced",
+        "importFailed": "Import failed, please retry",
         "empty": {
             "title": "No Vocabulary Studio clips yet",
             "guideAdd": "Use \"Extract vocabulary clips\" in the player to generate study cuts for target words, then review them here.",
