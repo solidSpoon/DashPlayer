@@ -2,11 +2,15 @@
 name: Release app
 on:
   workflow_dispatch:
+  push:
+    tags: ['v*']
 permissions:
   contents: write
 jobs:
   build:
     strategy:
+      # 某个平台构建失败时，其他平台继续构建发布，不互相拖累
+      fail-fast: false
       matrix:
         os:
           [

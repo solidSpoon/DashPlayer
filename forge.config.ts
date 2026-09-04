@@ -121,7 +121,6 @@ const config: ForgeConfig = {
             name: '@electron-forge/publisher-github',
             config: {
                 repository: { owner: 'solidSpoon', name: 'DashPlayer' },
-                prerelease: true,
             },
         },
     ],

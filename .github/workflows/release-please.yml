@@ -1,0 +1,22 @@
+name: Release Please
+
+# 监听 main 分支：合并功能 PR 后，由 Release Please 根据提交信息攒"发版 PR"
+# （内含版本号 bump 与 CHANGELOG 更新）；合并发版 PR 后自动打 tag 并创建 GitHub Release，
+# tag 推送会触发 release.yml 的四平台构建，产物自动挂到该 Release 上。
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Run release-please
+        uses: googleapis/release-please-action@v4
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
