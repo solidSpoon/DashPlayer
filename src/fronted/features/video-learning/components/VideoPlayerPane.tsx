@@ -6,7 +6,7 @@ import { AspectRatio } from '@/fronted/components/ui/aspect-ratio';
 import VideoPlayerShortcut from './VideoPlayerShortcut';
 import PlayerEngine from '@/fronted/features/player/components/PlayerEngine';
 import { usePlayerState } from '@/fronted/features/player/playerState';
-import { convertClipSrtLinesToSentences } from '@/fronted/lib/clipToSentenceConverter';
+import { clipLinesToSentences } from '@/common/utils/subtitle';
 import { useVocabularyState } from '@/fronted/features/player/vocabularyStore';
 import { Sentence } from '@/common/types/SentenceC';
 import { ClipSrtLine } from '@/common/types/clipMeta';
@@ -160,7 +160,7 @@ export default function VideoPlayerPane({
       const videoUrl = clip.videoPath ? UrlUtil.toUrl(clip.videoPath) : '';
       setSource(videoUrl);
 
-      const sentencesConverted = convertClipSrtLinesToSentences(clip.clipContent, clip.videoPath, clip.key);
+      const sentencesConverted = clipLinesToSentences(clip.clipContent, clip.videoPath, clip.key);
       loadSubtitles(sentencesConverted);
 
       playerReadyRef.current = false;

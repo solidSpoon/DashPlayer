@@ -8,7 +8,7 @@ import SrtTimeAdjustService from '@/backend/services/SrtTimeAdjustService';
 import CacheService from '@/backend/services/CacheService';
 import { SubtitleTimestampAdjustment } from '@/common/contracts/subtitle-timestamp-adjustment';
 import { ObjUtil } from '@/backend/utils/ObjUtil';
-import { parseSrt, parseAss, SrtLine } from '@/common/utils/subtitle';
+import { parseSrt, parseAss, srtLineToSentence, SrtLine } from '@/common/utils/subtitle';
 import MediaUtil from '@/common/utils/MediaUtil';
 import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
@@ -110,19 +110,6 @@ export default interface SubtitleService {
 }
 
 
-/**
- * 生成 renderer 定位键。
- * 说明：后端回推译文时前端靠它找到对应句子；翻译缓存已改为按句子内容派生键，
- * 该键不参与数据库寻址。
- *
- * @param fileHash 字幕文件哈希。
- * @param index 当前句索引。
- * @returns renderer 定位键。
- */
-function generateTranslationKey(fileHash: string, index: number): string {
-    return `${fileHash}:${index}`;
-}
-
 function groupSentence(
     subtitle: Sentence[],
     batch: number,
@@ -199,20 +186,9 @@ export class SubtitleServiceImpl implements SubtitleService {
             };
         }
         const lines: SrtLine[] = MediaUtil.isAss(path) ? parseAss(content) : parseSrt(content);
-        const subtitles = lines.map<Sentence>((line, index) => ({
-            fileHash: hashKey,
-            index: index,
-            start: line.start,
-            end: line.end,
-            adjustedStart: null,
-            adjustedEnd: null,
-            text: line.contentEn,
-            textZH: line.contentZh,
-            key: `${hashKey}-${index}`,
-            transGroup: 0,
-            translationKey: generateTranslationKey(hashKey, index),
-            struct: this.processSentence(line.contentEn)
-        }));
+        const subtitles = lines.map<Sentence>((line, index) =>
+            srtLineToSentence(line, hashKey, this.processSentence(line.contentEn), index)
+        );
         groupSentence(subtitles, 20, (s, index) => {
             s.transGroup = index;
         });
@@ -246,20 +222,7 @@ export class SubtitleServiceImpl implements SubtitleService {
             if (cached) {
                 return cached;
             }
-            return {
-                fileHash: identityOverride,
-                index: line.index,
-                start: line.start,
-                end: line.end,
-                adjustedStart: null,
-                adjustedEnd: null,
-                text: line.contentEn,
-                textZH: line.contentZh,
-                key: `${identityOverride}-${line.index}`,
-                transGroup: 0,
-                translationKey: generateTranslationKey(identityOverride, line.index),
-                struct: this.processSentence(line.contentEn)
-            };
+            return srtLineToSentence(line, identityOverride, this.processSentence(line.contentEn), line.index);
         });
         groupSentence(subtitles, 20, (s, index) => {
             s.transGroup = index;

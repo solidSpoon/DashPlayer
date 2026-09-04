@@ -3,6 +3,7 @@
 
 import {ChapterParseResult} from "@/common/types/chapter-result";
 import TimeUtil from "@/common/utils/TimeUtil";
+import { timeTextToSeconds } from "@/common/utils/subtitle";
 import StrUtil from '@/common/utils/str-util';
 
 
@@ -34,8 +35,8 @@ function parseChapter(str: string) {
     // 开始时间必须小于结束时间
     for (let i = 0; i < lines.length; i++) {
 
-        const startSecond = TimeUtil.parseDuration(lines[i].timestampStart);
-        const endSecond = TimeUtil.parseDuration(lines[i].timestampEnd)
+        const startSecond = timeTextToSeconds(lines[i].timestampStart);
+        const endSecond = timeTextToSeconds(lines[i].timestampEnd)
         if (startSecond > endSecond - 60) {
             lines[i].timestampValid = false;
         }
@@ -56,8 +57,8 @@ function parseLine(line: string): ChapterParseResult {
     }
 
     return {
-        timestampStart: TimeUtil.secondToTimeStr(TimeUtil.parseDuration(timestamp)),
-        timestampEnd: TimeUtil.secondToTimeStr(TimeUtil.parseDuration(timestamp)),
+        timestampStart: TimeUtil.secondToTimeStr(timeTextToSeconds(timestamp)),
+        timestampEnd: TimeUtil.secondToTimeStr(timeTextToSeconds(timestamp)),
         timestampValid: true,
         title,
         original: line

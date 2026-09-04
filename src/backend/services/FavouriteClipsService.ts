@@ -12,8 +12,8 @@ import { ClipOssService } from '@/backend/services/OssService';
 import CollUtil from '@/common/utils/CollUtil';
 import FfmpegService from '@/backend/services/FfmpegService';
 import { concurrency } from '@/backend/utils/concurrency';
-import { ClipMeta, ClipSrtLine, OssBaseMeta } from '@/common/types/clipMeta';
-import { sentenceToSrtLine, getAroundLines, findByIndex, serializeSrt, SrtLine } from '@/common/utils/subtitle';
+import { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';
+import { buildClipContext } from '@/common/utils/subtitle';
 import { Tag } from '@/common/contracts/tag';
 import FavouriteClipsRepository, { FavouriteClipsReplaceAllItem } from '@/backend/services/repositories/FavouriteClipsRepository';
 import StorageDirectoryProvider, {
@@ -198,11 +198,8 @@ export class FavouriteClipsServiceImpl implements FavouriteClipsService {
         if (!srt) {
             throw new Error(ErrorConstants.CACHE_NOT_FOUND);
         }
-        const srtLines: SrtLine[] = srt.sentences
-            .map((sentence) => sentenceToSrtLine(sentence));
-        const clipContext = getAroundLines(srtLines, indexInSrt, 5);
-        const contentSrtStr = serializeSrt(clipContext);
-        return hash(contentSrtStr);
+        const { contentSrt } = buildClipContext(srt.sentences, indexInSrt);
+        return hash(contentSrt);
     }
 
     /**
@@ -344,42 +341,24 @@ export class FavouriteClipsServiceImpl implements FavouriteClipsService {
     }
 
     private mapTrimRange(srt: SrtSentence, indexInSrt: number): [number, number] {
-        const srtLines: SrtLine[] = srt.sentences
-            .map((sentence) => sentenceToSrtLine(sentence));
-        const clipContext = getAroundLines(srtLines, indexInSrt, 5);
-        const startTime = clipContext[0].start ?? 0;
-        return [startTime, clipContext[clipContext.length - 1].end ?? 0];
+        const { startTime, endTime } = buildClipContext(srt.sentences, indexInSrt);
+        return [startTime, endTime];
     }
 
     private mapToMetaKey(srt: SrtSentence, indexInSrt: number): string {
-        const srtLines: SrtLine[] = srt.sentences
-            .map((sentence) => sentenceToSrtLine(sentence));
-        const clipContext = getAroundLines(srtLines, indexInSrt, 5);
-        const contentSrtStr = serializeSrt(clipContext);
-        return hash(contentSrtStr);
+        const { contentSrt } = buildClipContext(srt.sentences, indexInSrt);
+        return hash(contentSrt);
     }
 
     private mapToMetaData(videoPath: string, srt: SrtSentence, indexInSrt: number): ClipMeta {
-        const srtLines: SrtLine[] = srt.sentences
-            .map((sentence) => sentenceToSrtLine(sentence));
-        const clipContext = getAroundLines(srtLines, indexInSrt, 5);
-        const clipLine = findByIndex(srtLines, indexInSrt) as SrtLine;
-        const startTime = clipContext[0].start ?? 0;
-        const clipJson: ClipSrtLine[] = clipContext.map((item, index) => ({
-            index: index,
-            start: item.start - startTime,
-            end: item.end - startTime,
-            contentEn: item.contentEn,
-            contentZh: item.contentZh,
-            isClip: item === clipLine
-        }));
+        const { clipLines } = buildClipContext(srt.sentences, indexInSrt);
         return {
             clip_file: '',
             thumbnail_file: '',
             tags: [],
             video_name: videoPath,
             created_at: Date.now(),
-            clip_content: clipJson
+            clip_content: clipLines
         };
     }
 

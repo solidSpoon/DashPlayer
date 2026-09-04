@@ -14,7 +14,7 @@ import VideoPlayerShortcut from '@/fronted/features/video-learning/components/Vi
 import { Button } from '@/fronted/components/ui/button';
 import { Play, Pause, RotateCcw, SkipBack, SkipForward } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
-import { convertClipSrtLinesToSentences } from '@/fronted/lib/clipToSentenceConverter';
+import { clipLinesToSentences } from '@/common/utils/subtitle';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { favouriteApi } from '@/fronted/features/favourite/favouriteApi';
@@ -95,7 +95,7 @@ const FavouritePlayer = () => {
       playerActions.setSource(videoUrl);
 
       if (video.clip_content) {
-        const sentencesConv = convertClipSrtLinesToSentences(video.clip_content, videoKey, videoKey);
+        const sentencesConv = clipLinesToSentences(video.clip_content, videoKey, videoKey);
         playerActions.loadSubtitles(sentencesConv);
       }
       loadedKeyRef.current = videoKey;

@@ -2,6 +2,7 @@ import { ChildProcess, spawn } from 'child_process';
 import { FfmpegExecutionError } from '@/backend/services/gateways/media/FfmpegGateway';
 import { CancelByUserError } from '@/backend/utils/errors/errors';
 import { OutputTail } from '@/backend/utils/output-tail';
+import { timeTextToSeconds } from '@/common/utils/subtitle';
 
 /**
  * FFmpeg 执行请求。
@@ -175,13 +176,10 @@ export class FfmpegProcessRunner {
      * 从 stderr 行中解析进度时间并估算百分比。
      */
     private tryParseProgress(line: string, inputDurationSecond?: number): FfmpegProgressEvent | null {
-        const timeMatch = /time=(\d{2}):(\d{2}):(\d{2}(?:\.\d+)?)/.exec(line);
+        const timeMatch = /time=(\d{2}:\d{2}:\d{2}(?:\.\d+)?)/.exec(line);
         if (!timeMatch) return null;
 
-        const hour = Number(timeMatch[1]);
-        const minute = Number(timeMatch[2]);
-        const second = Number(timeMatch[3]);
-        const timeSecond = hour * 3600 + minute * 60 + second;
+        const timeSecond = timeTextToSeconds(timeMatch[1]);
         const durationSecond = inputDurationSecond;
 
         if (typeof durationSecond !== 'number' || !Number.isFinite(durationSecond) || durationSecond <= 0) {

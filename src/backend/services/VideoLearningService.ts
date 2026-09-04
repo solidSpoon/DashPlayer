@@ -6,7 +6,7 @@ import VideoLearningClipWordRepository, { WordClipStats } from '@/backend/servic
 import ErrorConstants from '@/common/constants/error-constants';
 import TimeUtil from '@/common/utils/TimeUtil';
 import StrUtil from '@/common/utils/str-util';
-import { sentenceToSrtLine, getAroundLines, findByIndex, SrtLine } from '@/common/utils/subtitle';
+import { buildClipContext } from '@/common/utils/subtitle';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import { getMainLogger } from '@/backend/infrastructure/logger';
@@ -414,10 +414,7 @@ export class VideoLearningServiceImpl implements VideoLearningService {
      * @returns 裁切开始和结束时间。
      */
     private mapTrimRange(srt: SrtCache, indexInSrt: number): [number, number] {
-        const srtLines: SrtLine[] = srt.sentences.map((sentence) => sentenceToSrtLine(sentence));
-        const clipContext = getAroundLines(srtLines, indexInSrt, 5);
-        const startTime = clipContext[0].start ?? 0;
-        const endTime = clipContext[clipContext.length - 1].end ?? 0;
+        const { startTime, endTime } = buildClipContext(srt.sentences, indexInSrt);
         return [startTime, endTime];
     }
 
@@ -432,19 +429,7 @@ export class VideoLearningServiceImpl implements VideoLearningService {
      * @returns 片段元数据。
      */
     private mapToMetaData(videoPath: string, srt: SrtCache, indexInSrt: number): ClipMeta {
-        const srtLines: SrtLine[] = srt.sentences.map((sentence) => sentenceToSrtLine(sentence));
-        const clipContext = getAroundLines(srtLines, indexInSrt, 5);
-        const clipLine = findByIndex(srtLines, indexInSrt) as SrtLine;
-
-        const startTime = clipContext[0].start ?? 0;
-        const clipJson: ClipSrtLine[] = clipContext.map((item, idx) => ({
-            index: idx,
-            start: (item.start ?? 0) - startTime,
-            end: (item.end ?? 0) - startTime,
-            contentEn: item.contentEn,
-            contentZh: item.contentZh,
-            isClip: (item.start === clipLine.start && item.end === clipLine.end)
-        }));
+        const { clipLines } = buildClipContext(srt.sentences, indexInSrt);
 
         return {
             clip_file: '',
@@ -452,7 +437,7 @@ export class VideoLearningServiceImpl implements VideoLearningService {
             tags: [],
             video_name: videoPath,
             created_at: Date.now(),
-            clip_content: clipJson
+            clip_content: clipLines
         };
     }
 
