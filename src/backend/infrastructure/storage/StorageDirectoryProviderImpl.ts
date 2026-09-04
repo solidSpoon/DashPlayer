@@ -1,6 +1,5 @@
 import {dialog} from 'electron';
 import {inject, injectable} from 'inversify';
-import fsSync from 'fs';
 import fs from 'fs/promises';
 import path from 'path';
 import StorageDirectoryProvider, {
@@ -55,7 +54,7 @@ export default class StorageDirectoryProviderImpl implements StorageDirectoryPro
      */
     public async ensurePathAccessPermissionIfExists(targetPath: string): Promise<void> {
         const resolvedTargetPath = path.resolve(targetPath);
-        const targetType = this.detectExistingPathAccessTargetType(resolvedTargetPath);
+        const targetType = await this.detectExistingPathAccessTargetType(resolvedTargetPath);
         if (targetType === null) {
             return;
         }
@@ -77,7 +76,7 @@ export default class StorageDirectoryProviderImpl implements StorageDirectoryPro
      * @returns 媒体库根目录健康状态。
      */
     public async getRootStatus(configuredPath?: string): Promise<StorageStatusVO> {
-        return getStorageRootStatus(configuredPath);
+        return await getStorageRootStatus(configuredPath);
     }
 
     /**
@@ -86,7 +85,7 @@ export default class StorageDirectoryProviderImpl implements StorageDirectoryPro
      */
     private async ensureStorageRootAccessible(): Promise<string> {
         const configuredPath = this.settingsStore.get('storage.path');
-        let status = getStorageRootStatus(configuredPath);
+        let status = await getStorageRootStatus(configuredPath);
 
         if (status.available) {
             return status.resolvedPath;
@@ -116,7 +115,7 @@ export default class StorageDirectoryProviderImpl implements StorageDirectoryPro
     private async tryCreateMissingRoot(status: StorageStatusVO, configuredPath: string): Promise<StorageStatusVO> {
         try {
             await fs.mkdir(status.resolvedPath, { recursive: true });
-            return getStorageRootStatus(configuredPath);
+            return await getStorageRootStatus(configuredPath);
         } catch {
             return status;
         }
@@ -148,13 +147,13 @@ export default class StorageDirectoryProviderImpl implements StorageDirectoryPro
      */
     private async ensureAccessibleWithRecovery(targetPath: string): Promise<void> {
         const resolvedTargetPath = path.resolve(targetPath);
-        const targetType = this.detectExistingPathAccessTargetType(resolvedTargetPath);
+        const targetType = await this.detectExistingPathAccessTargetType(resolvedTargetPath);
         const recoveryDirectoryPath = targetType === 'directory'
             ? resolvedTargetPath
             : path.dirname(resolvedTargetPath);
         let needsRecheck = true;
         while (needsRecheck) {
-            const status = getDirectoryAccessStatus(recoveryDirectoryPath);
+            const status = await getDirectoryAccessStatus(recoveryDirectoryPath);
             if (status.available) {
                 needsRecheck = false;
                 continue;
@@ -221,7 +220,7 @@ export default class StorageDirectoryProviderImpl implements StorageDirectoryPro
             throw new Error(StorageDirectoryProviderImpl.RECOVER_ACCESS_DIALOG_MESSAGE);
         }
 
-        const recoveredStatus = getDirectoryAccessStatus(directoryPath);
+        const recoveredStatus = await getDirectoryAccessStatus(directoryPath);
         if (!recoveredStatus.available) {
             throw new Error(recoveredStatus.message);
         }
@@ -238,9 +237,9 @@ export default class StorageDirectoryProviderImpl implements StorageDirectoryPro
      * @param targetPath 目标路径。
      * @returns 当前路径访问目标类型。
      */
-    private detectExistingPathAccessTargetType(targetPath: string): StorageAccessTargetType | null {
+    private async detectExistingPathAccessTargetType(targetPath: string): Promise<StorageAccessTargetType | null> {
         try {
-            const stat = fsSync.statSync(targetPath);
+            const stat = await fs.stat(targetPath);
             if (stat.isDirectory()) {
                 return 'directory';
             }

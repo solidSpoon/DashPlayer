@@ -50,7 +50,7 @@ export default class StorageController implements Controller {
      * @returns 可供设置页直接展示的状态信息。
      */
     public async queryStorageStatus(): Promise<StorageStatusVO> {
-        return getStorageRootStatus(this.settingsStore.get('storage.path'));
+        return await getStorageRootStatus(this.settingsStore.get('storage.path'));
     }
 
     /**
