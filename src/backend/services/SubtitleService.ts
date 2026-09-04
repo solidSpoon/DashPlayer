@@ -8,7 +8,7 @@ import SrtTimeAdjustService from '@/backend/services/SrtTimeAdjustService';
 import CacheService from '@/backend/services/CacheService';
 import { SubtitleTimestampAdjustment } from '@/common/contracts/subtitle-timestamp-adjustment';
 import { ObjUtil } from '@/backend/utils/ObjUtil';
-import SrtUtil, {SrtLine} from "@/common/utils/SrtUtil";
+import { parseSrt, parseAss, SrtLine } from '@/common/utils/subtitle';
 import MediaUtil from '@/common/utils/MediaUtil';
 import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
@@ -198,7 +198,7 @@ export class SubtitleServiceImpl implements SubtitleService {
                 sentences: adjustedSentence
             };
         }
-        const lines: SrtLine[] = MediaUtil.isAss(path) ? SrtUtil.parseAss(content) : SrtUtil.parseSrt(content);
+        const lines: SrtLine[] = MediaUtil.isAss(path) ? parseAss(content) : parseSrt(content);
         const subtitles = lines.map<Sentence>((line, index) => ({
             fileHash: hashKey,
             index: index,

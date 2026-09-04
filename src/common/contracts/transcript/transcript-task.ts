@@ -48,7 +48,7 @@ export interface TranscriptChunkResult {
     /** 块在原视频中的结束秒数。 */
     end: number;
     /** 当前块已经生成的字幕句子。 */
-    sentences: import('@/common/utils/SrtUtil').SrtLine[];
+    sentences: import('@/common/utils/subtitle').SrtLine[];
 }
 
 /** 后端向渲染进程推送的单条转录状态更新。 */

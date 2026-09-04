@@ -7,7 +7,7 @@ import FfmpegService from '@/backend/services/FfmpegService';
 import TYPES from '@/backend/ioc/types';
 import { ChapterParseResult } from '@/common/types/chapter-result';
 import MediaUtil from '@/common/utils/MediaUtil';
-import SrtUtil from '@/common/utils/SrtUtil';
+import { parseSrt, parseAss, serializeSrt } from '@/common/utils/subtitle';
 import TimeUtil from '@/common/utils/TimeUtil';
 import parseChapter from '@/common/utils/praser/chapter-parser';
 import StrUtil from '@/common/utils/str-util';
@@ -192,8 +192,8 @@ export class SplitVideoServiceImpl implements SplitVideoService {
     private async splitSubtitle(srtPath: string, splitVideos: string[]): Promise<void> {
         const content = await this.fileSystemGateway.readTextFile(srtPath);
         const subtitles = MediaUtil.isAss(srtPath)
-            ? SrtUtil.parseAss(content)
-            : SrtUtil.parseSrt(content);
+            ? parseAss(content)
+            : parseSrt(content);
 
         let segmentStart = -0.2;
         for (const splitVideo of splitVideos) {
@@ -208,7 +208,7 @@ export class SplitVideoServiceImpl implements SplitVideoService {
                     contentEn: line.contentEn,
                     contentZh: line.contentZh,
                 }));
-            const srtContent = SrtUtil.srtLinesToSrt(lines, { reindex: true });
+            const srtContent = serializeSrt(lines, { reindex: true });
             const subtitlePath = splitVideo.replace(path.extname(splitVideo), '.srt');
             await this.fileSystemGateway.writeTextFile(subtitlePath, srtContent);
             segmentStart = segmentEnd;

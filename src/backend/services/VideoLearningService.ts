@@ -6,7 +6,7 @@ import VideoLearningClipWordRepository, { WordClipStats } from '@/backend/servic
 import ErrorConstants from '@/common/constants/error-constants';
 import TimeUtil from '@/common/utils/TimeUtil';
 import StrUtil from '@/common/utils/str-util';
-import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
+import { sentenceToSrtLine, getAroundLines, findByIndex, SrtLine } from '@/common/utils/subtitle';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import { getMainLogger } from '@/backend/infrastructure/logger';
@@ -414,8 +414,8 @@ export class VideoLearningServiceImpl implements VideoLearningService {
      * @returns 裁切开始和结束时间。
      */
     private mapTrimRange(srt: SrtCache, indexInSrt: number): [number, number] {
-        const srtLines: SrtLine[] = srt.sentences.map((sentence) => SrtUtil.fromSentence(sentence));
-        const clipContext = SrtUtil.getAround(srtLines, indexInSrt, 5);
+        const srtLines: SrtLine[] = srt.sentences.map((sentence) => sentenceToSrtLine(sentence));
+        const clipContext = getAroundLines(srtLines, indexInSrt, 5);
         const startTime = clipContext[0].start ?? 0;
         const endTime = clipContext[clipContext.length - 1].end ?? 0;
         return [startTime, endTime];
@@ -432,9 +432,9 @@ export class VideoLearningServiceImpl implements VideoLearningService {
      * @returns 片段元数据。
      */
     private mapToMetaData(videoPath: string, srt: SrtCache, indexInSrt: number): ClipMeta {
-        const srtLines: SrtLine[] = srt.sentences.map((sentence) => SrtUtil.fromSentence(sentence));
-        const clipContext = SrtUtil.getAround(srtLines, indexInSrt, 5);
-        const clipLine = SrtUtil.findByIndex(srtLines, indexInSrt) as SrtLine;
+        const srtLines: SrtLine[] = srt.sentences.map((sentence) => sentenceToSrtLine(sentence));
+        const clipContext = getAroundLines(srtLines, indexInSrt, 5);
+        const clipLine = findByIndex(srtLines, indexInSrt) as SrtLine;
 
         const startTime = clipContext[0].start ?? 0;
         const clipJson: ClipSrtLine[] = clipContext.map((item, idx) => ({
