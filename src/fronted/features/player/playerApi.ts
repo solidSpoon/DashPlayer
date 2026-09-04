@@ -165,6 +165,15 @@ export const playerApi = {
     }) => backendClient.call('subtitle/srt/match-vocabulary', params),
 
     /**
+     * 将任意英文文本解析为单词级展示结构（分词、lemma、词性）。
+     *
+     * @param texts 待解析文本数组。
+     * @returns 与入参顺序一一对应的结构化句子。
+     */
+    parseTextStructs: (texts: string[]) =>
+        backendClient.call('subtitle/text/parse-structs', texts),
+
+    /**
      * 更新播放进度。
      *
      * @param params 播放进度参数。

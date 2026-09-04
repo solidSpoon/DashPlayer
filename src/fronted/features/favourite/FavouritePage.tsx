@@ -14,6 +14,11 @@ import { apiPath, swrApiMutate } from '@/fronted/lib/swr-util';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
 import useFavouriteClip from '@/fronted/features/favourite/favouriteStore';
 import { favouriteApi } from '@/fronted/features/favourite/favouriteApi';
+import useVocabulary from '@/fronted/features/player/vocabularyStore';
+import { videoLearningApi } from '@/fronted/features/video-learning/videoLearningApi';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
+
+const logger = getRendererLogger('FavouritePage');
 import toast from 'react-hot-toast';
 import { Button } from '@/fronted/components/ui/button';
 import PageHeader from '@/fronted/components/shared/common/PageHeader';
@@ -74,6 +79,29 @@ const Favorite = () => {
     });
 
     const playInfo = useFavouriteClip((state) => state.playInfo);
+
+    // 进入收藏页时用用户完整生词表驱动列表高亮；离开后由各页面（播放器/词汇工坊）自行重建。
+    useEffect(() => {
+        let cancelled = false;
+        videoLearningApi.getVocabulary().then((result) => {
+            if (cancelled || !result.success || !Array.isArray(result.data)) {
+                return;
+            }
+            const words = (result.data as { word: string }[])
+                .map((row) => row.word)
+                .filter((word): word is string => !!word);
+            // 同步清空词形映射，避免残留上一页面的形态数据干扰命中判断。
+            useVocabulary.getState().setVocabularyForms({});
+            useVocabulary.getState().setVocabularyWords(words);
+        }).catch((error) => {
+            logger.error('failed to load vocabulary for favourite page', {
+                error: error instanceof Error ? error.message : error
+            });
+        });
+        return () => {
+            cancelled = true;
+        };
+    }, []);
 
     /**
      * 从本地 Saved Moments 文件夹重建索引。

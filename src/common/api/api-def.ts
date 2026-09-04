@@ -2,6 +2,7 @@ import {DpTask} from '@/common/contracts/dp-task';
 import {YdRes, OpenAIDictionaryResult} from '@/common/types/YdRes';
 import {ChapterParseResult} from '@/common/types/chapter-result';
 import {SrtSentence, Sentence} from '@/common/types/SentenceC';
+import {SentenceStruct} from '@/common/types/SentenceStruct';
 import {WindowState} from '@/common/types/Types';
 import {SubtitleTimestampAdjustmentInput} from '@/common/contracts/subtitle-timestamp-adjustment';
 import { UpdateCheckResult } from '@/common/types/update-check';
@@ -204,6 +205,10 @@ interface SubtitleControllerDef {
             vocabularyWords: string[];
             cancelled: boolean;
         };
+    };
+    'subtitle/text/parse-structs': {
+        params: string[];
+        return: SentenceStruct[];
     };
 }
 

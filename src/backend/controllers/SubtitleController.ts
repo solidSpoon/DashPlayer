@@ -1,5 +1,6 @@
 import registerRoute from '@/backend/controllers/ipc/registerRoute';
 import { SrtSentence } from '@/common/types/SentenceC';
+import { SentenceStruct } from '@/common/types/SentenceStruct';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import Controller from '@/backend/controllers/Controller';
@@ -51,10 +52,21 @@ export default class SubtitleController implements Controller {
     }
 
     /**
+     * 将任意英文文本解析为前端展示结构。
+     *
+     * @param texts 待解析文本数组。
+     * @returns 与入参顺序一一对应的结构化句子。
+     */
+    public async parseStructs(texts: string[]): Promise<SentenceStruct[]> {
+        return this.subtitleService.parseStructs(texts);
+    }
+
+    /**
      * 注册字幕相关 IPC 路由。
      */
     registerRoutes(): void {
         registerRoute('subtitle/srt/parse-to-sentences', (p) => this.parseSrt(p));
         registerRoute('subtitle/srt/match-vocabulary', (p) => this.matchVocabulary(p));
+        registerRoute('subtitle/text/parse-structs', (p) => this.parseStructs(p));
     }
 }
