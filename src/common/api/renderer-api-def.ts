@@ -4,7 +4,7 @@ import { ChatStreamEvent } from '@/common/types/chat';
 import { AnalysisStreamEvent } from '@/common/types/analysis';
 import { TranscriptTaskUpdate } from '@/common/contracts/transcript/transcript-task';
 import { Sentence } from '@/common/types/SentenceC';
-import { ParakeetModelPhase } from '@/common/contracts/parakeet-model-phase';
+import { ModelDownloadPhase } from '@/common/contracts/model-download-phase';
 
 /**
  * 前端API定义文件 - 定义后端可以调用的前端方法
@@ -30,8 +30,8 @@ interface UIRendererDef {
         },
         return: void
     };
-    'settings/parakeet-model-download-progress': { params: { percent: number; downloaded: number; total: number; phase: ParakeetModelPhase }, return: void };
-    'settings/sherpa-tts-model-download-progress': { params: { percent: number; downloaded: number; total: number; phase: ParakeetModelPhase }, return: void };
+    'settings/parakeet-model-download-progress': { params: { percent: number; downloaded: number; total: number; phase: ModelDownloadPhase }, return: void };
+    'settings/sherpa-tts-model-download-progress': { params: { percent: number; downloaded: number; total: number; phase: ModelDownloadPhase }, return: void };
 }
 
 // 翻译相关的前端API定义

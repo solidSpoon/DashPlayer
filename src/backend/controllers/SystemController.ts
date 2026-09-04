@@ -1,7 +1,6 @@
 import registerRoute from '@/backend/controllers/ipc/registerRoute';
 import { app, dialog, shell } from 'electron';
 import path from 'path';
-import * as fsPromises from 'fs/promises';
 import { clearDB } from '@/backend/infrastructure/db/db';
 import { WindowState } from '@/common/types/Types';
 import { checkUpdate } from '@/backend/services/CheckUpdate';
@@ -15,6 +14,7 @@ import SystemConfigService from '@/backend/services/SystemConfigService';
 import { UPDATE_TOAST_LAST_SHOWN_AT_KEY } from '@/common/constants/systemConfigKeys';
 import { UpdateCheckResult } from '@/common/types/update-check';
 import { RESET_DB_RESYNC_FLAG } from '@/common/constants/resetDb';
+import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
 import StorageDirectoryProvider, {
     StorageDirectoryTarget,
 } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
@@ -37,6 +37,8 @@ export default class SystemController implements Controller {
     private windowPort!: WindowPort;
     @inject(TYPES.StorageDirectoryProvider)
     private storageDirectoryProvider!: StorageDirectoryProvider;
+    @inject(TYPES.FileSystemGateway)
+    private fileSystemGateway!: FileSystemGateway;
     @inject(TYPES.SystemConfigService)
     private systemConfigService!: SystemConfigService;
 
@@ -101,7 +103,7 @@ export default class SystemController implements Controller {
     public async openFolder(request: { path: string; createDirectory?: boolean }): Promise<void> {
         const folder = path.dirname(request.path);
         if (request.createDirectory === true) {
-            await fsPromises.mkdir(folder, { recursive: true });
+            await this.fileSystemGateway.ensureDirectory(folder);
         }
         const error = await shell.openPath(folder);
         if (error) {

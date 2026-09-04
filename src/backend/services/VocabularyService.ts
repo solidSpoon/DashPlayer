@@ -1,5 +1,4 @@
 import * as XLSX from 'xlsx';
-import { promises as fs } from 'fs';
 import { generateText, Output } from 'ai';
 import { inject, injectable } from 'inversify';
 import { z } from 'zod';
@@ -10,6 +9,7 @@ import AiProviderService from '@/backend/services/AiProviderService';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import WordsRepository from '@/backend/services/repositories/WordsRepository';
 import VideoLearningClipWordRepository from '@/backend/services/repositories/VideoLearningClipWordRepository';
+import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
 import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import { loadDefaultVocabulary } from '@/backend/utils/defaultVocabulary';
 import SubtitleService from '@/backend/services/SubtitleService';
@@ -130,6 +130,9 @@ export class VocabularyServiceImpl implements VocabularyService {
 
     @inject(TYPES.StorageDirectoryProvider)
     private storageDirectoryProvider!: StorageDirectoryProvider;
+
+    @inject(TYPES.FileSystemGateway)
+    private fileSystemGateway!: FileSystemGateway;
 
     private readonly logger = getMainLogger('VocabularyServiceImpl');
 
@@ -311,8 +314,7 @@ export class VocabularyServiceImpl implements VocabularyService {
      */
     async importWords(filePath: string): Promise<ImportWordsResult> {
         try {
-            await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(filePath);
-            const fileBuffer = await fs.readFile(filePath);
+            const fileBuffer = await this.fileSystemGateway.readBinaryFile(filePath);
             const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
             const sheetName = workbook.SheetNames[0];
             if (!sheetName) {

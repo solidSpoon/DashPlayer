@@ -36,8 +36,7 @@ import {
     RuntimeSettingSaveRequest,
     RuntimeSettingsSnapshot,
 } from '@/common/contracts/runtime-settings';
-import { ParakeetModelStatusVO } from '@/common/types/vo/parakeet-model-vo';
-import { SherpaTtsModelStatusVO } from '@/common/types/vo/sherpa-tts-model-vo';
+import { ModelInstallationStatusVO } from '@/common/types/vo/model-installation-vo';
 import { VideoInfo } from '@/common/types/video-info';
 import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
 import { TranscriptTask } from '@/common/contracts/transcript/transcript-task';
@@ -63,7 +62,7 @@ interface TranscriptDef {
 }
 
 interface SherpaTtsModelDef {
-    'sherpa-tts/models/status': { params: void, return: SherpaTtsModelStatusVO };
+    'sherpa-tts/models/status': { params: void, return: ModelInstallationStatusVO };
     'sherpa-tts/models/download': { params: void, return: { success: boolean; message: string } };
     'sherpa-tts/models/cancel-download': { params: void, return: { cancelled: boolean } };
     'sherpa-tts/models/delete': { params: void, return: { success: boolean; message: string } };
@@ -241,7 +240,7 @@ interface SettingsDef {
 }
 
 interface ParakeetModelDef {
-    'parakeet/models/status': { params: void, return: ParakeetModelStatusVO };
+    'parakeet/models/status': { params: void, return: ModelInstallationStatusVO };
     'parakeet/models/download': { params: void, return: { success: boolean; message: string } };
     'parakeet/models/cancel-download': { params: void, return: { cancelled: boolean } };
     'parakeet/models/delete': { params: void, return: { success: boolean; message: string } };

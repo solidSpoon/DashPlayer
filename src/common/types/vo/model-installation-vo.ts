@@ -1,9 +1,11 @@
-import type { ParakeetModelPhase } from '@/common/contracts/parakeet-model-phase';
+import type { ModelDownloadPhase } from '@/common/contracts/model-download-phase';
 
 /**
- * Sherpa-ONNX 本地 TTS 模型状态。
+ * 本地模型归档的安装与下载状态。
+ *
+ * 供 Parakeet 转写模型和 Sherpa TTS 模型共用，两者状态字段完全一致。
  */
-export interface SherpaTtsModelStatusVO {
+export interface ModelInstallationStatusVO {
     /** 模型文件所在目录。 */
     modelPath: string;
     /** 所有必需模型文件是否均已存在。 */
@@ -13,7 +15,7 @@ export interface SherpaTtsModelStatusVO {
     /** 是否有下载任务正在进行。 */
     downloading: boolean;
     /** 当前下载阶段；未在下载时为 null。 */
-    phase: ParakeetModelPhase | null;
+    phase: ModelDownloadPhase | null;
     /** 当前下载进度百分比（0-100）；未在下载时为 0。 */
     percent: number;
     /** 官方模型归档下载地址。 */
