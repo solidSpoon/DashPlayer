@@ -47,10 +47,13 @@ jobs:
         if: matrix.os.name != 'windows'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # 主进程 bundle 已大过 V8 默认 ~2GB 堆上限，构建时 OOM（v6.7.0 arm64 dmg 缺失的直接原因）
+          NODE_OPTIONS: --max-old-space-size=4096
         run: npm run publish
       - name: Publish app with Visual Studio (Windows only)
         if: matrix.os.name == 'windows'
         shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          NODE_OPTIONS: --max-old-space-size=4096
         run: call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64 && npm run publish
