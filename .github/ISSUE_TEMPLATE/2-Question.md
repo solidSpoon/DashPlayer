@@ -1,3 +1,4 @@
+---
 name: ❓ Question
 about: 使用上遇到疑问？在这里提问
 labels: ['question']

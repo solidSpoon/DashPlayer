@@ -2,7 +2,3 @@
 
 blank_issues_enabled: false
 contact_links: []
-
-requiredHeaders:
-  - 问题描述
-  - 运行环境

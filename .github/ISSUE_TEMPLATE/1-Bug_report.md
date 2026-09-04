@@ -1,3 +1,4 @@
+---
 name: 🐞 Bug report
 about: 遇到了技术问题？在这里反馈
 labels: ['bug']
@@ -25,7 +26,7 @@ labels: ['bug']
 
 ## 日志
 
-<!-- 应用内日志目录：设置 → 存储设置 中可以打开日志所在文件夹 -->
+<!-- 日志目录在应用数据目录下的 logs 文件夹：Windows %APPDATA%\DashPlayer\logs；macOS ~/Library/Application Support/DashPlayer/logs；Linux ~/.config/DashPlayer/logs -->
 
 <details><summary>日志内容（可折叠长日志）</summary>
 

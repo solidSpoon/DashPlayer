@@ -1,3 +1,4 @@
+---
 name: 💡 Feature request
 about: 希望增加某个功能
 labels: ['enhancement']
