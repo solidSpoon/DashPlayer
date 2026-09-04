@@ -227,6 +227,33 @@ Infrastructure 的具体实现。
 简单的纯函数继续放在普通工具文件中。不要为了“分层完整”而创建
 `kernel`、`manager` 等目录。
 
+### 2.5 文件访问
+
+后端的文件读写统一通过 `FileSystemGateway`（`services/gateways/storage/`）
+完成，不在业务代码（Service / Controller）中直接 `import fs`：
+
+- 容器绑定的 `TYPES.FileSystemGateway` 是带权限自动恢复的装饰器，
+  外部路径（如 macOS 收回授权的目录）会在操作前自动引导用户恢复，
+  业务代码不需要也不应该再手动调用
+  `ensurePathAccessPermissionIfExists`；
+- 需要新的文件操作时先看网关接口有没有对应方法，没有就加到网关，
+  不要另开裸 fs 调用；
+- 目录解析统一走 `StorageDirectoryProvider`，不要自己拼 `app.getPath` /
+  `path.join` 硬编码目录。
+
+例外（允许直接使用 fs）：
+
+- `FileSystemGatewayImpl` 本身；
+- 外部进程网关（`FfmpegGatewayImpl`、sherpa-onnx）：输入输出路径由
+  对应 Service 层收口点（如 `FfmpegService`）在进程启动前统一确认；
+- 基础设施自举：日志、`ConfigTender`、数据库初始化——它们在 DI 容器
+  可用之前就要读写文件；
+- 内置资源读取（如默认词表）与流式下载/解压（`ModelArchiveInstaller`）。
+
+判断方法很简单：新写或修改的代码如果需要碰磁盘，先问一句
+“这个操作能不能通过 `FileSystemGateway` 表达”；能就走网关，
+不能就先确认自己属于上面哪条例外。
+
 ## 3. Service 之间如何调用
 
 Service 之间可以调用，但必须保持单向关系：
