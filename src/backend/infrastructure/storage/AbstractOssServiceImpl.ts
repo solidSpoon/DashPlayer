@@ -1,4 +1,5 @@
 import path from 'path';
+import { injectable } from 'inversify';
 import { OssService } from '@/backend/services/OssService';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { OssBaseMeta } from '@/common/types/clipMeta';
@@ -6,7 +7,11 @@ import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGat
 
 /**
  * 片段本地存储的通用实现；仅由具体子类继承，不直接在容器中注册。
+ *
+ * `@injectable` 不能省：inversify 解析子类时会沿原型链检查基类的装饰器元数据，
+ * 缺失会在容器解析时抛「Missing required @injectable annotation」。
  */
+@injectable()
 export default abstract class AbstractOssServiceImpl<T> implements OssService<T> {
     private readonly logger = getMainLogger('AbstractOssServiceImpl');
 
@@ -17,7 +22,10 @@ export default abstract class AbstractOssServiceImpl<T> implements OssService<T>
      */
     protected readonly fileSystemGateway: FileSystemGateway;
 
-    protected constructor(fileSystemGateway: FileSystemGateway) {
+    /**
+     * 构造函数必须为 public：inversify 的 `@injectable` 要求构造器是 public 签名。
+     */
+    public constructor(fileSystemGateway: FileSystemGateway) {
         this.fileSystemGateway = fileSystemGateway;
     }
 
