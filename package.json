@@ -11,11 +11,12 @@
     "make": "yarn run download && electron-forge make",
     "publish": "yarn run download && electron-forge publish",
     "lint": "eslint -c .eslintrc.json --ext .ts,.tsx src",
-    "test": "vitest",
-    "test:ui": "vitest --ui",
-    "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest --watch"
+    "test": "run-s test:base",
+    "test:ui": "yarn run test:base --ui",
+    "test:base": "cross-env ELECTRON_RUN_AS_NODE=1 electron node_modules/vitest/vitest.mjs",
+    "test:run": "run-s test:base -- run",
+    "test:coverage": "run-s test:base -- run --coverage",
+    "test:watch": "run-s test:base -- watch"
   },
   "keywords": [],
   "author": {
@@ -62,6 +63,7 @@
     "@vitest/coverage-v8": "^4.0.18",
     "@vitest/ui": "^4.0.18",
     "babel-plugin-react-compiler": "1.0.0",
+    "cross-env": "^10.1.0",
     "electron": "39.2.7",
     "electron-devtools-installer": "^4.0.0",
     "eslint": "^8.0.1",
@@ -71,6 +73,7 @@
     "eslint-plugin-react": "^7.34.2",
     "eslint-plugin-react-hooks": "^7.1.1",
     "jsdom": "^27.3.0",
+    "npm-run-all2": "^9.0.3",
     "shadcn": "^4.18.0",
     "tailwindcss": "^4.3.3",
     "ts-node": "^10.9.2",
