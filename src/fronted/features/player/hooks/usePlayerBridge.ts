@@ -151,7 +151,13 @@ export function usePlayerBridge(navigate: (path: string) => void) {
             const bucket = Math.floor(position / demandGranularity);
             if (bucket === lastReportedBucket) return;
             lastReportedBucket = bucket;
-            void transcriptApi.updateDemand(videoPath!, position).catch(() => undefined);
+            void transcriptApi.updateDemand(videoPath!, position).catch((error) => {
+                logger.warn('failed to update transcription demand', {
+                    videoPath,
+                    position,
+                    error: error instanceof Error ? error.message : String(error),
+                });
+            });
         };
         const timer = window.setInterval(reportDemand, 2000);
         return () => window.clearInterval(timer);
@@ -256,10 +262,16 @@ export function usePlayerBridge(navigate: (path: string) => void) {
         };
     }, [videoId]);
 
+    /**
+     * ReactPlayer onReady 回调：恢复播放进度并把视频标记为已加载。
+     *
+     * onReady 在每次 seek/缓冲完成后都会重放（训练模式连续 seek 时可达每秒数次），
+     * 靠 lastLoadedFileRef 幂等去重；守卫命中是常规路径，只在 debug 级留下痕迹。
+     */
     const handlePlayerReady = useCallback(async () => {
         const file = useFile.getState().videoPath;
         const currentVideoId = useFile.getState().videoId;
-        logger.info('player ready callback entered', {
+        logger.debug('player ready callback entered', {
             videoId: currentVideoId,
             videoPath: file,
             lastLoadedFile: lastLoadedFileRef.current,
@@ -273,10 +285,6 @@ export function usePlayerBridge(navigate: (path: string) => void) {
             return;
         }
         if (lastLoadedFileRef.current === file) {
-            logger.warn('player ready callback skipped: file already loaded', {
-                videoId: currentVideoId,
-                videoPath: file,
-            });
             return;
         }
         try {

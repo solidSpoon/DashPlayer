@@ -801,6 +801,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
     /**
      * 使用腾讯接口翻译不属于播放窗口的独立文本批次。
      *
+     * 与主路径 {@link translateWithTencent} 一致走 `tencent` 限流，避免直翻批次绕过配额触发上游限流。
      * @param targets 使用归一化原文作为 key 的目标条目。
      * @param batchId 日志关联批次编号。
      * @returns 归一化原文到翻译结果的映射。
@@ -814,13 +815,13 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             throw new Error('腾讯翻译客户端未初始化，请检查密钥配置');
         }
 
-        const holder = await client.batchTrans(
+        const holder = await concurrency.withRateLimit('tencent', () => client.batchTrans(
             targets.map((target) => target.text),
             {
                 batchId,
                 fileHash: 'direct',
             }
-        );
+        ));
         const translations = new Map<string, string>();
         targets.forEach((target) => {
             const translation = holder.get(target.text)?.trim();

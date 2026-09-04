@@ -5,7 +5,7 @@ import {RuntimeSettingKey} from './common/contracts/runtime-settings';
 import {ApiDefinitions, ApiMap} from '@/common/api/api-def';
 import {DpTask} from '@/common/contracts/dp-task';
 import {RendererApiDefinitions, RendererApiMap} from '@/common/api/renderer-api-def';
-import type { SimpleEvent, TraceCarrier } from '@/common/log/simple-types';
+import type { TraceCarrier } from '@/common/log/simple-types';
 
 export type Channels =
     | 'main-state'
@@ -30,23 +30,6 @@ const on = (channel: Channels, func: (...args: unknown[]) => void) => {
 const createTraceCarrier = (): TraceCarrier => ({
     traceId: globalThis.crypto.randomUUID().replaceAll('-', ''),
 });
-
-/**
- * 记录字幕翻译回推在 preload 中的收发状态，避免记录译文正文。
- *
- * @param message 生命周期事件名称。
- * @param data 仅包含调用标识、路径、数量和耗时的上下文。
- */
-const writeTranslationRendererApiLog = (message: string, data: Record<string, unknown>): void => {
-    ipcRenderer.send('dp-log/write', {
-        ts: new Date().toISOString(),
-        level: 'info',
-        process: 'renderer',
-        module: 'RendererApiPreload',
-        msg: message,
-        data,
-    } satisfies SimpleEvent);
-};
 
 const electronHandler = {
     onStoreUpdate: (func: (key: RuntimeSettingKey, value: string) => void) => {
@@ -77,43 +60,14 @@ const electronHandler = {
         handler: RendererApiMap[K]
     ): () => void {
         const listener = async (event: IpcRendererEvent, callId: string, params: RendererApiDefinitions[K]['params']) => {
-            const isTranslationBatch = path === 'translation/batch-result';
-            const startedAt = Date.now();
-            const translationCount = isTranslationBatch
-                ? (params as RendererApiDefinitions['translation/batch-result']['params']).translations.length
-                : undefined;
-            if (isTranslationBatch) {
-                writeTranslationRendererApiLog('字幕翻译回推已到达 preload', {
-                    path,
-                    callId,
-                    translationCount,
-                });
-            }
             try {
                 const result = await handler(params);
                 ipcRenderer.send(`renderer-api-response-${callId}`, { success: true, result });
-                if (isTranslationBatch) {
-                    writeTranslationRendererApiLog('字幕翻译回推已由 preload 确认', {
-                        path,
-                        callId,
-                        translationCount,
-                        elapsedMs: Date.now() - startedAt,
-                    });
-                }
             } catch (error) {
                 ipcRenderer.send(`renderer-api-response-${callId}`, {
                     success: false,
                     error: error instanceof Error ? error.message : String(error)
                 });
-                if (isTranslationBatch) {
-                    writeTranslationRendererApiLog('字幕翻译回推 handler 失败', {
-                        path,
-                        callId,
-                        translationCount,
-                        elapsedMs: Date.now() - startedAt,
-                        error: error instanceof Error ? error.message : String(error),
-                    });
-                }
             }
         };
 

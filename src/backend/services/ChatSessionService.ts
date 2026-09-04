@@ -16,6 +16,7 @@ import type { ChatReasoningEffort } from '@/common/types/chat';
 import { AnalysisStartParams, AnalysisStartResult, DeepPartial } from '@/common/types/analysis';
 import { AiUnifiedAnalysisRes, AiUnifiedAnalysisSchema } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 import { WithRateLimit } from '@/backend/utils/concurrency/decorators';
+import { isUserCancellation } from '@/common/utils/cancellation';
 import {
     appendBackgroundMessage,
     buildAnalysisPrompt,
@@ -522,13 +523,14 @@ export class ChatSessionServiceImpl implements ChatSessionService {
     }
 
     /**
-     * 判断异常是否由 AbortSignal 主动取消产生。
+     * 判断异常是否由用户主动取消产生。
+     *
+     * 统一走 common 的类型名判定：消息正则会把恰好含 "closed" 等字样的真实故障误判为取消并降级。
      * @param error 捕获到的异常。
      * @returns 属于取消语义时为 true。
      */
     private isCancellation(error: unknown): boolean {
-        return error instanceof Error
-            && (error.name === 'AbortError' || /abort|cancel|closed/i.test(error.message));
+        return isUserCancellation(error);
     }
 
     private normalizeAnalysisPartial(

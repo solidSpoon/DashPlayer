@@ -179,7 +179,7 @@ const useTranslation = create(
                 }
                 const demandId = nextSubtitleDemandId;
                 nextSubtitleDemandId += 1;
-                logger.info('subtitle translation request sent', {
+                logger.debug('subtitle translation request sent', {
                     fileHash: target.fileHash,
                     currentIndex: target.currentIndex,
                     demandId,

@@ -372,11 +372,16 @@ function sanitizeValue(value: unknown, depth = 0, seen = new WeakSet<object>()):
             return '[Circular Error]';
         }
         seen.add(value);
+        // AI SDK 等第三方错误把上游 HTTP 状态与响应体放在自有属性上，
+        // 白名单外的关键归因证据，不存在时保持字段缺省。
+        const enriched = value as Error & { statusCode?: unknown; responseBody?: unknown };
         return {
             name: value.name,
             message: sanitizeValue(value.message, depth + 1, seen),
             stack: sanitizeValue(value.stack, depth + 1, seen),
             cause: sanitizeValue(value.cause, depth + 1, seen),
+            ...(enriched.statusCode !== undefined && { statusCode: sanitizeValue(enriched.statusCode, depth + 1, seen) }),
+            ...(enriched.responseBody !== undefined && { responseBody: sanitizeValue(enriched.responseBody, depth + 1, seen) }),
         };
     }
     if (typeof value !== 'object') {

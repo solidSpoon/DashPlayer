@@ -46,7 +46,7 @@ du -sh "$HOME/Library/Application Support/DashPlayer/logs-dev"
 
 - 递归深度 ≤ 5，对象键数 ≤ 50（超出记 `__truncatedKeys`），数组长度 ≤ 50（超出追加 `"[Truncated N items]"`）；
 - **字符串超过 4000 字符是"保头丢尾"**，而 ffmpeg/sherpa 的致命错误恰恰在输出末尾；
-- `Error` 序列化为 `{ name, message, stack, cause }`；命中敏感键名的值替换为 `***`。
+- `Error` 序列化为 `{ name, message, stack, cause }`，若错误对象自带 `statusCode`/`responseBody`（AI SDK 等第三方错误的 upstream 证据）会一并保留；命中敏感键名的值替换为 `***`。
 
 由此得出一条硬约束：**可能很长的文本必须以"行数组"入 `data`**，例如 `stderrTail: string[]`。这样尾部关键行是若干独立短字段，不会被整体截断。
 
@@ -88,7 +88,7 @@ preload 每次 `invoke` 生成一个 trace id，main 在 `registerRoute` 边界�
 | `FfmpegServiceImpl` | main | 只记录网关看不到的任务体异常（`ffmpeg task failed`，含 `job`）；子进程失败与取消不在这里重复 |
 | `FfmpegGatewayImpl` | main | `spawned ffmpeg`（`job`/`pid`/`command`）、`FFmpeg 执行完成`、`FFmpeg 执行失败`（error，含 `exitCode`/`pid`/`stderrTail`）、`FFmpeg 已取消`（info）——子进程维度的唯一证据点 |
 | `SherpaOnnx` / `SherpaTts` | main | 识别/合成子进程启停与异常退出：`spawned sherpa-onnx`、`sherpa-onnx exited abnormally`、`sherpa-onnx output rejected`、`sherpa-onnx cancelled` |
-| `LocalTranscriptionService` | main | `transcription started`、分段识别重试与耗尽 |
+| `LocalTranscriptionService` | main | `transcription started`、分段识别重试与耗尽、`transcription done`/`transcription cancelled`/`transcription failed` 任务收尾（含 `elapsedMs`，done 另带 `chunkCount`/`srtPath`）——`job` 首尾成对靠这三条收尾闭环 |
 | `VideoLearningServiceImpl` | main | `clip trim started` / `clip ready` / 片段任务失败 |
 | `concurrency` | main | 信号量/限流等待与持锁超阈值（见第 4 节） |
 | `GlobalError` | renderer | `uncaught exception`、`unhandled rejection`、`resource load failed` |
