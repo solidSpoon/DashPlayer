@@ -299,22 +299,32 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             throw error;
         }
 
+        let executionStartedAt: number | null = null;
         concurrency.withMutex('transcription', async () => {
             // 若在排队等待期间被取消，不再执行转录。
             if (controller.signal.aborted) {
                 throw new CancelByUserError('Transcription cancelled by user');
             }
             this.activeFilePath = normalizedFilePath;
+            executionStartedAt = Date.now();
             await this.doTranscribe(normalizedFilePath, controller.signal);
         }, { signal: controller.signal }).catch(async (error) => {
+            const job = transcriptionJob(normalizedFilePath);
+            const elapsedMs = executionStartedAt !== null ? Date.now() - executionStartedAt : 0;
             // 在队列等待或实际执行期间取消，都统一持久化为 cancelled。
             if (controller.signal.aborted) {
+                this.logger.info('transcription cancelled', { job, elapsedMs });
                 await this.sendProgress(0, normalizedFilePath, TranscriptTaskState.CANCELLED, 0, {
                     message: '转录任务已取消',
                 });
                 throw new CancelByUserError('Transcription cancelled by user');
             }
 
+            this.logger.error('transcription failed', {
+                job,
+                elapsedMs,
+                error: error instanceof Error ? error.message : String(error),
+            });
             await this.sendProgress(0, normalizedFilePath, TranscriptTaskState.FAILED, 0, {
                 error: error instanceof Error ? error.message : String(error),
             });
@@ -408,6 +418,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
     private async transcribeWithSherpaOnnx(opts: { filePath: string; tempFolder: string; signal: AbortSignal }): Promise<void> {
         const { filePath, tempFolder, signal } = opts;
         const job = transcriptionJob(filePath);
+        const startedAt = Date.now();
         const modelsRoot = await this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.MODELS);
         await this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 0, { phase: 'preparing' });
         if (signal.aborted) throw new CancelByUserError('Transcription cancelled by user');
@@ -514,6 +525,12 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         await this.fileSystemGateway.writeTextFile(srtFileName, finalSrt);
 
         await this.sendProgress(0, filePath, TranscriptTaskState.DONE, 100, { srtPath: srtFileName });
+        this.logger.info('transcription done', {
+            job,
+            elapsedMs: Date.now() - startedAt,
+            chunkCount: ranges.length,
+            srtPath: srtFileName,
+        });
         this.sessions.delete(filePath);
     }
 
