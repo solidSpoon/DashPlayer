@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import SrtUtil from '@/common/utils/SrtUtil';
+import { parseSrt } from '@/common/utils/subtitle';
 
-describe('SrtUtil.parseSrt (WebVTT)', () => {
+describe('parseSrt (WebVTT)', () => {
     it('parses WEBVTT header, cue id, and timestamps', () => {
         const vtt = [
             'WEBVTT',
@@ -15,7 +15,7 @@ describe('SrtUtil.parseSrt (WebVTT)', () => {
             '',
         ].join('\n');
 
-        const lines = SrtUtil.parseSrt(vtt);
+        const lines = parseSrt(vtt);
         expect(lines).toHaveLength(2);
 
         expect(lines[0]?.index).toBe(1);
@@ -29,4 +29,3 @@ describe('SrtUtil.parseSrt (WebVTT)', () => {
         expect(lines[1]?.contentEn).toBe('World');
     });
 });
-

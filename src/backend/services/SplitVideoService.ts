@@ -7,9 +7,8 @@ import FfmpegService from '@/backend/services/FfmpegService';
 import TYPES from '@/backend/ioc/types';
 import { ChapterParseResult } from '@/common/types/chapter-result';
 import MediaUtil from '@/common/utils/MediaUtil';
-import SrtUtil from '@/common/utils/SrtUtil';
-import TimeUtil from '@/common/utils/TimeUtil';
-import parseChapter from '@/common/utils/praser/chapter-parser';
+import { parseSrt, parseAss, serializeSrt, timeTextToSeconds } from '@/common/utils/subtitle';
+import parseChapter from '@/common/utils/parser/chapter-parser';
 import StrUtil from '@/common/utils/str-util';
 
 /** 视频章节切分请求。 */
@@ -109,7 +108,7 @@ export class SplitVideoServiceImpl implements SplitVideoService {
             throw new Error(`无法读取有效的视频时长：${request.videoPath}`);
         }
 
-        const chapterStarts = request.chapters.map((chapter) => TimeUtil.parseDuration(chapter.timestampStart));
+        const chapterStarts = request.chapters.map((chapter) => timeTextToSeconds(chapter.timestampStart));
         for (let index = 0; index < request.chapters.length; index++) {
             const chapter = request.chapters[index];
             const start = chapterStarts[index];
@@ -153,7 +152,7 @@ export class SplitVideoServiceImpl implements SplitVideoService {
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(folderName);
         await this.fileSystemGateway.ensureDirectory(folderName);
 
-        const chapterStarts = chapters.map((chapter) => TimeUtil.parseDuration(chapter.timestampStart));
+        const chapterStarts = chapters.map((chapter) => timeTextToSeconds(chapter.timestampStart));
         // 每次使用独立前缀，避免失败任务留下的旧分段混入本次结果。
         const outputFilePrefix = `split-${randomUUID()}`;
         const outputFiles = await this.ffmpegService.splitVideoByTimes({
@@ -192,8 +191,8 @@ export class SplitVideoServiceImpl implements SplitVideoService {
     private async splitSubtitle(srtPath: string, splitVideos: string[]): Promise<void> {
         const content = await this.fileSystemGateway.readTextFile(srtPath);
         const subtitles = MediaUtil.isAss(srtPath)
-            ? SrtUtil.parseAss(content)
-            : SrtUtil.parseSrt(content);
+            ? parseAss(content)
+            : parseSrt(content);
 
         let segmentStart = -0.2;
         for (const splitVideo of splitVideos) {
@@ -208,7 +207,7 @@ export class SplitVideoServiceImpl implements SplitVideoService {
                     contentEn: line.contentEn,
                     contentZh: line.contentZh,
                 }));
-            const srtContent = SrtUtil.srtLinesToSrt(lines, { reindex: true });
+            const srtContent = serializeSrt(lines, { reindex: true });
             const subtitlePath = splitVideo.replace(path.extname(splitVideo), '.srt');
             await this.fileSystemGateway.writeTextFile(subtitlePath, srtContent);
             segmentStart = segmentEnd;

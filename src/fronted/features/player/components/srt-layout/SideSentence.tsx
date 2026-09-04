@@ -11,7 +11,8 @@ import { Sentence } from '@/common/types/SentenceC';
 import useTranslation from '@/fronted/features/player/translationStore';
 import useVocabulary from '@/fronted/features/player/vocabularyStore';
 import { shallow } from 'zustand/shallow';
-import { Bookmark, Play, Pause, Repeat1 } from 'lucide-react';
+import { splitWords, isWordToken, cleanWord } from '@/common/utils/subtitle';
+import { Bookmark, Pause, Repeat1 } from 'lucide-react';
 
 interface SideSentenceNewParam {
     sentence: Sentence;
@@ -31,9 +32,6 @@ interface Part {
     id: string;
     isVocab?: boolean | "";
 }
-
-export const SPLIT_REGEX =
-    /((?<=.)(?=[^A-Za-z0-9\u4e00-\u9fa5-]))|((?<=[^A-Za-z0-9\u4e00-\u9fa5-])(?=.))/;
 
 const IconTip = ({ tip, children }: { tip: string; children: React.ReactNode }) => {
     return (
@@ -112,23 +110,15 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
 
         // 分割文本为单词和非单词部分
         const splitText = (text: string): Part[] => {
-            const isWord = (str: string): boolean => {
-                const noWordRegex = /[^A-Za-z0-9-\u4e00-\u9fa5]/;
-                return !noWordRegex.test(str);
-            };
-
             const textHash = text;
-            return text
-                .replace(/\s+/g, ' ')
-                .split(SPLIT_REGEX)
-                .filter((w) => w)
+            return splitWords(text)
                 .map((w, index) => {
-                    const cleanWord = w.toLowerCase().replace(/[^\w]/g, '');
+                    const cleaned = cleanWord(w);
                     return {
                         content: w,
-                        isWord: isWord(w),
+                        isWord: isWordToken(w),
                         id: `${textHash}:${index}`,
-                        isVocab: cleanWord && isVocabularyWord(cleanWord)
+                        isVocab: cleaned && isVocabularyWord(cleaned)
                     };
                 });
         };

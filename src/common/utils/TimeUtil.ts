@@ -73,14 +73,6 @@ export default class TimeUtil {
     }
 
     /**
-     * 输入时间字符串，返回秒数
-     * @param duration
-     */
-    public static parseDuration(duration: string): number {
-        return moment.duration(duration).asSeconds();
-    }
-
-    /**
      * 00:00:00 转 00时00分00秒
      */
     public static timeStrToChinese(timeStr: string): string {

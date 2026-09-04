@@ -8,6 +8,7 @@ import {
 } from '@/fronted/components/ui/tooltip';
 import { VideoClip } from '../types';
 import UrlUtil from '@/common/utils/UrlUtil';
+import TimeUtil from '@/common/utils/TimeUtil';
 import { cn } from '@/fronted/lib/utils';
 
 type Props = {
@@ -25,12 +26,6 @@ export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip }:
       return raw;
     }
     return UrlUtil.toUrl(raw);
-  };
-
-  const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   if (clips.length === 0) {
@@ -135,8 +130,8 @@ export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip }:
                                 <strong>视频名称:</strong> {title}
                               </div>
                               <div>
-                                <strong>时间范围:</strong> {formatTime(mainClip?.start || 0)} -{' '}
-                                {formatTime(mainClip?.end || 0)}
+                                <strong>时间范围:</strong> {TimeUtil.secondToTimeStrCompact(mainClip?.start || 0)} -{' '}
+                                {TimeUtil.secondToTimeStrCompact(mainClip?.end || 0)}
                               </div>
                               <div>
                                 <strong>创建时间:</strong> {new Date(clip.createdAt).toLocaleString()}

@@ -13,6 +13,7 @@ import Eb from '@/fronted/components/shared/common/Eb';
 import StrUtil from '@/common/utils/str-util';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import TimeUtil from '@/common/utils/TimeUtil';
+import { timeTextToSeconds } from '@/common/utils/subtitle';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
@@ -29,7 +30,7 @@ const SplitRow = ({ line, shortDurationLabel }: { line: TaskChapterParseResult; 
         title: line.title,
         isValid: line.timestampValid
     });
-    const valid = (TimeUtil.parseDuration(line.timestampEnd) - TimeUtil.parseDuration(line.timestampStart)) > 60;
+    const valid = (timeTextToSeconds(line.timestampEnd) - timeTextToSeconds(line.timestampStart)) > 60;
     return (
         <TableRow className="border-b border-border/40 hover:bg-muted/40 transition-colors">
             <TableCell

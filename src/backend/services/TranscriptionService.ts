@@ -6,7 +6,7 @@ import * as path from 'path';
 import FfmpegService from '@/backend/services/FfmpegService';
 import {getMainLogger} from '@/backend/infrastructure/logger';
 import objectHash from 'object-hash';
-import SrtUtil from '@/common/utils/SrtUtil';
+import { serializeSrt } from '@/common/utils/subtitle';
 import SpeechRecognitionGateway, {
     SpeechRecognitionResult,
     SpeechRecognitionToken,
@@ -519,7 +519,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             ranges.map((range) => range.start),
         );
         if (lines.length === 0) throw new Error('Parakeet v3 未识别出可用字幕');
-        const finalSrt = SrtUtil.srtLinesToSrt(lines, { reindex: true });
+        const finalSrt = serializeSrt(lines, { reindex: true });
         const srtFileName = filePath.replace(/\.[^/.]+$/, '') + '.srt';
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(srtFileName);
         await this.fileSystemGateway.writeTextFile(srtFileName, finalSrt);

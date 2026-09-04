@@ -1,5 +1,5 @@
 import { SpeechRecognitionToken } from '@/backend/services/gateways/media/SpeechRecognitionGateway';
-import { SrtLine } from '@/common/utils/SrtUtil';
+import { SrtLine } from '@/common/utils/subtitle';
 
 /** 语音识别时间轴归并后的英文单词。 */
 interface TimedWord {

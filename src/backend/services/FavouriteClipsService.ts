@@ -5,7 +5,6 @@ import ErrorConstants from '@/common/constants/error-constants';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import { ClipQuery } from '@/common/api/dto';
-import StrUtil from '@/common/utils/str-util';
 import { SrtSentence } from '@/common/types/SentenceC';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import CacheService from '@/backend/services/CacheService';
@@ -13,8 +12,8 @@ import { ClipOssService } from '@/backend/services/OssService';
 import CollUtil from '@/common/utils/CollUtil';
 import FfmpegService from '@/backend/services/FfmpegService';
 import { concurrency } from '@/backend/utils/concurrency';
-import { ClipMeta, ClipSrtLine, OssBaseMeta } from '@/common/types/clipMeta';
-import SrtUtil, { SrtLine } from '@/common/utils/SrtUtil';
+import { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';
+import { buildClipContext } from '@/common/utils/subtitle';
 import { Tag } from '@/common/contracts/tag';
 import FavouriteClipsRepository, { FavouriteClipsReplaceAllItem } from '@/backend/services/repositories/FavouriteClipsRepository';
 import StorageDirectoryProvider, {
@@ -199,11 +198,8 @@ export class FavouriteClipsServiceImpl implements FavouriteClipsService {
         if (!srt) {
             throw new Error(ErrorConstants.CACHE_NOT_FOUND);
         }
-        const srtLines: SrtLine[] = srt.sentences
-            .map((sentence) => SrtUtil.fromSentence(sentence));
-        const clipContext = SrtUtil.getAround(srtLines, indexInSrt, 5);
-        const contentSrtStr = SrtUtil.srtLinesToSrt(clipContext);
-        return hash(contentSrtStr);
+        const { contentSrt } = buildClipContext(srt.sentences, indexInSrt);
+        return hash(contentSrt);
     }
 
     /**
@@ -345,45 +341,24 @@ export class FavouriteClipsServiceImpl implements FavouriteClipsService {
     }
 
     private mapTrimRange(srt: SrtSentence, indexInSrt: number): [number, number] {
-        const srtLines: SrtLine[] = srt.sentences
-            .map((sentence) => SrtUtil.fromSentence(sentence));
-        const clipContext = SrtUtil.getAround(srtLines, indexInSrt, 5);
-        const startTime = clipContext[0].start ?? 0;
-        return [startTime, clipContext[clipContext.length - 1].end ?? 0];
+        const { startTime, endTime } = buildClipContext(srt.sentences, indexInSrt);
+        return [startTime, endTime];
     }
 
     private mapToMetaKey(srt: SrtSentence, indexInSrt: number): string {
-        const srtLines: SrtLine[] = srt.sentences
-            .map((sentence) => SrtUtil.fromSentence(sentence));
-        const clipContext = SrtUtil.getAround(srtLines, indexInSrt, 5);
-        const contentSrtStr = SrtUtil.srtLinesToSrt(clipContext);
-        return hash(contentSrtStr);
+        const { contentSrt } = buildClipContext(srt.sentences, indexInSrt);
+        return hash(contentSrt);
     }
 
     private mapToMetaData(videoPath: string, srt: SrtSentence, indexInSrt: number): ClipMeta {
-        const srtLines: SrtLine[] = srt.sentences
-            .map((sentence) => SrtUtil.fromSentence(sentence));
-        const clipContext = SrtUtil.getAround(srtLines, indexInSrt, 5);
-        const clipLine = SrtUtil.findByIndex(srtLines, indexInSrt) as SrtLine;
-        clipContext.map((item) =>
-            item.contentEn
-        ).filter((item) => StrUtil.isNotBlank(item)).join('\n');
-        const startTime = clipContext[0].start ?? 0;
-        const clipJson: ClipSrtLine[] = clipContext.map((item, index) => ({
-            index: index,
-            start: item.start - startTime,
-            end: item.end - startTime,
-            contentEn: item.contentEn,
-            contentZh: item.contentZh,
-            isClip: item === clipLine
-        }));
+        const { clipLines } = buildClipContext(srt.sentences, indexInSrt);
         return {
             clip_file: '',
             thumbnail_file: '',
             tags: [],
             video_name: videoPath,
             created_at: Date.now(),
-            clip_content: clipJson
+            clip_content: clipLines
         };
     }
 
