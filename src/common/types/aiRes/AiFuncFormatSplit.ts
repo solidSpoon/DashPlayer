@@ -21,7 +21,7 @@ export const buildFormatSplitPrompt = (text: string): string => codeBlock`
     待修正的用户文本：
     ${text}
 
-    请直接输出修正后的文本内容，不要包含 markdown 代码块包裹、额外解释或无关问候。
+    请以 JSON 格式输出修正后的文本，结果放入 formatedText 字段，不要包含 markdown 代码块包裹、额外解释或无关问候。
 `;
 
 export class AiFuncFormatSplitPrompt {
