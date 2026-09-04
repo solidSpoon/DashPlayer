@@ -80,6 +80,16 @@ export default class AccessRecoveringFileSystemGateway implements FileSystemGate
     }
 
     /**
+     * 读取文件的原始字节内容。
+     * @param filePath 文件绝对路径。
+     * @returns 文件的二进制内容。
+     */
+    public async readBinaryFile(filePath: string): Promise<Buffer> {
+        await this.ensureAccessible(filePath);
+        return this.inner.readBinaryFile(filePath);
+    }
+
+    /**
      * 计算目录内所有普通文件的总大小。
      * @param directoryPath 目录绝对路径。
      * @returns 文件总大小，单位为字节；遍历失败时直接抛出错误。

@@ -2,13 +2,13 @@ import { inject, injectable } from 'inversify';
 import { WithSemaphore } from '@/backend/utils/concurrency/decorators';
 import { randomUUID } from 'crypto';
 import path from 'path';
-import fs from 'fs';
 import TYPES from '@/backend/ioc/types';
 import DpTaskService from '@/backend/services/DpTaskService';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { VideoInfo } from '@/common/types/video-info';
 import { CancelByUserError } from '@/backend/utils/errors/errors';
 import FfmpegGateway, { FfmpegExecutionError, VideoSegment } from '@/backend/services/gateways/media/FfmpegGateway';
+import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
 import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 
 export default interface FfmpegService {
@@ -146,6 +146,9 @@ export class FfmpegServiceImpl implements FfmpegService {
     @inject(TYPES.StorageDirectoryProvider)
     private storageDirectoryProvider!: StorageDirectoryProvider;
 
+    @inject(TYPES.FileSystemGateway)
+    private fileSystemGateway!: FileSystemGateway;
+
     private readonly logger = getMainLogger('FfmpegServiceImpl');
 
     /**
@@ -241,10 +244,7 @@ export class FfmpegServiceImpl implements FfmpegService {
     }): Promise<void> {
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputFile);
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(outputFolder);
-
-        if (!fs.existsSync(outputFolder)) {
-            fs.mkdirSync(outputFolder, { recursive: true });
-        }
+        await this.fileSystemGateway.ensureDirectory(outputFolder);
 
         // 时长由方法自行探测，截图点钳制到视频结尾前，避免超出时长后 ffmpeg 静默产出空图。
         const totalDuration = await this.duration(inputFile);
@@ -447,7 +447,7 @@ export class FfmpegServiceImpl implements FfmpegService {
         job?: string;
     }): Promise<string[]> {
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(args.inputFile);
-        await fs.promises.mkdir(args.outputFolder, { recursive: true });
+        await this.fileSystemGateway.ensureDirectory(args.outputFolder);
         const outputs: string[] = [];
         for (let index = 0; index < args.ranges.length; index++) {
             const range = args.ranges[index];

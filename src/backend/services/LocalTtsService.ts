@@ -1,9 +1,9 @@
-import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { inject, injectable } from 'inversify';
 import { WithSemaphore } from '@/backend/utils/concurrency/decorators';
 import { SHERPA_TTS_MODEL_DIRECTORY } from '@/backend/services/models/sherpaTtsModel';
+import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
 import StorageDirectoryProvider, { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import TYPES from '@/backend/ioc/types';
 import { SherpaOnnxTtsCli } from '@/backend/infrastructure/media/sherpa/SherpaOnnxTtsCli';
@@ -30,6 +30,7 @@ export class LocalTtsServiceImpl implements LocalTtsService {
         @inject(TYPES.StorageDirectoryProvider) private readonly storageDirectoryProvider: StorageDirectoryProvider,
         @inject(TYPES.SherpaTtsModelService) private readonly modelService: SherpaTtsModelService,
         @inject(TYPES.SherpaOnnxTtsCli) private readonly cli: SherpaOnnxTtsCli,
+        @inject(TYPES.FileSystemGateway) private readonly fileSystemGateway: FileSystemGateway,
     ) {}
 
     /**
@@ -45,7 +46,7 @@ export class LocalTtsServiceImpl implements LocalTtsService {
         const modelsRoot = await this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.MODELS);
         const modelDir = path.join(modelsRoot, SHERPA_TTS_MODEL_DIRECTORY);
         const outputDir = path.join(os.tmpdir(), 'dp', 'tts');
-        fs.mkdirSync(outputDir, { recursive: true });
+        await this.fileSystemGateway.ensureDirectory(outputDir);
         const outputPath = path.join(outputDir, `${Date.now()}-${Math.random().toString(36).slice(2)}.wav`);
         return this.cli.run({
             modelPath: path.join(modelDir, 'en_US-amy-low.onnx'),
