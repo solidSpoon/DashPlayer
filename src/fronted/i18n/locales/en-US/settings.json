@@ -81,6 +81,11 @@
         "openReleases": "Open Release Page",
         "failedTitle": "Failed to check for updates",
         "failedDescription": "Unable to fetch release details right now. Please try again later.",
+        "errors": {
+            "rate_limited": "GitHub request limit reached. Please try again in a few minutes.",
+            "network": "Can't reach GitHub right now. Check your connection and try again.",
+            "payload": "GitHub returned an unreadable response. Please try again later."
+        },
         "latestTitle": "You're up to date! Here's a tip:",
         "tips": {
             "transcriptionBackground": "While transcription is in progress, you can navigate away and continue watching videos. Subtitles update automatically when finished.",

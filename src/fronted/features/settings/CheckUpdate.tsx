@@ -7,11 +7,10 @@ import { codeBlock } from 'common-tags';
 import useSWR from 'swr';
 import { Skeleton } from '@/fronted/components/ui/skeleton';
 import NewTips from '@/fronted/features/settings/components/NewTips';
-import { cn } from '@/fronted/lib/utils';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import { UpdateCheckResult } from '@/common/types/update-check';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { Compass, ExternalLink, Sparkles } from 'lucide-react';
+import { Compass, ExternalLink } from 'lucide-react';
 
 const CheckUpdate = () => {
     const { t } = useI18nTranslation('settings');
@@ -22,6 +21,10 @@ const CheckUpdate = () => {
 
     const hasNewRelease = (updateResult?.releases?.length ?? 0) > 0;
     const hasError = updateResult?.status === 'error';
+    // 按错误码映射 i18n 文案；未知码兜底到通用失败描述，不透出后端原始信息。
+    const errorText = updateResult?.error
+        ? t(`checkUpdate.errors.${updateResult.error}`, { defaultValue: t('checkUpdate.failedDescription') })
+        : t('checkUpdate.failedDescription');
 
     return (
         <SettingsPageShell
@@ -61,9 +64,7 @@ const CheckUpdate = () => {
                             {hasError ? (
                                 <div className="w-full flex flex-col gap-2 text-destructive">
                                     <h3 className="font-semibold text-sm">{t('checkUpdate.failedTitle')}</h3>
-                                    <p className="text-xs text-muted-foreground">
-                                        {updateResult?.error ?? t('checkUpdate.failedDescription')}
-                                    </p>
+                                    <p className="text-xs text-muted-foreground">{errorText}</p>
                                 </div>
                             ) : hasNewRelease ? (
                                 <div className="space-y-4">
