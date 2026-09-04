@@ -2,6 +2,9 @@
 name: Release app
 on:
   workflow_dispatch:
+  # 供 release-please.yml 在发版 PR 合并后以 workflow_call 直接调用
+  # （GITHUB_TOKEN 打的 tag 不会触发 push 事件，不能只靠下面的 tag 触发器）
+  workflow_call:
   push:
     tags: ['v*']
 permissions:
@@ -26,7 +29,7 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v5
         with:
-          node-version: 22.12.0
+          node-version: 22.x
           cache: yarn
       - name: Install WiX Toolset (Windows only)
         if: matrix.os.name == 'windows'
