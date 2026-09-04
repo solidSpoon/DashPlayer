@@ -1,8 +1,10 @@
 name: Release Please
 
 # 监听 main 分支：合并功能 PR 后，由 Release Please 根据提交信息攒"发版 PR"
-# （内含版本号 bump 与 CHANGELOG 更新）；合并发版 PR 后自动打 tag 并创建 GitHub Release，
-# tag 推送会触发 release.yml 的四平台构建，产物自动挂到该 Release 上。
+# （内含版本号 bump 与 CHANGELOG 更新）；合并发版 PR 后自动打 tag 并创建 GitHub Release。
+# 注意：Release Please 用 GITHUB_TOKEN 打 tag，GitHub 规定此类事件不会触发其他 workflow，
+# 所以四平台构建通过下方 build job 以 workflow_call 方式在同一运行内直接链式调用，
+# 而不是依赖 release.yml 的 tag 触发器。
 on:
   push:
     branches: [main]
@@ -13,10 +15,22 @@ permissions:
 
 jobs:
   release-please:
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
     runs-on: ubuntu-latest
     steps:
       - name: Run release-please
+        id: release
         uses: googleapis/release-please-action@v4
         with:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
+
+  # 发版 PR 合并（release_created 为 true）时，直接调用 release.yml 执行四平台构建；
+  # 构建上下文即本次 push 的 main 提交（发版 PR 的合并结果，与 tag 内容一致）。
+  build:
+    needs: release-please
+    if: needs.release-please.outputs.release_created == 'true'
+    uses: ./.github/workflows/release.yml
+    permissions:
+      contents: write
