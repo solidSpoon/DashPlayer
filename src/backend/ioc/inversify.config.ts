@@ -110,6 +110,7 @@ import StorageDirectoryProvider from '@/backend/services/gateways/storage/Storag
 import StorageDirectoryProviderImpl from '@/backend/infrastructure/storage/StorageDirectoryProviderImpl';
 import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
 import FileSystemGatewayImpl from '@/backend/infrastructure/storage/FileSystemGatewayImpl';
+import AccessRecoveringFileSystemGateway from '@/backend/infrastructure/storage/AccessRecoveringFileSystemGateway';
 import db from '@/backend/infrastructure/db';
 import type { Db } from '@/backend/infrastructure/db/createDb';
 
@@ -184,7 +185,9 @@ container.bind<SystemConfigService>(TYPES.SystemConfigService).to(SystemConfigSe
 container.bind<CacheService>(TYPES.CacheService).to(CacheServiceImpl).inSingletonScope();
 container.bind<SettingService>(TYPES.SettingService).to(SettingServiceImpl).inSingletonScope();
 container.bind<StorageDirectoryProvider>(TYPES.StorageDirectoryProvider).to(StorageDirectoryProviderImpl).inSingletonScope();
-container.bind<FileSystemGateway>(TYPES.FileSystemGateway).to(FileSystemGatewayImpl).inSingletonScope();
+// 裸文件系统网关只做真实 IO；对外绑定的网关在其外层自动恢复外部路径的访问权限。
+container.bind<FileSystemGateway>(TYPES.RawFileSystemGateway).to(FileSystemGatewayImpl).inSingletonScope();
+container.bind<FileSystemGateway>(TYPES.FileSystemGateway).to(AccessRecoveringFileSystemGateway).inSingletonScope();
 container.bind<FfmpegGateway>(TYPES.FfmpegGateway).to(FfmpegGatewayImpl).inSingletonScope();
 container.bind<FfmpegService>(TYPES.FfmpegService).to(FfmpegServiceImpl).inSingletonScope();
 container.bind<DpTaskService>(TYPES.DpTaskService).to(DpTaskServiceImpl).inSingletonScope();

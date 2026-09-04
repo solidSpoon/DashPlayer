@@ -1,5 +1,5 @@
 import path from 'path';
-import fs from 'fs';
+import fs from 'fs/promises';
 import { app } from 'electron';
 import { getEnvironmentSuffix } from '@/backend/utils/runtimeEnv';
 import StrUtil from '@/common/utils/str-util';
@@ -83,9 +83,9 @@ export function resolveStorageRootPath(configuredPath?: string | null): string {
  * @param configuredPath 用户保存的原始路径。
  * @returns 可供前端展示的状态信息。
  */
-export function getStorageRootStatus(configuredPath?: string): StorageStatusVO {
+export async function getStorageRootStatus(configuredPath?: string): Promise<StorageStatusVO> {
     const resolvedPath = resolveStorageRootPath(configuredPath);
-    const accessStatus = getDirectoryAccessStatus(resolvedPath);
+    const accessStatus = await getDirectoryAccessStatus(resolvedPath);
     const status: StorageStatusVO = {
         configuredPath: configuredPath ?? '',
         resolvedPath,
@@ -107,7 +107,7 @@ export function getStorageRootStatus(configuredPath?: string): StorageStatusVO {
  * @param directoryPath 目录绝对路径。
  * @returns 目录访问状态。
  */
-export function getDirectoryAccessStatus(directoryPath: string): StorageAccessStatus {
+export async function getDirectoryAccessStatus(directoryPath: string): Promise<StorageAccessStatus> {
     const targetPath = path.resolve(directoryPath);
     return buildAccessStatus(targetPath, 'directory');
 }
@@ -122,7 +122,7 @@ export function getDirectoryAccessStatus(directoryPath: string): StorageAccessSt
  * @param filePath 文件绝对路径。
  * @returns 文件访问状态。
  */
-export function getFileAccessStatus(filePath: string): StorageAccessStatus {
+export async function getFileAccessStatus(filePath: string): Promise<StorageAccessStatus> {
     const targetPath = path.resolve(filePath);
     return buildAccessStatus(targetPath, 'file');
 }
@@ -167,7 +167,7 @@ function isSamePathOrAncestor(candidateAncestor: string, targetPath: string): bo
  * @param targetType 目标类型。
  * @returns 标准化后的访问状态。
  */
-function buildAccessStatus(targetPath: string, targetType: StorageAccessTargetType): StorageAccessStatus {
+async function buildAccessStatus(targetPath: string, targetType: StorageAccessTargetType): Promise<StorageAccessStatus> {
     const status: StorageAccessStatus = {
         targetPath,
         checkPath: targetType === 'file' ? path.dirname(targetPath) : targetPath,
@@ -183,15 +183,13 @@ function buildAccessStatus(targetPath: string, targetType: StorageAccessTargetTy
     };
 
     try {
-        const stat = fs.statSync(targetPath);
+        const stat = await fs.stat(targetPath);
         status.exists = true;
         status.isDirectory = stat.isDirectory();
         status.isFile = stat.isFile();
         status.checkPath = targetPath;
     } catch (error: unknown) {
-        const errorCode = error instanceof Error && 'code' in error
-            ? (error as NodeJS.ErrnoException).code
-            : undefined;
+        const errorCode = readFsErrorCode(error);
         if (errorCode !== 'ENOENT') {
             status.message = targetType === 'file' ? '当前文件暂时无法访问' : '当前文件夹暂时无法访问';
             return status;
@@ -208,11 +206,11 @@ function buildAccessStatus(targetPath: string, targetType: StorageAccessTargetTy
             return status;
         }
     } else {
-        status.checkPath = findNearestExistingAncestor(targetPath, targetType);
+        status.checkPath = await findNearestExistingAncestor(targetPath, targetType);
     }
 
     try {
-        fs.accessSync(status.checkPath, fs.constants.R_OK);
+        await fs.access(status.checkPath, fs.constants.R_OK);
         status.readable = true;
     } catch {
         status.code = 'not_readable';
@@ -220,7 +218,7 @@ function buildAccessStatus(targetPath: string, targetType: StorageAccessTargetTy
     }
 
     try {
-        fs.accessSync(status.checkPath, fs.constants.W_OK);
+        await fs.access(status.checkPath, fs.constants.W_OK);
         status.writable = true;
     } catch {
         status.code = 'not_writable';
@@ -234,12 +232,23 @@ function buildAccessStatus(targetPath: string, targetType: StorageAccessTargetTy
 }
 
 /**
+ * 从未知异常中读取 Node.js 错误码。
+ * @param error 文件系统抛出的未知异常。
+ * @returns Node.js 错误码；不存在时返回 `undefined`。
+ */
+function readFsErrorCode(error: unknown): string | undefined {
+    return error instanceof Error && 'code' in error
+        ? (error as NodeJS.ErrnoException).code
+        : undefined;
+}
+
+/**
  * 查找目标路径最近的已存在上层路径。
  * @param targetPath 目标路径。
  * @param targetType 目标类型。
  * @returns 最近的已存在上层路径；若无法判断则回退到初始检查路径。
  */
-function findNearestExistingAncestor(targetPath: string, targetType: StorageAccessTargetType): string {
+async function findNearestExistingAncestor(targetPath: string, targetType: StorageAccessTargetType): Promise<string> {
     const candidatePath = targetType === 'file' ? path.dirname(targetPath) : targetPath;
     return findExistingAncestor(candidatePath);
 }
@@ -249,14 +258,12 @@ function findNearestExistingAncestor(targetPath: string, targetType: StorageAcce
  * @param candidatePath 当前候选路径。
  * @returns 最近的已存在路径；若遇到非缺失错误则返回当前路径。
  */
-function findExistingAncestor(candidatePath: string): string {
+async function findExistingAncestor(candidatePath: string): Promise<string> {
     try {
-        fs.statSync(candidatePath);
+        await fs.stat(candidatePath);
         return candidatePath;
     } catch (error: unknown) {
-        const errorCode = error instanceof Error && 'code' in error
-            ? (error as NodeJS.ErrnoException).code
-            : undefined;
+        const errorCode = readFsErrorCode(error);
         if (errorCode !== 'ENOENT') {
             return candidatePath;
         }
