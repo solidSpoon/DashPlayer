@@ -10,7 +10,6 @@ import { SubtitleTimestampAdjustment } from '@/common/contracts/subtitle-timesta
 import { ObjUtil } from '@/backend/utils/ObjUtil';
 import { parseSrt, parseAss, srtLineToSentence, SrtLine } from '@/common/utils/subtitle';
 import MediaUtil from '@/common/utils/MediaUtil';
-import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
 import { SubtitleVocabularyAnalysisService } from '@/backend/services/SubtitleVocabularyAnalysisService';
 import {
@@ -155,8 +154,6 @@ export class SubtitleServiceImpl implements SubtitleService {
     private cacheService!: CacheService;
     @inject(TYPES.SubtitleVocabularyAnalysisService)
     private vocabularyAnalysisService!: SubtitleVocabularyAnalysisService;
-    @inject(TYPES.StorageDirectoryProvider)
-    private storageDirectoryProvider!: StorageDirectoryProvider;
     @inject(TYPES.FileSystemGateway)
     private fileSystemGateway!: FileSystemGateway;
 
@@ -172,7 +169,6 @@ export class SubtitleServiceImpl implements SubtitleService {
         if (!(await this.fileSystemGateway.fileExists(path))) {
             throw new Error(`字幕文件不存在：${path}`);
         }
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(path);
         const content = await this.fileSystemGateway.readTextFile(path);
         const hashKey = ObjUtil.hash(content);
         const cache = this.cacheService.get('cache:srt', hashKey);

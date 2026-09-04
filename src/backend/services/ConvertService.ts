@@ -3,7 +3,6 @@ import { inject, injectable } from 'inversify';
 import { FolderVideos } from '@/common/contracts/convert';
 import { CancelByUserError } from '@/backend/utils/errors/errors';
 import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
-import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import DpTaskService from '@/backend/services/DpTaskService';
 import FfmpegService from '@/backend/services/FfmpegService';
 import TYPES from '@/backend/ioc/types';
@@ -57,13 +56,11 @@ export class ConvertServiceImpl implements ConvertService {
      * 创建转换用例服务。
      * @param dpTaskService 后台任务状态服务。
      * @param ffmpegService FFmpeg 基础能力服务。
-     * @param storageDirectoryProvider 外部路径权限恢复服务。
      * @param fileSystemGateway 文件系统访问入口。
      */
     constructor(
         @inject(TYPES.DpTaskService) private readonly dpTaskService: DpTaskService,
         @inject(TYPES.FfmpegService) private readonly ffmpegService: FfmpegService,
-        @inject(TYPES.StorageDirectoryProvider) private readonly storageDirectoryProvider: StorageDirectoryProvider,
         @inject(TYPES.FileSystemGateway) private readonly fileSystemGateway: FileSystemGateway,
     ) {}
 
@@ -75,7 +72,6 @@ export class ConvertServiceImpl implements ConvertService {
      * @throws 输入文件不存在或无法访问时直接抛错，不创建任务。
      */
     public async startToMp4(inputFile: string): Promise<number> {
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputFile);
         if (!await this.fileSystemGateway.fileExists(inputFile)) {
             throw new Error(`待转换视频不存在：${inputFile}`);
         }
@@ -96,7 +92,6 @@ export class ConvertServiceImpl implements ConvertService {
     public async listUnconvertedVideos(folders: string[]): Promise<FolderVideos[]> {
         const result: FolderVideos[] = [];
         for (const folder of folders) {
-            await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(folder);
             const fileNames = await this.fileSystemGateway.listFileNames(folder);
             const videos: string[] = [];
 
@@ -123,7 +118,6 @@ export class ConvertServiceImpl implements ConvertService {
      * @returns 已存在的 HTML5 MP4 路径；不存在时返回 `null`。
      */
     public async suggestHtml5Video(filePath: string): Promise<string | null> {
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(filePath);
         const html5VideoPath = this.isHtml5Video(filePath)
             ? filePath
             : this.buildOutputPaths(filePath).videoPath;

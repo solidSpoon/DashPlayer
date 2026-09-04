@@ -44,7 +44,6 @@ export default class WatchHistoryLibrary {
     public async create(filePaths: string[]): Promise<string[]> {
         const existingPaths: string[] = [];
         for (const filePath of filePaths) {
-            await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(filePath);
             if (!await this.fileSystemGateway.pathIsMissing(filePath)) {
                 existingPaths.push(filePath);
             }
@@ -76,7 +75,6 @@ export default class WatchHistoryLibrary {
      * @returns 新建或已存在的观看记录 ID。
      */
     public async scanFolder(folder: string): Promise<string[]> {
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(folder);
         if (!await this.fileSystemGateway.directoryExists(folder)) {
             return [];
         }
@@ -103,7 +101,6 @@ export default class WatchHistoryLibrary {
         videoPath: string,
         projectType: WatchHistoryProjectType = WatchHistoryProjectType.FILE,
     ): Promise<string[]> {
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(videoPath);
         if (!await this.fileSystemGateway.fileExists(videoPath)) {
             return [];
         }
