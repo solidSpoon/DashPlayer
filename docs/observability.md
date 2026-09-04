@@ -46,7 +46,7 @@ du -sh "$HOME/Library/Application Support/DashPlayer/logs-dev"
 
 - 递归深度 ≤ 5，对象键数 ≤ 50（超出记 `__truncatedKeys`），数组长度 ≤ 50（超出追加 `"[Truncated N items]"`）；
 - **字符串超过 4000 字符是"保头丢尾"**，而 ffmpeg/sherpa 的致命错误恰恰在输出末尾；
-- `Error` 序列化为 `{ name, message, stack, cause }`；命中敏感键名的值替换为 `***`。
+- `Error` 序列化为 `{ name, message, stack, cause }`，若错误对象自带 `statusCode`/`responseBody`（AI SDK 等第三方错误的 upstream 证据）会一并保留；命中敏感键名的值替换为 `***`。
 
 由此得出一条硬约束：**可能很长的文本必须以"行数组"入 `data`**，例如 `stderrTail: string[]`。这样尾部关键行是若干独立短字段，不会被整体截断。
 
