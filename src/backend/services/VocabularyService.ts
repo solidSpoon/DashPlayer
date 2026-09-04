@@ -589,7 +589,9 @@ export class VocabularyServiceImpl implements VocabularyService {
             '1. 覆盖该词最常用的 1-3 个含义；',
             '2. 每个义项以词性缩写开头（如 n.、v.、adj. 等），义项之间用中文分号分隔；',
             '3. 总长度不超过 60 个字，语言精炼，不要例句，不要额外解释；',
-            '4. 结果放入 translate 字段。'
+            // 提示词必须出现 "JSON" 字样：json_object 模式下部分兼容端点（如 uniapi 的
+            // deepseek-v4-flash）会校验这一点，缺失时直接 400，收藏单词整体失败。
+            '4. 以 JSON 格式输出，结果放入 translate 字段。'
         ].join('\n');
     }
 
