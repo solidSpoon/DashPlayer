@@ -14,6 +14,7 @@ vi.mock('child_process', () => ({
 }));
 
 type FakeChild = EventEmitter & {
+    stdout: EventEmitter;
     stderr: EventEmitter;
     kill: ReturnType<typeof vi.fn>;
     killed: boolean;
@@ -24,6 +25,7 @@ type FakeChild = EventEmitter & {
  */
 function createFakeChild(): FakeChild {
     const child = new EventEmitter() as FakeChild;
+    child.stdout = new EventEmitter();
     child.stderr = new EventEmitter();
     child.killed = false;
     child.kill = vi.fn();
@@ -148,6 +150,25 @@ describe('FfmpegProcessRunner', () => {
 
         expect(child.kill).toHaveBeenNthCalledWith(1, 'SIGTERM');
         expect(child.kill).toHaveBeenNthCalledWith(2, 'SIGKILL');
+    });
+
+    it('正常退出时应收集完整 stdout 文本', async () => {
+        const child = createFakeChild();
+        spawnMock.mockReturnValue(child);
+
+        const runner = new FfmpegProcessRunner();
+        const runningTask = runner.start({
+            ffmpegPath: '/bin/ffprobe',
+            args: ['-print_format', 'json', '/input.mp4'],
+        });
+
+        child.stdout.emit('data', Buffer.from('{"format":', 'utf8'));
+        child.stdout.emit('data', Buffer.from('}', 'utf8'));
+        child.emit('close', 0);
+
+        const result = await runningTask.result;
+
+        expect(result.stdoutText).toBe('{"format":}');
     });
 
     it('子进程触发 error 事件时应直接失败', async () => {

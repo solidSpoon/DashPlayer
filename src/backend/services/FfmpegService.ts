@@ -108,12 +108,12 @@ export default interface FfmpegService {
     trimVideo(inputPath: string, startTime: number, endTime: number, outputPath: string, job?: string): Promise<void>;
 
     /**
-     * Get video information
+     * 获取视频信息。
      */
     getVideoInfo(filePath: string): Promise<VideoInfo>;
 
     /**
-     * Convert audio file to WAV format
+     * 转换音频文件为 WAV 格式。
      */
     convertToWav(inputPath: string, outputPath: string): Promise<void>;
 
@@ -128,12 +128,12 @@ export default interface FfmpegService {
     }): Promise<string[]>;
 
     /**
-     * NEW: Trim audio by time range (re-encode to mp3 for compatibility)
+     * 按时间范围裁剪音频并转码为 MP3。
      */
     trimAudio(inputPath: string, startTime: number, endTime: number, outputPath: string): Promise<void>;
 
     /**
-     * NEW: Split audio by VAD timeline ranges
+     * 按 VAD 时间线批量切段音频。
      */
     splitAudioByTimeline(args: {
         inputFile: string,
@@ -319,30 +319,21 @@ export class FfmpegServiceImpl implements FfmpegService {
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputFile);
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(outputFolder);
         const outputPattern = path.join(outputFolder, 'output_%03d.mp3');
-        const inputDurationSecond = await this.duration(inputFile);
 
-        await this.runCancelableTask(
-            taskId,
-            {
-                inputDurationSecond,
-                onProgress,
-            },
-            async (onCancelable) => {
-                await this.ffmpegGateway.splitAudio(
-                    {
-                        inputFile,
-                        segmentSecond: segmentTime,
-                        outputPattern,
-                    },
-                    {
-                        inputDurationSecond,
-                        onProgress,
-                        onCancelable,
-                        job: dpTaskJob(taskId),
-                    },
-                );
-            },
-        );
+        await this.runCancelableTask(taskId, async (onCancelable) => {
+            await this.ffmpegGateway.splitAudio(
+                {
+                    inputFile,
+                    segmentSecond: segmentTime,
+                    outputPattern,
+                },
+                {
+                    onProgress,
+                    onCancelable,
+                    job: dpTaskJob(taskId),
+                },
+            );
+        });
 
         return await this.getOutputFiles(outputFolder, 'output_', '.mp3');
     }
@@ -361,12 +352,8 @@ export class FfmpegServiceImpl implements FfmpegService {
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputFile);
         const outputFile = inputFile.replace(path.extname(inputFile), '.mp4');
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(outputFile);
-        const inputDurationSecond = await this.duration(inputFile);
 
-        await this.ffmpegGateway.toMp4(inputFile, outputFile, {
-            onProgress,
-            inputDurationSecond,
-        });
+        await this.ffmpegGateway.toMp4(inputFile, outputFile, { onProgress });
 
         return outputFile;
     }
@@ -389,23 +376,14 @@ export class FfmpegServiceImpl implements FfmpegService {
         const finalOutputFile = outputFile ?? inputFile.replace(path.extname(inputFile), '.mp4');
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputFile);
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(finalOutputFile);
-        const inputDurationSecond = await this.duration(inputFile);
 
-        await this.runCancelableTask(
-            taskId,
-            {
-                inputDurationSecond,
+        await this.runCancelableTask(taskId, async (onCancelable) => {
+            await this.ffmpegGateway.mkvToMp4(inputFile, finalOutputFile, {
                 onProgress,
-            },
-            async (onCancelable) => {
-                await this.ffmpegGateway.mkvToMp4(inputFile, finalOutputFile, {
-                    inputDurationSecond,
-                    onProgress,
-                    onCancelable,
-                    job: dpTaskJob(taskId),
-                });
-            },
-        );
+                onCancelable,
+                job: dpTaskJob(taskId),
+            });
+        });
 
         return finalOutputFile;
     }
@@ -432,24 +410,20 @@ export class FfmpegServiceImpl implements FfmpegService {
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputFile);
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(finalOutputFile);
 
-        await this.runCancelableTask(
-            taskId,
-            { onProgress },
-            async (onCancelable) => {
-                await this.ffmpegGateway.extractSubtitles(
-                    {
-                        inputFile,
-                        outputFile: finalOutputFile,
-                        mapRule,
-                    },
-                    {
-                        onProgress,
-                        onCancelable,
-                        job: dpTaskJob(taskId),
-                    },
-                );
-            },
-        );
+        await this.runCancelableTask(taskId, async (onCancelable) => {
+            await this.ffmpegGateway.extractSubtitles(
+                {
+                    inputFile,
+                    outputFile: finalOutputFile,
+                    mapRule,
+                },
+                {
+                    onProgress,
+                    onCancelable,
+                    job: dpTaskJob(taskId),
+                },
+            );
+        });
 
         return finalOutputFile;
     }
@@ -502,7 +476,7 @@ export class FfmpegServiceImpl implements FfmpegService {
     }
 
     /**
-     * 裁剪音频（按时间，转码为 MP3 以保证兼容）。
+     * 裁剪音频（按时间，转码为 MP3 以保证兼容）；非法时间区间直接抛错，不静默产出空结果。
      */
     @WithSemaphore('ffmpeg')
     public async trimAudio(
@@ -511,11 +485,6 @@ export class FfmpegServiceImpl implements FfmpegService {
         endTime: number,
         outputPath: string,
     ): Promise<void> {
-        const duration = endTime - startTime;
-        if (!Number.isFinite(duration) || duration <= 0) {
-            return;
-        }
-
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputPath);
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(outputPath);
         await this.ffmpegGateway.trimAudio({
@@ -594,15 +563,10 @@ export class FfmpegServiceImpl implements FfmpegService {
     /**
      * 执行支持取消的任务，并统一处理取消异常。
      * @param taskId dp_task ID；缺失时无法注册取消回调也不参与 job 归因。
-     * @param context 输入时长与进度回调等执行上下文。
      * @param runner 接收取消注册回调的任务体。
      */
     private async runCancelableTask(
         taskId: number | undefined,
-        context: {
-            inputDurationSecond?: number;
-            onProgress?: (progress: number) => void;
-        },
         runner: (onCancelable: (cancel: () => void) => void) => Promise<void>,
     ): Promise<void> {
         const job = dpTaskJob(taskId);
@@ -630,11 +594,7 @@ export class FfmpegServiceImpl implements FfmpegService {
                 || error instanceof CancelByUserError
                 || cancelledByUser;
             if (!alreadyReported) {
-                this.logger.error('ffmpeg task failed', {
-                    job,
-                    inputDurationSecond: context.inputDurationSecond,
-                    error: normalized,
-                });
+                this.logger.error('ffmpeg task failed', { job, error: normalized });
             }
             throw this.processError(normalized, cancelledByUser);
         } finally {

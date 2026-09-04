@@ -1,117 +1,25 @@
 import TimeUtil from '@/common/utils/TimeUtil';
-
-/**
- * 视频裁剪参数。
- */
-export interface TrimVideoArgs {
-    /** 输入视频文件绝对路径。 */
-    inputFile: string;
-    /** 输出视频文件绝对路径。 */
-    outputFile: string;
-    /** 起始秒数，要求大于等于 0。 */
-    startSecond: number;
-    /** 结束秒数，要求严格大于 startSecond。 */
-    endSecond: number;
-    /** 视频编码器，默认使用 libx264。 */
-    videoCodec?: string;
-    /** 音频编码器，默认使用 aac。 */
-    audioCodec?: string;
-    /** 输出宽度；不传表示保持原始分辨率。 */
-    outputWidth?: number;
-    /** 恒定码率因子，值越大质量越低。 */
-    crf?: number;
-    /** 输出音频声道数；不传表示保持默认。 */
-    audioChannels?: number;
-    /** 输出音频码率，例如 64k。 */
-    audioBitrate?: string;
-}
-
-/**
- * 视频切段参数。
- */
-export interface SplitVideoByTimesArgs {
-    /** 输入视频文件绝对路径。 */
-    inputFile: string;
-    /** 切段时间点列表（单位秒），要求升序。 */
-    times: number[];
-    /** 输出命名模板，例如 /tmp/chunk_%03d.mp4。 */
-    outputPattern: string;
-}
-
-/**
- * 缩略图参数。
- */
-export interface ThumbnailArgs {
-    /** 输入媒体文件绝对路径。 */
-    inputFile: string;
-    /** 输出图片绝对路径。 */
-    outputFile: string;
-    /** 截图时间点，单位秒。 */
-    timeSecond: number;
-    /** 图片宽度；不传表示保持原始宽度。 */
-    width?: number;
-    /** 图片格式，仅支持 jpg 或 png。 */
-    format?: 'jpg' | 'png';
-    /** JPG 质量，范围 1~31，值越小质量越高。 */
-    jpgQScale?: number;
-}
-
-/**
- * 字幕提取参数。
- */
-export interface ExtractSubtitleArgs {
-    /** 输入媒体文件绝对路径。 */
-    inputFile: string;
-    /** 输出字幕文件绝对路径。 */
-    outputFile: string;
-    /** 字幕流映射规则，例如 0:s:0? 或 0:s:m:language:eng?。 */
-    mapRule: string;
-    /** 输出字幕编码，默认 srt。 */
-    subtitleCodec?: string;
-}
-
-/**
- * 音频分段参数。
- */
-export interface SplitAudioArgs {
-    /** 输入媒体文件绝对路径。 */
-    inputFile: string;
-    /** 分段时长，单位秒，要求大于 0。 */
-    segmentSecond: number;
-    /** 输出命名模板，例如 /tmp/seg_%03d.mp3。 */
-    outputPattern: string;
-    /** 音频编码器，默认 libmp3lame。 */
-    audioCodec?: string;
-    /** 音频质量参数，默认 4。 */
-    qscale?: number;
-}
-
-/**
- * 音频转换为 WAV 参数。
- */
-export interface ConvertToWavArgs {
-    /** 输入音频文件绝对路径。 */
-    inputFile: string;
-    /** 输出 WAV 文件绝对路径。 */
-    outputFile: string;
-    /** 输出采样率，默认 16000。 */
-    sampleRate?: number;
-    /** 输出声道数，默认 1。 */
-    channels?: number;
-    /** 可选裁剪起点，单位为秒。 */
-    startSecond?: number;
-    /** 可选裁剪终点，单位为秒；必须与起点同时提供。 */
-    endSecond?: number;
-}
+import type {
+    ConvertToWavArgs,
+    CreateThumbnailArgs,
+    ExtractSubtitleArgs,
+    SplitAudioArgs,
+    SplitVideoByTimesArgs,
+    SplitVideoRangeArgs,
+    TrimAudioArgs,
+    TrimVideoArgs,
+} from '@/backend/services/gateways/media/FfmpegGateway';
 
 /**
  * FFmpeg 命令构建器接口。
+ *
+ * 参数类型统一从网关契约（FfmpegGateway.ts）导入，保证业务层、网关与构建器看到同一份定义。
  */
 export interface FfmpegCommandBuilder {
     /**
      * 构建按起止时间分割视频命令参数。
      */
-    buildSplitVideo(args: TrimVideoArgs): string[];
+    buildSplitVideo(args: SplitVideoRangeArgs): string[];
 
     /**
      * 构建按时间点切段视频命令参数。
@@ -126,7 +34,7 @@ export interface FfmpegCommandBuilder {
     /**
      * 构建缩略图命令参数。
      */
-    buildThumbnail(args: ThumbnailArgs): string[];
+    buildThumbnail(args: CreateThumbnailArgs): string[];
 
     /**
      * 构建字幕提取命令参数。
@@ -156,14 +64,7 @@ export interface FfmpegCommandBuilder {
     /**
      * 构建音频裁剪命令参数。
      */
-    buildTrimAudio(args: {
-        inputFile: string;
-        outputFile: string;
-        startSecond: number;
-        endSecond: number;
-        audioCodec?: string;
-        audioBitrate?: string;
-    }): string[];
+    buildTrimAudio(args: TrimAudioArgs): string[];
 }
 
 /**
@@ -173,7 +74,7 @@ export class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     /**
      * 构建按起止时间分割视频命令参数。
      */
-    public buildSplitVideo(args: TrimVideoArgs): string[] {
+    public buildSplitVideo(args: SplitVideoRangeArgs): string[] {
         this.assertRange(args.startSecond, args.endSecond, '视频分割');
         const duration = args.endSecond - args.startSecond;
         return [
@@ -245,7 +146,7 @@ export class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     /**
      * 构建缩略图命令参数。
      */
-    public buildThumbnail(args: ThumbnailArgs): string[] {
+    public buildThumbnail(args: CreateThumbnailArgs): string[] {
         this.assertNonNegative(args.timeSecond, '缩略图时间点');
 
         const format = args.format ?? 'jpg';
@@ -273,12 +174,11 @@ export class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
      * 构建字幕提取命令参数。
      */
     public buildExtractSubtitle(args: ExtractSubtitleArgs): string[] {
-        const subtitleCodec = args.subtitleCodec ?? 'srt';
         return [
             '-y',
             '-i', args.inputFile,
             '-map', args.mapRule,
-            '-c:s', subtitleCodec,
+            '-c:s', 'srt',
             args.outputFile,
         ];
     }
@@ -291,16 +191,14 @@ export class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
             throw new Error('音频分段时长必须大于 0 秒');
         }
 
-        const audioCodec = args.audioCodec ?? 'libmp3lame';
-        const qscale = args.qscale ?? 4;
         return [
             '-y',
             '-i', args.inputFile,
             '-vn',
             '-f', 'segment',
             '-segment_time', `${args.segmentSecond}`,
-            '-c:a', audioCodec,
-            '-qscale:a', `${qscale}`,
+            '-c:a', 'libmp3lame',
+            '-qscale:a', '4',
             args.outputPattern,
         ];
     }
@@ -367,14 +265,7 @@ export class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     /**
      * 构建音频裁剪命令参数。
      */
-    public buildTrimAudio(args: {
-        inputFile: string;
-        outputFile: string;
-        startSecond: number;
-        endSecond: number;
-        audioCodec?: string;
-        audioBitrate?: string;
-    }): string[] {
+    public buildTrimAudio(args: TrimAudioArgs): string[] {
         this.assertRange(args.startSecond, args.endSecond, '音频裁剪');
         const duration = args.endSecond - args.startSecond;
         const audioCodec = args.audioCodec ?? 'libmp3lame';

@@ -40,6 +40,8 @@ export interface FfmpegRunResult {
     exitCode: number;
     /** 最近保留的 stderr 行。 */
     stderrTail: string[];
+    /** 完整 stdout 文本；ffprobe 的 JSON 输出从这里读取。 */
+    stdoutText: string;
     /** 执行耗时，单位毫秒。 */
     durationMs: number;
 }
@@ -67,7 +69,7 @@ export interface FfmpegRunHooks {
 }
 
 /**
- * 统一 FFmpeg 进程执行器。
+ * 统一 FFmpeg 工具链子进程执行器，ffmpeg 转码与 ffprobe 探测共用同一条 spawn 路径。
  */
 export class FfmpegProcessRunner {
     /**
@@ -81,13 +83,20 @@ export class FfmpegProcessRunner {
 
         /** 用于跟踪当前子进程，便于取消时发送信号。 */
         let processRef: ChildProcess | null = null;
+        /** SIGKILL 升级定时器；进程退出后必须清理，避免残留句柄。 */
+        let sigkillTimer: NodeJS.Timeout | undefined;
 
         const result = new Promise<FfmpegRunResult>((resolve, reject) => {
             const child = spawn(request.ffmpegPath, request.args, {
                 cwd: request.cwd,
-                stdio: ['ignore', 'ignore', 'pipe'],
+                stdio: ['ignore', 'pipe', 'pipe'],
             });
             processRef = child;
+
+            let stdoutText = '';
+            child.stdout?.on('data', (chunk) => {
+                stdoutText += chunk.toString('utf8');
+            });
 
             hooks.onStart?.(this.composeCommandLine(request.ffmpegPath, request.args), child.pid);
 
@@ -108,12 +117,16 @@ export class FfmpegProcessRunner {
             });
 
             child.on('close', (code) => {
+                if (sigkillTimer) {
+                    clearTimeout(sigkillTimer);
+                }
                 const exitCode = code ?? -1;
                 const durationMs = Date.now() - startedAt;
                 if (exitCode === 0) {
                     resolve({
                         exitCode,
                         stderrTail: stderrTail.allLines(),
+                        stdoutText,
                         durationMs,
                     });
                     return;
@@ -140,7 +153,7 @@ export class FfmpegProcessRunner {
             cancelRequested = true;
             if (!processRef || processRef.killed) return;
             processRef.kill('SIGTERM');
-            setTimeout(() => {
+            sigkillTimer = setTimeout(() => {
                 if (!processRef || processRef.killed) return;
                 processRef.kill('SIGKILL');
             }, 1200);
