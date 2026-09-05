@@ -23,17 +23,17 @@ const TitleBarWindows = ({ maximizable, className }: TitleBarWindowsProps) => {
 
     return (
         <div
-            className={`absolute top-0 z-50 select-none w-full drag h-9 flex justify-end items-start text-titlebarText gap-x-2  ${className}`}
+            className={`absolute top-0 right-0 z-50 select-none drag flex items-center pr-4 pt-4 ${className}`}
         >
             <div
                 onMouseEnter={onMouseEnter}
                 onMouseLeave={onMouseLeave}
                 onMouseMove={onMouseMove}
-                className="no-drag py-2 px-2"
+                className="no-drag flex items-center justify-center cursor-default"
             >
                 <div
                     className={cn(
-                        'flex justify-center gap-1 items-center traffic-lights transition-opacity duration-200',
+                        'flex justify-center items-center px-2.5 py-1.5 rounded-full bg-black/5 hover:bg-black/10 dark:bg-white/10 dark:hover:bg-white/15 border border-black/5 dark:border-white/10 shadow-xs backdrop-blur-md traffic-lights transition-all duration-200',
                         !trafficLightsVisible && 'opacity-0 pointer-events-none',
                     )}
                 >

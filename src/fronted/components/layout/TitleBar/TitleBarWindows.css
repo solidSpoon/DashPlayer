@@ -30,10 +30,13 @@
   width: 12px;
   border: 1px solid rgba(0, 0, 0, 0.06);
   box-sizing: border-box;
-  margin-right: 3.5px;
+  margin-right: 5px;
   background-color: rgba(175, 175, 175, 0.5);
   position: relative;
   outline: none;
+}
+.traffic-light:last-child {
+  margin-right: 0;
 }
 .traffic-light:focus-visible {
   outline: 2px solid rgba(99, 102, 241, 0.8);
