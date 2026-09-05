@@ -62,7 +62,6 @@ import WatchHistoryController from '@/backend/controllers/WatchHistoryController
 import SettingsController from '@/backend/controllers/SettingsController';
 import { ParakeetModelController } from '@/backend/controllers/ParakeetModelController';
 import ParakeetModelService, { ParakeetModelServiceImpl } from '@/backend/services/ParakeetModelService';
-import { OpenAiService, OpenAIServiceImpl } from '@/backend/services/OpenAiService';
 import { LocalTranscriptionServiceImpl, TranscriptionService } from '@/backend/services/TranscriptionService';
 import { SherpaOnnxCli } from '@/backend/infrastructure/media/sherpa/SherpaOnnxCli';
 import SpeechRecognitionGateway from '@/backend/services/gateways/media/SpeechRecognitionGateway';
@@ -202,7 +201,6 @@ container.bind<SubtitleTranslationService>(TYPES.SubtitleTranslationService)
     .to(SubtitleTranslationServiceImpl)
     .inSingletonScope();
 container.bind<WatchHistoryService>(TYPES.WatchHistoryService).to(WatchHistoryServiceImpl).inSingletonScope();
-container.bind<OpenAiService>(TYPES.OpenAiService).to(OpenAIServiceImpl).inSingletonScope();
 container.bind<TranscriptionService>(TYPES.LocalTranscriptionService).to(LocalTranscriptionServiceImpl).inSingletonScope();
 container.bind<WordMatchService>(TYPES.WordMatchService).to(WordMatchServiceImpl).inSingletonScope();
 container.bind<VocabularyService>(TYPES.VocabularyService).to(VocabularyServiceImpl).inSingletonScope();

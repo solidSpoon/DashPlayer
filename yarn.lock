@@ -12301,11 +12301,6 @@ open@^11.0.0:
     powershell-utils "^0.1.0"
     wsl-utils "^0.3.0"
 
-openai@^7.10.0:
-  version "7.10.0"
-  resolved "https://registry.yarnpkg.com/openai/-/openai-7.10.0.tgz#85f755a02dfcb7b7327732fe7e09a88f10df6ce1"
-  integrity sha512-sn9t2Kls7O52PwuF9BUTYNu4Gk/r0lXJyrgaNht4TNRlZFb3dJIGO0RciSgjARGCBRtWjySubAQFJttlzUvGQQ==
-
 optionator@^0.9.3:
   version "0.9.3"
   resolved "https://registry.yarnpkg.com/optionator/-/optionator-0.9.3.tgz#007397d44ed1872fdc6ed31360190f81814e2c64"

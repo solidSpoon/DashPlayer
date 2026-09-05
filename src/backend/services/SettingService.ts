@@ -1,7 +1,10 @@
 import { SettingKey } from '@/common/types/store_schema';
+import { storeGet } from '@/backend/infrastructure/settings/store';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import { OpenAiService } from '@/backend/services/OpenAiService';
+import { generateText } from 'ai';
+import AiProviderService from '@/backend/services/AiProviderService';
+import StrUtil from '@/common/utils/str-util';
 import ClientProviderService from '@/backend/services/ClientProviderService';
 import { TencentTranslateClient } from '@/backend/services/gateways/translate/TencentTranslateClient';
 import { YouDaoDictionaryClient } from '@/backend/services/gateways/translate/YouDaoDictionaryClient';
@@ -64,7 +67,7 @@ export default interface SettingService {
 @injectable()
 export class SettingServiceImpl implements SettingService {
     @inject(TYPES.RendererEvents) private rendererEvents!: RendererEvents;
-    @inject(TYPES.OpenAiService) private openAiService!: OpenAiService;
+    @inject(TYPES.AiProviderService) private aiProviderService!: AiProviderService;
     @inject(TYPES.TencentClientProvider) private tencentProvider!: ClientProviderService<TencentTranslateClient>;
     @inject(TYPES.YouDaoClientProvider) private youDaoProvider!: ClientProviderService<YouDaoDictionaryClient>;
     @inject(TYPES.SettingsStore) private settingsStore!: SettingsStore;
@@ -667,18 +670,23 @@ export class SettingServiceImpl implements SettingService {
     public async testOpenAi(): Promise<{ success: boolean, message: string }> {
         try {
             this.logger.info('testing openai connection');
-            const openAi = this.openAiService.getOpenAi();
+            const apiKey = storeGet('apiKeys.openAi.key');
+            const endpoint = storeGet('apiKeys.openAi.endpoint');
+            if (StrUtil.hasBlank(apiKey, endpoint)) {
+                return { success: false, message: 'OpenAI 密钥或接口地址未配置' };
+            }
             const routedModel = this.modelRoutingService.resolveOpenAiModel('sentenceLearning');
-            if (!routedModel) {
+            if (!routedModel || StrUtil.isBlank(routedModel.modelId)) {
                 return { success: false, message: 'OpenAI 模型未配置，请先在功能设置中选择模型' };
             }
-            const completion = await openAi.chat.completions.create({
-                model: routedModel.modelId,
-                messages: [{ role: 'user', content: 'Hello' }],
-                max_tokens: 5,
+            const model = this.aiProviderService.createModelById(routedModel.modelId);
+            const result = await generateText({
+                model,
+                prompt: 'Hello',
+                maxOutputTokens: 5,
             });
 
-            if (completion.choices && completion.choices.length > 0) {
+            if (StrUtil.isNotBlank(result.text)) {
                 this.logger.info('openai test successful');
                 return { success: true, message: 'OpenAI 配置测试成功' };
             }
