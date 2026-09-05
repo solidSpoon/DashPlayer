@@ -2,6 +2,17 @@ import * as React from 'react';
 import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
 import { SettingCard, SettingRow, SettingsLoadingSkeleton } from '@/fronted/features/settings/components/form';
 import { Button } from '@/fronted/components/ui/button';
+import {
+    AlertDialog,
+    AlertDialogAction,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+    AlertDialogTrigger,
+} from '@/fronted/components/ui/alert-dialog';
 import { FolderOpen, HardDrive, RefreshCw, Trash2, FolderSync } from 'lucide-react';
 import { swrApiMutate } from '@/fronted/lib/swr-util';
 import useFile from '@/fronted/features/file-browser/fileStore';
@@ -157,15 +168,35 @@ const StorageSetting = () => {
                 contentClassName="space-y-6"
                 actions={(
                     <div className="flex gap-2">
-                        <Button
-                            onClick={handleClear}
-                            variant="destructive"
-                            size="sm"
-                            type="button"
-                        >
-                            <Trash2 className="h-4 w-4 mr-1.5" />
-                            {t('storage.resetDatabase')}
-                        </Button>
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    type="button"
+                                >
+                                    <Trash2 className="h-4 w-4 mr-1.5" />
+                                    {t('storage.resetDatabase')}
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>{t('storage.resetConfirmTitle')}</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        {t('storage.resetConfirmDescription')}
+                                    </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>{t('storage.resetConfirmCancel')}</AlertDialogCancel>
+                                    <AlertDialogAction
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                        onClick={() => handleClear().catch(() => undefined)}
+                                    >
+                                        {t('storage.resetConfirmOk')}
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
                         <Button
                             onClick={handleOpen}
                             variant="outline"
