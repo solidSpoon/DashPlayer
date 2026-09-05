@@ -50,6 +50,13 @@ export const settingsApi = {
     saveAppearance: (settings: AppearanceSettingVO) => backendClient.call('settings/appearance/save', settings),
 
     /**
+     * 查询应用版本。
+     *
+     * @returns 当前版本号字符串。
+     */
+    getAppVersion: () => backendClient.call('system/app-version'),
+
+    /**
      * 检查应用更新。
      *
      * @returns 更新检查结果。

@@ -114,7 +114,6 @@ const SideBar = ({ compact }: SideBarProps) => {
                     <BookOpen />
                 )}
                 {item(t('settingsCenter'), '/settings', 'settings', <Settings />)}
-                {item(t('productStory'), '/about', 'about', <User />)}
             </div>
         </div>
     );

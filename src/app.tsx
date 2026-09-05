@@ -1,16 +1,15 @@
 import { createRoot } from 'react-dom/client';
 import React, { useEffect } from 'react';
 import useSetting from '@/fronted/features/settings/settingsStore';
-import { HashRouter, Route, Routes } from 'react-router-dom';
+import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import HomePage from '@/fronted/features/file-browser/HomePage';
 import TitleBarLayout from '@/fronted/pages/TieleBarLayout';
 import PlayerPage from '@/fronted/features/player/PlayerPage';
 import Layout from '@/fronted/pages/Layout';
-import About from '@/fronted/pages/About';
 import SettingLayout from '@/fronted/features/settings/SettingLayout';
 import ShortcutSetting from '@/fronted/features/settings/ShortcutSetting';
 import StorageSetting from '@/fronted/features/settings/StorageSetting';
-import CheckUpdate from '@/fronted/features/settings/CheckUpdate';
+import AboutSetting from '@/fronted/features/settings/AboutSetting';
 import AppearanceSetting from '@/fronted/features/settings/AppearanceSetting';
 import ProxySetting from '@/fronted/features/settings/ProxySetting';
 import ServiceCredentialSetting from '@/fronted/features/settings/ServiceCredentialSetting';
@@ -117,7 +116,7 @@ const App = () => {
                                     path="vocabulary"
                                     element={<Eb key="vocabulary"><VideoLearningPage /></Eb>}
                                 />
-                                <Route path="about" element={<Eb key="about"><About /></Eb>} />
+                                <Route path="about" element={<Navigate to="/settings/about" replace />} />
                                 <Route
                                     path="settings"
                                     element={<SettingLayout />}
@@ -144,7 +143,11 @@ const App = () => {
                                     />
                                     <Route
                                         path="update"
-                                        element={<Eb><CheckUpdate /></Eb>}
+                                        element={<Navigate to="/settings/about" replace />}
+                                    />
+                                    <Route
+                                        path="about"
+                                        element={<Eb><AboutSetting /></Eb>}
                                     />
                                     <Route
                                         path="appearance"

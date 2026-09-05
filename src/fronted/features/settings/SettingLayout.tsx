@@ -18,9 +18,9 @@ export type SettingType =
     | 'engine-selection'
     | 'shortcut'
     | 'storage'
-    | 'update'
     | 'appearance'
-    | 'proxy';
+    | 'proxy'
+    | 'about';
 
 interface SettingNavDef {
     key: SettingType;
@@ -35,7 +35,7 @@ const SETTING_ITEMS: SettingNavDef[] = [
     { key: 'engine-selection', icon: ToggleLeft, labelKey: 'sections.engineSelection' },
     { key: 'storage', icon: Database, labelKey: 'sections.storage' },
     { key: 'proxy', icon: Globe, labelKey: 'sections.proxy' },
-    { key: 'update', icon: Compass, labelKey: 'sections.update' },
+    { key: 'about', icon: Compass, labelKey: 'sections.about' },
 ];
 
 const SettingLayout = () => {
