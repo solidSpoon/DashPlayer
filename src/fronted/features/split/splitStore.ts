@@ -4,10 +4,13 @@
 import { create } from 'zustand';
 import { persist, subscribeWithSelector } from 'zustand/middleware';
 import { ChapterParseResult } from '@/common/types/chapter-result';
+import { DpTaskState } from '@/common/contracts/dp-task';
 import MediaUtil from '@/common/utils/MediaUtil';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { swrApiMutate } from '@/fronted/lib/swr-util';
 import StrUtil from '@/common/utils/str-util';
+import toast from 'react-hot-toast';
 import { splitApi } from './splitApi';
 
 /** 带有前端任务关联信息的章节解析结果。 */
@@ -95,15 +98,44 @@ const useSplit = create(
                 }
                 const userInput = get().userInput;
                 set({ inputable: false });
+                // 流式打字机的节流窗口：partial 每个 chunk 都到，直接灌进输入框
+                // 会让预览按同频走一次后端解析 IPC（正式环境曾因此刷屏报错）。
+                const streamPaintIntervalMs = 300;
+                let lastPaintedAt = 0;
                 await useDpTaskCenter.getState().register(() => splitApi.formatSplit(userInput), {
+                    // 流式中间态：把已生成的 formatedText 渐进填入输入框做打字机效果；
+                    // 中间态是残缺 JSON/残缺文本，解析失败直接跳过等下一个 chunk，不报错。
                     onUpdated: (task) => {
-                        if (StrUtil.isBlank(task?.result)) return;
-                        useSplit.setState({
-                            userInput: task.result
-                        });
+                        const now = Date.now();
+                        if (task.status !== DpTaskState.IN_PROGRESS || now - lastPaintedAt < streamPaintIntervalMs) {
+                            return;
+                        }
+                        lastPaintedAt = now;
+                        try {
+                            const parsed = JSON.parse(task.result ?? '') as { formatedText?: string };
+                            if (StrUtil.isNotBlank(parsed?.formatedText)) {
+                                set({ userInput: parsed.formatedText });
+                            }
+                        } catch {
+                            // partial 还没成 JSON 时静默跳过；最终结果以 onFinish 的校验结果为准。
+                        }
                     },
-                    onFinish: () => {
-                        useSplit.setState({ inputable: true });
+                    onFinish: (task) => {
+                        set({ inputable: true });
+                        if (task.status !== DpTaskState.DONE) {
+                            toast.error(task.progress ?? 'AI 整理失败');
+                            return;
+                        }
+                        try {
+                            const parsed = JSON.parse(task.result ?? '') as { formatedText?: string };
+                            if (StrUtil.isBlank(parsed?.formatedText)) {
+                                throw new Error('AI 返回结果缺少 formatedText 字段');
+                            }
+                            set({ userInput: parsed.formatedText });
+                        } catch (error) {
+                            splitLogger.error('AI 整理结果解析失败', { error });
+                            toast.error('AI 整理结果无法解析，请重试');
+                        }
                     },
                 });
             }
@@ -121,6 +153,8 @@ useSplit.setState({
 // 用递增序号丢弃过期响应，避免旧预览覆盖用户最新输入。
 let previewRequestSequence = 0;
 
+const splitLogger = getRendererLogger('SplitStore');
+
 useSplit.subscribe(
     (s) => s.userInput,
     async (topic) => {
@@ -129,7 +163,19 @@ useSplit.subscribe(
             useSplit.setState({ parseResult: [] });
             return;
         }
-        const result = await splitApi.previewSplit(topic);
+        let result: ChapterParseResult[];
+        try {
+            result = await splitApi.previewSplit(topic);
+        } catch (error) {
+            // 用户正在逐字输入时（如只敲了半个时间戳）解析必然失败，
+            // 属于预期中的瞬态：清空预览并留 warn 日志，而不是未处理拒绝刷屏。
+            splitLogger.warn('章节预览解析失败，已清空预览', { error });
+            if (requestSequence !== previewRequestSequence) {
+                return;
+            }
+            useSplit.setState({ parseResult: [] });
+            return;
+        }
         if (requestSequence !== previewRequestSequence) {
             return;
         }
