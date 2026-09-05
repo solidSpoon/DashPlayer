@@ -73,6 +73,13 @@ export interface SimpleActionResult {
     error?: string;
 }
 
+/** 删除单词结果；成功时携带实际删除的入库单词（已还原为原始形态）。 */
+export interface DeleteWordResult {
+    success: boolean;
+    data?: { word: string };
+    error?: string;
+}
+
 export interface GenerateDefinitionResult {
     success: boolean;
     data?: string;
@@ -84,19 +91,30 @@ export default interface VocabularyService {
     exportTemplate(): Promise<ExportTemplateResult>;
     importWords(filePath: string): Promise<ImportWordsResult>;
     /**
-     * 收藏单词：还原为原始形态后入库，并由 AI 生成释义。
+     * 收藏单词：还原为原始形态后入库。
+     *
+     * 行为说明：
+     * - 输入的变体（复数、时态等）先还原为原始形态（lemma）再查重入库；
+     * - 释义优先使用调用方随交互携带的词典结果（如播放器弹窗已查到的释义），
+     *   未携带或为空时才调用词典 AI 生成；
+     * - 已存在的单词直接返回现有记录（幂等）。
      *
      * @param word 用户点击的单词原文（可能是复数、时态等变体）。
+     * @param translate 调用方已有的释义文本；为空时由 AI 生成。
      */
-    favoriteWord(word: string): Promise<FavoriteWordResult>;
+    favoriteWord(word: string, translate?: string): Promise<FavoriteWordResult>;
     /**
      * 编辑单词与释义；单词变化时同步迁移片段关联。
      */
     updateWord(params: UpdateWordParams): Promise<SimpleActionResult>;
     /**
      * 删除单词，并清理其片段关联。
+     *
+     * 行为说明：
+     * - 输入的变体（复数、时态等）先还原为原始形态（lemma）再删除，与收藏入口对称；
+     * - 成功时返回实际删除的入库单词，供前端同步生词高亮词表。
      */
-    deleteWord(word: string): Promise<SimpleActionResult>;
+    deleteWord(word: string): Promise<DeleteWordResult>;
     /**
      * 调用 AI 为单词生成简明中文释义。
      */
@@ -194,7 +212,8 @@ export class VocabularyServiceImpl implements VocabularyService {
      *
      * 行为说明：
      * - 仅解析第一个工作表。
-     * - 以单词为键去重，后出现的行覆盖前面的内容。
+     * - 单词统一小写归一，并以小写形式为键去重，后出现的行覆盖前面的内容，
+     *   避免同一单词的大小写变体分写成两条并撞唯一约束。
      * - 空行会被忽略。
      *
      * @param worksheet Excel 工作表。
@@ -213,7 +232,7 @@ export class VocabularyServiceImpl implements VocabularyService {
                 continue;
             }
 
-            const wordText = english.trim();
+            const wordText = english.trim().toLowerCase();
             importedWords.set(wordText, {
                 word: wordText,
                 translate: typeof translate === 'string' ? translate.trim() : null,
@@ -375,13 +394,15 @@ export class VocabularyServiceImpl implements VocabularyService {
      *
      * 行为说明：
      * - 输入的变体（复数、时态等）先还原为原始形态（lemma）再查重入库；
-     * - 释义由 AI 生成，模型未配置或生成失败时整体失败且不写入单词；
-     * - 已存在的单词直接返回现有记录（幂等）。
+     * - 释义优先使用调用方携带的词典结果，未携带时才调用词典 AI 生成；
+     * - 已存在的单词直接返回现有记录（幂等）；
+     * - 并发收藏同一词的不同变体时，后落库的一方转为已存在返回，不再报错。
      *
      * @param word 用户点击的单词原文。
+     * @param translate 调用方已有的释义文本；为空时由 AI 生成。
      * @returns 收藏结果；成功时携带入库单词与释义。
      */
-    async favoriteWord(word: string): Promise<FavoriteWordResult> {
+    async favoriteWord(word: string, translate?: string): Promise<FavoriteWordResult> {
         try {
             const input = word?.trim() ?? '';
             if (!input) {
@@ -404,15 +425,32 @@ export class VocabularyServiceImpl implements VocabularyService {
                 };
             }
 
-            const translate = await this.generateDefinitionText(lemma);
-            await this.wordsRepository.insertOne({ word: lemma, translate });
+            const carriedTranslate = translate?.trim() ?? '';
+            const finalTranslate = carriedTranslate || await this.generateDefinitionText(lemma);
+            try {
+                await this.wordsRepository.insertOne({ word: lemma, translate: finalTranslate });
+            } catch (insertError) {
+                // 并发收藏同一词的不同变体时会撞唯一约束；重新查到记录即转为已存在返回。
+                const raced = await this.wordsRepository.findByWord(lemma);
+                if (raced) {
+                    return {
+                        success: true,
+                        data: {
+                            word: raced.word,
+                            translate: raced.translate || '',
+                            alreadyExists: true
+                        }
+                    };
+                }
+                throw insertError;
+            }
             this.invalidateVocabularyCaches();
 
             return {
                 success: true,
                 data: {
                     word: lemma,
-                    translate,
+                    translate: finalTranslate,
                     alreadyExists: false
                 }
             };
@@ -485,24 +523,29 @@ export class VocabularyServiceImpl implements VocabularyService {
     /**
      * 删除单词，并清理其学习片段关联。
      *
-     * @param word 待删除的单词。
-     * @returns 操作结果。
+     * 行为说明：
+     * - 输入的变体（复数、时态等）先还原为原始形态（lemma）再删除，与收藏入口对称；
+     * - 表中不存在该词时仍返回成功（幂等删除），并携带还原后的单词。
+     *
+     * @param word 用户操作的单词原文（可能是复数、时态等变体）。
+     * @returns 操作结果；成功时携带实际删除的入库单词。
      */
-    async deleteWord(word: string): Promise<SimpleActionResult> {
+    async deleteWord(word: string): Promise<DeleteWordResult> {
         try {
-            const key = word?.trim().toLowerCase() ?? '';
-            if (!key) {
+            const input = word?.trim() ?? '';
+            if (!input) {
                 return {
                     success: false,
                     error: '单词不能为空'
                 };
             }
 
-            await this.wordsRepository.deleteByWord(key);
-            await this.clipWordRepository.deleteByWord(key);
+            const lemma = lemmatizeWord(input);
+            await this.wordsRepository.deleteByWord(lemma);
+            await this.clipWordRepository.deleteByWord(lemma);
             this.invalidateVocabularyCaches();
 
-            return { success: true };
+            return { success: true, data: { word: lemma } };
         } catch (error) {
             this.logger.error('删除单词失败', { error });
             return {

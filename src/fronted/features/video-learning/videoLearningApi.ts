@@ -51,12 +51,13 @@ export const videoLearningApi = {
     importVocabulary: (filePath: string) => backendClient.call('vocabulary/import', { filePath }),
 
     /**
-     * 收藏单词到词汇工坊；后端负责还原为原始形态并生成释义。
+     * 收藏单词到词汇工坊；后端负责还原为原始形态并入库。
      *
      * @param word 用户点击的单词原文（可能是变体）。
+     * @param translate 弹窗词典已查到的释义；提供时后端不再另行调用词典 AI。
      * @returns 收藏结果，成功时携带入库单词与释义。
      */
-    favoriteWord: (word: string) => backendClient.call('vocabulary/favorite', { word }),
+    favoriteWord: (word: string, translate?: string) => backendClient.call('vocabulary/favorite', { word, translate }),
 
     /**
      * 编辑单词与释义；单词本身是业务键，需用旧单词定位。

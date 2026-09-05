@@ -1,4 +1,4 @@
-import { like, or } from 'drizzle-orm';
+import { eq, like, or, sql } from 'drizzle-orm';
 import { injectable } from 'inversify';
 
 import db from '@/backend/infrastructure/db';
@@ -10,6 +10,19 @@ import WordsRepository, { GetAllWordsQuery, WordContent } from '@/backend/servic
  */
 @injectable()
 export default class WordsRepositoryImpl implements WordsRepository {
+
+    /**
+     * 构建单词的精确匹配条件。
+     *
+     * 用 lower() 做大小写不敏感比较（SQLite 的 lower 仅作用于 ASCII，与原 LIKE 行为一致），
+     * 避免单词中含 % / _ 时被 LIKE 当作通配符误匹配。
+     *
+     * @param word 单词。
+     * @returns 精确匹配条件。
+     */
+    private wordEquals(word: string) {
+        return eq(sql`lower(${words.word})`, word.toLowerCase());
+    }
 
     public async getAll(query: GetAllWordsQuery = {}): Promise<Word[]> {
         return db
@@ -46,7 +59,7 @@ export default class WordsRepositoryImpl implements WordsRepository {
     }
 
     /**
-     * 按单词查找记录；LIKE 在 SQLite 中对 ASCII 字母不区分大小写。
+     * 按单词查找记录；匹配不区分 ASCII 大小写。
      *
      * @param word 单词。
      * @returns 命中的记录；不存在时返回 null。
@@ -55,7 +68,7 @@ export default class WordsRepositoryImpl implements WordsRepository {
         const rows = await db
             .select()
             .from(words)
-            .where(like(words.word, word))
+            .where(this.wordEquals(word))
             .limit(1);
         return rows[0] ?? null;
     }
@@ -90,7 +103,7 @@ export default class WordsRepositoryImpl implements WordsRepository {
                 translate: value.translate,
                 updated_at: new Date().toISOString(),
             })
-            .where(like(words.word, oldWord))
+            .where(this.wordEquals(oldWord))
             .run();
     }
 
@@ -101,7 +114,7 @@ export default class WordsRepositoryImpl implements WordsRepository {
      */
     public async deleteByWord(word: string): Promise<void> {
         db.delete(words)
-            .where(like(words.word, word))
+            .where(this.wordEquals(word))
             .run();
     }
 }

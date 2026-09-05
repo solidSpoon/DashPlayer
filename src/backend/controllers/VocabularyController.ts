@@ -20,8 +20,8 @@ export default class VocabularyController implements Controller {
         return this.vocabularyService.importWords(params.filePath);
     }
 
-    public async favoriteWord(params: { word: string }) {
-        return this.vocabularyService.favoriteWord(params.word);
+    public async favoriteWord(params: { word: string; translate?: string }) {
+        return this.vocabularyService.favoriteWord(params.word, params.translate);
     }
 
     public async updateWord(params: UpdateWordParams) {

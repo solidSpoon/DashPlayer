@@ -108,13 +108,13 @@ const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({
                             <button
                                 type="button"
                                 onClick={onFavorite}
-                                disabled={isFavoriting || isFavorited}
+                                disabled={isFavoriting}
                                 className={cn(
                                     'p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/70 transition-colors cursor-pointer',
                                     isFavorited && 'text-amber-500 hover:text-amber-500',
-                                    (isFavoriting || isFavorited) && 'cursor-default'
+                                    isFavoriting && 'cursor-default'
                                 )}
-                                title={t('favoriteWord')}
+                                title={isFavorited ? t('unfavoriteWord') : t('favoriteWord')}
                             >
                                 {isFavoriting
                                     ? <Loader2 size={14} className="animate-spin" />

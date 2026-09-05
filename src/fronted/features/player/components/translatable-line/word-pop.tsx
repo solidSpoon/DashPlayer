@@ -183,13 +183,13 @@ const WordPop = React.forwardRef(
                                 e.stopPropagation();
                                 onFavorite();
                             }}
-                            disabled={isFavoriting || isFavorited}
+                            disabled={isFavoriting}
                             className={cn(
                                 'absolute top-2 right-2 z-10 p-1.5 rounded-md backdrop-blur-sm bg-background/70 text-muted-foreground hover:text-foreground transition-colors cursor-pointer',
                                 isFavorited && 'text-amber-500 hover:text-amber-500',
-                                (isFavoriting || isFavorited) && 'cursor-default'
+                                isFavoriting && 'cursor-default'
                             )}
-                            title={t('favoriteWord')}
+                            title={isFavorited ? t('unfavoriteWord') : t('favoriteWord')}
                         >
                             {isFavoriting
                                 ? <Loader2 size={14} className="animate-spin" />

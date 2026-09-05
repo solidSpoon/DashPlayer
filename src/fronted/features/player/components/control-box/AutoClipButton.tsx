@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import toast from 'react-hot-toast';
 import { codeBlock } from 'common-tags';
@@ -8,6 +8,7 @@ import useFile from '@/fronted/features/file-browser/fileStore';
 import { GlobalVideoLearningClipQueueStatusVO, VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { videoLearningApi } from '@/fronted/features/video-learning/videoLearningApi';
+import { useVocabularyState } from '@/fronted/features/player/vocabularyStore';
 import { registerRendererApi } from '@/fronted/infrastructure/electron/rendererApiRegistry';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
@@ -86,6 +87,24 @@ export default function AutoClipButton({ className }: AutoClipButtonProps) {
       }
     }
   );
+
+  /**
+   * 词表变化后重新检测当前视频的裁切状态。
+   *
+   * 收藏生词等改动会让后端词表快照失效，但不会主动重跑检测；
+   * 这里监听前端词表版本，变化时主动拉一次状态，
+   * 让新收录的生词能及时反映为“待裁切”而非等用户手点。
+   */
+  const vocabularyVersion = useVocabularyState((state) => state.version);
+  const lastVocabularyVersionRef = useRef<number | null>(null);
+  useEffect(() => {
+    const prev = lastVocabularyVersionRef.current;
+    lastVocabularyVersionRef.current = vocabularyVersion;
+    if (prev === null || prev === vocabularyVersion || !canQuery) {
+      return;
+    }
+    void mutateClipStatus();
+  }, [vocabularyVersion, canQuery, mutateClipStatus]);
 
   /**
    * 监听当前字幕对应的后端状态推送。

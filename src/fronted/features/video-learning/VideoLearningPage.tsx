@@ -222,18 +222,15 @@ export default function VideoLearningPage() {
   const fetchWords = useCallback(async () => {
     setLoading(true);
     try {
-      const result = await videoLearningApi.getVocabulary();
+      const [result, statsResult] = await Promise.all([
+        videoLearningApi.getVocabulary(),
+        videoLearningApi.getWordClipStats()
+      ]);
       if (result.success) {
         const wordData: WordItem[] = Array.isArray(result.data) ? result.data as WordItem[] : [];
-
         let clipStats: Record<string, { count: number; lastAddedAt: string }> = {};
-        try {
-          const statsResult = await videoLearningApi.getWordClipStats();
-          if (statsResult?.success && statsResult.data) {
-            clipStats = statsResult.data as Record<string, { count: number; lastAddedAt: string }>;
-          }
-        } catch (error) {
-          logger.error('获取视频片段统计失败', { error });
+        if (statsResult?.success && statsResult.data) {
+          clipStats = statsResult.data as Record<string, { count: number; lastAddedAt: string }>;
         }
 
         const wordsWithVideoCount = wordData.map((word) => {
@@ -247,13 +244,16 @@ export default function VideoLearningPage() {
         });
 
         setWords(wordsWithVideoCount);
+      } else {
+        toast.error(result.error || t('vocabularyStudio.fetchWordsFailed'));
       }
     } catch (error) {
       logger.error('获取单词失败', { error });
+      toast.error(t('vocabularyStudio.fetchWordsFailed'));
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [t]);
 
   /**
    * 从本地 Vocabulary Studio 文件夹重建片段索引。
@@ -294,24 +294,22 @@ export default function VideoLearningPage() {
         a.click();
         document.body.removeChild(a);
 
-        setTimeout(() => {
-          alert('模板已成功下载');
-        }, 100);
+        toast.success(t('vocabularyStudio.exportSuccess'));
       } else {
-        alert(`导出失败：${result.error}`);
+        toast.error(result.error || t('vocabularyStudio.exportFailed'));
       }
     } catch (error) {
       logger.error('导出模板失败', { error });
-      alert('导出失败，请重试');
+      toast.error(t('vocabularyStudio.exportFailed'));
     }
-  }, []);
+  }, [t]);
 
   // 导入单词
   const importWords = useCallback(async (filePath: string) => {
     setLoading(true);
     try {
       if (!filePath) {
-        alert('导入失败：无法读取文件路径');
+        toast.error(t('vocabularyStudio.importFailed'));
         return;
       }
 
@@ -320,17 +318,17 @@ export default function VideoLearningPage() {
       if (result.success) {
         await fetchWords();
         await mutate(searchKey);
-        alert(result.message || '导入成功，已同步单词管理片段');
+        toast.success(result.message || t('vocabularyStudio.importSuccess'));
       } else {
-        alert(`导入失败：${result.error || '未知错误'}`);
+        toast.error(result.error || t('vocabularyStudio.importFailed'));
       }
     } catch (error) {
       logger.error('导入单词失败', { error });
-      alert('导入失败，请重试');
+      toast.error(t('vocabularyStudio.importFailed'));
     } finally {
       setLoading(false);
     }
-  }, [fetchWords, mutate, searchKey]);
+  }, [fetchWords, mutate, searchKey, t]);
 
   // 仅生成可视区域缩略图（防抖）
   const ensureThumbnails = useCallback(async (visibleIndices: number[] = []) => {
@@ -413,10 +411,7 @@ export default function VideoLearningPage() {
   // 初始化加载单词
   useEffect(() => {
     const timer = window.setTimeout(() => fetchWords(), 0);
-    return () => {
-      window.clearTimeout(timer);
-      window.setTimeout(() => setSelectedWord(null), 0);
-    };
+    return () => window.clearTimeout(timer);
   }, [fetchWords]);
 
   // 处理单词点击

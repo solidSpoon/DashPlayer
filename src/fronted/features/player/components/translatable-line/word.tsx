@@ -28,6 +28,55 @@ import { playerApi } from '@/fronted/features/player/playerApi';
 import { videoLearningApi } from '@/fronted/features/video-learning/videoLearningApi';
 
 const logger = getRendererLogger('Word');
+
+/** OpenAI 词典词性到缩写的映射；未知词性保留原文。 */
+const PART_OF_SPEECH_ABBR: Record<string, string> = {
+    noun: 'n.',
+    verb: 'v.',
+    adjective: 'adj.',
+    adverb: 'adv.',
+    preposition: 'prep.',
+    conjunction: 'conj.',
+    pronoun: 'pron.',
+    interjection: 'int.',
+    numeral: 'num.',
+};
+
+const isOpenAIDictionaryResult = (data: unknown): data is OpenAIDictionaryResult => {
+    return typeof data === 'object' && data !== null && 'definitions' in data;
+};
+
+const isYoudaoResult = (data: unknown): data is YdRes => {
+    return typeof data === 'object' && data !== null && 'speakUrl' in data;
+};
+
+/**
+ * 从弹窗词典结果中提取简明中文释义。
+ *
+ * 收藏时把已查到的释义一并传给后端入库，避免后端再调一次词典 AI。
+ *
+ * @param data 弹窗当前的词典结果；可能还在加载中或已失败。
+ * @returns 可入库的释义文本；提取不到时返回空字符串，由后端自行生成。
+ */
+const buildFavoriteTranslate = (data: YdRes | OpenAIDictionaryResult | null | undefined): string => {
+    if (!data || typeof data !== 'object') {
+        return '';
+    }
+    if (isOpenAIDictionaryResult(data)) {
+        return data.definitions
+            .map((definition) => {
+                const abbr = PART_OF_SPEECH_ABBR[definition.partOfSpeech] ?? definition.partOfSpeech;
+                return `${abbr} ${definition.meaning}`.trim();
+            })
+            .filter((entry) => entry.length > 0)
+            .join('；');
+    }
+    if (isYoudaoResult(data)) {
+        return data.basic?.explains?.join('；') || data.translation?.join('；') || '';
+    }
+    return '';
+};
+
 export interface WordParam {
     word: string;
     original: string;
@@ -174,21 +223,41 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
     };
 
     /**
-     * 收藏当前单词到词汇工坊。
+     * 切换收藏：未收藏时加入词汇工坊，已收藏时从词表移除。
      *
      * 行为说明：
-     * - 传递点击原文，由后端还原为原始形态后入库；
-     * - 成功后立即把入库单词加入生词高亮词表；
-     * - 已存在的单词给出提示并保持已收藏态。
+     * - 收藏：传递点击原文与弹窗已查到的释义，由后端还原为原始形态后入库；
+     * - 取消收藏：传递点击原文由后端删除，成功后同步移除前端生词高亮词表，
+     *   词表版本变化会触发裁切状态自动重检；
+     * - 词表中的词（含默认词表）取消收藏即从词表删除，与词汇工坊删除同义。
      */
     const handleFavorite = async () => {
-        if (favoriteState !== 'idle') {
+        const favorited = isVocabularyWord || favoriteState === 'saved';
+        if (favoriteState === 'saving') {
             return;
         }
 
+        const previousState = favoriteState;
         setFavoriteState('saving');
         try {
-            const result = await videoLearningApi.favoriteWord(original);
+            if (favorited) {
+                const result = await videoLearningApi.deleteWord(original);
+                if (result.success) {
+                    const localBase = vocabularyStore.getBaseWord(cleanWord);
+                    vocabularyStore.removeVocabularyWords([
+                        ...(result.data ? [result.data.word] : []),
+                        ...(localBase ? [localBase] : [])
+                    ]);
+                    setFavoriteState('idle');
+                    toast.success(t('wordUnfavorited'));
+                } else {
+                    setFavoriteState(previousState);
+                    toast.error(result.error || t('unfavoriteWordFailed'));
+                }
+                return;
+            }
+
+            const result = await videoLearningApi.favoriteWord(original, buildFavoriteTranslate(dictionaryResponse));
             if (result.success && result.data) {
                 vocabularyStore.addVocabularyWords([result.data.word]);
                 setFavoriteState('saved');
@@ -198,9 +267,9 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
                 toast.error(result.error || t('favoriteWordFailed'));
             }
         } catch (error) {
-            logger.error('failed to favorite word', { error: error instanceof Error ? error.message : error });
-            setFavoriteState('idle');
-            toast.error(t('favoriteWordFailed'));
+            logger.error('failed to toggle favorite word', { error: error instanceof Error ? error.message : error });
+            setFavoriteState(previousState);
+            toast.error(favorited ? t('unfavoriteWordFailed') : t('favoriteWordFailed'));
         }
     };
 
@@ -361,7 +430,7 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
                         isStreaming={openaiDictionaryEnabled && !!dictionaryEntry && !dictionaryEntry.isComplete}
                         onRefresh={handleRefresh}
                         onFavorite={handleFavorite}
-                        isFavorited={favoriteState === 'saved'}
+                        isFavorited={isVocabularyWord || favoriteState === 'saved'}
                         isFavoriting={favoriteState === 'saving'}
                     />
                 </Eb>
