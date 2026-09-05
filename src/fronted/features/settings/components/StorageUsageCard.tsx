@@ -76,24 +76,27 @@ const StorageUsageSkeleton = () => {
             className="flex flex-col items-center gap-6 p-4 sm:flex-row sm:gap-8"
         >
             {/* 环形图骨架 */}
-            <div className="mx-auto flex h-44 w-44 shrink-0 items-center justify-center">
+            <div className="mx-auto flex aspect-square h-44 w-44 shrink-0 items-center justify-center">
                 <div className="relative flex h-40 w-40 items-center justify-center">
                     <Skeleton className="h-40 w-40 rounded-full" />
                     <div className="absolute h-24 w-24 rounded-full bg-card" />
                 </div>
             </div>
 
-            {/* 明细列表骨架 */}
-            <div className="w-full min-w-0 flex-1 space-y-2.5">
+            {/* 明细列表骨架：高度与真实条目完全 1:1 对齐 */}
+            <div className="w-full min-w-0 flex-1 space-y-2">
                 {CATEGORY_ORDER.map((key) => (
-                    <div key={key} className="flex items-center gap-3">
-                        <Skeleton className="h-2.5 w-2.5 shrink-0 rounded-[3px]" />
-                        <Skeleton className="h-3.5 w-20 shrink-0" />
-                        <div className="mx-2 hidden flex-1 sm:block">
-                            <Skeleton className="h-1.5 w-full rounded-full" />
+                    <div
+                        key={key}
+                        className="flex items-center gap-3 rounded-md px-2 py-1 text-xs"
+                    >
+                        <Skeleton className="h-2.5 w-2.5 shrink-0 rounded-[2px]" />
+                        <Skeleton className="h-4 w-24 shrink-0" />
+                        <div className="relative mx-1 hidden h-1.5 flex-1 overflow-hidden rounded-full sm:block">
+                            <Skeleton className="h-full w-full rounded-full" />
                         </div>
-                        <Skeleton className="ml-auto h-3.5 w-16" />
-                        <Skeleton className="h-3.5 w-10 shrink-0" />
+                        <Skeleton className="ml-auto h-4 w-16" />
+                        <Skeleton className="h-4 w-12 shrink-0" />
                     </div>
                 ))}
             </div>
