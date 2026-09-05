@@ -64,8 +64,8 @@ export class PlayerActions {
 
   /**
    * 高频：updateExactPlayTime
-   * - 来源：PlayerEngine -> ReactPlayer.onProgress
-   * - 频率：默认 progressInterval = 50ms（可配置）
+   * - 来源：PlayerEngine 内部 rAF 采样原生媒体元素的 currentTime
+   * - 频率：约 50ms 一次（采样间隔由 PlayerEngine 内部控制）
    * - 建议：避免在大型组件中直接订阅 s.internal.exactPlayTime，
    *   可将进度条/时间显示拆成小组件单独订阅。
    */
