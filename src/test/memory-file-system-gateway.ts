@@ -111,6 +111,18 @@ export class MemoryFileSystemGateway implements FileSystemGateway {
     }
 
     /**
+     * 计算目录内所有普通文件的总大小；目录不存在时返回 0。
+     *
+     * 内存实现没有不可读目录的形态，直接复用目录遍历结果。
+     *
+     * @param directoryPath 目录绝对路径。
+     * @returns 文件总大小，单位为字节；目录不存在时返回 0。
+     */
+    public async getDirectorySizeIfExists(directoryPath: string): Promise<number> {
+        return this.getDirectorySize(directoryPath);
+    }
+
+    /**
      * 复制普通文件。
      * @param sourcePath 源文件绝对路径。
      * @param targetPath 目标文件绝对路径。

@@ -181,7 +181,6 @@
         "descriptionLine2": "缓存数据由系统自动管理，无需手动修改。",
         "resetDatabase": "重置数据库",
         "openLibraryFolder": "打开 Library 文件夹",
-        "occupiedSpace": "占用空间",
         "libraryPathTitle": "存储路径（Library Path）",
         "libraryPathDescription": "更改存储路径后需重启 DashPlayer 生效。",
         "switchCollection": "收藏片段文件夹",
@@ -205,7 +204,22 @@
             "tooltipTitle": "重新同步词汇工坊",
             "tooltipDescription": "当数据丢失或异常时，可从 word_video 文件夹重新构建词汇工坊片段记录。"
         },
-        "wordClipsHint": "词汇工坊片段存储在 word_video 目录，需要时可在此重建数据库记录。"
+        "wordClipsHint": "词汇工坊片段存储在 word_video 目录，需要时可在此重建数据库记录。",
+        "usage": {
+            "title": "存储用量",
+            "totalLabel": "总占用",
+            "loading": "正在统计存储用量...",
+            "unavailable": "存储目录不可用，暂无法统计用量",
+            "empty": "媒体库当前没有占用空间的文件",
+            "categories": {
+                "videos": "视频文件",
+                "favorite_clips": "收藏片段",
+                "word_clips": "词汇工坊片段",
+                "models": "本地模型",
+                "temp": "临时文件",
+                "other": "其他文件"
+            }
+        }
     },
     "engineSelection": {
         "title": "功能设置",

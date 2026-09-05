@@ -204,11 +204,11 @@ export const settingsApi = {
     getStorageStatus: () => backendClient.call('storage/status'),
 
     /**
-     * 查询缓存大小。
+     * 查询存储用量明细。
      *
-     * @returns 缓存大小。
+     * @returns 媒体库各分类占用大小与总大小。
      */
-    getCacheSize: () => backendClient.call('storage/cache/size'),
+    getStorageUsage: () => backendClient.call('storage/usage'),
 
     /**
      * 保存存储设置。
