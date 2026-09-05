@@ -22,6 +22,10 @@
   <a href="https://github.com/solidSpoon/DashPlayer/releases" target="_blank">
     <img alt="Windows" src="https://img.shields.io/badge/-Windows-blue?logo=windows&logoColor=white" />
   </a>
+
+  <a href="https://github.com/solidSpoon/DashPlayer/releases" target="_blank">
+    <img alt="Linux" src="https://img.shields.io/badge/-Linux-yellow?logo=linux&logoColor=white" />
+  </a>
 </p>
 
 > 安装与使用指南详见 [Wiki](https://solidspoon.xyz/DashPlayer/home.html)，[官网](https://dash-player.solidspoon.xyz)
@@ -48,18 +52,19 @@
 
 ## 主要特性
 
-DashPlayer  的目标就是方便你观看英文视频。无论你是想泛听，还是想一句句精听，亦或是想要查询生词，DashPlayer  精心打磨的手感让您始终心情愉悦。
+DashPlayer 的目标就是方便你观看英文视频。无论你是想泛听，还是想一句句精听，亦或是想要查询生词，DashPlayer 精心打磨的手感让您始终心情愉悦。
 
 - **双语字幕**：支持机器翻译字幕。只展示中文/英文，或者全部隐藏都可以。
 - **按字幕跳转：** 重复当前句，或者跳到上一句，怎么跳都可以。
 - **查词查询**：鼠标悬停生词可快速查询，不打断学习进程。
+- **AI 整句学习**：长难句的语法、词组、生词一键拆解，还支持自由提问。
+- **词汇工坊**：自动截取包含生词的视频片段，集中复习真实语境。
 - **可调整界面尺寸：** 界面尺寸可调，适应不同屏幕和学习场景。
 - **记录播放位置：** 自动记录上次播放位置，方便下次接着学习。
 - **蓝牙遥控操作：** 支持蓝牙遥控，让你随时调整音量、跳转视频，学习更轻松！
 - **夜间模式**：内置暗色/亮色主题，适配您的学习环境。
-- **AI 字幕**：可以使用 AI 为视频生成字幕。
+- **AI 字幕**：内置本地语音识别模型，无需配置任何 API，即可为没有字幕的视频生成字幕。
 - **长视频切分**：看一段删一段，没有压力。
-- **视频下载**：粘贴视频链接，下载视频。
 
 ## 屏幕截图
 
@@ -76,7 +81,7 @@ https://github.com/solidSpoon/DashPlayer/assets/39454841/d36a0701-3cd1-42df-9012
 
 https://github.com/solidSpoon/DashPlayer/assets/39454841/66f2be0a-7098-4899-a237-f2951094b921
 
-内置下载视频，切割视频，生成字幕等诸多功能：
+内置视频切分、AI 生成字幕、修复播放问题等诸多功能：
 
 ![image](https://github.com/solidSpoon/DashPlayer/assets/39454841/96476645-317e-424b-8952-3eac0b4dd7aa)
 
@@ -107,7 +112,14 @@ DashPlayer 目前并没有进行应用签名，因此在安装过程中可能会
 
 ## Windows
 
-1. 在 [Latest Release](https://github.com/solidSpoon/DashPlayer/releases/latest) 页面下载以 `.exe` 结尾的安装包
+Windows 提供两种安装包格式，请根据需求选择其一：
+
+| 格式 | 特点 |
+|------|------|
+| `.exe`（推荐） | 双击即装，无需管理员权限 |
+| `.msi` | 有安装向导，**可以自定义安装路径**，需要管理员权限 |
+
+1. 在 [Latest Release](https://github.com/solidSpoon/DashPlayer/releases/latest) 页面下载所需格式的安装包
 2. 下载完成后双击安装包进行安装
 3. 如果提示不安全，可以点击 `更多信息` -> `仍要运行` 进行安装
 4. 开始使用吧！
@@ -116,7 +128,7 @@ DashPlayer 目前并没有进行应用签名，因此在安装过程中可能会
 
 ### 手动安装
 
-1.  去 [Latest Release](https://github.com/solidSpoon/DashPlayer/releases/latest) 页面下载对应芯片以 `.dmg` 的安装包
+1.  去 [Latest Release](https://github.com/solidSpoon/DashPlayer/releases/latest) 页面下载对应芯片以 `.dmg` 的安装包：Apple Silicon（M 系列芯片）选择 `arm64` 版本，Intel 芯片选择 `x64` 版本
 2.  下载完成后双击安装包进行安装，然后将 `DashPlayer` 拖动到 `Applications` 文件夹。
 3.  开始使用吧！
 
@@ -151,35 +163,37 @@ xattr -c <path/to/application.app>
 xattr -c /Applications/DashPlayer.app
 ```
 
+## Linux
+
+Linux 提供 `.deb` 和 `.rpm` 两种安装包格式，请根据发行版选择：
+
+- `.deb`：适用于 Debian、Ubuntu 及其衍生发行版，下载后使用 `sudo dpkg -i <安装包>` 或图形界面安装
+- `.rpm`：适用于 Fedora、openSUSE、RHEL 及其衍生发行版，下载后使用 `sudo rpm -i <安装包>` 或图形界面安装
 
 ---
 # 使用指南
 
-> 目前初次使用需要您配置几个接口，分别为：有道（查单词），腾讯（字幕翻译），OpenAI（为没字幕的视频生成字幕，整句学习功能），具体方法及详细指南请看[Wiki](https://solidspoon.xyz/DashPlayer/home.html)
+> 字幕生成为内置本地模型，开箱即用；AI 功能（字幕翻译、查单词、整句学习）需配置 OpenAI 接口，具体方法及详细指南请看[Wiki](https://solidspoon.xyz/DashPlayer/home.html)
 
 ## 如何播放视频
 
-DashPlayer 支持常见的视频格式、音频格式以及 srt 字幕格式。
+DashPlayer 支持常见的视频格式、音频格式以及 srt、vtt、ass 字幕格式。
 
-- 使用 `Open File` 可选择视频和字幕文件
-- 使用 `Open Folder` 可选择视频所在文件夹
+- 使用 `打开文件` 可选择视频和字幕文件
+- 使用 `打开文件夹` 可选择视频所在文件夹
 
 ### 想播放在线视频？
 
-DashPlayer 只支持本地视频文件，您可以用内置的视频下载功能将视频下载到本地。
-
-视频下载目前处于 Beta 版本，如果效果不理想您可以使用视频下载工具：
+DashPlayer 专注本地视频播放，您可以用下载工具将视频保存到本地后打开：
 
 - Windows 平台：[Internet Download Manager (IDM)](https://www.internetdownloadmanager.com/)
 - macOS 平台：[Downie](https://software.charliemonroe.net/downie/)
 
 ### 没有字幕文件怎么办?
 
-可以使用 AI 生成字幕，OpenAI 家的 [Whisper](https://openai.com/research/whisper) 模型生成字幕的效果很好。
+DashPlayer 内置了本地语音识别模型（Parakeet v3），在设置中心下载模型后，即可一键为视频生成字幕，无需配置任何 API，也不产生费用。
 
-按照文档配置好 OpenAI API 后，您可以使用 DashPlayer 内置的生成字幕功能。
-
-下面推荐几个生成字幕的软件，您也可以使用。
+下面推荐几个第三方生成字幕的软件，您也可以使用：
 
 - [Memo](https://memo.ac/) Windows/macOS
 - [MacWhisper](https://goodsnooze.gumroad.com/l/macwhisper) macOS
@@ -194,16 +208,22 @@ DashPlayer 默认快捷键如下
 - 下一句：“→” 或 “d”
 - 重复当前句：“↓” 或 “s”
 - 暂停/播放：“上” 或 “w” 或 “space”
-- 单句重复：“r”（repeat）
+- 单句重播模式：“r”（repeat）
+- 自动暂停：“u”（播完一句自动停）
 - 展示/隐藏英文字幕：“e”（english）
 - 展示/隐藏中文字幕：“c”（chinese）
 - 展示/隐藏中英文字幕：“b”（both）
+- 展示/隐藏逐词字幕：“l”（level）
 - 切换主题：“t”（theme）
-- 调整当前句开始时间，提前 0.2 秒：“z”
-- 调整当前句开始时间，延后 0.2 秒：“x”
-- 打开整句学习面板：“?”
+- 切换播放速度：“p”（playback rate）
+- 调整当前句字幕开始时间，提前 / 延后 0.2 秒：“z” / “x”
+- 调整当前句字幕结束时间，提前 / 延后 0.2 秒：“n” / “m”
+- 清除字幕时间微调：“v”
+- 收藏当前片段：“Shift + L”
+- 打开控制面板：“Shift + P”
+- 打开 AI 对话（整句学习）：“?” 或 “/”
 
-具体快捷键可在设置界面查看
+具体快捷键可在设置中心自定义，详见[文档](https://solidspoon.xyz/DashPlayer/Config-Shortcut.html)
 
 <img width="912" alt="image" src="https://github.com/solidSpoon/DashPlayer/assets/39454841/2b869c73-000d-45cb-9914-2bf2e7147e8f">
 
@@ -235,13 +255,9 @@ DashPlayer 默认快捷键如下
     </tbody>
 </table>
 
-## 机器翻译
+## AI 功能配置
 
-DashPlayer 目前支持使用：
+DashPlayer 的 AI 功能——字幕翻译、查单词、整句学习——只需配置 OpenAI 接口即可全部使用，首次使用前按文档配置好 API 密钥即可。
 
-- 腾讯云翻译字幕
-- 有道云翻译单词（鼠标**放置**在视频下方字幕行的单词上）
-- OpenAI 字幕识别，整句学习。
-
-实际使用下来价格都比较便宜，具体配置详见文档。
+实际使用下来价格比较便宜；字幕生成本地即可完成，无需配置。具体配置详见[文档](https://solidspoon.xyz/DashPlayer/home.html)。
 

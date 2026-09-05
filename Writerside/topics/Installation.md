@@ -24,7 +24,7 @@ Windows 提供两种安装包格式，请根据需求选择其一：
 
 ### 手动安装
 
-1. 去 [Latest Release](https://github.com/solidSpoon/DashPlayer/releases/latest) 页面下载对应芯片以 `.dmg` 的安装包
+1. 去 [Latest Release](https://github.com/solidSpoon/DashPlayer/releases/latest) 页面下载对应芯片以 `.dmg` 的安装包：Apple Silicon（M 系列芯片）选择 `arm64` 版本，Intel 芯片选择 `x64` 版本
 2. 下载完成后双击安装包进行安装，然后将 `DashPlayer` 拖动到 `Applications` 文件夹。
 3. 开始使用吧！
 
@@ -59,3 +59,14 @@ xattr -c <path/to/application.app>
 ```bash
 xattr -c /Applications/DashPlayer.app
 ```
+
+## Linux
+
+Linux 提供 `.deb` 和 `.rpm` 两种安装包格式，请根据发行版选择：
+
+- `.deb`：适用于 Debian、Ubuntu 及其衍生发行版，下载后双击安装或使用 `sudo dpkg -i <安装包>` 安装
+- `.rpm`：适用于 Fedora、openSUSE、RHEL 及其衍生发行版，下载后使用 `sudo rpm -i <安装包>` 或图形界面安装
+
+## 版本更新
+
+DashPlayer 目前不会自动下载更新。您可以进入 <control>设置中心</control> → <control>版本更新</control>页面查看最新版本，点击「前往发布页」下载新版本的安装包，重新安装即可完成升级（无需卸载旧版本）。
