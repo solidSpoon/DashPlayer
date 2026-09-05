@@ -55,5 +55,11 @@ export default class AiTransController implements Controller {
 
         registerRoute('ai-trans/update-subtitle-demand', (p) => this.updateSubtitleDemand(p));
         registerRoute('ai-trans/release-subtitle-session', (p) => this.releaseSubtitleSession(p));
+        registerRoute('ai-trans/clear-subtitle-translation-cache', async () => ({
+            deleted: await this.subtitleTranslationService.clearTranslationCache(),
+        }));
+        registerRoute('ai-trans/clear-dictionary-cache', async () => ({
+            deleted: await this.translateService.clearDictionaryCache(),
+        }));
     }
 }

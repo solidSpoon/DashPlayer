@@ -1,4 +1,5 @@
 import {DpTask} from '@/common/contracts/dp-task';
+import type { LocalAiStatus } from '@/common/contracts/local-ai';
 import {YdRes, OpenAIDictionaryResult} from '@/common/types/YdRes';
 import {ChapterParseResult} from '@/common/types/chapter-result';
 import {SrtSentence, Sentence} from '@/common/types/SentenceC';
@@ -43,7 +44,14 @@ import { VideoInfo } from '@/common/types/video-info';
 import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
 import { TranscriptTask } from '@/common/contracts/transcript/transcript-task';
 
+/** 跨进程请求与返回值契约。 */
 interface ApiDefinition {
+    'local-ai/status': { params: void, return: LocalAiStatus };
+    'local-ai/use': { params: { modelId: string }, return: void };
+    'local-ai/download': { params: { modelId: string }, return: void };
+    'local-ai/cancel-download': { params: void, return: void };
+    'local-ai/delete': { params: { modelId: string }, return: void };
+    'local-ai/check': { params: { modelId: string }, return: { translation: string; durationMs: number } };
     'eg': { params: string, return: number },
 }
 
@@ -144,6 +152,10 @@ interface AiTransDef {
         },
         return: void
     };
+    /** 清除当前字幕翻译配置（引擎、模型、风格一致）的翻译缓存。 */
+    'ai-trans/clear-subtitle-translation-cache': { params: void, return: { deleted: number } };
+    /** 清除当前词典配置的查询缓存。 */
+    'ai-trans/clear-dictionary-cache': { params: void, return: { deleted: number } };
     // 测试腾讯翻译API
     'ai-trans/test-tencent': { params: void, return: void };
     // 测试新的翻译流程

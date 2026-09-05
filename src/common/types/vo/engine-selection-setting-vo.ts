@@ -1,3 +1,4 @@
+/** 字幕、词典与整句学习的引擎和模型设置。 */
 export type EngineSelectionSettingVO = {
     openai: {
         enableSentenceLearning: boolean;
@@ -10,7 +11,7 @@ export type EngineSelectionSettingVO = {
         };
     };
     providers: {
-        subtitleTranslationEngine: 'openai' | 'tencent' | 'none';
-        dictionaryEngine: 'openai' | 'youdao' | 'none';
+        subtitleTranslationEngine: 'openai' | 'local' | 'tencent' | 'none';
+        dictionaryEngine: 'openai' | 'local' | 'youdao' | 'none';
     };
 };

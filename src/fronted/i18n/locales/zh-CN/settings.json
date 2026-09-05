@@ -250,11 +250,18 @@
         "engineTencent": "腾讯翻译",
         "engineYoudao": "有道词典",
         "engineNone": "关闭",
+        "cloudModelGroup": "云端模型",
+        "localEngine": "本地模型",
+        "notDownloadedHint": "尚未下载任何本地模型，请前往「服务凭据」页下载后再使用。",
+        "clearCache": "清除缓存",
+        "clearCacheCancel": "暂不清除",
+        "clearCacheSuccess": "已清除 {{count}} 条缓存",
         "subtitleTranslation": {
             "title": "字幕翻译",
             "description": "控制字幕翻译服务来源。",
-            "modelLabel": "字幕翻译模型",
-            "styleLabel": "OpenAI 字幕输出风格",
+            "styleLabel": "AI 字幕输出风格",
+            "clearCacheConfirmTitle": "清除字幕翻译缓存",
+            "clearCacheConfirmDescription": "将删除当前字幕翻译配置（引擎、模型、风格完全一致）已产生的翻译缓存，下次播放时会重新翻译。此操作不可撤销。",
             "styleZh": "中文直译",
             "styleSimpleEn": "简化英文",
             "styleCustom": "自定义",
@@ -263,7 +270,8 @@
         "dictionary": {
             "title": "词典查询",
             "description": "用于单词释义与例句查询。",
-            "modelLabel": "词典查询模型"
+            "clearCacheConfirmTitle": "清除词典缓存",
+            "clearCacheConfirmDescription": "将删除当前词典配置（引擎一致）已产生的查询缓存，下次查询时会重新请求。此操作不可撤销。"
         },
         "sentenceLearning": {
             "title": "整句学习",
@@ -317,6 +325,12 @@
             "description": "用于词典查询能力。",
             "appId": "应用 ID",
             "appKey": "应用密钥"
+        },
+        "localAi": {
+            "inUse": "使用中",
+            "readyNotInUse": "已下载",
+            "use": "设为使用",
+            "useSuccess": "已设为使用中，全部本地功能将共用该模型"
         }
     }
 }

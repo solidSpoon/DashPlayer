@@ -59,6 +59,7 @@ export interface ConcurrencyProfiles {
  */
 export const defaultConcurrencyProfiles: ConcurrencyProfiles = {
     semaphore: {
+        localAi: { capacity: 1 },
         transcription: { capacity: 1 },
         ffmpeg: { capacity: 5 },
         ffprobe: { capacity: 5 },

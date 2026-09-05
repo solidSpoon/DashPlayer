@@ -37,6 +37,7 @@ const TYPES = {
     RendererEvents: Symbol('RendererEvents'),
     AiFuncService: Symbol('AiFuncService'),
     ParakeetModelService: Symbol('ParakeetModelService'),
+    LocalAiService: Symbol('LocalAiService'),
     SherpaOnnxCli: Symbol('SherpaOnnxCli'),
     SpeechRecognitionGateway: Symbol('SpeechRecognitionGateway'),
     SherpaTtsModelService: Symbol('SherpaTtsModelService'),

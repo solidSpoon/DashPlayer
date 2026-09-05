@@ -34,6 +34,7 @@ import { SettingCard, SettingsLoadingSkeleton } from '@/fronted/features/setting
 import { OpenAiModelUsageFeature, ServiceCredentialSettingDetailVO, ServiceCredentialSettingSaveVO } from '@/common/types/vo/service-credentials-setting-vo';
 import type { ModelInstallationStatusVO } from '@/common/types/vo/model-installation-vo';
 import type { ModelDownloadPhase } from '@/common/contracts/model-download-phase';
+import type { LocalAiModelStatus, LocalAiStatus } from '@/common/contracts/local-ai';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import toast from 'react-hot-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
@@ -91,6 +92,8 @@ const ServiceCredentialSetting = () => {
     const [deletingSherpaTtsModel, setDeletingSherpaTtsModel] = React.useState(false);
     const [sherpaTtsDownloadProgress, setSherpaTtsDownloadProgress] = React.useState(0);
     const [sherpaTtsDownloadPhase, setSherpaTtsDownloadPhase] = React.useState<ModelDownloadPhase>('downloading');
+    const [localAiStatus, setLocalAiStatus] = React.useState<LocalAiStatus | null>(null);
+    const [localAiBusy, setLocalAiBusy] = React.useState(false);
 
     /** 是否已由用户手动触发下载；用于丢弃过期的状态查询响应。 */
     const downloadingRef = React.useRef(false);
@@ -186,6 +189,81 @@ const ServiceCredentialSetting = () => {
     React.useEffect(() => {
         refreshSherpaTtsModelStatus().catch(() => null);
     }, [refreshSherpaTtsModelStatus]);
+
+    React.useEffect(() => { settingsApi.getLocalAiStatus().then(setLocalAiStatus).catch(() => null); }, []);
+
+    React.useEffect(() => {
+        const handler = (event: Event) => {
+            const progress = (event as CustomEvent<{
+                modelId: string;
+                downloaded: number;
+                total: number;
+                phase: LocalAiModelStatus['phase'];
+            }>).detail;
+            setLocalAiStatus((current) => current ? {
+                ...current,
+                models: current.models.map((model) =>
+                    model.modelId === progress.modelId
+                        ? { ...model, downloaded: progress.downloaded, total: progress.total, phase: progress.phase }
+                        : model
+                ),
+            } : current);
+            if (progress.phase === 'idle') {
+                settingsApi.getLocalAiStatus().then(setLocalAiStatus).catch(() => null);
+            }
+        };
+        window.addEventListener('local-ai-model-download-progress', handler);
+        return () => window.removeEventListener('local-ai-model-download-progress', handler);
+    }, []);
+
+    /**
+     * 对指定本地模型执行短操作（检查/删除/取消），完成后刷新整页状态。
+     *
+     * @param modelId 目标模型标识。
+     * @param name 模型展示名，用于提示文案。
+     * @param action 要执行的 API 调用。
+     * @param successMessage 成功提示文案。
+     */
+    const runLocalAiAction = async (modelId: string, name: string, action: () => Promise<unknown>, successMessage: string) => {
+        setLocalAiBusy(true);
+        try { await action(); toast.success(`${name}：${successMessage}`); }
+        catch (error) { toast.error(`${name}：${error instanceof Error ? error.message : String(error)}`); }
+        finally {
+            setLocalAiBusy(false);
+            settingsApi.getLocalAiStatus().then(setLocalAiStatus).catch(() => null);
+        }
+    };
+
+    /** 下载指定模型；进度由事件持续更新页面，后端同一时间只允许一个下载任务。 */
+    const downloadLocalAi = async (modelId: string, name: string) => {
+        setLocalAiStatus((current) => current ? {
+            ...current,
+            models: current.models.map((model) =>
+                model.modelId === modelId ? { ...model, phase: 'downloading' } : model
+            ),
+        } : current);
+        try {
+            await settingsApi.downloadLocalAi(modelId);
+            toast.success(`${name} 下载完成`);
+        } catch (error) {
+            if ((error instanceof Error ? error.name : '') !== 'AbortError') {
+                toast.error(`${name}：${error instanceof Error ? error.message : String(error)}`);
+            }
+        } finally {
+            settingsApi.getLocalAiStatus().then(setLocalAiStatus).catch(() => null);
+        }
+    };
+
+    /** 取消当前下载并保留已完成部分，以便下次续传。 */
+    const cancelLocalAiDownload = async () => {
+        setLocalAiBusy(true);
+        try { await settingsApi.cancelLocalAiDownload(); }
+        catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
+        finally {
+            setLocalAiBusy(false);
+            settingsApi.getLocalAiStatus().then(setLocalAiStatus).catch(() => null);
+        }
+    };
 
     React.useEffect(() => {
         const handler = (evt: Event) => {
@@ -764,6 +842,90 @@ const ServiceCredentialSetting = () => {
                                 )}
                             </div>
                         )}
+                    </div>
+                </SettingCard>
+
+                <SettingCard title="本地 AI 模型" description="Qwen3 系列 GGUF 模型，供字幕翻译和词典查询离线使用；可下载多个模型，其中一个作为使用中的模型，全部本地功能共用。" icon={Bot}>
+                    <div className="flex flex-col gap-3 p-4">
+                        {localAiStatus?.models.map((model) => {
+                            const anyDownloading = (localAiStatus?.models.some((item) => item.phase !== 'idle')) ?? false;
+                            return (
+                                <div key={model.modelId} className="space-y-2.5 rounded-xl border border-border/50 bg-muted/20 p-3.5">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div className="flex items-center gap-2.5 flex-wrap">
+                                            <span className="text-sm font-semibold text-foreground">{model.name}</span>
+                                            <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">{model.sizeLabel}</span>
+                                            {model.ready && model.modelId === localAiStatus.activeModelId ? (
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+                                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                                    {t('serviceCredentials.localAi.inUse')}
+                                                </span>
+                                            ) : model.ready ? (
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                                                    {t('serviceCredentials.localAi.readyNotInUse')}
+                                                </span>
+                                            ) : model.phase !== 'idle' ? (                                                <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
+                                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                    {model.phase === 'verifying' ? '校验中' : '下载中'}
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                                                    {t('common.notDownloaded')}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="flex shrink-0 items-center gap-2">
+                                            {!model.ready && model.phase === 'idle' && (
+                                                <Button type="button" size="sm" disabled={localAiBusy || anyDownloading} onClick={() => downloadLocalAi(model.modelId, model.name)}>
+                                                    <Download className="mr-1.5 h-3.5 w-3.5" />
+                                                    {t('common.download')}
+                                                </Button>
+                                            )}
+                                            {!model.ready && model.phase !== 'idle' && (
+                                                <Button type="button" variant="outline" size="sm" disabled={localAiBusy} onClick={() => cancelLocalAiDownload()}>
+                                                    <Square className="mr-1.5 h-3.5 w-3.5 text-destructive" />
+                                                    取消下载
+                                                </Button>
+                                            )}
+                                            {model.ready && model.modelId !== localAiStatus.activeModelId && (
+                                                <Button type="button" size="sm" disabled={localAiBusy} onClick={() => runLocalAiAction(model.modelId, model.name, () => settingsApi.useLocalAiModel(model.modelId), t('serviceCredentials.localAi.useSuccess'))}>
+                                                    <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                                                    {t('serviceCredentials.localAi.use')}
+                                                </Button>
+                                            )}
+                                            {model.ready && (
+                                                <Button type="button" variant="outline" size="sm" disabled={localAiBusy} onClick={() => runLocalAiAction(model.modelId, model.name, () => settingsApi.checkLocalAi(model.modelId), '最小推理检查通过')}>
+                                                    <TestTube className="mr-1.5 h-3.5 w-3.5" />
+                                                    检查运行
+                                                </Button>
+                                            )}
+                                            {model.ready && (
+                                                <Button type="button" variant="ghost" size="sm" disabled={localAiBusy} onClick={() => runLocalAiAction(model.modelId, model.name, () => settingsApi.deleteLocalAi(model.modelId), '模型已删除')}>
+                                                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                                                    删除
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {!model.ready && model.phase !== 'idle' && (
+                                        <div className="space-y-1.5 rounded-lg border border-border/40 bg-muted/30 p-3">
+                                            <div className="flex justify-between text-xs font-medium text-muted-foreground">
+                                                <span>{model.phase === 'verifying' ? '正在校验模型…' : '正在下载模型…'}</span>
+                                                <span>{Math.min(100, Math.floor(model.downloaded / model.total * 100))}%</span>
+                                            </div>
+                                            <Progress value={model.downloaded / model.total * 100} className="h-1.5" />
+                                        </div>
+                                    )}
+                                    {model.error && (
+                                        <div className="text-xs text-destructive">{model.error}</div>
+                                    )}
+                                    <div className="break-all text-xs text-muted-foreground">{model.modelPath}</div>
+                                </div>
+                            );
+                        })}
+                        <div className="text-xs text-muted-foreground">
+                            {localAiStatus?.runtimeReady ? 'llama.cpp 运行时已就绪，所有模型共用同一运行时。' : '运行时未安装：请重新执行 yarn run download 或重新安装应用'}
+                        </div>
                     </div>
                 </SettingCard>
 

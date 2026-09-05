@@ -51,10 +51,10 @@ export default interface SettingService {
     getProxySettingDetail(): Promise<ProxySettingDetailVO>;
     saveProxySettings(settings: ProxySettingSaveVO): Promise<void>;
     getCurrentSentenceLearningProvider(): Promise<'openai' | null>;
-    getCurrentTranslationProvider(): Promise<'openai' | 'tencent' | null>;
+    getCurrentTranslationProvider(): Promise<'openai' | 'local' | 'tencent' | null>;
     getOpenAiSubtitleTranslationMode(): Promise<'zh' | 'simple_en' | 'custom'>;
     getOpenAiSubtitleCustomStyle(): Promise<string>;
-    getCurrentDictionaryProvider(): Promise<'openai' | 'youdao' | null>;
+    getCurrentDictionaryProvider(): Promise<'openai' | 'local' | 'youdao' | null>;
     testOpenAi(): Promise<{ success: boolean, message: string }>;
     testTencent(): Promise<{ success: boolean, message: string }>;
     testYoudao(): Promise<{ success: boolean, message: string }>;
@@ -214,12 +214,12 @@ export class SettingServiceImpl implements SettingService {
         ) ? 'true' : 'false';
         values['providers.subtitleTranslation'] = this.requireEnumValue(
             values['providers.subtitleTranslation'],
-            ['openai', 'tencent', 'none'] as const,
+            ['openai', 'local', 'tencent', 'none'] as const,
             'providers.subtitleTranslation',
         );
         values['providers.dictionary'] = this.requireEnumValue(
             values['providers.dictionary'],
-            ['openai', 'youdao', 'none'] as const,
+            ['openai', 'local', 'youdao', 'none'] as const,
             'providers.dictionary',
         );
         values['features.openai.subtitleTranslationMode'] = this.requireEnumValue(
@@ -351,12 +351,12 @@ export class SettingServiceImpl implements SettingService {
     public async getEngineSelectionDetail(): Promise<EngineSelectionSettingVO> {
         const subtitleTranslationEngine = this.requireEnumValue(
             this.getValue('providers.subtitleTranslation'),
-            ['openai', 'tencent', 'none'] as const,
+            ['openai', 'local', 'tencent', 'none'] as const,
             'providers.subtitleTranslation',
         );
         const dictionaryEngine = this.requireEnumValue(
             this.getValue('providers.dictionary'),
-            ['openai', 'youdao', 'none'] as const,
+            ['openai', 'local', 'youdao', 'none'] as const,
             'providers.dictionary',
         );
         const subtitleMode = this.requireEnumValue(
@@ -393,12 +393,12 @@ export class SettingServiceImpl implements SettingService {
     public async saveEngineSelection(settings: EngineSelectionSettingVO): Promise<void> {
         const subtitleTranslationEngine = this.requireEnumValue(
             settings.providers.subtitleTranslationEngine,
-            ['openai', 'tencent', 'none'] as const,
+            ['openai', 'local', 'tencent', 'none'] as const,
             'providers.subtitleTranslationEngine',
         );
         const dictionaryEngine = this.requireEnumValue(
             settings.providers.dictionaryEngine,
-            ['openai', 'youdao', 'none'] as const,
+            ['openai', 'local', 'youdao', 'none'] as const,
             'providers.dictionaryEngine',
         );
         const availableModels = this.parseOpenAiModels(this.getValue('models.openai.available'));
@@ -627,13 +627,13 @@ export class SettingServiceImpl implements SettingService {
         return openaiEnabled ? 'openai' : null;
     }
 
-    public async getCurrentTranslationProvider(): Promise<'openai' | 'tencent' | null> {
+    public async getCurrentTranslationProvider(): Promise<'openai' | 'local' | 'tencent' | null> {
         const engine = this.requireEnumValue(
             this.getValue('providers.subtitleTranslation'),
-            ['openai', 'tencent', 'none'] as const,
+            ['openai', 'local', 'tencent', 'none'] as const,
             'providers.subtitleTranslation',
         );
-        if (engine === 'openai' || engine === 'tencent') {
+        if (engine === 'local' || engine === 'openai' || engine === 'tencent') {
             return engine;
         }
         return null;
@@ -655,13 +655,13 @@ export class SettingServiceImpl implements SettingService {
         return getSubtitleDefaultStyle('custom');
     }
 
-    public async getCurrentDictionaryProvider(): Promise<'openai' | 'youdao' | null> {
+    public async getCurrentDictionaryProvider(): Promise<'openai' | 'local' | 'youdao' | null> {
         const engine = this.requireEnumValue(
             this.getValue('providers.dictionary'),
-            ['openai', 'youdao', 'none'] as const,
+            ['openai', 'local', 'youdao', 'none'] as const,
             'providers.dictionary',
         );
-        if (engine === 'openai' || engine === 'youdao') {
+        if (engine === 'local' || engine === 'openai' || engine === 'youdao') {
             return engine;
         }
         return null;
