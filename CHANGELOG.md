@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.9.0](https://github.com/solidSpoon/DashPlayer/compare/v6.8.0...v6.9.0) (2026-09-05)
+
+
+### Features
+
+* **settings:** add skeleton loading and enhance storage usage UI ([6ad2880](https://github.com/solidSpoon/DashPlayer/commit/6ad2880f03808f705e51474458615e44ccfa6718))
+* **settings:** optimize storage usage skeleton and visual UI ([a28834e](https://github.com/solidSpoon/DashPlayer/commit/a28834ef71d184edbeccacc93d1c2f46b03e7900))
+* **settings:** 优化关于页面排版，重构新版本发现与更新日志展示体系 ([f3ea794](https://github.com/solidSpoon/DashPlayer/commit/f3ea7940c276a3caf71896ecdbb826139df92c6f))
+* **settings:** 重构关于与更新页面并合并至设置中心 ([737ffb2](https://github.com/solidSpoon/DashPlayer/commit/737ffb2a8826315b7eb2df57fd38807a648f2b71))
+* **settings:** 重构关于与更新页面并合并至设置中心 ([8a41f0b](https://github.com/solidSpoon/DashPlayer/commit/8a41f0b2cf0f2e49704b9e1025d87d75a9492d55))
+* 词汇工坊支持删除学习片段 ([41cf49e](https://github.com/solidSpoon/DashPlayer/commit/41cf49ede83f906ee08c312a121f37052bee98e8))
+* 词汇工坊支持删除学习片段 ([77c6626](https://github.com/solidSpoon/DashPlayer/commit/77c66266daaf7aefe85ee8957bff9a38999af9a1))
+
+
+### Bug Fixes
+
+* **settings:** 修正关于页面标题居中问题 ([e6ce30f](https://github.com/solidSpoon/DashPlayer/commit/e6ce30f06d54d3e713514192a5b972fad8c4708c))
+* 删除片段后陈旧列表触发对已删文件的媒体探测 ([5e01520](https://github.com/solidSpoon/DashPlayer/commit/5e01520afca931da9cd19a6ef2d53331e40fe3b0))
+* 锁定 tencentcloud-sdk-nodejs 到 4.0.829 ([d9905d8](https://github.com/solidSpoon/DashPlayer/commit/d9905d88c17be1d22c31febef2c6cd2652c8f249))
+
 ## [6.8.0](https://github.com/solidSpoon/DashPlayer/compare/v6.7.0...v6.8.0) (2026-09-05)
 
 
