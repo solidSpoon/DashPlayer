@@ -874,7 +874,9 @@ export class VideoLearningServiceImpl implements VideoLearningService {
     /**
      * 检测并返回指定字幕的学习片段状态。
      *
-     * 优先使用已缓存的状态和候选片段；没有分析结果时只返回共享分析状态。
+     * 优先使用已缓存的状态和候选片段；没有分析结果且没有运行中的分析任务时，
+     * 重新拉起共享分析（词表变化会清空分析缓存但不重启分析），
+     * 并在后台完成后计算并推送最新片段状态。
      *
      * @param videoPath 视频路径，用于状态通知。
      * @param srtKey 字幕缓存键。
@@ -902,6 +904,36 @@ export class VideoLearningServiceImpl implements VideoLearningService {
             const candidates = await this.clipAnalysis.collectCandidates(srtKey, srt);
             return await this.computeStatusFromCandidates(videoPath, srtKey, candidates);
         }
+
+        // 词表变化会清空分析缓存，但不会重新拉起分析；
+        // 检测时发现没有运行中的分析任务就补上，否则状态会永远停在“分析中 0%”，
+        // 直到用户切换页面触发重新匹配才能看到结果。
+        // analyze 内部会同步登记运行任务，轮询重入不会重复启动。
+        if (!this.clipAnalysis.isRunning(srtKey)) {
+            void this.clipAnalysis.collectCandidates(
+                srtKey,
+                srt,
+                async (analysisProgress) => {
+                    await this.notifyClipStatus(
+                        videoPath,
+                        srtKey,
+                        'analyzing',
+                        undefined,
+                        undefined,
+                        undefined,
+                        analysisProgress,
+                    );
+                }
+            )
+                .then(async (candidates) => {
+                    await this.computeStatusFromCandidates(videoPath, srtKey, candidates);
+                })
+                .catch((error) => {
+                    // 被其它字幕的分析取代（REPLACED）属正常轮转，其余错误记日志等待下次轮询重试。
+                    this.logger.error('重新拉起字幕生词分析失败', { srtKey, error });
+                });
+        }
+
         const progress = this.clipAnalysis.getProgress(srtKey)
             ?? cachedProgress
             ?? 0;
