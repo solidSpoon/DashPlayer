@@ -143,12 +143,12 @@ const AboutSetting = () => {
 
                 {/* 状态展开区域 */}
                 {checking && !updateResult ? (
-                    <div className="flex items-center gap-2 px-5 py-3 border-t border-border/50 bg-muted/20 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2 px-4 py-2.5 border-t border-border/50 bg-muted/20 text-xs text-muted-foreground">
                         <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                        <span>正在连接 GitHub 检查最新版本...</span>
+                        <span>正在检查更新...</span>
                     </div>
                 ) : hasError ? (
-                    <div className="flex items-center justify-between gap-3 px-5 py-3 border-t border-border/50 bg-destructive/5 text-xs text-destructive">
+                    <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-border/50 bg-destructive/5 text-xs text-destructive">
                         <span>{errorText}</span>
                         <Button
                             onClick={() => recheckUpdate()}
@@ -160,15 +160,14 @@ const AboutSetting = () => {
                         </Button>
                     </div>
                 ) : hasNewRelease ? (
-                    <div className="border-t border-border/50 bg-muted/15">
-                        {/* 发现新版本提示条 */}
-                        <div className="flex items-center justify-between gap-3 px-5 py-3 bg-primary/10 border-b border-primary/15">
-                            <div className="flex items-center gap-2">
-                                <Sparkles className="h-4 w-4 text-primary shrink-0" />
-                                <span className="text-xs font-semibold text-primary">
-                                    {t('about.update.newVersionFound', { defaultValue: '发现新版本可用' })}
+                    <div className="border-t border-border/50 bg-muted/10 p-4 space-y-2.5">
+                        {/* 极简版本提示与下载链接 */}
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center gap-2 text-xs">
+                                <span className="font-semibold text-foreground">
+                                    新版本可用
                                 </span>
-                                <span className="rounded-full bg-primary text-primary-foreground font-mono font-medium text-[11px] px-2 py-0.2">
+                                <span className="font-mono text-muted-foreground">
                                     {updateResult?.releases[0]?.version}
                                 </span>
                             </div>
@@ -176,28 +175,27 @@ const AboutSetting = () => {
                             <Button
                                 onClick={() => openUrl(updateResult?.releases[0]?.url || 'https://github.com/solidSpoon/DashPlayer/releases/latest')}
                                 size="sm"
-                                className="gap-1 h-7 px-3 text-xs font-medium shrink-0 shadow-xs"
+                                variant="default"
+                                className="gap-1 h-7 px-2.5 text-xs font-medium shrink-0"
                             >
                                 <ExternalLink className="h-3 w-3" />
-                                {t('about.update.downloadNow', { defaultValue: '前往下载新版本' })}
+                                前往下载新版本
                             </Button>
                         </div>
 
-                        {/* 更新日志主体内容 */}
-                        <div className="p-4 sm:p-5">
-                            <div className="rounded-lg border border-border/60 bg-background p-4 text-xs max-h-56 overflow-y-auto scrollbar-thin">
-                                <Md>
-                                    {(updateResult?.releases ?? []).map((release) => (
-                                        codeBlock`
-                                        ${release.content}
-                                        `
-                                    )).join('\n---\n')}
-                                </Md>
-                            </div>
+                        {/* 更新日志正文：仅针对日志内部标题与列表做紧凑覆盖 */}
+                        <div className="rounded-md border border-border/70 bg-background/80 p-3 max-h-48 overflow-y-auto scrollbar-thin text-muted-foreground [&_.prose]:max-w-none [&_.prose]:text-xs [&_.prose_*]:my-0.5 [&_.prose_h1]:text-xs [&_.prose_h1]:font-semibold [&_.prose_h1]:text-foreground [&_.prose_h2]:text-xs [&_.prose_h2]:font-semibold [&_.prose_h2]:text-foreground [&_.prose_h3]:text-xs [&_.prose_h3]:font-semibold [&_.prose_h3]:text-foreground [&_.prose_p]:text-xs [&_.prose_p]:leading-relaxed [&_.prose_ul]:text-xs [&_.prose_ul]:my-1 [&_.prose_ul]:pl-4 [&_.prose_li]:my-0.5 [&_.prose_strong]:text-foreground">
+                            <Md>
+                                {(updateResult?.releases ?? []).map((release) => (
+                                    codeBlock`
+                                    ${release.content}
+                                    `
+                                )).join('\n---\n')}
+                            </Md>
                         </div>
                     </div>
                 ) : (
-                    <div className="flex items-center gap-2 px-5 py-2.5 border-t border-border/50 bg-muted/10 text-xs text-muted-foreground">
+                    <div className="flex items-center gap-2 px-4 py-2 border-t border-border/50 bg-muted/10 text-xs text-muted-foreground">
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                         <span>{t('about.update.upToDateTitle', { defaultValue: '当前已是最新版本' })}</span>
                     </div>
