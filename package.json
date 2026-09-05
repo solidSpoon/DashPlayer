@@ -40,6 +40,7 @@
     "@electron-forge/plugin-fuses": "^7.11.2",
     "@electron-forge/plugin-vite": "^7.11.2",
     "@electron/fuses": "^1.8.0",
+    "@electron/rebuild": "^4.2.0",
     "@tailwindcss/typography": "^0.5.12",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/dom": "^10.4.1",
@@ -64,7 +65,7 @@
     "@vitest/ui": "^4.0.18",
     "babel-plugin-react-compiler": "1.0.0",
     "cross-env": "^10.1.0",
-    "electron": "39.2.7",
+    "electron": "44.2.0",
     "electron-devtools-installer": "^4.0.0",
     "eslint": "^8.0.1",
     "eslint-import-resolver-alias": "^1.1.2",
@@ -73,6 +74,7 @@
     "eslint-plugin-react": "^7.34.2",
     "eslint-plugin-react-hooks": "^7.1.1",
     "jsdom": "^27.3.0",
+    "node-abi": "^4.35.0",
     "npm-run-all2": "^9.0.3",
     "shadcn": "^4.18.0",
     "tailwindcss": "^4.3.3",
@@ -203,8 +205,8 @@
     "zx": "^8.0.2"
   },
   "resolutions": {
-    "@electron/rebuild": "^4.0.2",
-    "node-abi": "^4.24.0",
+    "node-abi": "^4.35.0",
+    "@electron/rebuild": "^4.2.0",
     "undici": "6.21.2"
   }
 }
