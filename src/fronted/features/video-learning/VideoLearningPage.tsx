@@ -55,6 +55,8 @@ export default function VideoLearningPage() {
   const [pendingClip, setPendingClip] = useState<PendingClipRequest | null>(null);
   const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string>>({});
   const [forcePlayKey, setForcePlayKey] = useState(0); // 用于强制播放器重新播放
+  // 正在删除的片段键，用于删除按钮转圈与防重复提交
+  const [deletingClipKey, setDeletingClipKey] = useState<string | null>(null);
   const inFlightThumbsRef = useRef<Set<string>>(new Set());
   const { mutate } = useSWRConfig();
 
@@ -450,6 +452,68 @@ export default function VideoLearningPage() {
     await mutate(searchKey);
   }, [fetchWords, mutate, searchKey]);
 
+  /**
+   * 删除片段并修正页面状态。
+   *
+   * 行为说明：
+   * - 后端同步删除数据库记录（含单词关联）与本地片段文件；
+   * - 删除成功后用 SWR 乐观更新在同一渲染批次内移除列表项并修正播放下标，
+   *   避免陈旧列表期间重新选中已删片段、触发对已删文件的缩略图/播放加载；
+   * - 下标指向被删片段时清空选中（初始化效应会自动选中首条），
+   *   其后的片段整体前移一位保持播放对象不变；
+   * - 当前页被删空且不再存在时回退页码；
+   * - 最后刷新左侧词汇统计。
+   *
+   * @param index 被删除片段在当前页列表中的下标。
+   */
+  const handleClipDeleted = useCallback(async (index: number) => {
+    const clip = clips[index];
+    if (!clip || deletingClipKey) return;
+    setDeletingClipKey(clip.key);
+    try {
+      const result = await videoLearningApi.deleteClip(clip.key);
+      if (!result?.success) {
+        toast.error(t('vocabularyStudio.clipDeleteFailed'));
+        return;
+      }
+
+      setCurrentClipIndex((prev) => {
+        if (prev === index) return -1;
+        if (prev > index) return prev - 1;
+        return prev;
+      });
+      if (currentClipIndex === index) {
+        setCurrentLineIndex(-1);
+      }
+
+      // 乐观移除被删片段并触发重校验；列表项与下标修正落在同一渲染批次，
+      // 避免陈旧列表期间重新选中已删片段、触发对已删文件的缩略图/播放加载。
+      // 删除已在后端成功，重校验失败时不回滚已删片段。
+      await mutate(searchKey, (current: typeof learningClips | undefined) => {
+        if (!current) return undefined;
+        return {
+          ...current,
+          data: {
+            ...current.data,
+            items: current.data.items.filter((item) => item.key !== clip.key),
+            total: Math.max(0, current.data.total - 1)
+          }
+        };
+      }, { revalidate: true, rollbackOnError: false });
+
+      const newTotalPages = Math.max(1, Math.ceil(Math.max(0, totalClips - 1) / PAGE_SIZE));
+      if (page > newTotalPages) {
+        setPage(newTotalPages);
+      }
+      await fetchWords();
+    } catch (error) {
+      logger.error('删除片段失败', { error });
+      toast.error(t('vocabularyStudio.clipDeleteFailed'));
+    } finally {
+      setDeletingClipKey(null);
+    }
+  }, [clips, currentClipIndex, deletingClipKey, fetchWords, mutate, page, searchKey, t, totalClips]);
+
   return (
     <div className="w-full h-full flex flex-col overflow-hidden select-none bg-background text-foreground">
       {/* 顶栏标题区：统一排版 */}
@@ -620,6 +684,8 @@ export default function VideoLearningPage() {
                   onClickClip={(idx) => {
                     playClip(idx);
                   }}
+                  deletingKey={deletingClipKey}
+                  onDeleteClip={handleClipDeleted}
                 />
               )}
             </div>

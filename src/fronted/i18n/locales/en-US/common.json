@@ -43,6 +43,7 @@
     "sortByRecentVideo": "Recent videos",
     "editWord": "Edit word",
     "deleteWord": "Delete word",
+    "deleteClip": "Delete clip",
     "confirmDelete": "Confirm?",
     "wordDeleteFailed": "Failed to delete word",
     "wordField": "Word",

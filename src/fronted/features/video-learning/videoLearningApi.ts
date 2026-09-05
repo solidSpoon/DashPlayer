@@ -15,6 +15,14 @@ export const videoLearningApi = {
     search: (query: SimpleClipQuery) => backendClient.call('video-learning/search', query),
 
     /**
+     * 删除学习片段；后端同步删除数据库记录与本地片段文件。
+     *
+     * @param key 片段键。
+     * @returns 操作结果。
+     */
+    deleteClip: (key: string) => backendClient.call('video-learning/delete', { key }),
+
+    /**
      * 查询词汇列表。
      *
      * @returns 后端返回的词汇数据。

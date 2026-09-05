@@ -24,6 +24,7 @@
             "button": "从本地恢复词汇工坊片段"
         },
         "fetchWordsFailed": "获取生词列表失败",
+        "clipDeleteFailed": "删除片段失败",
         "exportSuccess": "模板已下载",
         "exportFailed": "导出失败，请重试",
         "importSuccess": "导入成功，已同步生词片段",

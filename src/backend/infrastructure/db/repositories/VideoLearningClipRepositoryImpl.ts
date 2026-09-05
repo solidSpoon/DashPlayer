@@ -95,8 +95,19 @@ export default class VideoLearningClipRepositoryImpl implements VideoLearningCli
         });
     }
 
-    public async deleteByKey(key: string): Promise<void> {
-        await db.delete(videoLearningClip).where(eq(videoLearningClip.key, key));
+    /**
+     * 原子地删除一个片段及其全部单词关联。
+     *
+     * 行为说明：
+     * - 片段记录与其单词关联在一个事务内删除，避免留下孤儿关联导致统计虚高。
+     *
+     * @param key 片段键。
+     */
+    public async deleteClipWithWords(key: string): Promise<void> {
+        db.transaction((tx) => {
+            tx.delete(videoLearningClipWord).where(eq(videoLearningClipWord.clip_key, key)).run();
+            tx.delete(videoLearningClip).where(eq(videoLearningClip.key, key)).run();
+        });
     }
 
     /**

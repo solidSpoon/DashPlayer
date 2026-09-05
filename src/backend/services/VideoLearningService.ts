@@ -442,12 +442,12 @@ export class VideoLearningServiceImpl implements VideoLearningService {
     }
 
     /**
-     * 删除片段的本地索引和远端文件。
+     * 删除片段的本地索引（含单词关联）和远端文件。
      *
      * @param key 片段键。
      */
     public async deleteLearningClip(key: string): Promise<void> {
-        await this.videoLearningClipRepository.deleteByKey(key);
+        await this.videoLearningClipRepository.deleteClipWithWords(key);
         await this.videoLearningOssService.delete(key);
     }
 
