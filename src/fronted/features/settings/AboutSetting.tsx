@@ -82,14 +82,12 @@ const AboutSetting = () => {
             <div className="flex flex-col items-center my-auto space-y-7 w-full py-4">
                 {/* 头部：App Logo、名称、版本、介绍 */}
                 <div className="flex flex-col items-center text-center space-y-3.5">
-                    <div className="w-20 h-20 rounded-3xl border border-border/80 bg-background/90 p-3.5 shadow-sm flex items-center justify-center transition-transform hover:scale-105">
-                        <img
-                            src={theme === 'dark' ? logoDark : logoLight}
-                            alt="DashPlayer Logo"
-                            className="w-full h-full object-contain select-none"
-                            draggable={false}
-                        />
-                    </div>
+                    <img
+                        src={theme === 'dark' ? logoDark : logoLight}
+                        alt="DashPlayer Logo"
+                        className="w-16 h-16 object-contain select-none user-drag-none"
+                        draggable={false}
+                    />
 
                     <div className="space-y-1.5 flex flex-col items-center">
                         <div className="relative flex items-center justify-center">
