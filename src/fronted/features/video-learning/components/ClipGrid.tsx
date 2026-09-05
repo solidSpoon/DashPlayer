@@ -6,19 +6,26 @@ import {
   TooltipProvider,
   TooltipTrigger
 } from '@/fronted/components/ui/tooltip';
+import ConfirmDeleteButton from '@/fronted/components/shared/common/ConfirmDeleteButton';
 import { VideoClip } from '../types';
 import UrlUtil from '@/common/utils/UrlUtil';
 import TimeUtil from '@/common/utils/TimeUtil';
 import { cn } from '@/fronted/lib/utils';
+import { useTranslation } from 'react-i18next';
 
 type Props = {
   clips: VideoClip[];
   playingKey?: string;
   thumbnails?: Record<string, string>;
   onClickClip: (index: number) => void;
+  /** 正在删除的片段键，用于按钮转圈与防重复提交。 */
+  deletingKey?: string | null;
+  /** 请求删除某个片段，删除逻辑与状态刷新由页面负责。 */
+  onDeleteClip: (index: number) => void;
 };
 
-export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip }: Props) {
+export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip, deletingKey, onDeleteClip }: Props) {
+  const { t } = useTranslation('common');
   const getThumbnailUrlSync = (clip: VideoClip): string => {
     const raw = thumbnails?.[clip.key];
     if (!raw) return '';
@@ -112,8 +119,17 @@ export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip }:
                       </div>
                     )}
 
-                    {/* hover提示 */}
-                    <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {/* hover 操作区：删除（仅已完成片段）与详情提示 */}
+                    <div className="absolute top-2 right-2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      {clip.sourceType !== 'local' && (
+                        <ConfirmDeleteButton
+                          title={t('deleteClip')}
+                          confirmLabel={t('confirmDelete')}
+                          deleting={deletingKey === clip.key}
+                          onConfirm={() => onDeleteClip(idx)}
+                          triggerClassName="bg-black/40 backdrop-blur-xs text-white/80 hover:bg-black/60 hover:text-white"
+                        />
+                      )}
                       <TooltipProvider>
                         <Tooltip>
                           <TooltipTrigger asChild>

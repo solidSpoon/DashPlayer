@@ -43,6 +43,7 @@
     "sortByRecentVideo": "最近添加视频",
     "editWord": "编辑单词",
     "deleteWord": "删除单词",
+    "deleteClip": "删除片段",
     "confirmDelete": "确认删除？",
     "wordDeleteFailed": "删除单词失败",
     "wordField": "单词",

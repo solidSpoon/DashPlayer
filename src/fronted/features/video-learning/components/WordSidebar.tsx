@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { Input } from '@/fronted/components/ui/input';
 import { Button } from '@/fronted/components/ui/button';
 import {
@@ -8,10 +8,11 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/fronted/components/ui/select';
-import { Search, Upload, Download, List, LocateFixed, Pencil, Trash2, Loader2, ArrowUpDown } from 'lucide-react';
+import { Search, Upload, Download, List, LocateFixed, Pencil, ArrowUpDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { cn } from '@/fronted/lib/utils';
 import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
+import ConfirmDeleteButton from '@/fronted/components/shared/common/ConfirmDeleteButton';
 import {
   Tooltip,
   TooltipContent,
@@ -35,81 +36,6 @@ export interface WordItem {
 
 /** 单词列表排序方式。 */
 type SortMode = 'usage' | 'alphabetical' | 'recentVideo';
-
-/** 删除确认态自动复位等待时间（毫秒）。 */
-const DELETE_CONFIRM_RESET_MS = 3000;
-
-interface WordDeleteButtonProps {
-  /** 所在行是否处于选中态，用于配色适配。 */
-  active: boolean;
-  /** 删除请求是否进行中。 */
-  deleting: boolean;
-  /** 第二次点击确认后触发。 */
-  onConfirm: () => void;
-}
-
-/**
- * 原地两次点击确认的删除按钮。
- *
- * 行为说明：
- * - 首次点击进入待确认态并变红显示确认文案；
- * - 超时未再次点击会自动复位；
- * - 再次点击才真正触发删除。
- */
-function WordDeleteButton({ active, deleting, onConfirm }: WordDeleteButtonProps) {
-  const { t } = useTranslation('common');
-  const [armed, setArmed] = useState(false);
-
-  useEffect(() => {
-    if (!armed) return;
-    const timer = window.setTimeout(() => setArmed(false), DELETE_CONFIRM_RESET_MS);
-    return () => window.clearTimeout(timer);
-  }, [armed]);
-
-  const handleClick = (event: React.MouseEvent) => {
-    event.stopPropagation();
-    if (deleting) return;
-    if (!armed) {
-      setArmed(true);
-      return;
-    }
-    setArmed(false);
-    onConfirm();
-  };
-
-  if (armed || deleting) {
-    return (
-      <button
-        type="button"
-        onClick={handleClick}
-        disabled={deleting}
-        className={cn(
-          'px-1.5 py-0.5 rounded-md text-[10px] leading-none font-medium shrink-0 transition-colors cursor-pointer',
-          'bg-destructive text-destructive-foreground hover:bg-destructive/90',
-          deleting && 'opacity-60 cursor-not-allowed'
-        )}
-        title={t('deleteWord')}
-      >
-        {deleting ? <Loader2 className="w-3 h-3 animate-spin" /> : t('confirmDelete')}
-      </button>
-    );
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={handleClick}
-      className={cn(
-        'p-1 rounded-md transition-all cursor-pointer shrink-0',
-        'text-muted-foreground hover:text-destructive hover:bg-destructive/10',
-        active ? 'text-primary-foreground/70 hover:text-primary-foreground' : 'opacity-0 group-hover:opacity-100'
-      )}
-      title={t('deleteWord')}
-    >
-      <Trash2 className="w-3.5 h-3.5" />
-    </button>
-  );
-}
 
 type Props = {
   words: WordItem[];
@@ -375,10 +301,16 @@ export default function WordSidebar({
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </button>
-                      <WordDeleteButton
-                        active={active}
+                      <ConfirmDeleteButton
+                        title={t('deleteWord')}
+                        confirmLabel={t('confirmDelete')}
                         deleting={deletingId === word.id}
                         onConfirm={() => handleDeleteConfirmed(word)}
+                        triggerClassName={
+                          active
+                            ? 'text-primary-foreground/70 hover:text-primary-foreground'
+                            : 'opacity-0 group-hover:opacity-100'
+                        }
                       />
                       {!!word.videoCount && word.videoCount > 0 && (
                         <div

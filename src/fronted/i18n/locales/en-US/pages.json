@@ -24,6 +24,7 @@
             "button": "Restore Vocabulary Studio Clips from Local"
         },
         "fetchWordsFailed": "Failed to load words",
+        "clipDeleteFailed": "Failed to delete clip",
         "exportSuccess": "Template downloaded",
         "exportFailed": "Export failed, please retry",
         "importSuccess": "Import completed, vocabulary clips synced",

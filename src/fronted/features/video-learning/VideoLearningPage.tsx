@@ -55,6 +55,8 @@ export default function VideoLearningPage() {
   const [pendingClip, setPendingClip] = useState<PendingClipRequest | null>(null);
   const [thumbnailUrls, setThumbnailUrls] = useState<Record<string, string>>({});
   const [forcePlayKey, setForcePlayKey] = useState(0); // 用于强制播放器重新播放
+  // 正在删除的片段键，用于删除按钮转圈与防重复提交
+  const [deletingClipKey, setDeletingClipKey] = useState<string | null>(null);
   const inFlightThumbsRef = useRef<Set<string>>(new Set());
   const { mutate } = useSWRConfig();
 
@@ -450,6 +452,60 @@ export default function VideoLearningPage() {
     await mutate(searchKey);
   }, [fetchWords, mutate, searchKey]);
 
+  /**
+   * 删除片段并修正页面状态。
+   *
+   * 行为说明：
+   * - 后端同步删除数据库记录（含单词关联）与本地片段文件；
+   * - 删除后刷新片段列表与左侧词汇统计；
+   * - 删除的是当前播放片段则清空选中态（初始化效应会自动选中首条），
+   *   删除的是其前面的片段则平移下标保持播放对象不变；
+   * - 当前页被删空且不再存在时回退页码。
+   *
+   * @param index 被删除片段在当前页列表中的下标。
+   */
+  const handleClipDeleted = useCallback(async (index: number) => {
+    const clip = clips[index];
+    if (!clip || deletingClipKey) return;
+    setDeletingClipKey(clip.key);
+    try {
+      const result = await videoLearningApi.deleteClip(clip.key);
+      if (!result?.success) {
+        toast.error(t('vocabularyStudio.clipDeleteFailed'));
+        return;
+      }
+
+      // 清理被删片段的缩略图缓存，避免残留失效图片
+      setThumbnailUrls((prev) => {
+        if (!(clip.key in prev)) return prev;
+        const next = { ...prev };
+        delete next[clip.key];
+        return next;
+      });
+
+      // 修正播放选中态：删的是当前片段则清空，删的是前面的片段则平移下标
+      if (currentClipIndex === index) {
+        setCurrentClipIndex(-1);
+        setCurrentLineIndex(-1);
+      } else if (currentClipIndex > index) {
+        setCurrentClipIndex((prev) => prev - 1);
+      }
+
+      const newData = await mutate(searchKey);
+      const newTotal = newData?.success ? newData.data.total : 0;
+      const newTotalPages = Math.max(1, Math.ceil(newTotal / PAGE_SIZE));
+      if (page > newTotalPages) {
+        setPage(newTotalPages);
+      }
+      await fetchWords();
+    } catch (error) {
+      logger.error('删除片段失败', { error });
+      toast.error(t('vocabularyStudio.clipDeleteFailed'));
+    } finally {
+      setDeletingClipKey(null);
+    }
+  }, [clips, currentClipIndex, deletingClipKey, fetchWords, mutate, page, searchKey, t]);
+
   return (
     <div className="w-full h-full flex flex-col overflow-hidden select-none bg-background text-foreground">
       {/* 顶栏标题区：统一排版 */}
@@ -620,6 +676,8 @@ export default function VideoLearningPage() {
                   onClickClip={(idx) => {
                     playClip(idx);
                   }}
+                  deletingKey={deletingClipKey}
+                  onDeleteClip={handleClipDeleted}
                 />
               )}
             </div>

@@ -17,6 +17,11 @@ export default interface VideoLearningClipRepository {
     listPage(query: VideoLearningClipPageQuery): Promise<VideoLearningClip[]>;
     exists(key: string): Promise<boolean>;
     saveClipWithWords(clip: InsertVideoLearningClip, words: InsertVideoLearningClipWord[]): Promise<void>;
-    deleteByKey(key: string): Promise<void>;
+    /**
+     * 原子地删除一个片段及其全部单词关联。
+     *
+     * @param key 片段键。
+     */
+    deleteClipWithWords(key: string): Promise<void>;
     replaceAll(clips: InsertVideoLearningClip[], words: InsertVideoLearningClipWord[]): Promise<void>;
 }
