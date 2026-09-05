@@ -36,7 +36,14 @@ import {
 } from '@/common/types/TranslationResult';
 import TimeUtil from '@/common/utils/TimeUtil';
 
-type SubtitleTranslationStorageMode = 'tencent' | `openai_${string}` | `local_${string}`;
+/**
+ * 字幕翻译缓存的持久化模式。
+ *
+ * 除 'tencent' 外统一用 '#' 分段：`openai#模型#模式#风格签名` 与
+ * `local#模型#模式#风格签名`。不用 '_' 分段是因为模型 ID 自带下划线
+ * （如 qwen3-0.6b-q4_k_m-v1），混在一起无法辨认分段边界。
+ */
+type SubtitleTranslationStorageMode = 'tencent' | `openai#${string}` | `local#${string}`;
 
 /**
  * 单个字幕翻译会话使用的稳定配置。
@@ -146,24 +153,25 @@ export default interface SubtitleTranslationService {
 }
 
 /**
- * 将 OpenAI 字幕模式映射为带风格签名的持久化模式。
+ * 将云端模型、OpenAI 字幕模式与风格签名映射为持久化模式。
  *
+ * @param modelId 云端字幕翻译当前路由到的模型 ID。
  * @param mode 当前 OpenAI 字幕模式。
  * @param signature 当前风格签名。
- * @returns 用于按配置隔离缓存的持久化模式。
+ * @returns 用于按配置隔离缓存的持久化模式；分段分隔符约定见 SubtitleTranslationStorageMode。
  */
 const mapOpenAiModeToStorage = (
+    modelId: string,
     mode: TranslationMode,
     signature: string
 ): SubtitleTranslationStorageMode => {
-    const suffix = `#${signature}`;
     if (mode === 'simple_en') {
-        return `openai_simple_en${suffix}`;
+        return `openai#${modelId}#simple_en#${signature}`;
     }
     if (mode === 'custom') {
-        return `openai_custom${suffix}`;
+        return `openai#${modelId}#custom#${signature}`;
     }
-    return `openai_zh${suffix}`;
+    return `openai#${modelId}#zh#${signature}`;
 };
 
 /**
@@ -407,11 +415,13 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             : undefined;
         const resolved = resolveSubtitleStyleWithSignature(mode, customStyle);
         const localModelId = provider === 'local' ? await this.localAiService.getActiveModelId() : null;
-        const storageMode: SubtitleTranslationStorageMode = localModelId
-            ? `local_${localModelId}_${mode}_${resolved.signature}`
-            : mapOpenAiModeToStorage(mode, resolved.signature);
-        if (!localModelId && !this.modelRoutingService.resolveOpenAiModel('subtitleTranslation')) {
-            throw new Error('OpenAI 字幕翻译模型未配置');
+        let storageMode: SubtitleTranslationStorageMode;
+        if (localModelId) {
+            storageMode = `local#${localModelId}#${mode}#${resolved.signature}`;
+        } else {
+            const routed = this.modelRoutingService.resolveOpenAiModel('subtitleTranslation');
+            if (!routed) throw new Error('OpenAI 字幕翻译模型未配置');
+            storageMode = mapOpenAiModeToStorage(routed.modelId, mode, resolved.signature);
         }
         return { mode, storageMode, style: resolved.style };
     }
@@ -476,24 +486,35 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             ? await this.settingService.getOpenAiSubtitleCustomStyle()
             : undefined;
         const { style, signature } = resolveSubtitleStyleWithSignature(mode, customStyle);
-        const routedModel = provider === 'local'
-            ? { fullModelId: await this.localAiService.getActiveModelId() }
+        const localModelId = provider === 'local' ? await this.localAiService.getActiveModelId() : null;
+        const routedOpenAiModel = localModelId
+            ? null
             : this.modelRoutingService.resolveOpenAiModel('subtitleTranslation');
-        if (!routedModel) {
+        if (!localModelId && !routedOpenAiModel) {
             this.scheduler.release(fileHash, input.rendererSessionId);
             throw new Error('OpenAI 字幕翻译模型未配置');
         }
 
-        const storageMode: SubtitleTranslationStorageMode = provider === 'local'
-            ? `local_${routedModel.fullModelId}_${mode}_${signature}`
-            : mapOpenAiModeToStorage(mode, signature);
+        let storageMode: SubtitleTranslationStorageMode;
+        let profileKeyModelId: string;
+        if (!localModelId) {
+            if (!routedOpenAiModel) {
+                this.scheduler.release(fileHash, input.rendererSessionId);
+                throw new Error('OpenAI 字幕翻译模型未配置');
+            }
+            storageMode = mapOpenAiModeToStorage(routedOpenAiModel.modelId, mode, signature);
+            profileKeyModelId = routedOpenAiModel.fullModelId;
+        } else {
+            storageMode = `local#${localModelId}#${mode}#${signature}`;
+            profileKeyModelId = localModelId;
+        }
         this.scheduler.updateDemand({
             fileHash,
             currentIndex: input.currentIndex,
             demandId: input.demandId,
             rendererSessionId: input.rendererSessionId,
             sentenceIndices,
-            profileKey: `${storageMode}:${routedModel.fullModelId}`,
+            profileKey: `${storageMode}:${profileKeyModelId}`,
             context: {
                 provider,
                 storageMode,
