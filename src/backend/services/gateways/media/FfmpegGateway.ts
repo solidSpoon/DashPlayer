@@ -112,18 +112,6 @@ export interface CreateThumbnailArgs {
 }
 
 /**
- * 分段音频参数。
- */
-export interface SplitAudioArgs {
-    /** 输入媒体文件路径。 */
-    inputFile: string;
-    /** 每段时长（秒）。 */
-    segmentSecond: number;
-    /** 输出路径模板。 */
-    outputPattern: string;
-}
-
-/**
  * 提取字幕参数。
  */
 export interface ExtractSubtitleArgs {
@@ -131,8 +119,20 @@ export interface ExtractSubtitleArgs {
     inputFile: string;
     /** 输出字幕文件路径。 */
     outputFile: string;
-    /** 字幕流映射规则。 */
-    mapRule: string;
+    /** 优先选择的字幕语言标签（如 eng）；无匹配时回退第一条文本字幕。 */
+    preferLanguage?: string;
+}
+
+/**
+ * 字幕提取命令参数：字幕流由网关 ffprobe 探测选定，调用方不得凭猜测拼 map 规则。
+ */
+export interface ExtractSubtitleCommandArgs {
+    /** 输入媒体文件路径。 */
+    inputFile: string;
+    /** 输出字幕文件路径。 */
+    outputFile: string;
+    /** 选定字幕流在输入媒体中的绝对流索引。 */
+    streamIndex: number;
 }
 
 /**
@@ -149,6 +149,8 @@ export interface TrimVideoArgs {
     endSecond: number;
     /** 视频编码器。 */
     videoCodec?: string;
+    /** 编码器速度预设（如 veryfast）；x265 默认 medium 过慢，按场景显式指定。 */
+    videoPreset?: string;
     /** 音频编码器。 */
     audioCodec?: string;
     /** 输出宽度。 */
@@ -218,17 +220,17 @@ export default interface FfmpegGateway {
     /** 生成缩略图。 */
     createThumbnail(args: CreateThumbnailArgs, options?: FfmpegRunOptions): Promise<void>;
 
-    /** 分割为音频片段。 */
-    splitAudio(args: SplitAudioArgs, options?: FfmpegRunOptions): Promise<void>;
-
     /** 转换为 MP4。 */
     toMp4(inputFile: string, outputFile: string, options?: FfmpegRunOptions): Promise<void>;
 
     /** MKV 转 MP4。 */
     mkvToMp4(inputFile: string, outputFile: string, options?: FfmpegRunOptions): Promise<void>;
 
-    /** 提取字幕。 */
-    extractSubtitles(args: ExtractSubtitleArgs, options?: FfmpegRunOptions): Promise<void>;
+    /**
+     * 提取文本字幕；优先匹配 preferLanguage 的文本字幕轨，无匹配时取第一条。
+     * 源媒体没有可转 srt 的文本字幕（如只有 PGS 图形字幕）时返回 false。
+     */
+    extractSubtitles(args: ExtractSubtitleArgs, options?: FfmpegRunOptions): Promise<boolean>;
 
     /** 裁剪视频。 */
     trimVideo(args: TrimVideoArgs, options?: FfmpegRunOptions): Promise<void>;

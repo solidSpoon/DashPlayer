@@ -205,19 +205,6 @@ describe.skipIf(!binariesReady)('ffmpeg 网关冒烟测试（真实执行）', (
         expect(Number(probe.format.duration)).toBeLessThan(1.3);
     });
 
-    it('splitAudio 按 1 秒分段应产出多段 mp3', { timeout: 60_000 }, async () => {
-        const outputPattern = path.join(workDir, 'seg_%03d.mp3');
-
-        await gateway.splitAudio({
-            inputFile: sampleVideo,
-            segmentSecond: 1,
-            outputPattern,
-        });
-
-        const segments = fs.readdirSync(workDir).filter(file => file.startsWith('seg_'));
-        expect(segments.length).toBeGreaterThanOrEqual(2);
-    });
-
     it('toMp4 重封装转码后应仍可探测出音视频流', { timeout: 60_000 }, async () => {
         const outputFile = path.join(workDir, 'to-mp4.mp4');
 
@@ -261,13 +248,26 @@ describe.skipIf(!binariesReady)('ffmpeg 网关冒烟测试（真实执行）', (
         ]);
 
         const outputFile = path.join(workDir, 'extracted.srt');
-        await gateway.extractSubtitles({
+        const extracted = await gateway.extractSubtitles({
             inputFile: mkvFile,
             outputFile,
-            mapRule: '0:s:0?',
+            preferLanguage: 'eng',
         });
 
+        expect(extracted).toBe(true);
         const content = await fs.promises.readFile(outputFile, 'utf8');
         expect(content).toContain('Hello smoke test');
+    });
+
+    it('extractSubtitles 在无字幕的媒体上应返回 false 且不产出文件', { timeout: 30_000 }, async () => {
+        const outputFile = path.join(workDir, 'no-sub.srt');
+
+        const extracted = await gateway.extractSubtitles({
+            inputFile: sampleVideo,
+            outputFile,
+        });
+
+        expect(extracted).toBe(false);
+        expect(fs.existsSync(outputFile)).toBe(false);
     });
 });
