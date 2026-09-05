@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.9.1](https://github.com/solidSpoon/DashPlayer/compare/v6.9.0...v6.9.1) (2026-09-05)
+
+
+### Bug Fixes
+
+* 播客模式点击生词发音时不再同时跳转到当前行开始 ([6f4c3ca](https://github.com/solidSpoon/DashPlayer/commit/6f4c3cae21b476c1d094ae06f29d1529ee3c9a53))
+* 播客模式点击生词发音时不再同时跳转到当前行开始 ([321ec4b](https://github.com/solidSpoon/DashPlayer/commit/321ec4b4c8eb31b3680f7530844e9c4a5db9d049))
+* 视频切分 AI 整理改走结构化输出，支持节流流式回显 ([e55f13f](https://github.com/solidSpoon/DashPlayer/commit/e55f13fac7235bbc208ae8c5eb58d9e9e0dafc1b))
+* 视频切分 AI 整理改走结构化输出，支持节流流式回显 ([a43397d](https://github.com/solidSpoon/DashPlayer/commit/a43397dcf7faca5cfcf3e438527bfb2486bee0d4))
+
 ## [6.9.0](https://github.com/solidSpoon/DashPlayer/compare/v6.8.0...v6.9.0) (2026-09-05)
 
 
