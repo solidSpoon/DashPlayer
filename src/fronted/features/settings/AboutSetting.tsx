@@ -9,8 +9,10 @@ import { UpdateCheckResult } from '@/common/types/update-check';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import {
     CheckCircle2,
+    Compass,
     ExternalLink,
     FileText,
+    Info,
     RefreshCw,
     Sparkles,
     Tag,
@@ -18,6 +20,8 @@ import {
 import logoLight from '../../../../assets/logo-light.png';
 import logoDark from '../../../../assets/logo-dark.png';
 import useSetting from '@/fronted/features/settings/settingsStore';
+import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
+import { SettingCard, SettingRow } from '@/fronted/features/settings/components/form/SettingCard';
 
 /**
  * GitHub 品牌图标（lucide-react 无内置 brand icon，内联标准 SVG）
@@ -77,188 +81,187 @@ const AboutSetting = () => {
     };
 
     return (
-        <div className="h-full min-h-0 flex flex-col justify-between py-8 px-4 max-w-xl w-full mx-auto scrollbar-thin">
-            {/* 中间核心内容区域：居中排列，增加呼吸感 */}
-            <div className="flex flex-col items-center my-auto space-y-7 w-full py-4">
-                {/* 头部：App Logo、名称、版本、介绍 */}
-                <div className="flex flex-col items-center text-center space-y-3.5">
-                    <img
-                        src={theme === 'dark' ? logoDark : logoLight}
-                        alt="DashPlayer Logo"
-                        className="w-16 h-16 object-contain select-none user-drag-none"
-                        draggable={false}
-                    />
-
-                    <div className="space-y-1.5 flex flex-col items-center">
-                        <div className="relative flex items-center justify-center">
-                            <h1 className="text-2xl font-bold tracking-tight font-serif text-foreground">
-                                DashPlayer
-                            </h1>
-                            {currentVersion && (
-                                <span className="absolute left-full ml-2.5 whitespace-nowrap rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-mono font-medium text-primary border border-primary/20">
-                                    v{currentVersion}
-                                </span>
-                            )}
+        <SettingsPageShell
+            title={t('about.title', { defaultValue: '关于与更新' })}
+            description={t('about.slogan', {
+                defaultValue: '专为语言学习与长视频精听打造的智能双语播放器',
+            })}
+            contentClassName="space-y-6 max-w-3xl"
+        >
+            {/* 核心卡片：应用信息与版本状态 */}
+            <div className="rounded-xl border border-border/70 bg-card/50 shadow-xs overflow-hidden">
+                {/* 顶部主信息栏 */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 sm:p-5">
+                    <div className="flex items-center gap-3.5">
+                        <img
+                            src={theme === 'dark' ? logoDark : logoLight}
+                            alt="DashPlayer Logo"
+                            className="w-12 h-12 object-contain select-none shrink-0"
+                            draggable={false}
+                        />
+                        <div>
+                            <div className="flex items-center gap-2">
+                                <h2 className="text-base font-bold tracking-tight text-foreground font-serif">
+                                    DashPlayer
+                                </h2>
+                                {currentVersion && (
+                                    <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-mono font-medium text-foreground/80 border border-border">
+                                        v{currentVersion}
+                                    </span>
+                                )}
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5">
+                                {t('about.description')}
+                            </p>
                         </div>
-                        <p className="text-sm font-medium text-foreground/80 max-w-md">
-                            {t('about.slogan')}
-                        </p>
-                        <p className="text-xs text-muted-foreground max-w-md leading-relaxed pt-0.5">
-                            {t('about.description')}
-                        </p>
+                    </div>
+
+                    {/* 右侧主操作区 */}
+                    <div className="flex items-center gap-2 shrink-0">
+                        <Button
+                            onClick={() => recheckUpdate()}
+                            disabled={isCheckingUpdate}
+                            size="sm"
+                            variant="outline"
+                            className="h-8 gap-1.5 text-xs"
+                        >
+                            <RefreshCw className={`h-3.5 w-3.5 ${isCheckingUpdate ? 'animate-spin' : ''}`} />
+                            {t('about.update.checkNow', { defaultValue: '检查更新' })}
+                        </Button>
+                        <Button
+                            onClick={() => openUrl('https://github.com/solidSpoon/DashPlayer/releases/latest')}
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 gap-1 text-xs text-muted-foreground hover:text-foreground"
+                        >
+                            <Tag className="h-3.5 w-3.5" />
+                            {t('about.links.releases', { defaultValue: '版本日志' })}
+                            <ExternalLink className="h-3 w-3 ml-0.5 opacity-60" />
+                        </Button>
                     </div>
                 </div>
 
-                {/* 中间：更新检查与状态卡片 */}
-                <div className="w-full rounded-2xl border border-border/70 bg-muted/20 p-5 backdrop-blur-xs shadow-2xs">
-                    {checking && !updateResult && (
-                        <div className="flex w-full flex-col gap-2.5 py-2">
-                            <Skeleton className="w-40 h-5 rounded-md" />
-                            <Skeleton className="w-full h-3.5 rounded" />
-                            <Skeleton className="w-2/3 h-3.5 rounded" />
+                {/* 状态展开区域 */}
+                {checking && !updateResult ? (
+                    <div className="flex items-center gap-2 px-5 py-3 border-t border-border/50 bg-muted/20 text-xs text-muted-foreground">
+                        <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                        <span>正在连接 GitHub 检查最新版本...</span>
+                    </div>
+                ) : hasError ? (
+                    <div className="flex items-center justify-between gap-3 px-5 py-3 border-t border-border/50 bg-destructive/5 text-xs text-destructive">
+                        <span>{errorText}</span>
+                        <Button
+                            onClick={() => recheckUpdate()}
+                            size="sm"
+                            variant="outline"
+                            className="h-6 px-2 text-xs"
+                        >
+                            重试
+                        </Button>
+                    </div>
+                ) : hasNewRelease ? (
+                    <div className="border-t border-border/50 bg-muted/15">
+                        {/* 发现新版本提示条 */}
+                        <div className="flex items-center justify-between gap-3 px-5 py-3 bg-primary/10 border-b border-primary/15">
+                            <div className="flex items-center gap-2">
+                                <Sparkles className="h-4 w-4 text-primary shrink-0" />
+                                <span className="text-xs font-semibold text-primary">
+                                    {t('about.update.newVersionFound', { defaultValue: '发现新版本可用' })}
+                                </span>
+                                <span className="rounded-full bg-primary text-primary-foreground font-mono font-medium text-[11px] px-2 py-0.2">
+                                    {updateResult?.releases[0]?.version}
+                                </span>
+                            </div>
+
+                            <Button
+                                onClick={() => openUrl(updateResult?.releases[0]?.url || 'https://github.com/solidSpoon/DashPlayer/releases/latest')}
+                                size="sm"
+                                className="gap-1 h-7 px-3 text-xs font-medium shrink-0 shadow-xs"
+                            >
+                                <ExternalLink className="h-3 w-3" />
+                                {t('about.update.downloadNow', { defaultValue: '前往下载新版本' })}
+                            </Button>
                         </div>
-                    )}
 
-                    {(!checking || updateResult) && (
-                        <div>
-                            {hasError ? (
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-destructive">
-                                    <div className="space-y-1">
-                                        <h3 className="font-semibold text-sm">
-                                            {t('about.update.failedTitle', { defaultValue: t('checkUpdate.failedTitle') })}
-                                        </h3>
-                                        <p className="text-xs text-muted-foreground">{errorText}</p>
-                                    </div>
-                                    <Button
-                                        onClick={() => recheckUpdate()}
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-8 gap-1.5 text-xs self-start sm:self-auto shrink-0"
-                                    >
-                                        <RefreshCw className="h-3.5 w-3.5" />
-                                        {t('about.update.retry', { defaultValue: '重试' })}
-                                    </Button>
-                                </div>
-                            ) : hasNewRelease ? (
-                                <div className="space-y-4">
-                                    <div className="flex items-center justify-between gap-2">
-                                        <div className="flex items-center gap-2 text-primary font-semibold text-sm">
-                                            <Sparkles className="h-4 w-4" />
-                                            <span>
-                                                {t('about.update.newVersionFound', { defaultValue: '发现新版本' })}: {updateResult.releases[0]?.version}
-                                            </span>
-                                        </div>
-                                        <Button
-                                            onClick={() => openUrl(updateResult.releases[0]?.url || 'https://github.com/solidSpoon/DashPlayer/releases/latest')}
-                                            size="sm"
-                                            className="gap-1.5 h-8 text-xs font-medium shrink-0"
-                                        >
-                                            <ExternalLink className="h-3.5 w-3.5" />
-                                            {t('about.update.downloadNow', { defaultValue: '前往下载新版本' })}
-                                        </Button>
-                                    </div>
-
-                                    <div className="rounded-xl border border-border/60 bg-background/80 p-4 text-xs max-h-60 overflow-y-auto scrollbar-thin">
-                                        <Md>
-                                            {(updateResult?.releases ?? []).map((release) => (
-                                                codeBlock`
-                                            ## ${release.version}
-
-                                            ${release.content}
-                                            `
-                                            )).join('\n---\n')}
-                                        </Md>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
-                                            <CheckCircle2 className="w-4 h-4" />
-                                        </div>
-                                        <div className="text-left">
-                                            <p className="text-xs font-semibold text-foreground">
-                                                {t('about.update.upToDateTitle', { defaultValue: '当前已是最新版本' })}
-                                            </p>
-                                            <p className="text-[11px] text-muted-foreground">
-                                                {t('about.update.upToDateDesc', {
-                                                    defaultValue: currentVersion
-                                                        ? `DashPlayer v${currentVersion} 运行中，暂无可用更新。`
-                                                        : '你的客户端版本已处于最新状态。',
-                                                    version: currentVersion,
-                                                })}
-                                            </p>
-                                        </div>
-                                    </div>
-
-                                    <div className="flex items-center gap-2 shrink-0">
-                                        <Button
-                                            onClick={() => recheckUpdate()}
-                                            disabled={isCheckingUpdate}
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-8 gap-1.5 text-xs"
-                                        >
-                                            <RefreshCw className={`h-3.5 w-3.5 ${isCheckingUpdate ? 'animate-spin' : ''}`} />
-                                            {t('about.update.checkNow', { defaultValue: '检查更新' })}
-                                        </Button>
-                                        <Button
-                                            onClick={() => openUrl('https://github.com/solidSpoon/DashPlayer/releases/latest')}
-                                            size="sm"
-                                            variant="ghost"
-                                            className="h-8 gap-1 text-xs text-muted-foreground hover:text-foreground"
-                                        >
-                                            <Tag className="h-3.5 w-3.5" />
-                                            {t('about.links.releases', { defaultValue: '发布记录' })}
-                                            <ExternalLink className="h-3 w-3 ml-0.5" />
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
+                        {/* 更新日志主体内容 */}
+                        <div className="p-4 sm:p-5">
+                            <div className="rounded-lg border border-border/60 bg-background p-4 text-xs max-h-56 overflow-y-auto scrollbar-thin">
+                                <Md>
+                                    {(updateResult?.releases ?? []).map((release) => (
+                                        codeBlock`
+                                        ${release.content}
+                                        `
+                                    )).join('\n---\n')}
+                                </Md>
+                            </div>
                         </div>
-                    )}
-                </div>
+                    </div>
+                ) : (
+                    <div className="flex items-center gap-2 px-5 py-2.5 border-t border-border/50 bg-muted/10 text-xs text-muted-foreground">
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                        <span>{t('about.update.upToDateTitle', { defaultValue: '当前已是最新版本' })}</span>
+                    </div>
+                )}
             </div>
 
-            {/* 底部：外链按钮组与 Footer，吸底并留有合适内边距 */}
-            <div className="mt-auto pt-6 pb-2 flex flex-col items-center space-y-3">
-                <div className="flex flex-wrap items-center justify-center gap-2.5">
+            {/* 相关资源与开源卡片 */}
+            <SettingCard
+                title={t('about.resourcesTitle', { defaultValue: '相关资源' })}
+                description={t('about.resourcesDescription', { defaultValue: '查阅官方文档、访问开源社区或查看授权协议' })}
+                icon={Info}
+            >
+                <SettingRow
+                    title={t('about.links.docs', { defaultValue: '官方文档' })}
+                    description={t('about.links.docsDesc', { defaultValue: '查看完整使用教程与快捷键指南' })}
+                    icon={FileText}
+                >
                     <Button
                         variant="outline"
                         size="sm"
                         onClick={() => openUrl('https://solidspoon.xyz/DashPlayer/home.html')}
-                        className="gap-1.5 h-8 px-3 text-xs font-normal text-muted-foreground hover:text-foreground"
+                        className="gap-1.5 h-8 text-xs text-muted-foreground hover:text-foreground"
                     >
-                        <FileText className="w-3.5 h-3.5" />
-                        {t('about.links.docs', { defaultValue: '官方文档' })}
-                        <ExternalLink className="w-3 h-3 ml-0.5 opacity-60" />
+                        {t('common.viewDocs', { defaultValue: '查看文档' })}
+                        <ExternalLink className="h-3 w-3 ml-0.5 opacity-60" />
                     </Button>
+                </SettingRow>
+
+                <SettingRow
+                    title={t('about.links.github', { defaultValue: 'GitHub 仓库' })}
+                    description={t('about.links.githubDesc', { defaultValue: '欢迎提交 Issue、功能建议或给项目点个 Star' })}
+                    icon={GithubIcon}
+                >
                     <Button
                         variant="outline"
                         size="sm"
                         onClick={() => openUrl('https://github.com/solidSpoon/DashPlayer')}
-                        className="gap-1.5 h-8 px-3 text-xs font-normal text-muted-foreground hover:text-foreground"
+                        className="gap-1.5 h-8 text-xs text-muted-foreground hover:text-foreground"
                     >
-                        <GithubIcon className="w-3.5 h-3.5" />
-                        {t('about.links.github', { defaultValue: 'GitHub 仓库' })}
-                        <ExternalLink className="w-3 h-3 ml-0.5 opacity-60" />
+                        GitHub
+                        <ExternalLink className="h-3 w-3 ml-0.5 opacity-60" />
                     </Button>
+                </SettingRow>
+
+                <SettingRow
+                    title={t('about.links.license', { defaultValue: '开源协议' })}
+                    description={t('about.links.licenseDesc', { defaultValue: '基于 GNU AGPLv3 自由开源' })}
+                >
                     <Button
                         variant="outline"
                         size="sm"
                         onClick={() => openUrl('https://github.com/solidSpoon/DashPlayer/blob/main/LICENSE')}
-                        className="gap-1.5 h-8 px-3 text-xs font-normal text-muted-foreground hover:text-foreground"
+                        className="gap-1.5 h-8 text-xs text-muted-foreground hover:text-foreground"
                     >
-                        {t('about.links.license', { defaultValue: 'AGPLv3 协议' })}
-                        <ExternalLink className="w-3 h-3 ml-0.5 opacity-60" />
+                        GNU AGPLv3
+                        <ExternalLink className="h-3 w-3 ml-0.5 opacity-60" />
                     </Button>
-                </div>
+                </SettingRow>
+            </SettingCard>
 
-                <p className="text-[11px] text-muted-foreground/60">
-                    {t('about.footer', { defaultValue: '由 solidSpoon 用心打造' })} · GNU AGPLv3
-                </p>
+            <div className="pt-2 pb-6 text-center text-[11px] text-muted-foreground/60">
+                {t('about.footer', { defaultValue: '由 solidSpoon 用心打造' })} · GNU AGPLv3
             </div>
-        </div>
+        </SettingsPageShell>
     );
 };
 
