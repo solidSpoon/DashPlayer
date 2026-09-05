@@ -1,4 +1,5 @@
 import {DpTask} from '@/common/contracts/dp-task';
+import type { LocalAiStatus } from '@/common/contracts/local-ai';
 import {YdRes, OpenAIDictionaryResult} from '@/common/types/YdRes';
 import {ChapterParseResult} from '@/common/types/chapter-result';
 import {SrtSentence, Sentence} from '@/common/types/SentenceC';
@@ -43,7 +44,13 @@ import { VideoInfo } from '@/common/types/video-info';
 import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
 import { TranscriptTask } from '@/common/contracts/transcript/transcript-task';
 
+/** 跨进程请求与返回值契约。 */
 interface ApiDefinition {
+    'local-ai/status': { params: void, return: LocalAiStatus };
+    'local-ai/download': { params: void, return: void };
+    'local-ai/cancel-download': { params: void, return: void };
+    'local-ai/delete': { params: void, return: void };
+    'local-ai/check': { params: void, return: { translation: string; durationMs: number } };
     'eg': { params: string, return: number },
 }
 

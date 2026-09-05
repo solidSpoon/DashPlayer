@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import 'reflect-metadata';
+import type LocalAiService from '@/backend/services/LocalAiService';
 import { app, BrowserWindow, type Session } from 'electron';
 import squirrelStartup from 'electron-squirrel-startup';
 import fs from 'fs';
@@ -257,8 +258,15 @@ app.on('window-all-closed', () => {
         app.quit();
     }
 });
-app.on('before-quit', () => {
+let localAiStopped = false;
+/** 退出前释放本地模型进程，避免后台遗留进程和占用模型文件。 */
+app.on('before-quit', (event) => {
     logger.info('app before quit');
+    if (localAiStopped) return;
+    event.preventDefault();
+    void container.get<LocalAiService>(TYPES.LocalAiService).shutdown().catch((error) => {
+        logger.error('local AI shutdown failed', { error });
+    }).finally(() => { localAiStopped = true; app.quit(); });
 });
 app.on('activate', () => {
     // On OS X it's common to re-create a window in the app when the

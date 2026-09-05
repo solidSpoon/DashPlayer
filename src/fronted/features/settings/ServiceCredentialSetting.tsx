@@ -34,6 +34,7 @@ import { SettingCard, SettingsLoadingSkeleton } from '@/fronted/features/setting
 import { OpenAiModelUsageFeature, ServiceCredentialSettingDetailVO, ServiceCredentialSettingSaveVO } from '@/common/types/vo/service-credentials-setting-vo';
 import type { ModelInstallationStatusVO } from '@/common/types/vo/model-installation-vo';
 import type { ModelDownloadPhase } from '@/common/contracts/model-download-phase';
+import type { LocalAiStatus } from '@/common/contracts/local-ai';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import toast from 'react-hot-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
@@ -91,6 +92,8 @@ const ServiceCredentialSetting = () => {
     const [deletingSherpaTtsModel, setDeletingSherpaTtsModel] = React.useState(false);
     const [sherpaTtsDownloadProgress, setSherpaTtsDownloadProgress] = React.useState(0);
     const [sherpaTtsDownloadPhase, setSherpaTtsDownloadPhase] = React.useState<ModelDownloadPhase>('downloading');
+    const [localAiStatus, setLocalAiStatus] = React.useState<LocalAiStatus | null>(null);
+    const [localAiBusy, setLocalAiBusy] = React.useState(false);
 
     /** 是否已由用户手动触发下载；用于丢弃过期的状态查询响应。 */
     const downloadingRef = React.useRef(false);
@@ -186,6 +189,63 @@ const ServiceCredentialSetting = () => {
     React.useEffect(() => {
         refreshSherpaTtsModelStatus().catch(() => null);
     }, [refreshSherpaTtsModelStatus]);
+
+    React.useEffect(() => { settingsApi.getLocalAiStatus().then(setLocalAiStatus).catch(() => null); }, []);
+
+    React.useEffect(() => {
+        const handler = (event: Event) => {
+            const progress = (event as CustomEvent<{
+                downloaded: number;
+                total: number;
+                phase: LocalAiStatus['phase'];
+            }>).detail;
+            setLocalAiStatus((current) => current ? {
+                ...current,
+                downloaded: progress.downloaded,
+                total: progress.total,
+                phase: progress.phase,
+            } : current);
+            if (progress.phase === 'idle') {
+                settingsApi.getLocalAiStatus().then(setLocalAiStatus).catch(() => null);
+            }
+        };
+        window.addEventListener('local-ai-model-download-progress', handler);
+        return () => window.removeEventListener('local-ai-model-download-progress', handler);
+    }, []);
+
+    /** 执行本地模型的下载、删除或最小推理检查，并刷新页面状态。 */
+    const runLocalAiAction = async (action: () => Promise<unknown>) => {
+        setLocalAiBusy(true);
+        try { await action(); toast.success('本地 Qwen 操作完成'); }
+        catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
+        finally { setLocalAiBusy(false); settingsApi.getLocalAiStatus().then(setLocalAiStatus).catch(() => null); }
+    };
+
+    /** 开始下载后由进度事件持续更新页面，任务结束时展示最终结果。 */
+    const downloadLocalAi = async () => {
+        setLocalAiStatus((current) => current ? { ...current, phase: 'downloading' } : current);
+        try {
+            await settingsApi.downloadLocalAi();
+            toast.success('本地 Qwen 下载完成');
+        } catch (error) {
+            if ((error instanceof Error ? error.name : '') !== 'AbortError') {
+                toast.error(error instanceof Error ? error.message : String(error));
+            }
+        } finally {
+            settingsApi.getLocalAiStatus().then(setLocalAiStatus).catch(() => null);
+        }
+    };
+
+    /** 取消当前下载并保留已完成部分，以便下次续传。 */
+    const cancelLocalAiDownload = async () => {
+        setLocalAiBusy(true);
+        try { await settingsApi.cancelLocalAiDownload(); }
+        catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
+        finally {
+            setLocalAiBusy(false);
+            settingsApi.getLocalAiStatus().then(setLocalAiStatus).catch(() => null);
+        }
+    };
 
     React.useEffect(() => {
         const handler = (evt: Event) => {
@@ -764,6 +824,25 @@ const ServiceCredentialSetting = () => {
                                 )}
                             </div>
                         )}
+                    </div>
+                </SettingCard>
+
+                <SettingCard title="本地 AI 模型" description="Qwen3 1.7B Q4_K_M，供字幕翻译和词典查询离线使用。" icon={Bot}>
+                    <div className="flex flex-col gap-3 p-4">
+                        <div className="flex items-center justify-between gap-3">
+                            <div className="text-sm">模型约 1.11 GB · 需要 llama.cpp 运行时</div>
+                            <div className="flex items-center gap-2">
+                                {!localAiStatus?.ready && localAiStatus?.phase === 'idle' && <Button type="button" size="sm" disabled={localAiBusy} onClick={() => downloadLocalAi()}><Download /> 下载模型</Button>}
+                                {localAiStatus && !localAiStatus.ready && localAiStatus.phase !== 'idle' && <Button type="button" variant="outline" size="sm" disabled={localAiBusy} onClick={() => cancelLocalAiDownload()}><Square /> 取消下载</Button>}
+                                {localAiStatus?.ready && <Button type="button" variant="outline" size="sm" disabled={localAiBusy} onClick={() => runLocalAiAction(settingsApi.checkLocalAi)}><TestTube /> 检查运行</Button>}
+                                {localAiStatus?.ready && <Button type="button" variant="ghost" size="sm" disabled={localAiBusy} onClick={() => runLocalAiAction(settingsApi.deleteLocalAi)}><Trash2 /> 删除</Button>}
+                            </div>
+                        </div>
+                        <Progress value={localAiStatus ? localAiStatus.downloaded / localAiStatus.total * 100 : 0} />
+                        {localAiStatus && localAiStatus.phase !== 'idle' && <div className="text-xs text-muted-foreground">
+                            {localAiStatus.phase === 'verifying' ? '正在校验模型…' : `正在下载… ${Math.floor(localAiStatus.downloaded / localAiStatus.total * 100)}%`}
+                        </div>}
+                        <div className="text-xs text-muted-foreground break-all">{localAiStatus?.runtimeReady ? '运行时已就绪' : '运行时未安装：请重新执行 yarn run download'} · {localAiStatus?.modelPath}</div>
                     </div>
                 </SettingCard>
 

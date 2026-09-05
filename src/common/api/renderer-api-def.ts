@@ -32,6 +32,10 @@ interface UIRendererDef {
     };
     'settings/parakeet-model-download-progress': { params: { percent: number; downloaded: number; total: number; phase: ModelDownloadPhase }, return: void };
     'settings/sherpa-tts-model-download-progress': { params: { percent: number; downloaded: number; total: number; phase: ModelDownloadPhase }, return: void };
+    'settings/local-ai-model-download-progress': {
+        params: { percent: number; downloaded: number; total: number; phase: 'idle' | 'downloading' | 'verifying' },
+        return: void
+    };
 }
 
 // 翻译相关的前端API定义

@@ -14,6 +14,7 @@ import ClientProviderService from '@/backend/services/ClientProviderService';
 import SettingService from '@/backend/services/SettingService';
 import { YouDaoDictionaryClient } from '@/backend/services/gateways/translate/YouDaoDictionaryClient';
 import { getMainLogger } from '@/backend/infrastructure/logger';
+import type LocalAiService from '@/backend/services/LocalAiService';
 
 export default interface TranslateService {
     transWord(
@@ -200,6 +201,8 @@ export class TranslateServiceImpl implements TranslateService {
     private settingService!: SettingService;
     @inject(TYPES.WordTranslatesRepository)
     private wordTranslatesRepository!: WordTranslatesRepository;
+    @inject(TYPES.LocalAiService)
+    private localAiService!: LocalAiService;
 
     public async transWord(
         str: string,
@@ -243,7 +246,7 @@ export class TranslateServiceImpl implements TranslateService {
      * @param word 原始查询词。
      * @returns 可用于 in-flight 映射的稳定 key。
      */
-    private buildWordLookupKey(provider: 'openai' | 'youdao', word: string): string {
+    private buildWordLookupKey(provider: 'openai' | 'local' | 'youdao', word: string): string {
         return `${provider}:${word.trim().toLowerCase()}`;
     }
 
@@ -258,7 +261,7 @@ export class TranslateServiceImpl implements TranslateService {
      */
     private async executeWordLookup(
         str: string,
-        currentProvider: 'openai' | 'youdao',
+        currentProvider: 'openai' | 'local' | 'youdao',
         forceRefresh: boolean,
         requestId?: string
     ): Promise<YdRes | OpenAIDictionaryResult | null> {
@@ -288,6 +291,10 @@ export class TranslateServiceImpl implements TranslateService {
             const or = JSON.parse(onlineRes) as YdRes;
             await this.wordRecord(str, or);
             return or;
+        } else if (currentProvider === 'local') {
+            const result = await this.translateWordWithLocal(str, requestId);
+            if (result) await this.wordRecordOpenAI(str, result, 'local');
+            return result;
         } else if (currentProvider === 'openai') {
             return await this.translateWordWithOpenAI(str, requestId);
         }
@@ -404,6 +411,17 @@ export class TranslateServiceImpl implements TranslateService {
         }
     }
 
+    /** 使用本地模型生成同一份词典结构，复用现有清洗与缓存格式。 */
+    private async translateWordWithLocal(word: string, requestId?: string): Promise<OpenAIDictionaryResult | null> {
+        const result = await this.localAiService.generate(buildDictionaryPrompt(word), z.toJSONSchema(openAIDictionaryResultSchema));
+        const parsed = openAIDictionaryResultSchema.safeParse(result);
+        if (!parsed.success) {
+            this.logger.error('本地字典模型返回结构无效', { word, issues: parsed.error.issues, requestId });
+            return null;
+        }
+        return sanitizeDictionaryResult(parsed.data);
+    }
+
     /**
      * 将简化词典结果推送到渲染层，供弹窗实时刷新。
      * @param requestId 当前流式请求 id。
@@ -449,7 +467,7 @@ export class TranslateServiceImpl implements TranslateService {
         }
     }
 
-    private async wordLoad(word: string, provider: 'youdao' | 'openai'): Promise<YdRes | OpenAIDictionaryResult | undefined> {
+    private async wordLoad(word: string, provider: 'youdao' | 'openai' | 'local'): Promise<YdRes | OpenAIDictionaryResult | undefined> {
         const value: WordTranslate | null = await this.wordTranslatesRepository.findOne(p(word), provider);
         if (!value) return undefined;
 
@@ -460,7 +478,7 @@ export class TranslateServiceImpl implements TranslateService {
 
         try {
             const parsed = JSON.parse(trans ?? '');
-            if (provider === 'openai') {
+            if (provider === 'openai' || provider === 'local') {
                 const parsedResult = openAIDictionaryCacheSchema.safeParse(parsed);
                 if (!parsedResult.success) {
                     this.logger.warn('OpenAI 字典缓存格式不正确，忽略本地缓存', {
@@ -490,11 +508,11 @@ export class TranslateServiceImpl implements TranslateService {
         await this.wordTranslatesRepository.upsert(wt.word, 'youdao', value, TimeUtil.timeUtc());
     }
 
-    private async wordRecordOpenAI(word: string, translate: OpenAIDictionaryResult): Promise<void> {
+    private async wordRecordOpenAI(word: string, translate: OpenAIDictionaryResult, provider: 'openai' | 'local' = 'openai'): Promise<void> {
         const sanitized = sanitizeDictionaryResult(translate);
         const value = JSON.stringify(sanitized);
-        const wt: InsertWordTranslate = { word: p(word), provider: 'openai', translate: value };
-        await this.wordTranslatesRepository.upsert(wt.word, 'openai', value, TimeUtil.timeUtc());
+        const wt: InsertWordTranslate = { word: p(word), provider, translate: value };
+        await this.wordTranslatesRepository.upsert(wt.word, provider, value, TimeUtil.timeUtc());
     }
 
 }

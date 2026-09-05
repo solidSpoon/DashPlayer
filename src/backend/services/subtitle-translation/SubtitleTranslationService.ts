@@ -1,3 +1,4 @@
+import { LOCAL_AI_MODEL_ID } from '@/common/contracts/local-ai';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import { getMainLogger } from '@/backend/infrastructure/logger';
@@ -35,7 +36,7 @@ import {
 } from '@/common/types/TranslationResult';
 import TimeUtil from '@/common/utils/TimeUtil';
 
-type SubtitleTranslationStorageMode = 'tencent' | `openai_${string}`;
+type SubtitleTranslationStorageMode = 'tencent' | `openai_${string}` | `local_${string}`;
 
 /**
  * 单个字幕翻译会话使用的稳定配置。
@@ -325,15 +326,15 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
         let mode: TranslationMode = 'zh';
         let storageMode: SubtitleTranslationStorageMode = 'tencent';
         let style: string | undefined;
-        if (provider === 'openai') {
+        if (provider !== 'tencent') {
             mode = await this.settingService.getOpenAiSubtitleTranslationMode();
             const customStyle = mode === 'custom'
                 ? await this.settingService.getOpenAiSubtitleCustomStyle()
                 : undefined;
             const resolved = resolveSubtitleStyleWithSignature(mode, customStyle);
             style = resolved.style;
-            storageMode = mapOpenAiModeToStorage(mode, resolved.signature);
-            if (!this.modelRoutingService.resolveOpenAiModel('subtitleTranslation')) {
+            storageMode = provider === 'local' ? `local_${LOCAL_AI_MODEL_ID}_${mode}_${resolved.signature}` : mapOpenAiModeToStorage(mode, resolved.signature);
+            if (provider !== 'local' && !this.modelRoutingService.resolveOpenAiModel('subtitleTranslation')) {
                 throw new Error('OpenAI 字幕翻译模型未配置');
             }
         }
@@ -438,13 +439,13 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             ? await this.settingService.getOpenAiSubtitleCustomStyle()
             : undefined;
         const { style, signature } = resolveSubtitleStyleWithSignature(mode, customStyle);
-        const routedModel = this.modelRoutingService.resolveOpenAiModel('subtitleTranslation');
+        const routedModel = provider === 'local' ? { fullModelId: LOCAL_AI_MODEL_ID } : this.modelRoutingService.resolveOpenAiModel('subtitleTranslation');
         if (!routedModel) {
             this.scheduler.release(fileHash, input.rendererSessionId);
             throw new Error('OpenAI 字幕翻译模型未配置');
         }
 
-        const storageMode = mapOpenAiModeToStorage(mode, signature);
+        const storageMode: SubtitleTranslationStorageMode = provider === 'local' ? `local_${LOCAL_AI_MODEL_ID}_${mode}_${signature}` : mapOpenAiModeToStorage(mode, signature);
         this.scheduler.updateDemand({
             fileHash,
             currentIndex: input.currentIndex,
@@ -590,7 +591,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
 
             if (failedIndices.size > 0 && request.requeueCount > 0) {
                 this.showFailureToast(
-                    request.context.provider === 'openai'
+                    request.context.provider !== 'tencent'
                         ? `OpenAI 字幕翻译未返回完整结果，失败 ${failedIndices.size} 条`
                         : `腾讯字幕翻译未返回完整结果，失败 ${failedIndices.size} 条`,
                     `subtitle-translation:${request.context.provider}-incomplete:${request.context.mode}`,
@@ -632,7 +633,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             });
             if (request.requeueCount > 0) {
                 this.showFailureToast(
-                    request.context.provider === 'openai'
+                    request.context.provider !== 'tencent'
                         ? 'OpenAI 字幕翻译请求失败'
                         : '腾讯字幕翻译请求失败',
                     `subtitle-translation:${request.context.provider}-batch-failed:${request.context.mode}`,
@@ -667,7 +668,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             .map((sentence) => ({
                 index: sentence.index,
                 publishKey: sentence.translationKey,
-                storageKey: provider === 'openai'
+                storageKey: provider !== 'tencent'
                     ? buildContextStorageKeyForSentence(sentence, sentencesByIndex)
                     : buildSentenceStorageKey(sentence.text),
                 text: sentence.text,

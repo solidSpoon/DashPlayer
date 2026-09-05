@@ -102,20 +102,21 @@ const EngineSelectionSetting = () => {
                     >
                         <Select
                             value={watchedValues.providers?.subtitleTranslationEngine}
-                            onValueChange={(value: 'openai' | 'tencent' | 'none') => {
+                            onValueChange={(value: 'openai' | 'local' | 'tencent' | 'none') => {
                                 setValue('providers.subtitleTranslationEngine', value, { shouldDirty: true });
                             }}
                         >
                             <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="openai">OpenAI</SelectItem>
+                                <SelectItem value="local">本地 Qwen 1.7B</SelectItem>
                                 <SelectItem value="tencent">{t('engineSelection.engineTencent')}</SelectItem>
                                 <SelectItem value="none">{t('engineSelection.engineNone')}</SelectItem>
                             </SelectContent>
                         </Select>
                     </SettingRow>
 
-                    {subtitleEngine === 'openai' && (
+                    {(subtitleEngine === 'openai' || subtitleEngine === 'local') && (
                         <>
                             <SettingRow
                                 title={t('engineSelection.subtitleTranslation.modelLabel')}
@@ -185,13 +186,14 @@ const EngineSelectionSetting = () => {
                     >
                         <Select
                             value={watchedValues.providers?.dictionaryEngine}
-                            onValueChange={(value: 'openai' | 'youdao' | 'none') => {
+                            onValueChange={(value: 'openai' | 'local' | 'youdao' | 'none') => {
                                 setValue('providers.dictionaryEngine', value, { shouldDirty: true });
                             }}
                         >
                             <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="openai">OpenAI</SelectItem>
+                                <SelectItem value="local">本地 Qwen 1.7B</SelectItem>
                                 <SelectItem value="youdao">{t('engineSelection.engineYoudao')}</SelectItem>
                                 <SelectItem value="none">{t('engineSelection.engineNone')}</SelectItem>
                             </SelectContent>
