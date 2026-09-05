@@ -1,71 +1,47 @@
 # 人工智能字幕
 
-DashPlayer 的核心功能要求必须有视频的 `srt` 字幕文件，当您没有字幕文件时，可以使用人工智能来生成字幕。
+DashPlayer 的核心功能要求必须有视频的 `srt` 字幕文件，当您没有字幕文件时，可以让 DashPlayer 自动生成。
 
-DashPlayer 支持两种字幕转录方式：
+DashPlayer 使用内置的本地语音识别引擎为视频生成字幕，整个转录过程在你的电脑上完成：
 
-- **Whisper 本地转录**：使用内置的 whisper.cpp 在本地运行，无需网络，完全免费。
-- **OpenAI 云端转录**：调用 OpenAI 的 Whisper API 在云端转录，需要配置 API 密钥，按量计费。
+- **无需配置 API 密钥**，也无需联网调用云端接口，不产生任何费用
+- 只需在首次使用前下载一次本地识别模型（Parakeet v3）
+- 生成的字幕保存在视频文件同目录下，与手动准备的外挂字幕没有区别
 
-## 方式一：Whisper 本地转录（推荐） {id="local-whisper"}
+## 前置步骤：下载本地识别模型
 
-本地转录使用 [whisper.cpp](https://github.com/ggerganov/whisper.cpp) 引擎，直接在您的电脑上运行，无需网络连接和 API 密钥。
-
-### 配置步骤
-
-<procedure title="配置本地转录" id="local-transcription-setup">
+<procedure title="下载 Parakeet 本地模型" id="local-model-download">
 <step>
-进入<control>设置中心</control> → <control>服务凭据</control>页面，找到底部的<control>Whisper 本地模型</control>区域。
+进入<control>设置中心</control> → <control>服务凭据</control>页面，找到底部的<control>英语字幕识别模型</control>区域（内置 Parakeet v3 语音识别模型）。
 </step>
 <step>
-选择模型大小：
-<list>
-<li><code>base</code>：较小，下载快，转录速度快，适合大部分场景。</li>
-<li><code>large</code>：更大（对应 large-v3），转录精度更高，但下载和运行更慢，适合对准确度有更高要求的场景。</li>
-</list>
-</step>
-<step>
-点击 Whisper 模型右侧的<control>下载</control>按钮，等待模型下载完成。模型文件来自 Hugging Face，下载完成后状态会显示为"已就绪"。
-</step>
-<step>
-点击 VAD 静音检测模型（silero-v6.2.0）右侧的<control>下载</control>按钮，等待下载完成。VAD 模型用于在转录前检测静音片段，可以提升转录质量。
-</step>
-<step>
-进入<control>设置中心</control> → <control>功能设置</control>页面，在<control>字幕转录</control>一栏将引擎选择为<control>Whisper 本地</control>。
+点击<control>下载</control>按钮，等待模型下载完成。模型下载完成后状态会显示为"就绪"。
 </step>
 </procedure>
 
-> 如果在功能设置中选择了"Whisper 本地"但尚未下载模型，页面会出现黄色提示，点击"去配置"可以快速跳转到服务凭据页面。
+> 网络不稳定导致下载失败时，可以在模型区域查看手动下载地址：下载 `model.tar.bz2` 后保存到指定目录，再回到这里点击"下载"，应用会继续断点续传或直接安装。
+>
 > {style="note"}
 
-### 开始转录
+> 如果不再需要本地转录，也可以在同一区域删除模型以释放磁盘空间。
+>
+> {style="tip"}
 
-<procedure title="使用本地 Whisper 转录字幕" id="local-transcription">
-<step>进入<control>Transcript</control>页面</step>
-<step>在左侧文件浏览器中找到相应的文件后点击<control>添加到转录队列</control></step>
-<step>点击<control>转录</control>按钮</step>
+## 生成字幕
+
+<procedure title="为视频生成字幕" id="generate-subtitles">
+<step>进入侧边栏的<control>视频字幕生成</control>页面</step>
+<step>在左侧资源区选择本地媒体文件，或从已浏览过的视频中点击<control>添加到转录队列</control></step>
+<step>在右侧任务队列中点击<control>转录</control>按钮</step>
 </procedure>
 
-转录过程中会显示进度百分比。本地转录一次只处理一个文件，其余文件会自动排队等待。
+转录过程中会显示进度百分比，排队和进行中的任务也可以随时点击<control>取消</control>。
 
-## 方式二：OpenAI 云端转录 {id="openai-whisper"}
+转录完成后，会在视频文件的同目录下生成同名的 `.srt` 字幕文件，并自动载入到视频。
 
-云端转录调用 OpenAI 的 Whisper API，需要网络连接和有效的 API 密钥。
+## 转录特性说明
 
-<procedure title="使用 OpenAI 生成字幕" id="ai-subtitles">
-<step><a href="Config-OpenAI-API.md">配置 OpenAI 密钥</a></step>
-<step>进入<control>设置中心</control> → <control>功能设置</control>页面，在<control>字幕转录</control>一栏将引擎选择为<control>OpenAI</control></step>
-<step>进入<control>Transcript</control>页面</step>
-<step>在左侧文件浏览器中找到相应的文件后点击<control>添加到转录队列</control></step>
-<step>点击<control>转录</control>按钮</step>
-</procedure>
-
-> 转录时调用接口响应的时间会比较长，实际测试发现代理服务可能会切断这种长时间的连接，如果转录失败，请尝试在代理中将您配置的
-> OpenAI 域名排除。
-> {style="note"}
-
-## 通用说明
-
-- 转录时您可以离开当前界面继续观看视频，转录会在后台进行。转录完成后会自动更新对应视频的字幕。
-- 请不要在转录过程中关闭 DashPlayer。
-- 转录完成后会在视频文件同目录下生成同名的 `.srt` 字幕文件。
+- **后台转录**：您可以离开当前页面继续观看视频，转录会在后台进行。
+- **就近优先**：转录过程中，距离您当前播放位置更近的部分会被优先识别，方便您边看边等字幕生成。
+- **自动排队**：同一时间只处理一个文件，其余文件会自动排队等待。
+- **请勿中途关闭软件**：转录过程中请保持 DashPlayer 运行；未完成的任务在软件重启后会标记为中断，需要重新开始。

@@ -23,6 +23,8 @@
     </toc-element>
     <toc-element topic="Split-Long-Video.md"/>
     <toc-element topic="AI-Chat.md"/>
+    <toc-element topic="Convert.md"/>
     <toc-element topic="Config-Shortcut.md"/>
+    <toc-element topic="Config-Proxy.md"/>
     <toc-element topic="Theory.md"/>
 </instance-profile>
