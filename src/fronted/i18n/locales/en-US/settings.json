@@ -33,8 +33,8 @@
         "serviceCredentials": "Service Credentials",
         "engineSelection": "Feature Controls",
         "storage": "Storage",
-        "update": "Version Updates",
-        "proxy": "Network Proxy"
+        "proxy": "Network Proxy",
+        "about": "About & Updates"
     },
     "appearance": {
         "title": "Appearance",
@@ -86,11 +86,7 @@
             "network": "Can't reach GitHub right now. Check your connection and try again.",
             "payload": "GitHub returned an unreadable response. Please try again later."
         },
-        "latestTitle": "You're up to date! Here's a tip:",
-        "tips": {
-            "transcriptionBackground": "While transcription is in progress, you can navigate away and continue watching videos. Subtitles update automatically when finished.",
-            "slideCounter": "Tip {{current}} of {{count}}"
-        }
+        "latestTitle": "You're up to date!"
     },
     "shortcut": {
         "title": "Shortcuts",
@@ -149,9 +145,30 @@
         }
     },
     "about": {
-        "title": "About DashPlayer",
+        "title": "About & Updates",
         "slogan": "The intelligent bilingual media player built for language learners",
         "description": "DashPlayer combines on-device offline speech recognition with modern LLMs to help you master languages through real video content.",
+        "appInfoTitle": "Product Information",
+        "appInfoDescription": "Explore DashPlayer version and feature highlights",
+        "resourcesTitle": "Resources",
+        "resourcesDescription": "Read documentation, report issues, or contribute",
+        "update": {
+            "title": "Check for Updates",
+            "subtitle": "Keep DashPlayer updated with the latest features and fixes",
+            "checkNow": "Check for Updates",
+            "retry": "Retry",
+            "newVersionFound": "New version available",
+            "downloadNow": "Download New Release",
+            "upToDateTitle": "You're up to date",
+            "upToDateDesc": "DashPlayer v{{version}} is running. No updates available.",
+            "failedTitle": "Failed to check for updates",
+            "failedDescription": "Unable to fetch release details right now. Please try again later.",
+            "errors": {
+                "rate_limited": "GitHub request limit reached. Please try again in a few minutes.",
+                "network": "Can't reach GitHub right now. Check your connection and try again.",
+                "payload": "GitHub returned an unreadable response. Please try again later."
+            }
+        },
         "features": {
             "asrTitle": "Offline Speech Recognition",
             "asrDesc": "Built-in neural ASR model generates bilingual subtitles in seconds without network connections.",
@@ -170,7 +187,7 @@
             "releases": "Release Notes",
             "releasesDesc": "Check latest updates and changelogs",
             "license": "Open Source License",
-            "licenseDesc": "Free & open source under MIT License"
+            "licenseDesc": "Free & open source under AGPLv3"
         },
         "footer": "Crafted with care by solidSpoon",
         "version": "Version {{version}}"

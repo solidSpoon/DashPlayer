@@ -33,8 +33,8 @@
         "serviceCredentials": "服务凭据",
         "engineSelection": "功能设置",
         "storage": "存储",
-        "update": "版本更新",
-        "proxy": "网络代理"
+        "proxy": "网络代理",
+        "about": "关于与更新"
     },
     "appearance": {
         "title": "外观",
@@ -86,11 +86,7 @@
             "network": "暂时无法连接 GitHub，请检查网络后重试。",
             "payload": "GitHub 返回了无法解析的数据，请稍后重试。"
         },
-        "latestTitle": "当前已是最新版本",
-        "tips": {
-            "transcriptionBackground": "转录时，你可以离开当前页面继续观看视频，转录会在后台进行并在完成后自动更新字幕。",
-            "slideCounter": "第 {{current}} / {{count}} 条"
-        }
+        "latestTitle": "当前已是最新版本"
     },
     "shortcut": {
         "title": "快捷键",
@@ -149,9 +145,30 @@
         }
     },
     "about": {
-        "title": "关于 DashPlayer",
+        "title": "关于与更新",
         "slogan": "专为语言学习与长视频精听打造的智能双语播放器",
         "description": "DashPlayer 结合端侧离线语音识别模型与大语言模型，帮助你通过影视与演讲素材高效精学外语。",
+        "appInfoTitle": "产品信息",
+        "appInfoDescription": "了解 DashPlayer 的版本与核心特性",
+        "resourcesTitle": "相关资源",
+        "resourcesDescription": "访问官方文档、查看源码或提交功能建议",
+        "update": {
+            "title": "检查更新",
+            "subtitle": "检查并获取 DashPlayer 的最新版本与优化更新",
+            "checkNow": "检查更新",
+            "retry": "重试",
+            "newVersionFound": "发现新版本可用",
+            "downloadNow": "前往下载新版本",
+            "upToDateTitle": "当前已是最新版本",
+            "upToDateDesc": "DashPlayer v{{version}} 运行中，暂无可用更新。",
+            "failedTitle": "检查更新失败",
+            "failedDescription": "暂时无法获取更新信息，请稍后重试。",
+            "errors": {
+                "rate_limited": "GitHub 请求频率受限，请几分钟后再试。",
+                "network": "暂时无法连接 GitHub，请检查网络后重试。",
+                "payload": "GitHub 返回了无法解析的数据，请稍后重试。"
+            }
+        },
         "features": {
             "asrTitle": "离线语音识别",
             "asrDesc": "内置端侧神经 ASR 模型，无需联网即可秒级自动生成中英双语字幕。",
@@ -165,12 +182,12 @@
         "links": {
             "docs": "官方使用文档",
             "docsDesc": "查看完整教程与快捷键指南",
-            "github": "GitHub 开源主页",
+            "github": "GitHub 仓库",
             "githubDesc": "欢迎提交 Issue、功能建议或 Star",
             "releases": "版本更新日志",
             "releasesDesc": "查看最新版本发布与改进",
             "license": "开源协议",
-            "licenseDesc": "基于 MIT License 自由开源"
+            "licenseDesc": "基于 AGPLv3 自由开源"
         },
         "footer": "由 solidSpoon 用心打造",
         "version": "版本 {{version}}"
