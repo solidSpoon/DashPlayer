@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { useTranslation } from 'react-i18next';
 import { Cell, Pie, PieChart } from 'recharts';
-import { ChartPie, RefreshCw } from 'lucide-react';
+import { ChartPie, RefreshCw, HardDriveDownload } from 'lucide-react';
 import { Button } from '@/fronted/components/ui/button';
 import {
     ChartConfig,
@@ -9,6 +9,7 @@ import {
     ChartTooltip,
     ChartTooltipContent,
 } from '@/fronted/components/ui/chart';
+import { Skeleton } from '@/fronted/components/ui/skeleton';
 import { cn } from '@/fronted/lib/utils';
 import { SettingCard } from '@/fronted/features/settings/components/form';
 import {
@@ -27,6 +28,15 @@ const USAGE_CHART_COLORS: Record<StorageUsageCategory, string> = {
     temp: '#64748b',
     other: '#ec4899',
 };
+
+const CATEGORY_ORDER: StorageUsageCategory[] = [
+    'videos',
+    'word_clips',
+    'models',
+    'temp',
+    'favorite_clips',
+    'other',
+];
 
 /**
  * 将字节数格式化为带单位的可读大小。
@@ -54,6 +64,42 @@ export interface StorageUsageCardProps {
     /** 手动触发一次用量刷新。 */
     onRefresh: () => void;
 }
+
+/**
+ * 存储用量卡片的加载骨架屏。
+ * 保持与加载后完全一致的尺寸和布局（环形图 + 6行明细），避免布局跳变。
+ */
+const StorageUsageSkeleton = () => {
+    return (
+        <div
+            data-testid="storage-usage-skeleton"
+            className="flex flex-col items-center gap-6 p-4 sm:flex-row sm:gap-8"
+        >
+            {/* 环形图骨架 */}
+            <div className="mx-auto flex h-44 w-44 shrink-0 items-center justify-center">
+                <div className="relative flex h-40 w-40 items-center justify-center">
+                    <Skeleton className="h-40 w-40 rounded-full" />
+                    <div className="absolute h-24 w-24 rounded-full bg-card" />
+                </div>
+            </div>
+
+            {/* 明细列表骨架 */}
+            <div className="w-full min-w-0 flex-1 space-y-2.5">
+                {CATEGORY_ORDER.map((key) => (
+                    <div key={key} className="flex items-center gap-3">
+                        <Skeleton className="h-2.5 w-2.5 shrink-0 rounded-[3px]" />
+                        <Skeleton className="h-3.5 w-20 shrink-0" />
+                        <div className="mx-2 hidden flex-1 sm:block">
+                            <Skeleton className="h-1.5 w-full rounded-full" />
+                        </div>
+                        <Skeleton className="ml-auto h-3.5 w-16" />
+                        <Skeleton className="h-3.5 w-10 shrink-0" />
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
 
 /**
  * 存储用量卡片：以环形图加明细列表展示媒体库各分类的占用大小。
@@ -84,15 +130,18 @@ const StorageUsageCard = ({ usage, loading, onRefresh }: StorageUsageCardProps) 
     const totalBytes = usage?.totalBytes ?? 0;
 
     /**
-     * 状态文案：加载中、目录不可用或媒体库为空时替代图表展示。
+     * 当处于加载态且尚未获取到用量数据时展示骨架屏。
      */
-    const statusMessage = loading
-        ? t('storage.usage.loading')
-        : usage === null
-            ? t('storage.usage.unavailable')
-            : totalBytes === 0
-                ? t('storage.usage.empty')
-                : null;
+    const showSkeleton = loading && !usage;
+
+    /**
+     * 异常或空数据提示。
+     */
+    const emptyOrUnavailableMessage = !loading && usage === null
+        ? t('storage.usage.unavailable')
+        : !loading && totalBytes === 0
+            ? t('storage.usage.empty')
+            : null;
 
     return (
         <SettingCard
@@ -102,9 +151,13 @@ const StorageUsageCard = ({ usage, loading, onRefresh }: StorageUsageCardProps) 
                 <div className="flex items-center gap-2">
                     <div className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
                         <span>{t('storage.usage.totalLabel')}</span>
-                        <span className="font-mono font-semibold text-foreground px-2 py-0.5 rounded bg-muted/80">
-                            {usage ? formatBytes(totalBytes) : '--'}
-                        </span>
+                        {showSkeleton ? (
+                            <Skeleton className="h-5 w-16 rounded" />
+                        ) : (
+                            <span className="font-mono font-semibold text-foreground px-2 py-0.5 rounded bg-muted/80 tabular-nums">
+                                {usage ? formatBytes(totalBytes) : '--'}
+                            </span>
+                        )}
                     </div>
                     <Button
                         variant="outline"
@@ -119,9 +172,12 @@ const StorageUsageCard = ({ usage, loading, onRefresh }: StorageUsageCardProps) 
                 </div>
             )}
         >
-            {statusMessage ? (
-                <div className="flex h-44 items-center justify-center p-4 text-sm text-muted-foreground">
-                    {statusMessage}
+            {showSkeleton ? (
+                <StorageUsageSkeleton />
+            ) : emptyOrUnavailableMessage ? (
+                <div className="flex flex-col items-center justify-center gap-2 p-8 text-center text-sm text-muted-foreground">
+                    <HardDriveDownload className="h-8 w-8 stroke-1 text-muted-foreground/50" />
+                    <p>{emptyOrUnavailableMessage}</p>
                 </div>
             ) : (
                 <div className="flex flex-col items-center gap-6 p-4 sm:flex-row sm:gap-8">
@@ -169,26 +225,47 @@ const StorageUsageCard = ({ usage, loading, onRefresh }: StorageUsageCardProps) 
                         </PieChart>
                     </ChartContainer>
                     <div className="w-full min-w-0 flex-1 space-y-2">
-                        {(usage?.items ?? []).map((item) => (
-                            <div
-                                key={item.category}
-                                className="flex items-center gap-2 text-xs"
-                            >
-                                <span
-                                    className="h-2.5 w-2.5 shrink-0 rounded-[2px]"
-                                    style={{ backgroundColor: USAGE_CHART_COLORS[item.category] }}
-                                />
-                                <span className="text-muted-foreground truncate">
-                                    {t(`storage.usage.categories.${item.category}`)}
-                                </span>
-                                <span className="ml-auto font-mono font-medium tabular-nums text-foreground">
-                                    {formatBytes(item.bytes)}
-                                </span>
-                                <span className="w-14 shrink-0 text-right font-mono tabular-nums text-muted-foreground">
-                                    {((item.bytes / totalBytes) * 100).toFixed(1)}%
-                                </span>
-                            </div>
-                        ))}
+                        {(usage?.items ?? []).map((item) => {
+                            const ratio = totalBytes > 0 ? item.bytes / totalBytes : 0;
+                            const percentage = (ratio * 100).toFixed(1);
+                            const isZero = item.bytes === 0;
+
+                            return (
+                                <div
+                                    key={item.category}
+                                    className={cn(
+                                        'group relative flex items-center gap-3 rounded-md px-2 py-1 transition-colors hover:bg-muted/40 text-xs',
+                                        isZero && 'opacity-60 hover:opacity-100'
+                                    )}
+                                >
+                                    <span
+                                        className="h-2.5 w-2.5 shrink-0 rounded-[2px] shadow-xs"
+                                        style={{ backgroundColor: USAGE_CHART_COLORS[item.category] }}
+                                    />
+                                    <span className="text-muted-foreground truncate w-24 shrink-0 font-medium">
+                                        {t(`storage.usage.categories.${item.category}`)}
+                                    </span>
+
+                                    {/* 细长进度条槽位 */}
+                                    <div className="relative mx-1 hidden h-1.5 flex-1 overflow-hidden rounded-full bg-muted/60 sm:block">
+                                        <div
+                                            className="h-full rounded-full transition-all duration-300"
+                                            style={{
+                                                width: `${Math.max(ratio * 100, item.bytes > 0 ? 1 : 0)}%`,
+                                                backgroundColor: USAGE_CHART_COLORS[item.category],
+                                            }}
+                                        />
+                                    </div>
+
+                                    <span className="ml-auto font-mono font-medium tabular-nums text-foreground">
+                                        {formatBytes(item.bytes)}
+                                    </span>
+                                    <span className="w-12 shrink-0 text-right font-mono tabular-nums text-muted-foreground">
+                                        {percentage}%
+                                    </span>
+                                </div>
+                            );
+                        })}
                     </div>
                 </div>
             )}
