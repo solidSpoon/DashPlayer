@@ -190,7 +190,12 @@ const ServiceCredentialSetting = () => {
         refreshSherpaTtsModelStatus().catch(() => null);
     }, [refreshSherpaTtsModelStatus]);
 
-    React.useEffect(() => { settingsApi.getLocalAiStatus().then(setLocalAiStatus).catch(() => null); }, []);
+    /** 拉取本地模型最新状态；手动放入自定义模型后由「重新扫描」按钮触发。 */
+    const refreshLocalAiStatus = React.useCallback(() => {
+        return settingsApi.getLocalAiStatus().then(setLocalAiStatus).catch(() => null);
+    }, []);
+
+    React.useEffect(() => { refreshLocalAiStatus(); }, [refreshLocalAiStatus]);
 
     React.useEffect(() => {
         const handler = (event: Event) => {
@@ -845,7 +850,7 @@ const ServiceCredentialSetting = () => {
                     </div>
                 </SettingCard>
 
-                <SettingCard title="本地 AI 模型" description="Qwen3 系列 GGUF 模型，供字幕翻译和词典查询离线使用；可下载多个模型，其中一个作为使用中的模型，全部本地功能共用。" icon={Bot}>
+                <SettingCard title="本地 AI 模型" description="Qwen3.5 系列 GGUF 模型，供字幕翻译和词典查询离线使用；可下载多个模型，其中一个作为使用中的模型，全部本地功能共用。也支持手动放入其他 GGUF 模型。" icon={Bot}>
                     <div className="flex flex-col gap-3 p-4">
                         {localAiStatus?.models.map((model) => {
                             const anyDownloading = (localAiStatus?.models.some((item) => item.phase !== 'idle')) ?? false;
@@ -855,6 +860,10 @@ const ServiceCredentialSetting = () => {
                                         <div className="flex items-center gap-2.5 flex-wrap">
                                             <span className="text-sm font-semibold text-foreground">{model.name}</span>
                                             <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">{model.sizeLabel}</span>
+                                            <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">{model.memoryLabel}</span>
+                                            {model.custom && (
+                                                <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">自定义</span>
+                                            )}
                                             {model.ready && model.modelId === localAiStatus.activeModelId ? (
                                                 <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
                                                     <CheckCircle2 className="h-3.5 w-3.5" />
@@ -923,6 +932,60 @@ const ServiceCredentialSetting = () => {
                                 </div>
                             );
                         })}
+                        <details className="group rounded-xl border border-border/50 bg-muted/20 p-3.5">
+                            <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold text-foreground">
+                                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                                如何使用其他 GGUF 模型？
+                                <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
+                            </summary>
+                            <div className="mt-3 space-y-2.5 text-xs text-muted-foreground/90">
+                                <div className="space-y-1">
+                                    <div className="font-semibold text-foreground">1. 下载模型文件：</div>
+                                    <div>
+                                        从 Hugging Face 等渠道下载 instruct 对话版 GGUF 文件（推荐 Q4_K_M 量化；
+                                        模型需支持指令对话，建议优先选择 Qwen3.5 系列）。
+                                    </div>
+                                    <div className="rounded border border-border/40 bg-muted/40 p-2">
+                                        <div className="mb-1 font-semibold text-foreground">推荐配置（应用内固定，不可调）</div>
+                                        <ul className="list-disc space-y-0.5 pl-4">
+                                            <li>文件格式：GGUF，instruct 对话版（不要选 Base 基座模型）</li>
+                                            <li>量化等级：Q4_K_M 体积/质量平衡；追求质量可用 Q8_0（体积翻倍）</li>
+                                            <li>上下文窗口：8192 tokens，过长字幕批次会被截断</li>
+                                            <li>采样参数：temperature 0.6 / top_p 0.95 / top_k 20，单次最多输出 2048 tokens</li>
+                                            <li>思考模式：关闭；模型需支持直接输出 JSON 结构化结果</li>
+                                            <li>运行方式：串行推理，同一时间只加载一个模型；Apple Silicon 走 GPU，其它平台 CPU</li>
+                                            <li>内存占用：运行时约为模型体积的 1.5 倍（如 2B 模型约 2 GB）；整机内存建议 8 GB 起。模型站标注的「requires X GB+ memory」指的是整机内存档位，不是模型实际占用</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <div className="font-semibold text-foreground">2. 放入模型目录：</div>
+                                    <div className="bg-background/80 rounded border border-border/60 p-2 space-y-1.5 font-mono text-[11px] break-all select-text">
+                                        <div className="text-muted-foreground/70">{localAiStatus?.modelsDirectory ?? ''}</div>
+                                        <div className="flex items-center gap-2 pt-1 font-sans">
+                                            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" disabled={!localAiStatus} onClick={() => localAiStatus && copyText(localAiStatus.modelsDirectory)}>
+                                                <Copy className="w-3 h-3 mr-1" />
+                                                复制目录路径
+                                            </Button>
+                                            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" disabled={!localAiStatus} onClick={() => localAiStatus && openModelFolder(localAiStatus.modelsDirectory)}>
+                                                <FolderOpen className="w-3 h-3 mr-1" />
+                                                打开模型文件夹
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="space-y-0.5 bg-muted/30 p-2 rounded">
+                                    <span className="font-semibold text-foreground">3. 刷新并启用：</span>
+                                    <span>
+                                        文件放入上述目录后点击「重新扫描」，新模型会出现在上方列表（带自定义标记），
+                                        点击「使用」切换，并用「检查运行」验证可用性。目录模型不做完整性校验，来源请自行确认可靠。
+                                    </span>
+                                </div>
+                                <Button type="button" variant="outline" size="sm" className="h-7 text-xs" disabled={localAiBusy} onClick={refreshLocalAiStatus}>
+                                    重新扫描
+                                </Button>
+                            </div>
+                        </details>
                         <div className="text-xs text-muted-foreground">
                             {localAiStatus?.runtimeReady ? 'llama.cpp 运行时已就绪，所有模型共用同一运行时。' : '运行时未安装：请重新执行 yarn run download 或重新安装应用'}
                         </div>

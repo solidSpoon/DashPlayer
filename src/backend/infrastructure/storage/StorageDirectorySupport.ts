@@ -300,6 +300,8 @@ export function resolveStorageDirectory(rootPath: string, target: StorageDirecto
             return path.join(rootPath, 'temp_oss');
         case StorageDirectoryTarget.MODELS:
             return path.join(rootPath, 'models');
+        case StorageDirectoryTarget.LOCAL_AI:
+            return path.join(rootPath, 'local_ai');
         default:
             throw new Error(`未知的外部目录目标：${target satisfies never}`);
     }

@@ -16,6 +16,9 @@ import { concurrency } from '@/backend/utils/concurrency';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import type { SettingsStore } from '@/backend/services/gateways/SettingsStore';
 import {
+    CUSTOM_MODEL_ID_PREFIX,
+    isCustomModelId,
+    LOCAL_AI_DEFAULT_MODEL_ID,
     LOCAL_AI_MODELS,
     LocalAiModelDefinition,
     LocalAiStatus,
@@ -58,9 +61,77 @@ export class LocalAiRuntime implements LocalAiService {
         @inject(TYPES.SettingsStore) private readonly settingsStore: SettingsStore,
     ) {}
 
-    /** 解析指定目录模型在媒体库中的安装路径。 */
+    /** 解析模型在媒体库中的安装路径；目录模型在独立子目录，自定义模型直接位于模型根目录。 */
     private async modelPath(model: LocalAiModelDefinition): Promise<string> {
-        return path.join(await this.directories.provideDirectory(StorageDirectoryTarget.MODELS), model.id, model.file);
+        const directory = await this.directories.provideDirectory(StorageDirectoryTarget.LOCAL_AI);
+        return model.source === 'custom'
+            ? path.join(directory, model.file)
+            : path.join(directory, model.id, model.file);
+    }
+
+    /** 返回模型根目录的绝对路径，供设置页展示手动安装教程。 */
+    private async modelsDirectory(): Promise<string> {
+        return this.directories.provideDirectory(StorageDirectoryTarget.LOCAL_AI);
+    }
+
+    /** 估算模型运行内存占用；约为文件体积的 1.5 倍，覆盖权重 + KV cache + 推理缓冲。 */
+    private memoryLabel(bytes: number): string {
+        return `内存约 ${(bytes * 1.5 / 1024 / 1024 / 1024).toFixed(1)} GB`;
+    }
+
+    /**
+     * 将用户手动放入模型根目录的 GGUF 文件解析为自定义模型定义。
+     *
+     * 自定义 id 形如 `custom:<文件名>`；文件必须真实存在且非空，
+     * 字节数以磁盘实际大小为准（无法做 SHA256 校验，由用户自行保证来源可靠）。
+     */
+    private async resolveCustomModel(modelId: string): Promise<LocalAiModelDefinition> {
+        const file = modelId.slice(CUSTOM_MODEL_ID_PREFIX.length);
+        if (!file || file.includes('/') || file.includes('\\') || file.includes('..')) {
+            throw new Error(`非法的自定义模型标识：${modelId}`);
+        }
+        const directory = await this.modelsDirectory();
+        const filePath = path.join(directory, file);
+        const bytes = await this.fileSize(filePath);
+        if (bytes <= 0) {
+            throw new Error(`自定义模型文件不存在：${filePath}`);
+        }
+        return {
+            id: modelId,
+            name: file,
+            file,
+            bytes,
+            sizeLabel: `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`,
+            url: '',
+            sha256: '',
+            source: 'custom',
+        };
+    }
+
+    /**
+     * 解析任意模型 id 为完整定义；先查目录，再查自定义文件，都不存在时显式报错。
+     */
+    private async resolveModelDefinition(modelId: string): Promise<LocalAiModelDefinition> {
+        if (isCustomModelId(modelId)) {
+            return this.resolveCustomModel(modelId);
+        }
+        return requireLocalAiModel(modelId);
+    }
+
+    /** 扫描模型根目录下用户手动放入的 GGUF 文件（跳过隐藏文件与目录模型子目录）。 */
+    private async scanCustomModels(): Promise<LocalAiModelDefinition[]> {
+        const directory = await this.modelsDirectory();
+        let entries: string[];
+        try {
+            entries = await fs.promises.readdir(directory);
+        } catch (error) {
+            if ((error as NodeJS.ErrnoException).code === 'ENOENT') return [];
+            throw error;
+        }
+        const models = await Promise.all(entries
+            .filter((entry) => entry.toLowerCase().endsWith('.gguf') && !entry.startsWith('.'))
+            .map((file) => this.resolveCustomModel(`${CUSTOM_MODEL_ID_PREFIX}${file}`).catch(() => null)));
+        return models.filter((model): model is LocalAiModelDefinition => model !== null);
     }
 
     /** 只使用明确支持的平台包；缺失的运行时由设置页显式展示。 */
@@ -116,7 +187,10 @@ export class LocalAiRuntime implements LocalAiService {
             return {
                 modelId: model.id,
                 name: model.name,
+                file: model.file,
+                bytes: model.bytes,
                 sizeLabel: model.sizeLabel,
+                memoryLabel: this.memoryLabel(model.bytes),
                 ready: await this.fileSize(modelPath) === model.bytes,
                 phase: downloading ? this.phase : 'idle',
                 downloaded: downloading ? this.downloaded : await this.fileSize(`${modelPath}.part`),
@@ -124,24 +198,59 @@ export class LocalAiRuntime implements LocalAiService {
                 modelPath,
                 downloadUrl: model.url,
                 error: this.modelErrors.get(model.id) ?? null,
+                custom: false,
             };
         }));
+        const customModels = await Promise.all((await this.scanCustomModels()).map(async (model) => ({
+            modelId: model.id,
+            name: model.name,
+            file: model.file,
+            bytes: model.bytes,
+            sizeLabel: model.sizeLabel,
+            memoryLabel: this.memoryLabel(model.bytes),
+            ready: true,
+            phase: 'idle' as const,
+            downloaded: model.bytes,
+            total: model.bytes,
+            modelPath: await this.modelPath(model),
+            downloadUrl: null,
+            error: null,
+            custom: true,
+        })));
         return {
             runtimeReady: await this.fileSize(this.runtimePath()) > 0
                 && await this.runtimeDependencyReady(),
             running: this.child !== null,
             activeModelId: await this.getActiveModelId(),
-            models,
+            modelsDirectory: await this.modelsDirectory(),
+            models: [...models, ...customModels],
         };
     }
 
     public async getActiveModelId(): Promise<string> {
         const modelId = this.settingsStore.get('models.local.active');
-        return requireLocalAiModel(modelId).id;
+        if (isCustomModelId(modelId)) {
+            // 自定义模型文件被手动删除时显式报错，让用户重新选择，不做静默回退。
+            await this.resolveCustomModel(modelId);
+            return modelId;
+        }
+        if (LOCAL_AI_MODELS.some((model) => model.id === modelId)) {
+            return modelId;
+        }
+        // 模型目录随版本演进可能移除旧条目；存储的使用中 id 失效时显式迁移到新默认值。
+        // 这是一次性目录迁移，不是运行时兑底：只针对“id 已不在当前目录”这一种状态。
+        this.logger.warn('stored local model id is no longer in catalog, reset to default', {
+            stored: modelId,
+            default: LOCAL_AI_DEFAULT_MODEL_ID,
+        });
+        if (!this.settingsStore.set('models.local.active', LOCAL_AI_DEFAULT_MODEL_ID)) {
+            throw new Error(`本地模型目录已更新，重置使用中模型失败：${modelId}`);
+        }
+        return LOCAL_AI_DEFAULT_MODEL_ID;
     }
 
     public async setActiveModelId(modelId: string): Promise<void> {
-        const model = requireLocalAiModel(modelId);
+        const model = await this.resolveModelDefinition(modelId);
         const modelPath = await this.modelPath(model);
         if (await this.fileSize(modelPath) !== model.bytes) {
             throw new Error(`模型未下载完成，无法设为使用中：${model.name}`);
@@ -154,6 +263,9 @@ export class LocalAiRuntime implements LocalAiService {
     /** 启动指定模型的下载并保留唯一任务；错误保存在状态中，切页后仍可查看。 */
     public async download(modelId: string): Promise<void> {
         this.lifetime.signal.throwIfAborted();
+        if (isCustomModelId(modelId)) {
+            throw new Error('自定义模型由用户手动放置，不支持在线下载');
+        }
         const model = requireLocalAiModel(modelId);
         if (this.activeDownload) throw new Error(`「${this.activeDownload.modelId}」正在下载，请等待完成后再下载其他模型`);
         if (this.busy > 0) throw new Error('本地模型正在使用，请稍后下载');
@@ -231,7 +343,7 @@ export class LocalAiRuntime implements LocalAiService {
 
     /** 删除指定模型的安装文件及续传数据；先释放已加载的模型。 */
     public async deleteModel(modelId: string): Promise<void> {
-        const model = requireLocalAiModel(modelId);
+        const model = await this.resolveModelDefinition(modelId);
         if (this.activeDownload?.modelId === modelId) throw new Error('模型正在下载，请先取消下载');
         if (this.busy > 0) throw new Error('本地模型正在使用，请稍后删除');
         if (modelId === await this.getActiveModelId()) throw new Error(`「${model.name}」是使用中的本地模型，请先在服务凭据页切换到其他模型`);
@@ -322,7 +434,7 @@ export class LocalAiRuntime implements LocalAiService {
 
     /** 串行生成，限制上下文和输出长度；仅接受完整结束且可解析的 JSON。 */
     public async generate(prompt: string, schema: Record<string, unknown>, modelId: string, signal?: AbortSignal): Promise<unknown> {
-        const model = requireLocalAiModel(modelId);
+        const model = await this.resolveModelDefinition(modelId);
         if (this.activeDownload?.modelId === modelId) throw new Error(`本地模型「${model.name}」正在安装`);
         const combined = AbortSignal.any([this.lifetime.signal, AbortSignal.timeout(300_000), ...(signal ? [signal] : [])]);
         this.busy++;
