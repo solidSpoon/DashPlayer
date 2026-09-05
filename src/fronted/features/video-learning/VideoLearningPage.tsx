@@ -457,10 +457,12 @@ export default function VideoLearningPage() {
    *
    * 行为说明：
    * - 后端同步删除数据库记录（含单词关联）与本地片段文件；
-   * - 删除后刷新片段列表与左侧词汇统计；
-   * - 删除的是当前播放片段则清空选中态（初始化效应会自动选中首条），
-   *   删除的是其前面的片段则平移下标保持播放对象不变；
-   * - 当前页被删空且不再存在时回退页码。
+   * - 删除成功后用 SWR 乐观更新在同一渲染批次内移除列表项并修正播放下标，
+   *   避免陈旧列表期间重新选中已删片段、触发对已删文件的缩略图/播放加载；
+   * - 下标指向被删片段时清空选中（初始化效应会自动选中首条），
+   *   其后的片段整体前移一位保持播放对象不变；
+   * - 当前页被删空且不再存在时回退页码；
+   * - 最后刷新左侧词汇统计。
    *
    * @param index 被删除片段在当前页列表中的下标。
    */
@@ -475,25 +477,31 @@ export default function VideoLearningPage() {
         return;
       }
 
-      // 清理被删片段的缩略图缓存，避免残留失效图片
-      setThumbnailUrls((prev) => {
-        if (!(clip.key in prev)) return prev;
-        const next = { ...prev };
-        delete next[clip.key];
-        return next;
+      setCurrentClipIndex((prev) => {
+        if (prev === index) return -1;
+        if (prev > index) return prev - 1;
+        return prev;
       });
-
-      // 修正播放选中态：删的是当前片段则清空，删的是前面的片段则平移下标
       if (currentClipIndex === index) {
-        setCurrentClipIndex(-1);
         setCurrentLineIndex(-1);
-      } else if (currentClipIndex > index) {
-        setCurrentClipIndex((prev) => prev - 1);
       }
 
-      const newData = await mutate(searchKey);
-      const newTotal = newData?.success ? newData.data.total : 0;
-      const newTotalPages = Math.max(1, Math.ceil(newTotal / PAGE_SIZE));
+      // 乐观移除被删片段并触发重校验；列表项与下标修正落在同一渲染批次，
+      // 避免陈旧列表期间重新选中已删片段、触发对已删文件的缩略图/播放加载。
+      // 删除已在后端成功，重校验失败时不回滚已删片段。
+      await mutate(searchKey, (current: typeof learningClips | undefined) => {
+        if (!current) return undefined;
+        return {
+          ...current,
+          data: {
+            ...current.data,
+            items: current.data.items.filter((item) => item.key !== clip.key),
+            total: Math.max(0, current.data.total - 1)
+          }
+        };
+      }, { revalidate: true, rollbackOnError: false });
+
+      const newTotalPages = Math.max(1, Math.ceil(Math.max(0, totalClips - 1) / PAGE_SIZE));
       if (page > newTotalPages) {
         setPage(newTotalPages);
       }
@@ -504,7 +512,7 @@ export default function VideoLearningPage() {
     } finally {
       setDeletingClipKey(null);
     }
-  }, [clips, currentClipIndex, deletingClipKey, fetchWords, mutate, page, searchKey, t]);
+  }, [clips, currentClipIndex, deletingClipKey, fetchWords, mutate, page, searchKey, t, totalClips]);
 
   return (
     <div className="w-full h-full flex flex-col overflow-hidden select-none bg-background text-foreground">
