@@ -33,6 +33,7 @@ import { ShortcutSettingDetailVO, ShortcutSettingSaveVO } from '@/common/types/v
 import { ProxySettingDetailVO, ProxySettingSaveVO } from '@/common/contracts/proxy-setting-vo';
 import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
 import { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
+import { StorageUsageVO } from '@/common/contracts/storage-usage-vo';
 import {
     RuntimeSettingSaveRequest,
     RuntimeSettingsSnapshot,
@@ -219,7 +220,7 @@ interface SubtitleTimestampAdjustmentControllerDef {
 }
 
 interface StorageDef {
-    'storage/cache/size': { params: void, return: string };
+    'storage/usage': { params: void, return: StorageUsageVO };
     'storage/status': { params: void, return: StorageStatusVO };
     'storage/collection/paths': { params: void, return: string[] };
 }

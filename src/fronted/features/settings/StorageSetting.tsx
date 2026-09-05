@@ -1,6 +1,7 @@
 import * as React from 'react';
 import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
 import { SettingCard, SettingRow, SettingsLoadingSkeleton } from '@/fronted/features/settings/components/form';
+import StorageUsageCard from '@/fronted/features/settings/components/StorageUsageCard';
 import { Button } from '@/fronted/components/ui/button';
 import { FolderOpen, HardDrive, RefreshCw, Trash2, FolderSync } from 'lucide-react';
 import { swrApiMutate } from '@/fronted/lib/swr-util';
@@ -14,6 +15,7 @@ import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSave
 import useSWR from 'swr';
 import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
 import { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
+import { StorageUsageVO } from '@/common/contracts/storage-usage-vo';
 
 type StorageFormValues = StorageSettingVO;
 
@@ -22,8 +24,10 @@ type StorageFormValues = StorageSettingVO;
  */
 const StorageSetting = () => {
     const { t } = useI18nTranslation('settings');
-    const [size, setSize] = React.useState<string>('--');
     const [storageStatus, setStorageStatus] = React.useState<StorageStatusVO | null>(null);
+    const [usage, setUsage] = React.useState<StorageUsageVO | null>(null);
+    // 初始即为待加载状态，避免首次查询完成前误显示“目录不可用”。
+    const [usageLoading, setUsageLoading] = React.useState(true);
 
     const { data: detail } = useSWR<StorageSettingVO>('settings/storage/detail', () =>
         settingsApi.getStorage(),
@@ -33,7 +37,7 @@ const StorageSetting = () => {
     const { control, formState, setValue } = form;
 
     /**
-     * 查询媒体库目录状态与占用空间。
+     * 查询媒体库目录状态与存储用量明细。
      */
     const loadStorageStatus = React.useCallback(async (configuredPath: string) => {
         try {
@@ -41,12 +45,16 @@ const StorageSetting = () => {
             setStorageStatus(nextStatus);
 
             if (!nextStatus.available) {
-                setSize('--');
+                setUsage(null);
                 return;
             }
 
-            const nextSize = await settingsApi.getCacheSize();
-            setSize(nextSize);
+            setUsageLoading(true);
+            try {
+                setUsage(await settingsApi.getStorageUsage());
+            } finally {
+                setUsageLoading(false);
+            }
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
             setStorageStatus({
@@ -60,7 +68,7 @@ const StorageSetting = () => {
                 code: 'missing',
                 message,
             });
-            setSize('--');
+            setUsage(null);
         }
     }, []);
 
@@ -130,6 +138,16 @@ const StorageSetting = () => {
         await settingsApi.openCacheFolder();
     };
 
+    /**
+     * 手动刷新存储状态与用量明细。
+     */
+    const handleRefreshUsage = React.useCallback(() => {
+        if (!detail) {
+            return;
+        }
+        loadStorageStatus(detail.path).catch(() => undefined);
+    }, [detail, loadStorageStatus]);
+
     const libraryAvailable = storageStatus?.available ?? false;
     const canSyncCollections = libraryAvailable && !formState.isDirty && autoSaveStatus !== 'saving';
     const canOpenLibrary = libraryAvailable;
@@ -183,14 +201,6 @@ const StorageSetting = () => {
                 <SettingCard
                     title={t('storage.libraryPathTitle')}
                     icon={HardDrive}
-                    headerAction={
-                        <div className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-                            <span>{t('storage.occupiedSpace')}</span>
-                            <span className="font-mono font-semibold text-foreground px-2 py-0.5 rounded bg-muted/80">
-                                {size}
-                            </span>
-                        </div>
-                    }
                 >
                     <SettingRow
                         title={t('storage.libraryPathTitle')}
@@ -228,6 +238,13 @@ const StorageSetting = () => {
                         </div>
                     </SettingRow>
                 </SettingCard>
+
+                {/* 存储用量卡片 */}
+                <StorageUsageCard
+                    usage={usage}
+                    loading={usageLoading}
+                    onRefresh={handleRefreshUsage}
+                />
 
                 {/* 资源同步卡片 */}
                 <SettingCard

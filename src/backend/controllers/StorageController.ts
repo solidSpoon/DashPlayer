@@ -3,11 +3,18 @@ import Controller from '@/backend/controllers/Controller';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
+import {
+    StorageUsageItemVO,
+    StorageUsageVO,
+} from '@/common/contracts/storage-usage-vo';
 import StorageDirectoryProvider, {
     StorageDirectoryTarget,
 } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
-import { getStorageRootStatus } from '@/backend/infrastructure/storage/StorageDirectorySupport';
+import {
+    getStorageRootStatus,
+    resolveStorageDirectory,
+} from '@/backend/infrastructure/storage/StorageDirectorySupport';
 import { SettingsStore } from '@/backend/services/gateways/SettingsStore';
 
 @injectable()
@@ -17,32 +24,55 @@ export default class StorageController implements Controller {
     @inject(TYPES.FileSystemGateway) private fileSystemGateway!: FileSystemGateway;
 
     /**
-     * 查询媒体库目录占用空间。
+     * 查询媒体库存储用量明细。
      *
      * 行为说明：
-     * - 仅在媒体库可访问时才执行目录遍历；
-     * - 目录失效时直接抛出显式错误，避免误报为 0 KB。
+     * - 仅在媒体库可访问时才执行目录遍历，目录失效时抛出显式错误；
+     * - 固定子目录（videos、models 等）尚未创建时按 0 统计，不视为异常；
+     * - 未纳入固定分类的文件统一归入 `other` 分类。
      */
-    public async queryCacheSize(): Promise<string> {
+    public async queryStorageUsage(): Promise<StorageUsageVO> {
         const libraryRoot = await this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.LIBRARY_ROOT);
         const totalBytes = await this.fileSystemGateway.getDirectorySize(libraryRoot);
-        return this.formatBytes(totalBytes);
+
+        const videosBytes = await this.queryDirectoryUsage(libraryRoot, StorageDirectoryTarget.VIDEOS);
+        const favouriteClipsBytes = await this.queryDirectoryUsage(libraryRoot, StorageDirectoryTarget.FAVORITE_CLIPS);
+        const wordClipsBytes = await this.queryDirectoryUsage(libraryRoot, StorageDirectoryTarget.WORD_VIDEO);
+        const tempBytes = (await this.queryDirectoryUsage(libraryRoot, StorageDirectoryTarget.TEMP))
+            + (await this.queryDirectoryUsage(libraryRoot, StorageDirectoryTarget.TEMP_OSS));
+        const modelsBytes = await this.queryDirectoryUsage(libraryRoot, StorageDirectoryTarget.MODELS);
+
+        // word_video 位于 favorite_clips 内，收藏片段分类只保留其余部分；
+        // 目录内容在两次遍历之间可能变化，差值为负时按 0 展示。
+        const favouriteClipsOnlyBytes = Math.max(favouriteClipsBytes - wordClipsBytes, 0);
+        const otherBytes = Math.max(
+            totalBytes - videosBytes - favouriteClipsOnlyBytes - wordClipsBytes - tempBytes - modelsBytes,
+            0,
+        );
+
+        const knownItems: StorageUsageItemVO[] = [
+            { category: 'videos', bytes: videosBytes },
+            { category: 'favorite_clips', bytes: favouriteClipsOnlyBytes },
+            { category: 'word_clips', bytes: wordClipsBytes },
+            { category: 'models', bytes: modelsBytes },
+            { category: 'temp', bytes: tempBytes },
+            { category: 'other', bytes: otherBytes },
+        ];
+        const items = knownItems
+            .filter((item) => item.bytes > 0)
+            .sort((a, b) => b.bytes - a.bytes);
+
+        return { totalBytes, items };
     }
 
     /**
-     * 将字节数转换为设置页使用的可读大小。
-     * @param bytes 文件总大小，单位为字节。
-     * @returns 带单位的文件大小。
+     * 统计指定目标目录的占用大小；目录尚未创建时返回 0。
+     * @param libraryRoot 已确认可访问的媒体库根目录。
+     * @param target 目录目标。
+     * @returns 目录占用大小，单位字节。
      */
-    private formatBytes(bytes: number): string {
-        const units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
-        let size = bytes;
-        let unitIndex = 0;
-        while (size >= 1024 && unitIndex < units.length - 1) {
-            size /= 1024;
-            unitIndex += 1;
-        }
-        return `${size.toFixed(2)} ${units[unitIndex]}`;
+    private async queryDirectoryUsage(libraryRoot: string, target: StorageDirectoryTarget): Promise<number> {
+        return this.fileSystemGateway.getDirectorySizeIfExists(resolveStorageDirectory(libraryRoot, target));
     }
 
     /**
@@ -63,7 +93,7 @@ export default class StorageController implements Controller {
 
 
     registerRoutes(): void {
-        registerRoute('storage/cache/size', () => this.queryCacheSize());
+        registerRoute('storage/usage', () => this.queryStorageUsage());
         registerRoute('storage/status', () => this.queryStorageStatus());
         registerRoute('storage/collection/paths', () => this.listCollectionPaths());
     }

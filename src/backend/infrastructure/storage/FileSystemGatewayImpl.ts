@@ -121,6 +121,23 @@ export default class FileSystemGatewayImpl implements FileSystemGateway {
     }
 
     /**
+     * 计算目录内所有普通文件的总大小；目录不存在时返回 0。
+     *
+     * @param directoryPath 目录绝对路径。
+     * @returns 文件总大小，单位为字节；目录不存在时返回 0。
+     */
+    public async getDirectorySizeIfExists(directoryPath: string): Promise<number> {
+        try {
+            return await this.getDirectorySize(directoryPath);
+        } catch (error) {
+            if (this.isMissingPathError(error)) {
+                return 0;
+            }
+            throw error;
+        }
+    }
+
+    /**
      * 写入 UTF-8 文本文件。
      * @param filePath 文件绝对路径。
      * @param content 待写入的文本内容。

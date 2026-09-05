@@ -65,6 +65,17 @@ export default interface FileSystemGateway {
     copyFile(sourcePath: string, targetPath: string): Promise<void>;
 
     /**
+     * 计算目录内所有普通文件的总大小；目录不存在时返回 0。
+     *
+     * 适用于可选目录的统计场景（例如尚未下载的模型目录）；
+     * 目录存在但无法读取时仍然直接抛出错误。
+     *
+     * @param directoryPath 目录绝对路径。
+     * @returns 文件总大小，单位为字节；目录不存在时返回 0。
+     */
+    getDirectorySizeIfExists(directoryPath: string): Promise<number>;
+
+    /**
      * 写入 UTF-8 文本文件。
      * @param filePath 文件绝对路径。
      * @param content 待写入的文本内容。

@@ -181,7 +181,6 @@
         "descriptionLine2": "Cache is managed automatically. Manual modifications are not recommended.",
         "resetDatabase": "Reset Database",
         "openLibraryFolder": "Open Library Folder",
-        "occupiedSpace": "Storage Used",
         "libraryPathTitle": "Storage Path (Library Path)",
         "libraryPathDescription": "Restart DashPlayer for storage path changes to take effect.",
         "switchCollection": "Saved Clips Folder",
@@ -205,7 +204,22 @@
             "tooltipTitle": "Resync Vocabulary Studio",
             "tooltipDescription": "Rebuild Vocabulary Studio clip records from the word_video folder when data is missing or corrupted."
         },
-        "wordClipsHint": "Vocabulary Studio clips are stored under word_video. Use this action to rebuild database records if needed."
+        "wordClipsHint": "Vocabulary Studio clips are stored under word_video. Use this action to rebuild database records if needed.",
+        "usage": {
+            "title": "Storage Usage",
+            "totalLabel": "Total Used",
+            "loading": "Measuring storage usage...",
+            "unavailable": "Storage directory unavailable. Usage cannot be measured.",
+            "empty": "No files are using storage space yet.",
+            "categories": {
+                "videos": "Videos",
+                "favorite_clips": "Saved Clips",
+                "word_clips": "Vocabulary Studio Clips",
+                "models": "Local Models",
+                "temp": "Temporary Files",
+                "other": "Other Files"
+            }
+        }
     },
     "engineSelection": {
         "title": "Feature Controls",
