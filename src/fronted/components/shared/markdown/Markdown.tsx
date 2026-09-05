@@ -4,11 +4,10 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import Playable from '@/fronted/components/shared/common/Playable';
 import SwitchTopic from '@/fronted/components/shared/common/SwitchTopic';
+// react-markdown v10 移除了 className prop，样式类由外层容器承载，这里只需比较内容是否变化
 export const MemoizedReactMarkdown: FC<Options> = memo(
     ReactMarkdown,
-    (prevProps, nextProps) =>
-        prevProps.children === nextProps.children &&
-        prevProps.className === nextProps.className
+    (prevProps, nextProps) => prevProps.children === nextProps.children
 );
 
 const TTS_LINK_PREFIX = 'tts:';
@@ -124,8 +123,8 @@ const safeDecode = (value: string): string => {
 
 const Markdown: FC<{ children: string }> = ({ children }) => {
     return (
+        <div className="prose dark:prose-invert">
         <MemoizedReactMarkdown
-            className="prose dark:prose-invert"
             urlTransform={(uri) => uri}
             remarkPlugins={[remarkGfm, remarkMath]}
             components={{
@@ -148,6 +147,7 @@ const Markdown: FC<{ children: string }> = ({ children }) => {
         >
             {preprocessMarkers(children)}
         </MemoizedReactMarkdown>
+        </div>
     );
 };
 

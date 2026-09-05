@@ -263,7 +263,7 @@ export function usePlayerBridge(navigate: (path: string) => void) {
     }, [videoId]);
 
     /**
-     * ReactPlayer onReady 回调：恢复播放进度并把视频标记为已加载。
+     * PlayerEngine 的 onReady 回调（canplay 事件）：恢复播放进度并把视频标记为已加载。
      *
      * onReady 在每次 seek/缓冲完成后都会重放（训练模式连续 seek 时可达每秒数次），
      * 靠 lastLoadedFileRef 幂等去重；守卫命中是常规路径，只在 debug 级留下痕迹。

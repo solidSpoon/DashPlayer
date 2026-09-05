@@ -159,6 +159,7 @@ const runTests = (): void => {
                 const events: Array<{ event: string; payload: Record<string, unknown> }> = [];
                 const provider: AiProviderService = {
                     getModel: vi.fn(() => buildMockTextModel('你好，我们开始学习这句话。')),
+                    createModelById: vi.fn(() => buildMockTextModel('你好，我们开始学习这句话。')),
                 };
                 const gateway: RendererGateway = {
                     call: vi.fn(),
@@ -224,6 +225,7 @@ const runTests = (): void => {
                 };
                 const provider: AiProviderService = {
                     getModel: vi.fn(() => buildMockTextModel('这句话可以这样说')),
+                    createModelById: vi.fn(() => buildMockTextModel('这句话可以这样说')),
                 };
                 const chatService = new ChatServiceImpl();
                 (chatService as unknown as { dpTaskService: DpTaskService }).dpTaskService = dpTask;
@@ -387,6 +389,7 @@ const runTests = (): void => {
                 };
                 provider = {
                     getModel: vi.fn(() => buildLiveModel(testConfig!.model)),
+                    createModelById: vi.fn(() => buildLiveModel(testConfig!.model)),
                 };
                 chatService = new ChatServiceImpl();
                 (chatService as unknown as { dpTaskService: DpTaskService }).dpTaskService = dpTask;
@@ -437,6 +440,7 @@ const runTests = (): void => {
             beforeAll(() => {
                 provider = {
                     getModel: vi.fn(() => buildLiveModel(testConfig!.model)),
+                    createModelById: vi.fn(() => buildLiveModel(testConfig!.model)),
                 };
                 gateway = {
                     call: vi.fn(),
@@ -498,6 +502,7 @@ const runTests = (): void => {
                     getModel: (scene) => (overrides.getModel
                         ? overrides.getModel(scene)
                         : buildLiveModel(testConfig!.model)),
+                    createModelById: () => buildLiveModel(testConfig!.model),
                 };
                 const settingService: SettingService = {
                     getServiceCredentialsDetail: vi.fn(),

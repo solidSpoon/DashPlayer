@@ -3,8 +3,8 @@
  *
  * 说明：
  * - 仅用于订阅“状态”，不暴露任何方法（方法请用 PlayerActions 调用）
- * - 高频字段提醒（默认 progressInterval = 50ms）：
- *   - `s.internal.exactPlayTime`：播放时间（秒），随播放器 `onProgress` 高频更新
+ * - 高频字段提醒（约 50ms 采样一次）：
+ *   - `s.internal.exactPlayTime`：播放时间（秒），随 PlayerEngine 内部 rAF 采样高频更新
  *   - `s.seekTime`：仅在 seek 时更新，适合响应主动跳转
  * - 建议在一次取多项时配合 `shallow`，减少对象重建带来的重渲染
  */

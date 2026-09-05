@@ -11,6 +11,8 @@ export type AiModelScene = 'sentenceLearning' | 'subtitleTranslation' | 'diction
 
 export default interface AiProviderService {
     getModel(scene: AiModelScene): LanguageModel | null;
+    /** 按模型 ID 创建语言模型实例（不校验功能开关，供连接测试等跨场景用途）。 */
+    createModelById(modelId: string): LanguageModel;
 }
 
 
@@ -37,6 +39,17 @@ export class AiProviderServiceImpl implements AiProviderService {
         if (!routedModel || StrUtil.isBlank(routedModel.modelId)) {
             return null;
         }
+        return this.createModelById(routedModel.modelId);
+    }
+
+    /**
+     * 按模型 ID 创建 OpenAI 兼容的语言模型实例。
+     * @param modelId 模型 ID（来自模型路由配置）。
+     * @returns 可直接传给 generateText/streamText 的语言模型。
+     */
+    public createModelById(modelId: string): LanguageModel {
+        const apiKey = storeGet('apiKeys.openAi.key');
+        const endpoint = storeGet('apiKeys.openAi.endpoint');
         // 使用 OpenAI 兼容 provider（@ai-sdk/openai-compatible）而非官方 OpenAI provider：
         // 兼容 provider 只走 /chat/completions 协议，没有 Responses API 路径。uniapi 等三方
         // 兼容端点的 /responses 流式实现不完整（deepseek-v4-flash 的 text-delta 缺少
@@ -51,6 +64,6 @@ export class AiProviderServiceImpl implements AiProviderService {
             // schema 校验解析结果。若开启会发送 json_schema（strict），部分只支持
             // json_object 的兼容端点会 400。
         });
-        return provider.chatModel(routedModel.modelId);
+        return provider.chatModel(modelId);
     }
 }
