@@ -364,7 +364,14 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
         }
     };
 
+    /**
+     * 单击单词时播放发音；若用户刚通过拖拽产生选区，则跳过播放。
+     *
+     * 单词点击已被“播放发音”消费，需阻止事件冒泡，
+     * 避免再触发父级字幕行的点击行为（如播客模式的“跳转到行首”）。
+     */
     const handleWordClick = async (event: React.MouseEvent<HTMLSpanElement>) => {
+        event.stopPropagation();
         if (hasMeaningfulSelection(event.currentTarget)) {
             return;
         }
