@@ -62,20 +62,6 @@ const TranscriptPage = () => {
                 <PageHeader
                     title={t('subtitleWorkspace.title')}
                     description={t('subtitleWorkspace.description')}
-                    rightSlot={
-                        tasks.length > 0 ? (
-                            <div className="flex items-center gap-2">
-                                <Badge variant="secondary" className="font-normal text-xs px-2.5 py-1">
-                                    {tasks.length} 任务
-                                </Badge>
-                                {activeTasksCount > 0 && (
-                                    <Badge variant="default" className="font-medium text-xs px-2.5 py-1 animate-pulse">
-                                        {activeTasksCount} 进行中
-                                    </Badge>
-                                )}
-                            </div>
-                        ) : undefined
-                    }
                 />
             </div>
 

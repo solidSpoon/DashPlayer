@@ -1,5 +1,6 @@
 import React from 'react';
 import { cn } from '@/fronted/lib/utils';
+import useSystem from '@/fronted/hooks/useSystem';
 
 /**
  * 页面标题栏参数。
@@ -32,7 +33,11 @@ const PageHeader = ({ title, description, rightSlot, className }: PageHeaderProp
                         <p className="text-sm text-muted-foreground truncate">{description}</p>
                     ) : null}
                 </div>
-                {rightSlot}
+                {rightSlot ? (
+                    <div className="flex items-center gap-2.5 shrink-0 pr-24">
+                        {rightSlot}
+                    </div>
+                ) : null}
             </div>
         </div>
     );

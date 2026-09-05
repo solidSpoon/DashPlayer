@@ -2,6 +2,7 @@
     "savedMoments": {
         "title": "收藏片段",
         "description": "集中管理和回看你保存的视频金句片段",
+        "tasksInProgress": "正在生成 {{count}} 个片段...",
         "recover": {
             "loading": "正在从本地恢复收藏片段...",
             "success": "收藏片段恢复完成",

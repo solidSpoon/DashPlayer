@@ -96,42 +96,35 @@ const TranscriptItem = ({ task, onStart, onDelete }: TranscriptItemProps) => {
     const isRunning = status === TranscriptTaskState.IN_PROGRESS || status === TranscriptTaskState.INIT || started;
 
     const renderStatusBadge = () => {
+        let icon: React.ReactNode = null;
+        let textClass = 'text-muted-foreground';
+
         if (!task || !status) {
-            return (
-                <span className="inline-flex items-center gap-1.5 rounded-md bg-muted/60 px-2.5 py-1 text-xs font-medium text-muted-foreground border border-border/50">
-                    <Clock className="h-3.5 w-3.5" />
-                    <span>{msg}</span>
-                </span>
-            );
+            icon = <Clock className="h-3.5 w-3.5 text-muted-foreground/70" />;
+            textClass = 'text-muted-foreground';
+        } else if (status === TranscriptTaskState.INIT || status === TranscriptTaskState.IN_PROGRESS) {
+            icon = <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />;
+            textClass = 'font-medium text-foreground';
+        } else if (status === TranscriptTaskState.DONE) {
+            icon = <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />;
+            textClass = 'font-medium text-foreground/80';
+        } else if (status === TranscriptTaskState.FAILED) {
+            icon = <XCircle className="h-3.5 w-3.5 text-destructive" />;
+            textClass = 'font-medium text-destructive';
+        } else if (status === TranscriptTaskState.CANCELLED) {
+            icon = <XCircle className="h-3.5 w-3.5 text-muted-foreground/50" />;
+            textClass = 'text-muted-foreground';
+        } else {
+            textClass = 'text-muted-foreground';
         }
-        if (status === TranscriptTaskState.INIT || status === TranscriptTaskState.IN_PROGRESS) {
-            return (
-                <span className="inline-flex items-center gap-1.5 rounded-md bg-amber-500/10 dark:bg-amber-400/10 px-2.5 py-1 text-xs font-medium text-amber-700 dark:text-amber-300 border border-amber-500/30 dark:border-amber-400/30 animate-pulse">
-                    <Loader2 className="h-3.5 w-3.5 animate-spin text-amber-600 dark:text-amber-400" />
-                    <span className="truncate max-w-[140px]" title={msg}>{msg}</span>
-                </span>
-            );
-        }
-        if (status === TranscriptTaskState.DONE) {
-            return (
-                <span className="inline-flex items-center gap-1.5 rounded-md bg-emerald-500/10 px-2.5 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
-                    <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
-                    <span className="truncate">{msg}</span>
-                </span>
-            );
-        }
-        if (status === TranscriptTaskState.FAILED) {
-            return (
-                <span className="inline-flex items-center gap-1.5 rounded-md bg-destructive/10 px-2.5 py-1 text-xs font-medium text-destructive border border-destructive/20">
-                    <XCircle className="h-3.5 w-3.5 shrink-0" />
-                    <span className="truncate max-w-[120px]" title={msg}>{msg}</span>
-                </span>
-            );
-        }
+
         return (
-            <span className="inline-flex items-center gap-1.5 rounded-md bg-muted/60 px-2.5 py-1 text-xs font-medium text-muted-foreground border border-border/50">
-                <span>{msg}</span>
-            </span>
+            <div className={cn('inline-flex items-center gap-2 text-xs', textClass)}>
+                {icon}
+                <span className="truncate max-w-[150px]" title={msg}>
+                    {msg}
+                </span>
+            </div>
         );
     };
 

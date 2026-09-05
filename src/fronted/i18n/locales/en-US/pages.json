@@ -2,6 +2,7 @@
     "savedMoments": {
         "title": "Saved Clips",
         "description": "Manage and revisit your saved video clips and highlight sentences",
+        "tasksInProgress": "Generating {{count}} clip(s)...",
         "recover": {
             "loading": "Restoring saved clips from local files...",
             "success": "Saved clips restored successfully",
