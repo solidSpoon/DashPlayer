@@ -223,20 +223,40 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
     };
 
     /**
-     * 收藏当前单词到词汇工坊。
+     * 切换收藏：未收藏时加入词汇工坊，已收藏时从词表移除。
      *
      * 行为说明：
-     * - 传递点击原文与弹窗已查到的释义，由后端还原为原始形态后入库；
-     * - 成功后立即把入库单词加入生词高亮词表；
-     * - 已存在的单词给出提示并保持已收藏态。
+     * - 收藏：传递点击原文与弹窗已查到的释义，由后端还原为原始形态后入库；
+     * - 取消收藏：传递点击原文由后端删除，成功后同步移除前端生词高亮词表，
+     *   词表版本变化会触发裁切状态自动重检；
+     * - 词表中的词（含默认词表）取消收藏即从词表删除，与词汇工坊删除同义。
      */
     const handleFavorite = async () => {
-        if (favoriteState !== 'idle') {
+        const favorited = isVocabularyWord || favoriteState === 'saved';
+        if (favoriteState === 'saving') {
             return;
         }
 
+        const previousState = favoriteState;
         setFavoriteState('saving');
         try {
+            if (favorited) {
+                const result = await videoLearningApi.deleteWord(original);
+                if (result.success) {
+                    const localBase = vocabularyStore.getBaseWord(cleanWord);
+                    vocabularyStore.removeVocabularyWords([
+                        ...(result.data ? [result.data.word] : []),
+                        ...(localBase ? [localBase] : [])
+                    ]);
+                    setFavoriteState('idle');
+                    toast.success(t('wordUnfavorited'));
+                } else {
+                    setFavoriteState(previousState);
+                    toast.error(result.error || t('unfavoriteWordFailed'));
+                }
+                return;
+            }
+
             const result = await videoLearningApi.favoriteWord(original, buildFavoriteTranslate(dictionaryResponse));
             if (result.success && result.data) {
                 vocabularyStore.addVocabularyWords([result.data.word]);
@@ -247,9 +267,9 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
                 toast.error(result.error || t('favoriteWordFailed'));
             }
         } catch (error) {
-            logger.error('failed to favorite word', { error: error instanceof Error ? error.message : error });
-            setFavoriteState('idle');
-            toast.error(t('favoriteWordFailed'));
+            logger.error('failed to toggle favorite word', { error: error instanceof Error ? error.message : error });
+            setFavoriteState(previousState);
+            toast.error(favorited ? t('unfavoriteWordFailed') : t('favoriteWordFailed'));
         }
     };
 

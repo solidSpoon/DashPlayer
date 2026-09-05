@@ -73,6 +73,13 @@ export interface SimpleActionResult {
     error?: string;
 }
 
+/** 删除单词结果；成功时携带实际删除的入库单词（已还原为原始形态）。 */
+export interface DeleteWordResult {
+    success: boolean;
+    data?: { word: string };
+    error?: string;
+}
+
 export interface GenerateDefinitionResult {
     success: boolean;
     data?: string;
@@ -102,8 +109,12 @@ export default interface VocabularyService {
     updateWord(params: UpdateWordParams): Promise<SimpleActionResult>;
     /**
      * 删除单词，并清理其片段关联。
+     *
+     * 行为说明：
+     * - 输入的变体（复数、时态等）先还原为原始形态（lemma）再删除，与收藏入口对称；
+     * - 成功时返回实际删除的入库单词，供前端同步生词高亮词表。
      */
-    deleteWord(word: string): Promise<SimpleActionResult>;
+    deleteWord(word: string): Promise<DeleteWordResult>;
     /**
      * 调用 AI 为单词生成简明中文释义。
      */
@@ -510,24 +521,29 @@ export class VocabularyServiceImpl implements VocabularyService {
     /**
      * 删除单词，并清理其学习片段关联。
      *
-     * @param word 待删除的单词。
-     * @returns 操作结果。
+     * 行为说明：
+     * - 输入的变体（复数、时态等）先还原为原始形态（lemma）再删除，与收藏入口对称；
+     * - 表中不存在该词时仍返回成功（幂等删除），并携带还原后的单词。
+     *
+     * @param word 用户操作的单词原文（可能是复数、时态等变体）。
+     * @returns 操作结果；成功时携带实际删除的入库单词。
      */
-    async deleteWord(word: string): Promise<SimpleActionResult> {
+    async deleteWord(word: string): Promise<DeleteWordResult> {
         try {
-            const key = word?.trim().toLowerCase() ?? '';
-            if (!key) {
+            const input = word?.trim() ?? '';
+            if (!input) {
                 return {
                     success: false,
                     error: '单词不能为空'
                 };
             }
 
-            await this.wordsRepository.deleteByWord(key);
-            await this.clipWordRepository.deleteByWord(key);
+            const lemma = lemmatizeWord(input);
+            await this.wordsRepository.deleteByWord(lemma);
+            await this.clipWordRepository.deleteByWord(lemma);
             this.invalidateVocabularyCaches();
 
-            return { success: true };
+            return { success: true, data: { word: lemma } };
         } catch (error) {
             this.logger.error('删除单词失败', { error });
             return {

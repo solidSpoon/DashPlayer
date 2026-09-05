@@ -17,6 +17,7 @@ interface VocabularyState {
     setVocabularyWords: (words: string[]) => void;
     setVocabularyForms: (forms: VocabularyFormsMap) => void;
     addVocabularyWords: (words: string[]) => void;
+    removeVocabularyWords: (words: string[]) => void;
     clearVocabularyWords: () => void;
     isVocabularyWord: (word: string) => boolean;
     getBaseWord: (word: string) => string | undefined;
@@ -80,6 +81,43 @@ const useVocabularyStore = create<VocabularyState>((set, get) => ({
             }
             return {
                 vocabularyWords: combined,
+                version: state.version + 1
+            };
+        });
+    },
+
+    /**
+     * 从生词表中移除单词；同步清理指向被删基础形态的变体映射。
+     *
+     * 词表变化会递增 version，驱动依赖词表的组件（如裁切状态重检）。
+     */
+    removeVocabularyWords: (words: string[]) => {
+        const normalized = words
+            .map(normalizeWord)
+            .filter((word): word is string => !!word);
+        if (normalized.length === 0) {
+            return;
+        }
+
+        set((state) => {
+            const remaining = new Set(state.vocabularyWords);
+            let removed = false;
+            for (const word of normalized) {
+                if (remaining.delete(word)) {
+                    removed = true;
+                }
+            }
+            // 被删基础形态的变体映射也要清理，否则变体仍会被判为生词。
+            const removedSet = new Set(normalized);
+            const forms = Object.fromEntries(
+                Object.entries(state.vocabularyForms).filter(([, base]) => !removedSet.has(base))
+            );
+            if (!removed && Object.keys(forms).length === Object.keys(state.vocabularyForms).length) {
+                return state;
+            }
+            return {
+                vocabularyWords: remaining,
+                vocabularyForms: forms,
                 version: state.version + 1
             };
         });
