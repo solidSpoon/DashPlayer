@@ -144,16 +144,22 @@ export const settingsApi = {
      * @returns 当前模型状态。
      */
     getSherpaTtsModelStatus: () => backendClient.call('sherpa-tts/models/status'),
-    /** 查询本地 Qwen 模型与 llama.cpp 运行时状态。 */
+    /** 查询本地 Qwen 模型目录与 llama.cpp 运行时状态。 */
     getLocalAiStatus: () => backendClient.call('local-ai/status'),
-    /** 下载本地 Qwen 模型。 */
-    downloadLocalAi: () => backendClient.call('local-ai/download'),
+    /** 将全部本地功能切换到指定模型。 */
+    useLocalAiModel: (modelId: string) => backendClient.call('local-ai/use', { modelId }),
+    /** 清除当前字幕翻译配置（引擎、模型、风格一致）的翻译缓存，返回删除条数。 */
+    clearSubtitleTranslationCache: () => backendClient.call('ai-trans/clear-subtitle-translation-cache'),
+    /** 清除当前词典配置的查询缓存，返回删除条数。 */
+    clearDictionaryCache: () => backendClient.call('ai-trans/clear-dictionary-cache'),
+    /** 下载指定本地 Qwen 模型。 */
+    downloadLocalAi: (modelId: string) => backendClient.call('local-ai/download', { modelId }),
     /** 取消本地 Qwen 模型下载。 */
     cancelLocalAiDownload: () => backendClient.call('local-ai/cancel-download'),
-    /** 删除本地 Qwen 模型。 */
-    deleteLocalAi: () => backendClient.call('local-ai/delete'),
-    /** 使用本地模型完成一次最小推理检查。 */
-    checkLocalAi: () => backendClient.call('local-ai/check'),
+    /** 删除指定本地 Qwen 模型。 */
+    deleteLocalAi: (modelId: string) => backendClient.call('local-ai/delete', { modelId }),
+    /** 使用指定本地模型完成一次最小推理检查。 */
+    checkLocalAi: (modelId: string) => backendClient.call('local-ai/check', { modelId }),
 
     /**
      * 下载 Sherpa TTS 模型。

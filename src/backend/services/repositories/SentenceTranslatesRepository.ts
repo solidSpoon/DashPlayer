@@ -26,5 +26,12 @@ export default interface SentenceTranslatesRepository {
      * @param params 待写入条目列表。
      */
     upsertMany(params: SentenceTranslatesUpsertParams[]): Promise<void>;
+    /**
+     * 删除指定缓存模式下的全部译文。
+     *
+     * @param mode 持久化缓存模式，精确匹配。
+     * @returns 实际删除的记录数。
+     */
+    deleteByMode(mode: string): Promise<number>;
 }
 

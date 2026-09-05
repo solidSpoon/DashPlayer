@@ -22,6 +22,16 @@ export default interface TranslateService {
         forceRefresh?: boolean,
         requestId?: string
     ): Promise<YdRes | OpenAIDictionaryResult | null>;
+
+    /**
+     * 删除当前词典配置（引擎完全一致）产生的全部查询缓存。
+     *
+     * 供“对词典结果不满意、想重新查询”的场景使用：只精确删除当前引擎对应的
+     * provider 缓存，不影响其他引擎的历史缓存。
+     *
+     * @returns 实际删除的记录数。
+     */
+    clearDictionaryCache(): Promise<number>;
 }
 
 
@@ -411,9 +421,10 @@ export class TranslateServiceImpl implements TranslateService {
         }
     }
 
-    /** 使用本地模型生成同一份词典结构，复用现有清洗与缓存格式。 */
+    /** 使用使用中的本地模型生成同一份词典结构，复用现有清洗与缓存格式。 */
     private async translateWordWithLocal(word: string, requestId?: string): Promise<OpenAIDictionaryResult | null> {
-        const result = await this.localAiService.generate(buildDictionaryPrompt(word), z.toJSONSchema(openAIDictionaryResultSchema));
+        const modelId = await this.localAiService.getActiveModelId();
+        const result = await this.localAiService.generate(buildDictionaryPrompt(word), z.toJSONSchema(openAIDictionaryResultSchema), modelId);
         const parsed = openAIDictionaryResultSchema.safeParse(result);
         if (!parsed.success) {
             this.logger.error('本地字典模型返回结构无效', { word, issues: parsed.error.issues, requestId });
@@ -513,6 +524,16 @@ export class TranslateServiceImpl implements TranslateService {
         const value = JSON.stringify(sanitized);
         const wt: InsertWordTranslate = { word: p(word), provider, translate: value };
         await this.wordTranslatesRepository.upsert(wt.word, provider, value, TimeUtil.timeUtc());
+    }
+
+    public async clearDictionaryCache(): Promise<number> {
+        const provider = await this.settingService.getCurrentDictionaryProvider();
+        if (!provider) {
+            throw new Error('未启用词典服务');
+        }
+        const deleted = await this.wordTranslatesRepository.deleteByProvider(provider);
+        this.logger.info('已清除当前配置的词典缓存', { provider, deleted });
+        return deleted;
     }
 
 }

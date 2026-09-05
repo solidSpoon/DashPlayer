@@ -42,7 +42,8 @@ implements OpenAiSubtitleTranslationGateway {
         });
 
         if (storeGet('providers.subtitleTranslation') === 'local') {
-            return schema.parse(await this.localAi.generate(request.prompt, z.toJSONSchema(schema), request.signal)).items;
+            const modelId = storeGet('models.local.active');
+            return schema.parse(await this.localAi.generate(request.prompt, z.toJSONSchema(schema), modelId, request.signal)).items;
         }
         const model = this.aiProviderService.getModel('subtitleTranslation');
         if (!model) {

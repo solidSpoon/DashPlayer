@@ -250,11 +250,18 @@
         "engineTencent": "Tencent Translation",
         "engineYoudao": "Youdao Dictionary",
         "engineNone": "Disabled",
+        "cloudModelGroup": "Cloud Models",
+        "localEngine": "Local Model",
+        "notDownloadedHint": "No local model is downloaded yet. Download one on the Service Credentials page first.",
+        "clearCache": "Clear cache",
+        "clearCacheCancel": "Cancel",
+        "clearCacheSuccess": "Cleared {{count}} cached entries",
         "subtitleTranslation": {
             "title": "Subtitle Translation",
             "description": "Control which provider powers subtitle translation.",
-            "modelLabel": "Subtitle Translation Model",
-            "styleLabel": "OpenAI Subtitle Output Style",
+            "styleLabel": "AI Subtitle Output Style",
+            "clearCacheConfirmTitle": "Clear subtitle translation cache",
+            "clearCacheConfirmDescription": "This deletes translations produced by the current subtitle translation config (same engine, model and style); they will be re-translated on next playback. This cannot be undone.",
             "styleZh": "Direct Chinese translation",
             "styleSimpleEn": "Simplified English",
             "styleCustom": "Custom",
@@ -263,7 +270,8 @@
         "dictionary": {
             "title": "Dictionary Lookup",
             "description": "Used for word definitions and example sentences.",
-            "modelLabel": "Dictionary Model"
+            "clearCacheConfirmTitle": "Clear dictionary cache",
+            "clearCacheConfirmDescription": "This deletes query results produced by the current dictionary config (same engine); they will be re-fetched on next lookup. This cannot be undone."
         },
         "sentenceLearning": {
             "title": "Sentence Learning",
@@ -317,6 +325,12 @@
             "description": "Used for dictionary lookups.",
             "appId": "App ID",
             "appKey": "App Key"
+        },
+        "localAi": {
+            "inUse": "In use",
+            "readyNotInUse": "Downloaded",
+            "use": "Set as active",
+            "useSuccess": "Now the active model; all local features share it"
         }
     }
 }

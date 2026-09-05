@@ -14,21 +14,24 @@ import StorageDirectoryProvider, { StorageDirectoryTarget } from '@/backend/serv
 import { getRuntimeResourcePath } from '@/backend/utils/runtimeEnv';
 import { concurrency } from '@/backend/utils/concurrency';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import { LOCAL_AI_MODEL_ID, LocalAiStatus } from '@/common/contracts/local-ai';
+import type { SettingsStore } from '@/backend/services/gateways/SettingsStore';
+import {
+    LOCAL_AI_MODELS,
+    LocalAiModelDefinition,
+    LocalAiStatus,
+    requireLocalAiModel,
+} from '@/common/contracts/local-ai';
 import type RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
 
-const MODEL_FILE = 'Qwen3-1.7B-Q4_K_M.gguf';
-const MODEL_BYTES = 1107409472;
-const MODEL_SHA256 = 'b139949c5bd74937ad8ed8c8cf3d9ffb1e99c866c823204dc42c0d91fa181897';
-const MODEL_URL = 'https://huggingface.co/unsloth/Qwen3-1.7B-GGUF/resolve/d7f544eead698dbd1f15126ef60b45a1e1933222/Qwen3-1.7B-Q4_K_M.gguf';
 const responseSchema = z.object({ choices: z.array(z.object({
     finish_reason: z.literal('stop'),
     message: z.object({ content: z.string().min(1) }),
 })).length(1) });
 
 /**
- * 管理固定 GGUF 模型和应用私有的 llama-server 子进程。
- * 推理串行执行；完整校验后原子安装，空闲五分钟释放模型。
+ * 管理目录内多个 GGUF 模型和应用私有的 llama-server 子进程。
+ * 推理串行执行；完整校验后原子安装，空闲五分钟释放模型；
+ * 同一时间只允许一个模型下载任务，删除前必须先释放推理进程。
  */
 @injectable()
 export class LocalAiRuntime implements LocalAiService {
@@ -38,25 +41,26 @@ export class LocalAiRuntime implements LocalAiService {
     private endpoint: string | null = null;
     private loadedPath: string | null = null;
     private readonly apiKey = randomBytes(32).toString('hex');
-    private activeDownload: Promise<void> | null = null;
-    private downloadAbort: AbortController | null = null;
+    private activeDownload: { modelId: string; task: Promise<void>; abort: AbortController } | null = null;
     private readonly lifetime = new AbortController();
     private idleTimer: ReturnType<typeof setTimeout> | null = null;
     private busy = 0;
-    private phase: LocalAiStatus['phase'] = 'idle';
+    private phase: LocalAiStatus['models'][number]['phase'] = 'idle';
     private downloaded = 0;
-    private error: string | null = null;
+    /** 每个模型最近一次下载失败原因；成功后清除，切页后仍可查看。 */
+    private readonly modelErrors = new Map<string, string>();
     private lastProgressAt = 0;
 
-    /** 注入模型目录与 renderer 通知边界。 */
+    /** 注入模型目录、设置存储和 renderer 通知边界。 */
     public constructor(
         @inject(TYPES.StorageDirectoryProvider) private readonly directories: StorageDirectoryProvider,
         @inject(TYPES.RendererGateway) private readonly rendererGateway: RendererGateway,
+        @inject(TYPES.SettingsStore) private readonly settingsStore: SettingsStore,
     ) {}
 
-    /** 解析当前媒体库中的固定模型路径。 */
-    private async modelPath(): Promise<string> {
-        return path.join(await this.directories.provideDirectory(StorageDirectoryTarget.MODELS), LOCAL_AI_MODEL_ID, MODEL_FILE);
+    /** 解析指定目录模型在媒体库中的安装路径。 */
+    private async modelPath(model: LocalAiModelDefinition): Promise<string> {
+        return path.join(await this.directories.provideDirectory(StorageDirectoryTarget.MODELS), model.id, model.file);
     }
 
     /** 只使用明确支持的平台包；缺失的运行时由设置页显式展示。 */
@@ -78,14 +82,16 @@ export class LocalAiRuntime implements LocalAiService {
     }
 
     /** 推送节流后的下载快照；阶段变化和终态始终立即发出。 */
-    private emitProgress(force = false): void {
+    private emitProgress(modelId: string, force = false): void {
         const now = Date.now();
         if (!force && now - this.lastProgressAt < 100) return;
         this.lastProgressAt = now;
+        const model = requireLocalAiModel(modelId);
         this.rendererGateway.fireAndForget('settings/local-ai-model-download-progress', {
-            percent: this.downloaded > 0 ? Math.min(100, this.downloaded / MODEL_BYTES * 100) : 0,
+            modelId,
+            percent: this.downloaded > 0 ? Math.min(100, this.downloaded / model.bytes * 100) : 0,
             downloaded: this.downloaded,
-            total: MODEL_BYTES,
+            total: model.bytes,
             phase: this.phase,
         });
     }
@@ -104,107 +110,138 @@ export class LocalAiRuntime implements LocalAiService {
 
     /** 返回完整的安装和下载快照，页面重新进入时可以恢复进度。 */
     public async getStatus(): Promise<LocalAiStatus> {
-        const modelPath = await this.modelPath();
+        const models = await Promise.all(LOCAL_AI_MODELS.map(async (model) => {
+            const modelPath = await this.modelPath(model);
+            const downloading = this.activeDownload?.modelId === model.id;
+            return {
+                modelId: model.id,
+                name: model.name,
+                sizeLabel: model.sizeLabel,
+                ready: await this.fileSize(modelPath) === model.bytes,
+                phase: downloading ? this.phase : 'idle',
+                downloaded: downloading ? this.downloaded : await this.fileSize(`${modelPath}.part`),
+                total: model.bytes,
+                modelPath,
+                downloadUrl: model.url,
+                error: this.modelErrors.get(model.id) ?? null,
+            };
+        }));
         return {
-            ready: await this.fileSize(modelPath) === MODEL_BYTES,
             runtimeReady: await this.fileSize(this.runtimePath()) > 0
                 && await this.runtimeDependencyReady(),
             running: this.child !== null,
-            phase: this.phase,
-            downloaded: this.phase === 'idle' ? await this.fileSize(`${modelPath}.part`) : this.downloaded,
-            total: MODEL_BYTES,
-            modelPath,
-            downloadUrl: MODEL_URL,
-            error: this.error,
+            activeModelId: await this.getActiveModelId(),
+            models,
         };
     }
 
-    /** 启动下载并保留唯一任务；错误保存在状态中，切页后仍可查看。 */
-    public async download(): Promise<void> {
+    public async getActiveModelId(): Promise<string> {
+        const modelId = this.settingsStore.get('models.local.active');
+        return requireLocalAiModel(modelId).id;
+    }
+
+    public async setActiveModelId(modelId: string): Promise<void> {
+        const model = requireLocalAiModel(modelId);
+        const modelPath = await this.modelPath(model);
+        if (await this.fileSize(modelPath) !== model.bytes) {
+            throw new Error(`模型未下载完成，无法设为使用中：${model.name}`);
+        }
+        if (!this.settingsStore.set('models.local.active', model.id)) {
+            throw new Error(`保存本地模型选择失败：${model.name}`);
+        }
+    }
+
+    /** 启动指定模型的下载并保留唯一任务；错误保存在状态中，切页后仍可查看。 */
+    public async download(modelId: string): Promise<void> {
         this.lifetime.signal.throwIfAborted();
-        if (this.activeDownload) return this.activeDownload;
+        const model = requireLocalAiModel(modelId);
+        if (this.activeDownload) throw new Error(`「${this.activeDownload.modelId}」正在下载，请等待完成后再下载其他模型`);
         if (this.busy > 0) throw new Error('本地模型正在使用，请稍后下载');
         this.phase = 'downloading';
-        this.error = null;
-        this.downloadAbort = new AbortController();
-        this.emitProgress(true);
-        const signal = AbortSignal.any([this.downloadAbort.signal, this.lifetime.signal]);
-        this.activeDownload = this.install(signal);
+        this.downloaded = 0;
+        this.modelErrors.delete(modelId);
+        const abort = new AbortController();
+        this.emitProgress(modelId, true);
+        const signal = AbortSignal.any([abort.signal, this.lifetime.signal]);
+        const task = this.install(model, signal);
+        this.activeDownload = { modelId, task, abort };
         try {
-            await this.activeDownload;
+            await task;
         } catch (error) {
             if (!signal.aborted) {
-                this.error = error instanceof Error ? error.message : String(error);
-                this.logger.error('local model download failed', { error });
+                this.modelErrors.set(modelId, error instanceof Error ? error.message : String(error));
+                this.logger.error('local model download failed', { model: modelId, error });
             }
             throw error;
         } finally {
             this.phase = 'idle';
             this.activeDownload = null;
-            this.downloadAbort = null;
-            this.emitProgress(true);
+            this.emitProgress(modelId, true);
         }
     }
 
     /** 下载固定版本，验证长度和 SHA256 后再原子重命名；损坏数据显式报错。 */
-    private async install(signal: AbortSignal): Promise<void> {
-        const modelPath = await this.modelPath();
-        if (await this.fileSize(modelPath) === MODEL_BYTES) return;
+    private async install(model: LocalAiModelDefinition, signal: AbortSignal): Promise<void> {
+        const modelPath = await this.modelPath(model);
+        if (await this.fileSize(modelPath) === model.bytes) return;
         const partial = `${modelPath}.part`;
         await fs.promises.mkdir(path.dirname(modelPath), { recursive: true });
         const existing = await this.fileSize(partial);
-        if (existing > MODEL_BYTES) throw new Error('未完成模型文件大小异常，请删除模型后重新下载');
+        if (existing > model.bytes) throw new Error('未完成模型文件大小异常，请删除模型后重新下载');
         this.downloaded = existing;
-        this.logger.info('local model download started', { model: LOCAL_AI_MODEL_ID, downloaded: existing });
-        if (existing < MODEL_BYTES) {
-            const response = await axios.get(MODEL_URL, {
+        this.logger.info('local model download started', { model: model.id, downloaded: existing });
+        if (existing < model.bytes) {
+            const response = await axios.get(model.url, {
                 responseType: 'stream', signal, timeout: 60_000,
                 headers: existing > 0 ? { Range: `bytes=${existing}-` } : {},
             });
             const resumed = response.status === 206;
-            if (resumed && response.headers['content-range'] !== `bytes ${existing}-${MODEL_BYTES - 1}/${MODEL_BYTES}`) {
+            if (resumed && response.headers['content-range'] !== `bytes ${existing}-${model.bytes - 1}/${model.bytes}`) {
                 response.data.destroy();
                 throw new Error('模型下载服务器返回了错误的续传范围');
             }
             if (!resumed) this.downloaded = 0;
             response.data.on('data', (chunk: Buffer) => {
                 this.downloaded += chunk.length;
-                this.emitProgress();
+                this.emitProgress(model.id);
             });
             await pipeline(response.data, fs.createWriteStream(partial, { flags: resumed ? 'a' : 'w' }), { signal });
         }
-        if (await this.fileSize(partial) !== MODEL_BYTES) throw new Error('模型下载不完整，请继续下载');
+        if (await this.fileSize(partial) !== model.bytes) throw new Error('模型下载不完整，请继续下载');
         this.phase = 'verifying';
-        this.emitProgress(true);
+        this.emitProgress(model.id, true);
         const hash = createHash('sha256');
         const stream = fs.createReadStream(partial, { signal });
         for await (const chunk of stream) hash.update(chunk);
-        if (hash.digest('hex') !== MODEL_SHA256) throw new Error('模型 SHA256 校验失败，请删除模型后重新下载');
+        if (hash.digest('hex') !== model.sha256) throw new Error('模型 SHA256 校验失败，请删除模型后重新下载');
         signal.throwIfAborted();
         await fs.promises.rename(partial, modelPath);
-        this.logger.info('local model installed', { model: LOCAL_AI_MODEL_ID });
+        this.logger.info('local model installed', { model: model.id });
     }
 
     /** 等待取消完成后再允许重试，避免多个写入器同时操作续传文件。 */
     public async cancelDownload(): Promise<void> {
-        const task = this.activeDownload;
+        const task = this.activeDownload?.task;
         if (!task) return;
-        this.downloadAbort?.abort();
+        this.activeDownload?.abort.abort();
         await task.catch((error) => {
             if (!axios.isCancel(error) && error?.name !== 'AbortError') throw error;
         });
     }
 
-    /** 删除安装文件及续传数据；先释放已加载的模型。 */
-    public async deleteModel(): Promise<void> {
-        if (this.activeDownload || this.busy > 0) throw new Error('模型正在下载或使用，请稍后删除');
+    /** 删除指定模型的安装文件及续传数据；先释放已加载的模型。 */
+    public async deleteModel(modelId: string): Promise<void> {
+        const model = requireLocalAiModel(modelId);
+        if (this.activeDownload?.modelId === modelId) throw new Error('模型正在下载，请先取消下载');
+        if (this.busy > 0) throw new Error('本地模型正在使用，请稍后删除');
+        if (modelId === await this.getActiveModelId()) throw new Error(`「${model.name}」是使用中的本地模型，请先在服务凭据页切换到其他模型`);
         this.busy++;
         try {
             await this.stop();
-            const modelPath = await this.modelPath();
+            const modelPath = await this.modelPath(model);
             await fs.promises.rm(modelPath, { force: true });
             await fs.promises.rm(`${modelPath}.part`, { force: true });
-            this.error = null;
+            this.modelErrors.delete(modelId);
             this.downloaded = 0;
         } finally { this.busy--; }
     }
@@ -223,12 +260,14 @@ export class LocalAiRuntime implements LocalAiService {
     }
 
     /** 按需加载模型，使用随机鉴权密钥并等待就绪；加载失败会结束子进程。 */
-    private async start(signal: AbortSignal): Promise<string> {
-        const modelPath = await this.modelPath();
+    private async start(model: LocalAiModelDefinition, signal: AbortSignal): Promise<string> {
+        const modelPath = await this.modelPath(model);
         if (this.endpoint && this.loadedPath === modelPath && this.child) return this.endpoint;
         await this.stop();
+        if (await this.fileSize(modelPath) !== model.bytes) {
+            throw new Error(`本地模型「${model.name}」未安装，请前往设置-服务凭据下载`);
+        }
         const status = await this.getStatus();
-        if (!status.ready) throw new Error('本地 Qwen 模型未安装，请前往服务凭据下载');
         if (!status.runtimeReady) throw new Error('llama.cpp 运行时缺失，请重新执行 yarn run download 或重新安装应用');
         const port = await this.reservePort();
         signal.throwIfAborted();
@@ -255,7 +294,7 @@ export class LocalAiRuntime implements LocalAiService {
             failure = failure ?? new Error(`本地推理进程退出：${code ?? exitSignal}`);
             resolve();
         }));
-        this.logger.info('local runtime started', { pid: child.pid, model: LOCAL_AI_MODEL_ID });
+        this.logger.info('local runtime started', { pid: child.pid, model: model.id });
         const loadingSignal = AbortSignal.any([signal, AbortSignal.timeout(120_000)]);
         try {
             for (;;) {
@@ -282,18 +321,19 @@ export class LocalAiRuntime implements LocalAiService {
     }
 
     /** 串行生成，限制上下文和输出长度；仅接受完整结束且可解析的 JSON。 */
-    public async generate(prompt: string, schema: Record<string, unknown>, signal?: AbortSignal): Promise<unknown> {
-        if (this.activeDownload) throw new Error('本地模型正在安装');
+    public async generate(prompt: string, schema: Record<string, unknown>, modelId: string, signal?: AbortSignal): Promise<unknown> {
+        const model = requireLocalAiModel(modelId);
+        if (this.activeDownload?.modelId === modelId) throw new Error(`本地模型「${model.name}」正在安装`);
         const combined = AbortSignal.any([this.lifetime.signal, AbortSignal.timeout(300_000), ...(signal ? [signal] : [])]);
         this.busy++;
         if (this.idleTimer) clearTimeout(this.idleTimer);
         try {
             return await concurrency.withSemaphore('localAi', async () => {
-                const endpoint = await this.start(combined);
+                const endpoint = await this.start(model, combined);
                 const startedAt = Date.now();
                 try {
                     const response = await axios.post(`${endpoint}/v1/chat/completions`, {
-                        model: LOCAL_AI_MODEL_ID,
+                        model: model.id,
                         messages: [{ role: 'user', content: prompt }],
                         stream: false, temperature: 0.6, top_p: 0.95, top_k: 20,
                         max_tokens: 2048,
@@ -302,10 +342,10 @@ export class LocalAiRuntime implements LocalAiService {
                     }, { proxy: false, signal: combined, timeout: 180_000, headers: { Authorization: `Bearer ${this.apiKey}` } });
                     const result = responseSchema.parse(response.data);
                     const parsed: unknown = JSON.parse(result.choices[0].message.content);
-                    this.logger.info('local generation completed', { model: LOCAL_AI_MODEL_ID, durationMs: Date.now() - startedAt });
+                    this.logger.info('local generation completed', { model: model.id, durationMs: Date.now() - startedAt });
                     return parsed;
                 } catch (error) {
-                    this.logger.error('local generation failed', { error, durationMs: Date.now() - startedAt });
+                    this.logger.error('local generation failed', { error, model: model.id, durationMs: Date.now() - startedAt });
                     await this.stop();
                     throw error;
                 }
