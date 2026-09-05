@@ -1,8 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { cn } from '@/fronted/lib/utils';
 import useSWR from 'swr';
-import { LoaderPinwheel } from 'lucide-react';
-import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/fronted/components/ui/hover-card';
+import { Loader2 } from 'lucide-react';
 import FavouritePlayer from './components/FavouritePlayer';
 import FavouriteItem from './components/FavouriteItem';
 import DatePickerWithRange from '@/fronted/components/shared/query/DatePickerWithRange';
@@ -24,8 +23,9 @@ import { Button } from '@/fronted/components/ui/button';
 import PageHeader from '@/fronted/components/shared/common/PageHeader';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
-const Loader = () => {
-    const { data: unfinishedLength } = useSWR(apiPath('favorite-clips/task-info'), favouriteApi.getTaskInfo, {
+const TaskStatusIndicator = () => {
+    const { t } = useI18nTranslation('pages');
+    const { data: unfinishedLength = 0 } = useSWR(apiPath('favorite-clips/task-info'), favouriteApi.getTaskInfo, {
         fallbackData: 0
     });
     const has = unfinishedLength > 0;
@@ -37,20 +37,17 @@ const Loader = () => {
         return () => {
             clearInterval(timer);
         };
-    });
+    }, []);
+
+    if (!has) {
+        return null;
+    }
+
     return (
-        <HoverCard>
-            <HoverCardTrigger asChild>
-                <LoaderPinwheel
-                    className={cn('mb-1.5 rounded-full p-1 bg-primary',
-                        has ? 'animate-spin text-primary-foreground' : 'hidden'
-                    )}
-                />
-            </HoverCardTrigger>
-            <HoverCardContent className="w-80">
-                {`${unfinishedLength} tasks in progress`}
-            </HoverCardContent>
-        </HoverCard>
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-muted/60 text-muted-foreground border border-border/60 text-xs font-normal select-none">
+            <Loader2 className="h-3.5 w-3.5 animate-spin text-primary shrink-0" />
+            <span className="text-foreground/80">{t('savedMoments.tasksInProgress', { count: unfinishedLength })}</span>
+        </div>
     );
 };
 
@@ -146,7 +143,7 @@ const Favorite = () => {
                 <PageHeader
                     title={t('savedMoments.title')}
                     description={t('savedMoments.description')}
-                    rightSlot={<Loader />}
+                    rightSlot={<TaskStatusIndicator />}
                 />
             </div>
 
