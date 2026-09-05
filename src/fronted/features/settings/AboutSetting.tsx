@@ -92,12 +92,12 @@ const AboutSetting = () => {
                     </div>
 
                     <div className="space-y-1.5 flex flex-col items-center">
-                        <div className="flex items-center gap-2.5">
+                        <div className="relative flex items-center justify-center">
                             <h1 className="text-2xl font-bold tracking-tight font-serif text-foreground">
                                 DashPlayer
                             </h1>
                             {currentVersion && (
-                                <span className="rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-mono font-medium text-primary border border-primary/20">
+                                <span className="absolute left-full ml-2.5 whitespace-nowrap rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-mono font-medium text-primary border border-primary/20">
                                     v{currentVersion}
                                 </span>
                             )}
