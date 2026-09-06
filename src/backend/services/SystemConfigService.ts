@@ -29,8 +29,13 @@ export default interface SystemConfigService {
  */
 @injectable()
 export class SystemConfigServiceImpl implements SystemConfigService {
-    @inject(TYPES.SysConfRepository)
-    private sysConfRepository!: SysConfRepository;
+    private readonly sysConfRepository: SysConfRepository;
+
+    public constructor(
+        @inject(TYPES.SysConfRepository) sysConfRepository: SysConfRepository,
+    ) {
+        this.sysConfRepository = sysConfRepository;
+    }
 
     /**
      * 读取指定系统配置。

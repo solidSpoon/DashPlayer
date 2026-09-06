@@ -1,15 +1,22 @@
 import { eq } from 'drizzle-orm';
-import { injectable } from 'inversify';
+import { inject, injectable } from 'inversify';
 
-import db from '@/backend/infrastructure/db';
+import type { Db } from '@/backend/infrastructure/db/createDb';
 import { systemConfigs } from '@/backend/infrastructure/db/tables/sysConf';
 import SysConfRepository from '@/backend/services/repositories/SysConfRepository';
+import TYPES from '@/backend/ioc/types';
 import TimeUtil from '@/common/utils/TimeUtil';
 
 @injectable()
 export default class SysConfRepositoryImpl implements SysConfRepository {
+    private readonly db: Db;
+
+    public constructor(@inject(TYPES.Database) db: Db) {
+        this.db = db;
+    }
+
     public async getValue(key: string): Promise<string | null> {
-        const result = await db
+        const result = await this.db
             .select()
             .from(systemConfigs)
             .where(eq(systemConfigs.key, key))
@@ -24,7 +31,7 @@ export default class SysConfRepositoryImpl implements SysConfRepository {
     }
 
     public async setValue(key: string, value: string): Promise<void> {
-        await db
+        await this.db
             .insert(systemConfigs)
             .values({ key, value })
             .onConflictDoUpdate({
@@ -36,4 +43,3 @@ export default class SysConfRepositoryImpl implements SysConfRepository {
             });
     }
 }
-
