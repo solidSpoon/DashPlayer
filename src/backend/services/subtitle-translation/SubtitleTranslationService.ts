@@ -557,13 +557,14 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
 
         try {
             this.throwIfAborted(request.signal);
-            const { onlineTargets, cacheHitCount } = await this.resolveCachedAndSkippedTargets(
+            const onlineTargets = await this.resolveBatchTargets(
                 request,
                 targets,
                 completedIndices
             );
+            const skippedCount = targets.length - onlineTargets.length;
             if (onlineTargets.length === 0) {
-                this.logger.info('字幕翻译批次缓存完成', {
+                this.logger.info('字幕翻译批次无需在线翻译', {
                     fileHash: request.fileHash,
                     batchId: request.batchId,
                     demandId: request.demandId,
@@ -574,7 +575,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
                     indexStart: request.indices[0],
                     indexEnd: request.indices[request.indices.length - 1],
                     batchSize: request.indices.length,
-                    cacheHitCount,
+                    skippedCount,
                     completedCount: completedIndices.size,
                     failedCount: failedIndices.size,
                     elapsedMs: Date.now() - batchStartedAt,
@@ -616,7 +617,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
                 indexStart: request.indices[0],
                 indexEnd: request.indices[request.indices.length - 1],
                 batchSize: request.indices.length,
-                cacheHitCount,
+                skippedCount,
                 completedCount: completedIndices.size,
                 failedCount: failedIndices.size,
                 onlineTargetCount: onlineTargets.length,
@@ -736,18 +737,23 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
     }
 
     /**
-     * 回传缓存命中与无需在线翻译的字幕，并返回剩余在线翻译目标。
+     * 解析无需在线翻译的句子，并返回需要发给模型的整组在线翻译目标。
+     *
+     * 缓存命中的句子不再从批次中剔除：命中过的也随整组重发，
+     * 保证提示词内的字幕永远连续。仅两类例外：
+     * - 整组全部命中缓存时直接复用缓存，不发起模型调用（没有 prompt 发出，不存在连续性问题）；
+     * - 无可翻译文字的句子（如 ♪）按原文回传，不进入提示词。
      *
      * @param request 当前批次参数。
      * @param targets 当前批次有效字幕描述符。
      * @param completedIndices 已完成索引集合，命中与跳过句就地追加。
-     * @returns 仍需在线翻译的目标与缓存命中句数。
+     * @returns 需要在线翻译的目标；全部命中或全部跳过时为空。
      */
-    private async resolveCachedAndSkippedTargets(
+    private async resolveBatchTargets(
         request: SubtitleTranslationBatchRequest<SubtitleTranslationExecutionContext>,
         targets: SubtitleBatchTarget[],
         completedIndices: Set<number>
-    ): Promise<{ onlineTargets: SubtitleBatchTarget[]; cacheHitCount: number }> {
+    ): Promise<SubtitleBatchTarget[]> {
         const uniqueStorageKeys = Array.from(
             new Set(targets.map((target) => target.storageKey))
         );
@@ -755,24 +761,24 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             uniqueStorageKeys,
             request.context.storageMode
         );
-        const cached = new Map<string, string>();
-        targets.forEach((target) => {
-            const translation = cachedByStorageKey.get(target.storageKey);
-            if (translation) {
-                cached.set(target.publishKey, translation);
-            }
-        });
-        if (cached.size > 0) {
-            this.pushTranslations(cached, request.context);
+        const isCached = (target: SubtitleBatchTarget): boolean =>
+            Boolean(cachedByStorageKey.get(target.storageKey));
+
+        // 整组全部命中缓存时直接复用，不发起模型调用；部分命中不剔除，整组重发。
+        if (targets.length > 0 && targets.every(isCached)) {
+            const cached = new Map<string, string>();
             targets.forEach((target) => {
-                if (cached.has(target.publishKey)) {
-                    completedIndices.add(target.index);
+                const translation = cachedByStorageKey.get(target.storageKey);
+                if (translation) {
+                    cached.set(target.publishKey, translation);
                 }
+                completedIndices.add(target.index);
             });
+            this.pushTranslations(cached, request.context);
+            return [];
         }
 
-        const uncached = targets.filter((target) => !cached.has(target.publishKey));
-        const skipped = uncached.filter(
+        const skipped = targets.filter(
             (target) => !shouldTranslateSubtitleText(target.text)
         );
         if (skipped.length > 0) {
@@ -784,12 +790,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             this.pushTranslations(unchanged, request.context);
         }
 
-        return {
-            onlineTargets: uncached.filter(
-                (target) => shouldTranslateSubtitleText(target.text)
-            ),
-            cacheHitCount: cached.size,
-        };
+        return targets.filter((target) => shouldTranslateSubtitleText(target.text));
     }
 
     /**

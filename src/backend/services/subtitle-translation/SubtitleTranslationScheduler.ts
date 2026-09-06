@@ -256,7 +256,8 @@ export default class SubtitleTranslationScheduler<TContext> {
      * 在途批次的结果由执行器照常写缓存：storageMode 按引擎、模型、模式与风格隔离，
      * 不会污染新配置；renderer 侧会按当前会话丢弃过期推送，因此放行无副作用。
      * 本地推理单批可达数十秒，中止意味着算力全部浪费且模型进程被连带重启，
-     * 所以这里刻意不取消：新会话覆盖到重叠句时会直接从缓存命中。
+     * 所以这里刻意不取消；重叠句是否复用缓存由批次执行时整组判定
+     * （部分命中也整组重发，保证提示词连续）。
      *
      * @param fileHash 字幕文件哈希。
      * @param rendererSessionId 仅释放对应 renderer 会话，避免旧窗口误删新会话。
