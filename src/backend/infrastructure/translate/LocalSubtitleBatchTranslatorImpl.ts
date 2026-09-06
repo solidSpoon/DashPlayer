@@ -24,10 +24,30 @@ import {
 const SINGLE_SENTENCE_MODEL_IDS = new Set(['qwen3.5-0.8b-q4_k_m']);
 
 /**
- * 照抄检测前对文本做的归一化：去首尾空白、压缩连续空白、忽略大小写。
+ * 照抄检测前对文本做的归一化：剥离所有非字母数字字符（含标点、空白）
+ * 并转小写，避免“原文加个句号就绕过检测”的漏网。
  */
 const normalizeForEchoCheck = (text: string): string =>
-    text.replace(/\s+/g, ' ').trim().toLowerCase();
+    text.replace(/[^\p{L}\p{N}]+/gu, '').toLowerCase();
+
+/** 文本是否包含 CJK 字符（即中文产物）。 */
+const hasCjk = (text: string): boolean => /[\u4e00-\u9fff]/.test(text);
+
+/** 源句是否是足够的西文句子（字母数达标），纯数字/短标记不在此列。 */
+const isLatinSentence = (text: string): boolean =>
+    (text.match(/[A-Za-z\u00C0-\u024F]/g) ?? []).length >= 4;
+
+/**
+ * 判断译文是否可用于中文模式：源句本身已是中文时原样返回属预期；
+ * 西文句子的译文必须产出 CJK，且归一化后不得与原文相同。
+ *
+ * @returns 可用返回 true；不可用返回 false（视为照抄/未翻译）。
+ */
+const isUsableZhTranslation = (source: string, translation: string): boolean => {
+    if (hasCjk(source)) return true;
+    if (isLatinSentence(source) && !hasCjk(translation)) return false;
+    return normalizeForEchoCheck(translation) !== normalizeForEchoCheck(source);
+};
 
 /** 单句照抄检测未通过时的最大生成尝试次数（首次 + 一次重试）。 */
 const ECHO_CHECK_MAX_ATTEMPTS = 2;
@@ -72,7 +92,7 @@ implements LocalSubtitleBatchTranslator {
             input.signal,
         ));
         if (input.mode === 'zh') {
-            this.throwIfEchoed(input.targets, parsed.items);
+            this.throwIfEchoed(input.targets, parsed.items, input.mode);
         }
         return parsed.items;
     }
@@ -134,13 +154,13 @@ implements LocalSubtitleBatchTranslator {
             const candidate = parsed.items.find(
                 (item) => item.key === target.key && item.translation.trim().length > 0
             );
-            if (candidate
-                && !(input.mode === 'zh'
-                    && normalizeForEchoCheck(candidate.translation) === normalizeForEchoCheck(target.text))) {
+            const usable = candidate !== undefined
+                && (input.mode !== 'zh' || isUsableZhTranslation(target.text, candidate.translation));
+            if (usable) {
                 return { key: target.key, translation: candidate.translation.trim() };
             }
             this.logger.warn(candidate ? '本地模型照抄原文，重试' : '本地模型未返回句子译文，重试', {
-                key: target.key,
+                sentenceKey: target.key,
                 attempt,
             });
         }
@@ -156,12 +176,12 @@ implements LocalSubtitleBatchTranslator {
     private throwIfEchoed(
         targets: LocalSubtitleBatchTranslationInput['targets'],
         items: SubtitleTranslationResultItem[],
+        mode: LocalSubtitleBatchTranslationInput['mode'],
     ): void {
         for (const target of targets) {
             const item = items.find((candidate) => candidate.key === target.key);
-            if (item
-                && normalizeForEchoCheck(item.translation) === normalizeForEchoCheck(target.text)) {
-                throw new Error(`本地模型照抄原文未翻译（key=${target.key}）`);
+            if (item && mode === 'zh' && !isUsableZhTranslation(target.text, item.translation)) {
+                throw new Error(`本地模型照抄原文未翻译（sentenceKey=${target.key}）`);
             }
         }
     }
