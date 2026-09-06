@@ -555,14 +555,14 @@ export class LocalAiRuntime implements LocalAiService {
     }
 
     /**
-     * 对指定模型执行速度测试：先释放已加载模型再冷加载，两轮固定批量生成。
+     * 对指定模型执行稳态速度测试：两轮固定批量生成，取热身轮吞吐。
      *
-     * 负载为 5 句字幕翻译，与真实字幕批次同量级；首轮包含推理初始化开销，
-     * 热身轮反映稳定吞吐。
+     * 不主动释放已加载模型——常驻模式下直接复用当前进程，模型未加载时由
+     * start() 按需加载。负载为 5 句字幕翻译，与真实字幕批次同量级；
      * 采样参数与 generate 完全一致，测得的速度即真实翻译速度。
      *
      * @param modelId 待测速的本地模型标识。
-     * @returns 冷加载、首轮、热身耗时与 token 用量、生成速度。
+     * @returns 热身轮耗时与 token 用量、生成速度。
      */
     public async speedTest(modelId: string): Promise<LocalAiSpeedTestResult> {
         if (this.activeDownload) throw new Error('本地模型正在下载，请等待完成后再测速');
@@ -572,16 +572,13 @@ export class LocalAiRuntime implements LocalAiService {
         try {
             const model = await this.resolveModelDefinition(modelId);
             const combined = AbortSignal.any([this.lifetime.signal, AbortSignal.timeout(300_000)]);
-            if (this.idleTimer) clearTimeout(this.idleTimer);
+            this.clearIdleTimer();
             return await concurrency.withSemaphore('localAi', async () => {
-                // 先释放已加载模型，确保测到真实的冷加载成本。
-                await this.stop();
-                const loadStartedAt = Date.now();
                 const endpoint = await this.start(model, combined);
-                const loadMs = Date.now() - loadStartedAt;
                 const schema = z.object({ items: z.array(z.object({ key: z.string(), translation: z.string() })) });
                 const body = this.buildChatBody(model.id, LocalAiRuntime.SPEED_TEST_PROMPT, z.toJSONSchema(schema));
                 try {
+                    // 首轮仅作热身（可能含推理初始化开销），不写入结果。
                     const firstStartedAt = Date.now();
                     const first = await this.postChat(endpoint, body, combined);
                     const firstMs = Date.now() - firstStartedAt;
@@ -591,8 +588,6 @@ export class LocalAiRuntime implements LocalAiService {
                     const firstUsage = speedUsageSchema.parse(first).usage;
                     const warmUsage = speedUsageSchema.parse(warm).usage;
                     const result: LocalAiSpeedTestResult = {
-                        loadMs,
-                        firstMs,
                         warmMs,
                         promptTokens: warmUsage?.prompt_tokens ?? null,
                         completionTokens: warmUsage?.completion_tokens ?? null,
@@ -604,8 +599,6 @@ export class LocalAiRuntime implements LocalAiService {
                         : null;
                     this.logger.info('local speed test completed', {
                         model: model.id,
-                        loadMs,
-                        firstMs,
                         warmMs,
                         usage: {
                             first: usageForLog(firstUsage, firstMs),
@@ -622,7 +615,7 @@ export class LocalAiRuntime implements LocalAiService {
         } finally {
             this.busy--;
             this.settleBusy();
-            // 测速加载的是指定模型；常驻模式下把使用中模型重新拉起，避免常驻错模型。
+            // 测的可能不是使用中模型；常驻模式下把使用中模型拉回前台。
             if (this.isLocalEngineEnabled()) void this.preloadActiveModel();
         }
     }

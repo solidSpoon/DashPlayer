@@ -158,7 +158,7 @@ export const settingsApi = {
     cancelLocalAiDownload: () => backendClient.call('local-ai/cancel-download'),
     /** 删除指定本地 Qwen 模型。 */
     deleteLocalAi: (modelId: string) => backendClient.call('local-ai/delete', { modelId }),
-    /** 对指定本地模型执行速度测试（冷加载 + 两轮固定批量生成）。 */
+    /** 对指定本地模型执行稳态速度测试（两轮固定批量生成，取热身轮吞吐）。 */
     speedTestLocalAi: (modelId: string) => backendClient.call('local-ai/speed-test', { modelId }),
 
     /**
