@@ -30,16 +30,6 @@ export const LOCAL_AI_MODELS: readonly LocalAiModelDefinition[] = [
         sha256: 'aaf42c8b7c3cab2bf3d69c355048d4a0ee9973d48f16c731c0520ee914699223',
         source: 'catalog',
     },
-    {
-        id: 'qwen3.5-4b-q4_k_m',
-        name: 'Qwen3.5 4B Q4_K_M',
-        file: 'Qwen3.5-4B-Q4_K_M.gguf',
-        bytes: 2740937888,
-        sizeLabel: '~2.74 GB',
-        url: 'https://huggingface.co/unsloth/Qwen3.5-4B-GGUF/resolve/main/Qwen3.5-4B-Q4_K_M.gguf',
-        sha256: '00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4',
-        source: 'catalog',
-    },
 ] as const;
 
 /** 本地模型设置键的默认取值；选择官方目录中翻译质量与体积平衡最好的一档。 */

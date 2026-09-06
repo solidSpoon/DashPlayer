@@ -8,11 +8,11 @@ import { buildSubtitleStorageMode } from '@/backend/services/subtitle-translatio
  */
 describe('字幕翻译缓存键按配置隔离', () => {
     it('本地引擎的缓存键包含使用中的模型 ID，不同模型互不复用缓存', () => {
-        const small = buildSubtitleStorageMode('local', 'qwen3.5-2b-q4_k_m', 'zh', 'sig');
-        const large = buildSubtitleStorageMode('local', 'qwen3.5-4b-q4_k_m', 'zh', 'sig');
-        expect(small).toBe('local#qwen3.5-2b-q4_k_m#zh#sig');
-        expect(large).toBe('local#qwen3.5-4b-q4_k_m#zh#sig');
-        expect(small).not.toBe(large);
+        const catalog = buildSubtitleStorageMode('local', 'qwen3.5-2b-q4_k_m', 'zh', 'sig');
+        const custom = buildSubtitleStorageMode('local', 'custom:my-qwen.gguf', 'zh', 'sig');
+        expect(catalog).toBe('local#qwen3.5-2b-q4_k_m#zh#sig');
+        expect(custom).toBe('local#custom:my-qwen.gguf#zh#sig');
+        expect(catalog).not.toBe(custom);
     });
 
     it('云端引擎的缓存键包含路由到的模型 ID，与本地引擎互不复用缓存', () => {
