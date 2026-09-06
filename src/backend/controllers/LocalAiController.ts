@@ -21,6 +21,7 @@ export class LocalAiController implements Controller {
         registerRoute('local-ai/download', ({ modelId }) => this.localAi.download(modelId));
         registerRoute('local-ai/cancel-download', () => this.localAi.cancelDownload());
         registerRoute('local-ai/delete', ({ modelId }) => this.localAi.deleteModel(modelId));
+        registerRoute('local-ai/speed-test', ({ modelId }) => this.localAi.speedTest(modelId));
         registerRoute('local-ai/check', async ({ modelId }) => {
             const startedAt = Date.now();
             const result = await this.localAi.generate(

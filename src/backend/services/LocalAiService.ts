@@ -1,4 +1,4 @@
-import type { LocalAiStatus } from '@/common/contracts/local-ai';
+import type { LocalAiSpeedTestResult, LocalAiStatus } from '@/common/contracts/local-ai';
 
 /** 本地模型安装、生命周期和结构化推理的业务边界。 */
 export default interface LocalAiService {
@@ -16,6 +16,8 @@ export default interface LocalAiService {
     cancelDownload(): Promise<void>;
     /** 删除指定模型及未完成下载；使用中或下载中时拒绝删除。 */
     deleteModel(modelId: string): Promise<void>;
+    /** 对指定模型执行速度测试：先释放已加载模型再冷加载，两轮固定批量生成取耗时与吞吐。 */
+    speedTest(modelId: string): Promise<LocalAiSpeedTestResult>;
     /**
      * 使用指定模型按约束生成完整 JSON；取消、截断、非法输出时抛错。
      *

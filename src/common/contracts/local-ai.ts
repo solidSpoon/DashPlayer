@@ -130,6 +130,22 @@ export interface LocalAiModelStatus {
     custom: boolean;
 }
 
+/** 本地模型速度测试结果；时长单位毫秒，token 数据由推理端提供，缺失时为 null。 */
+export interface LocalAiSpeedTestResult {
+    /** 模型冷加载耗时（含进程启动到健康检查通过）；测速前会先释放已加载模型。 */
+    loadMs: number;
+    /** 首轮生成耗时，含推理初始化（如 Vulkan shader 编译）。 */
+    firstMs: number;
+    /** 热身后第二轮生成耗时。 */
+    warmMs: number;
+    /** 提示词 token 数。 */
+    promptTokens: number | null;
+    /** 生成 token 数。 */
+    completionTokens: number | null;
+    /** 热身轮生成速度（token/秒）。 */
+    tokensPerSecond: number | null;
+}
+
 /** 本地模型管理页状态；大小单位为字节。 */
 export interface LocalAiStatus {
     /** llama-server 运行时是否就绪。 */

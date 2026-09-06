@@ -1,5 +1,5 @@
 import {DpTask} from '@/common/contracts/dp-task';
-import type { LocalAiStatus } from '@/common/contracts/local-ai';
+import type { LocalAiSpeedTestResult, LocalAiStatus } from '@/common/contracts/local-ai';
 import {YdRes, OpenAIDictionaryResult} from '@/common/types/YdRes';
 import {ChapterParseResult} from '@/common/types/chapter-result';
 import {SrtSentence, Sentence} from '@/common/types/SentenceC';
@@ -53,6 +53,7 @@ interface ApiDefinition {
     'local-ai/cancel-download': { params: void, return: void };
     'local-ai/delete': { params: { modelId: string }, return: void };
     'local-ai/check': { params: { modelId: string }, return: { translation: string; durationMs: number } };
+    'local-ai/speed-test': { params: { modelId: string }, return: LocalAiSpeedTestResult };
     'eg': { params: string, return: number },
 }
 

@@ -12,6 +12,7 @@ import {
     Download,
     ExternalLink,
     FolderOpen,
+    Gauge,
     HelpCircle,
     Languages,
     Loader2,
@@ -203,6 +204,25 @@ const ServiceCredentialSetting = () => {
             toast.success(t('serviceCredentials.localAi.gpuToggleSuccess'));
         } catch (error) {
             toast.error(error instanceof Error ? error.message : String(error));
+        } finally {
+            setLocalAiBusy(false);
+            refreshLocalAiStatus();
+        }
+    };
+
+    /** 对指定模型执行速度测试；后端冷加载后连跑两轮固定批量生成，吐司展示耗时与吞吐。 */
+    const speedTestLocalAi = async (modelId: string, name: string) => {
+        setLocalAiBusy(true);
+        try {
+            const result = await settingsApi.speedTestLocalAi(modelId);
+            toast.success(`${name}：${t('serviceCredentials.localAi.speedTestResult', {
+                load: (result.loadMs / 1000).toFixed(1),
+                first: (result.firstMs / 1000).toFixed(1),
+                warm: (result.warmMs / 1000).toFixed(1),
+                tps: result.tokensPerSecond === null ? '—' : result.tokensPerSecond.toFixed(1),
+            })}`);
+        } catch (error) {
+            toast.error(`${name}：${error instanceof Error ? error.message : String(error)}`);
         } finally {
             setLocalAiBusy(false);
             refreshLocalAiStatus();
@@ -940,6 +960,12 @@ const ServiceCredentialSetting = () => {
                                                 <Button type="button" variant="outline" size="sm" disabled={localAiBusy} onClick={() => runLocalAiAction(model.modelId, model.name, () => settingsApi.checkLocalAi(model.modelId), t('serviceCredentials.localAi.checkSuccess'))}>
                                                     <TestTube className="mr-1.5 h-3.5 w-3.5" />
                                                     {t('serviceCredentials.localAi.checkRun')}
+                                                </Button>
+                                            )}
+                                            {model.ready && (
+                                                <Button type="button" variant="outline" size="sm" disabled={localAiBusy} onClick={() => speedTestLocalAi(model.modelId, model.name)}>
+                                                    <Gauge className="mr-1.5 h-3.5 w-3.5" />
+                                                    {t('serviceCredentials.localAi.speedTest')}
                                                 </Button>
                                             )}
                                             {model.ready && (

@@ -347,6 +347,8 @@
             "gpuToggleSuccess": "GPU acceleration updated; takes effect the next time a model loads",
             "gpuMetal": "GPU acceleration via Metal is enabled (Apple Silicon).",
             "gpuCpu": "No supported GPU backend on this platform; running on CPU.",
+            "speedTest": "Speed test",
+            "speedTestResult": "load {{load}}s · first {{first}}s · warm {{warm}}s · {{tps}} tok/s",
             "runtimeReady": "The llama.cpp runtime is ready; all models share it.",
             "runtimeMissing": "Runtime not installed: run `yarn run download` again or reinstall the app."
         }

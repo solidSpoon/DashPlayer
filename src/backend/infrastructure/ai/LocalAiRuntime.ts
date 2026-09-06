@@ -23,6 +23,7 @@ import {
     localAiGpuMode,
     LocalAiGpuMode,
     LocalAiModelDefinition,
+    LocalAiSpeedTestResult,
     LocalAiStatus,
     requireLocalAiModel,
 } from '@/common/contracts/local-ai';
@@ -32,6 +33,14 @@ const responseSchema = z.object({ choices: z.array(z.object({
     finish_reason: z.literal('stop'),
     message: z.object({ content: z.string().min(1) }),
 })).length(1) });
+
+/** 速度测试响应中 token 用量的宽松解析；推理端未返回用量时为 undefined。 */
+const speedUsageSchema = z.object({
+    usage: z.object({
+        prompt_tokens: z.number(),
+        completion_tokens: z.number(),
+    }).optional(),
+});
 
 /**
  * 管理目录内多个 GGUF 模型和应用私有的 llama-server 子进程。
@@ -55,6 +64,18 @@ export class LocalAiRuntime implements LocalAiService {
     /** 每个模型最近一次下载失败原因；成功后清除，切页后仍可查看。 */
     private readonly modelErrors = new Map<string, string>();
     private lastProgressAt = 0;
+
+    /** 速度测试固定负载：5 句字幕批量翻译，与真实字幕批次同量级。 */
+    private static readonly SPEED_TEST_PROMPT = [
+        'Translate each subtitle line into Simplified Chinese.',
+        'Respond with JSON only: {"items":[{"key":"<given key>","translation":"<simplified chinese>"}]}',
+        '',
+        '1: The weather turned colder as the sun went down.',
+        '2: She packed the last box and looked around the empty apartment.',
+        '3: The train arrives at platform nine in ten minutes.',
+        '4: He promised to call as soon as the meeting ended.',
+        '5: Nobody expected the storm to arrive so early in the season.',
+    ].join('\n');
 
     /** 注入模型目录、设置存储和 renderer 通知边界。 */
     public constructor(
@@ -494,43 +515,124 @@ export class LocalAiRuntime implements LocalAiService {
         return new Error(detail ? `${base}（${hint}）进程输出：${detail}` : `${base}（${hint}）`);
     }
 
-    /** 串行生成，限制上下文和输出长度；仅接受完整结束且可解析的 JSON。 */
+    /**
+     * 串行生成，限制上下文和输出长度；仅接受完整结束且可解析的 JSON。
+     */
     public async generate(prompt: string, schema: Record<string, unknown>, modelId: string, signal?: AbortSignal): Promise<unknown> {
         const model = await this.resolveModelDefinition(modelId);
         if (this.activeDownload?.modelId === modelId) throw new Error(`本地模型「${model.name}」正在安装`);
         const combined = AbortSignal.any([this.lifetime.signal, AbortSignal.timeout(300_000), ...(signal ? [signal] : [])]);
+        return this.runSerial(async () => {
+            const endpoint = await this.start(model, combined);
+            const startedAt = Date.now();
+            try {
+                const result = responseSchema.parse(await this.postChat(endpoint, this.buildChatBody(model.id, prompt, schema), combined));
+                const parsed: unknown = JSON.parse(result.choices[0].message.content);
+                this.logger.info('local generation completed', { model: model.id, durationMs: Date.now() - startedAt });
+                return parsed;
+            } catch (error) {
+                this.logger.error('local generation failed', { error, model: model.id, durationMs: Date.now() - startedAt });
+                await this.stop();
+                throw error;
+            }
+        }, combined);
+    }
+
+    /**
+     * 对指定模型执行速度测试：先释放已加载模型再冷加载，两轮固定批量生成。
+     *
+     * 负载为 5 句字幕翻译，与真实字幕批次同量级；首轮包含推理初始化
+     * （如 Vulkan shader 编译），热身轮反映稳定吞吐。
+     * 采样参数与 generate 完全一致，测得的速度即真实翻译速度。
+     *
+     * @param modelId 待测速的本地模型标识。
+     * @returns 冷加载、首轮、热身耗时与 token 用量、生成速度。
+     */
+    public async speedTest(modelId: string): Promise<LocalAiSpeedTestResult> {
+        if (this.activeDownload) throw new Error('本地模型正在下载，请等待完成后再测速');
+        // 占用计数在任何 await 之前递增，避免与推理/删除请求落在检查与递增之间。
+        if (this.busy > 0) throw new Error('本地模型正在使用，请稍后重试');
         this.busy++;
-        if (this.idleTimer) clearTimeout(this.idleTimer);
         try {
+            const model = await this.resolveModelDefinition(modelId);
+            const combined = AbortSignal.any([this.lifetime.signal, AbortSignal.timeout(300_000)]);
+            if (this.idleTimer) clearTimeout(this.idleTimer);
             return await concurrency.withSemaphore('localAi', async () => {
+                // 先释放已加载模型，确保测到真实的冷加载成本。
+                await this.stop();
+                const loadStartedAt = Date.now();
                 const endpoint = await this.start(model, combined);
-                const startedAt = Date.now();
+                const loadMs = Date.now() - loadStartedAt;
+                const schema = z.object({ items: z.array(z.object({ key: z.string(), translation: z.string() })) });
+                const body = this.buildChatBody(model.id, LocalAiRuntime.SPEED_TEST_PROMPT, z.toJSONSchema(schema));
                 try {
-                    const response = await axios.post(`${endpoint}/v1/chat/completions`, {
-                        model: model.id,
-                        messages: [{ role: 'user', content: prompt }],
-                        stream: false, temperature: 0.6, top_p: 0.95, top_k: 20,
-                        max_tokens: 2048,
-                        response_format: { type: 'json_object', schema },
-                        chat_template_kwargs: { enable_thinking: false },
-                    }, { proxy: false, signal: combined, timeout: 180_000, headers: { Authorization: `Bearer ${this.apiKey}` } });
-                    const result = responseSchema.parse(response.data);
-                    const parsed: unknown = JSON.parse(result.choices[0].message.content);
-                    this.logger.info('local generation completed', { model: model.id, durationMs: Date.now() - startedAt });
-                    return parsed;
+                    const firstStartedAt = Date.now();
+                    await this.postChat(endpoint, body, combined);
+                    const firstMs = Date.now() - firstStartedAt;
+                    const warmStartedAt = Date.now();
+                    const warm = await this.postChat(endpoint, body, combined);
+                    const warmMs = Date.now() - warmStartedAt;
+                    const usage = speedUsageSchema.parse(warm).usage;
+                    const result: LocalAiSpeedTestResult = {
+                        loadMs,
+                        firstMs,
+                        warmMs,
+                        promptTokens: usage?.prompt_tokens ?? null,
+                        completionTokens: usage?.completion_tokens ?? null,
+                        tokensPerSecond: usage ? Number((usage.completion_tokens / (warmMs / 1000)).toFixed(1)) : null,
+                    };
+                    this.logger.info('local speed test completed', { model: model.id, ...result });
+                    return result;
                 } catch (error) {
-                    this.logger.error('local generation failed', { error, model: model.id, durationMs: Date.now() - startedAt });
+                    this.logger.error('local speed test failed', { error, model: model.id });
                     await this.stop();
                     throw error;
                 }
             }, { signal: combined });
         } finally {
             this.busy--;
-            if (this.busy === 0 && !this.lifetime.signal.aborted) {
-                this.idleTimer = setTimeout(() => { void this.stop().catch((error) => this.logger.error('local runtime stop failed', { error })); }, 300_000);
-                this.idleTimer.unref();
-            }
+            this.settleBusy();
         }
+    }
+
+    /** 归零占用计数后重新武装空闲卸载计时器。 */
+    private settleBusy(): void {
+        if (this.busy === 0 && !this.lifetime.signal.aborted) {
+            this.idleTimer = setTimeout(() => { void this.stop().catch((error) => this.logger.error('local runtime stop failed', { error })); }, 300_000);
+            this.idleTimer.unref();
+        }
+    }
+
+    /** 在本地推理互斥信号量内执行；占用期间暂停空闲卸载，结束后重新计时。 */
+    private async runSerial<T>(fn: (signal: AbortSignal) => Promise<T>, signal: AbortSignal): Promise<T> {
+        this.busy++;
+        if (this.idleTimer) clearTimeout(this.idleTimer);
+        try {
+            return await concurrency.withSemaphore('localAi', () => fn(signal), { signal });
+        } finally {
+            this.busy--;
+            this.settleBusy();
+        }
+    }
+
+    /** 组装与推理参数固定一致的 chat 请求体；本地链路所有生成共用同一采样参数。 */
+    private buildChatBody(modelId: string, prompt: string, schema: Record<string, unknown>): Record<string, unknown> {
+        return {
+            model: modelId,
+            messages: [{ role: 'user', content: prompt }],
+            stream: false, temperature: 0.6, top_p: 0.95, top_k: 20,
+            max_tokens: 2048,
+            response_format: { type: 'json_object', schema },
+            chat_template_kwargs: { enable_thinking: false },
+        };
+    }
+
+    /** 发送一次 chat 请求并返回原始响应体；鉴权、代理禁用与超时在此统一处理。 */
+    private async postChat(endpoint: string, body: Record<string, unknown>, signal: AbortSignal): Promise<unknown> {
+        return (await axios.post(`${endpoint}/v1/chat/completions`, body, {
+            proxy: false, signal, timeout: 180_000,
+            headers: { Authorization: `Bearer ${this.apiKey}` },
+        })).data;
     }
 
     /** 结束私有子进程并等待文件句柄释放；超时强制终止。 */

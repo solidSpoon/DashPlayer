@@ -162,6 +162,8 @@ export const settingsApi = {
     deleteLocalAi: (modelId: string) => backendClient.call('local-ai/delete', { modelId }),
     /** 使用指定本地模型完成一次最小推理检查。 */
     checkLocalAi: (modelId: string) => backendClient.call('local-ai/check', { modelId }),
+    /** 对指定本地模型执行速度测试（冷加载 + 两轮固定批量生成）。 */
+    speedTestLocalAi: (modelId: string) => backendClient.call('local-ai/speed-test', { modelId }),
 
     /**
      * 下载 Sherpa TTS 模型。
