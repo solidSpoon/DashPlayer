@@ -349,7 +349,6 @@
             "rescan": "刷新模型列表",
             "openFolder": "打开模型目录",
             "copyPath": "复制路径",
-            "speedLoad": "首次启动",
             "speedWarm": "日常响应",
             "speedTps": "翻译速度",
             "speedTpsUnit": "字/秒",
