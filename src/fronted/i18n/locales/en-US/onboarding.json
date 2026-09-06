@@ -42,6 +42,20 @@
         "downloadFailed": "Download failed",
         "downloadCancelled": "Download cancelled"
     },
+    "manual": {
+        "toggle": "Unstable network? View manual download guide",
+        "step1Title": "1. Download the file:",
+        "copyUrl": "Copy download link",
+        "openInBrowser": "Open in browser",
+        "step2Title": "2. Save the file to this path:",
+        "copyPath": "Copy target path",
+        "openFolder": "Open target folder",
+        "step3Title": "3. Finish installation:",
+        "archiveFooter": "After placing the file in the directory above, click the \"Download\" button above — the app will detect and extract it automatically.",
+        "rescan": "Rescan",
+        "copied": "Copied",
+        "copyFailed": "Copy failed"
+    },
     "engine": {
         "title": "Choose where AI features run",
         "description": "Subtitle translation and dictionary can run locally or through a cloud API. You can change this anytime in Settings.",
@@ -58,6 +72,8 @@
         "localModelDownload": "Download",
         "localModelCancel": "Cancel download",
         "localModelMemory": "~{{gb}} GB memory",
+        "localModelCustom": "Custom",
+        "localModelManualFooter": "After placing a manually downloaded GGUF file into the directory above, click \"Rescan\". The model will appear in the list (marked as custom); select it to apply.",
         "localModelApply": "Use local engine",
         "localModelApplied": "Local engine is ready. Subtitle translation and dictionary will use the local model.",
         "cloudKeyLabel": "API Key",

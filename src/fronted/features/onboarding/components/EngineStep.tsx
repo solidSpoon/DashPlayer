@@ -14,6 +14,7 @@ import type { ServiceCredentialSettingDetailVO, ServiceCredentialSettingSaveVO }
 import type { LocalAiModelStatus, LocalAiStatus } from '@/common/contracts/local-ai';
 import { LOCAL_AI_DEFAULT_MODEL_ID } from '@/common/contracts/local-ai';
 import type { OnboardingEngineChoice } from '../types';
+import ManualDownloadGuide from './ManualDownloadGuide';
 
 /** 引擎步骤的数据上下文：由引导页统一加载后传入，避免各步骤重复请求。 */
 export interface EngineStepProps {
@@ -319,7 +320,7 @@ const EngineStep = ({ engineDetail, credentialDetail, onApplied }: EngineStepPro
                         <CardTitle className="text-base">{t('engine.localModelLabel')}</CardTitle>
                     </CardHeader>
                     <CardContent className="flex flex-col gap-2">
-                        {(localStatus?.models ?? []).filter((model) => !model.custom).map((model) => {
+                        {(localStatus?.models ?? []).map((model) => {
                             const percent = modelPercent(model);
                             return (
                                 <div
@@ -351,6 +352,11 @@ const EngineStep = ({ engineDetail, credentialDetail, onApplied }: EngineStepPro
                                             </span>
                                         </div>
                                         <div className="flex items-center gap-2 shrink-0">
+                                            {model.custom && (
+                                                <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+                                                    {t('engine.localModelCustom')}
+                                                </span>
+                                            )}
                                             {model.ready && model.modelId === localStatus?.activeModelId && (
                                                 <span className="rounded bg-primary/10 px-1.5 py-0.5 text-xs font-medium text-primary">
                                                     {t('engine.localModelInUse')}
@@ -369,7 +375,7 @@ const EngineStep = ({ engineDetail, credentialDetail, onApplied }: EngineStepPro
                                             {model.phase === 'verifying' && (
                                                 <span className="text-xs text-muted-foreground">{t('engine.localModelVerifying')}</span>
                                             )}
-                                            {model.phase === 'idle' && !model.ready && (
+                                            {model.phase === 'idle' && !model.ready && !model.custom && (
                                                 <Button
                                                     type="button"
                                                     size="sm"
@@ -402,6 +408,14 @@ const EngineStep = ({ engineDetail, credentialDetail, onApplied }: EngineStepPro
                                 </div>
                             );
                         })}
+                        {selectedModel && !selectedModel.ready && selectedModel.downloadUrl && localStatus && (
+                            <ManualDownloadGuide
+                                url={selectedModel.downloadUrl}
+                                path={localStatus.modelsDirectory}
+                                footerText={t('engine.localModelManualFooter')}
+                                onRescan={refreshLocalStatus}
+                            />
+                        )}
                         {!localStatus && (
                             <div className="flex items-center justify-center py-4 text-sm text-muted-foreground">
                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

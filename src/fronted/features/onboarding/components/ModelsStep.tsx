@@ -9,6 +9,7 @@ import { cn } from '@/fronted/lib/utils';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import type { ModelInstallationStatusVO } from '@/common/types/vo/model-installation-vo';
 import type { ModelDownloadPhase } from '@/common/contracts/model-download-phase';
+import ManualDownloadGuide from './ManualDownloadGuide';
 
 /**
  * 归档类本地模型（Parakeet 转录 / Sherpa TTS）共用的下载状态管理。
@@ -195,6 +196,13 @@ const ModelCard = ({ name, description, sizeLabel, badge, icon: Icon, state }: M
                         </div>
                         <Progress value={state.percent} className="h-1.5" />
                     </div>
+                )}
+                {!ready && state.status && (
+                    <ManualDownloadGuide
+                        url={state.status.downloadUrl}
+                        path={state.status.archivePath}
+                        footerText={t('manual.archiveFooter')}
+                    />
                 )}
             </CardContent>
         </Card>

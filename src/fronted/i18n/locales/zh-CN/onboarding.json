@@ -42,6 +42,20 @@
         "downloadFailed": "下载失败",
         "downloadCancelled": "下载已取消"
     },
+    "manual": {
+        "toggle": "网络不佳？查看手动下载与安装指南",
+        "step1Title": "1. 下载文件：",
+        "copyUrl": "复制下载链接",
+        "openInBrowser": "在浏览器中打开",
+        "step2Title": "2. 将下载的文件保存到指定路径：",
+        "copyPath": "复制目标路径",
+        "openFolder": "打开目标文件夹",
+        "step3Title": "3. 完成安装：",
+        "archiveFooter": "文件放入上述目录后，点击上方的「下载」按钮，应用会自动识别并解压生效。",
+        "rescan": "重新扫描",
+        "copied": "已复制",
+        "copyFailed": "复制失败"
+    },
     "engine": {
         "title": "选择 AI 能力的来源",
         "description": "字幕翻译、查词释义等 AI 能力可以在本地运行，也可以接入云端 API，之后随时可以在设置里更改。",
@@ -58,6 +72,8 @@
         "localModelDownload": "下载",
         "localModelCancel": "取消下载",
         "localModelMemory": "约 {{gb}} GB 内存",
+        "localModelCustom": "自定义",
+        "localModelManualFooter": "手动下载的 GGUF 文件放入上述目录后，点击「重新扫描」，模型会出现在上方列表（带自定义标记），选中后即可应用。",
         "localModelApply": "使用本地引擎",
         "localModelApplied": "本地引擎已就绪，字幕翻译与词典将使用本地模型。",
         "cloudKeyLabel": "API Key",
