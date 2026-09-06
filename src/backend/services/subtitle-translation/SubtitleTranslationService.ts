@@ -6,10 +6,13 @@ import ClientProviderService from '@/backend/services/ClientProviderService';
 import ModelRoutingService from '@/backend/services/ModelRoutingService';
 import SettingService from '@/backend/services/SettingService';
 import type LocalAiService from '@/backend/services/LocalAiService';
-import SubtitleTranslationGateway, {
+import LocalSubtitleBatchTranslator from '@/backend/services/gateways/translate/LocalSubtitleBatchTranslator';
+import OpenAiSubtitleBatchTranslator from '@/backend/services/gateways/translate/OpenAiSubtitleBatchTranslator';
+import {
+    SubtitleBatchTranslationInput,
     SubtitleTranslationResultItem,
     SubtitleTranslationTarget,
-} from '@/backend/services/gateways/translate/SubtitleTranslationGateway';
+} from '@/backend/services/gateways/translate/SubtitleBatchTranslationInput';
 import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
 import { TencentTranslateClient } from '@/backend/services/gateways/translate/TencentTranslateClient';
 import SentenceTranslatesRepository from '@/backend/services/repositories/SentenceTranslatesRepository';
@@ -29,7 +32,6 @@ import {
 } from '@/backend/services/subtitle-translation/SubtitleTranslationStorageMode';
 import { concurrency } from '@/backend/utils/concurrency';
 import {
-    buildSubtitleBatchPrompt,
     resolveSubtitleStyleWithSignature,
 } from '@/common/constants/openaiSubtitlePrompts';
 import { Sentence } from '@/common/types/SentenceC';
@@ -228,8 +230,11 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
     @inject(TYPES.TencentClientProvider)
     private tencentProvider!: ClientProviderService<TencentTranslateClient>;
 
-    @inject(TYPES.SubtitleTranslationGateway)
-    private subtitleGateway!: SubtitleTranslationGateway;
+    @inject(TYPES.OpenAiSubtitleBatchTranslator)
+    private openAiSubtitleTranslator!: OpenAiSubtitleBatchTranslator;
+
+    @inject(TYPES.LocalSubtitleBatchTranslator)
+    private localSubtitleTranslator!: LocalSubtitleBatchTranslator;
 
     /** 按字幕文件维护事件驱动的优先级翻译窗口。 */
     private readonly scheduler =
@@ -897,23 +902,20 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
         const contextAfter = this.buildContextItem(
             request.context.sentencesByIndex.get(lastIndex + 1)
         );
-        const prompt = buildSubtitleBatchPrompt({
+        const input: SubtitleBatchTranslationInput = {
             targets: targetItems,
             contextBefore: contextBefore ? [contextBefore] : [],
             contextAfter: contextAfter ? [contextAfter] : [],
-        }, style);
-        const translationDescription = this.getTranslationDescription(request.context.mode);
-        this.throwIfAborted(request.signal);
-        const items = await this.subtitleGateway.translate({
-            prompt,
-            translationDescription,
-            engine: request.context.localModelId
-                ? { kind: 'local', modelId: request.context.localModelId }
-                : { kind: 'openai' },
+            mode: request.context.mode,
+            style,
             signal: request.signal,
-        });
-        const validated = this.validateGatewayItems(targetItems, items);
-        return validated;
+        };
+        this.throwIfAborted(request.signal);
+        // 引擎路由由已解析的设置决定；提示词拼装与输出细节各自归基础设施。
+        const items = request.context.localModelId
+            ? await this.localSubtitleTranslator.translate({ ...input, modelId: request.context.localModelId })
+            : await this.openAiSubtitleTranslator.translate(input);
+        return this.validateGatewayItems(targetItems, items);
     }
 
     /**
@@ -934,18 +936,19 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
         if (!style) {
             throw new Error('OpenAI 字幕翻译风格配置缺失');
         }
-        const prompt = buildSubtitleBatchPrompt({
-            targets,
+        // 独立直翻场景没有播放窗口，不携带上下文。
+        const input: SubtitleBatchTranslationInput = {
+            targets: [...targets],
             contextBefore: [],
             contextAfter: [],
-        }, style);
-        const items = await this.subtitleGateway.translate({
-            prompt,
-            translationDescription: this.getTranslationDescription(mode),
-            engine: localModelId ? { kind: 'local', modelId: localModelId } : { kind: 'openai' },
+            mode,
+            style,
             signal: new AbortController().signal,
-        });
-        return this.validateGatewayItems(targets, items);
+        };
+        const items = localModelId
+            ? await this.localSubtitleTranslator.translate({ ...input, modelId: localModelId })
+            : await this.openAiSubtitleTranslator.translate(input);
+        return this.validateGatewayItems(input.targets, items);
     }
 
     /**
@@ -1012,22 +1015,6 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             key: sentence.translationKey,
             text,
         };
-    }
-
-    /**
-     * 返回当前模式下 translation 字段的结构说明。
-     *
-     * @param mode 当前字幕模式。
-     * @returns 英文结构字段说明。
-     */
-    private getTranslationDescription(mode: TranslationMode): string {
-        if (mode === 'zh') {
-            return 'The translated sentence in Simplified Chinese.';
-        }
-        if (mode === 'simple_en') {
-            return 'The simplified English sentence that preserves the original meaning and subtitle readability.';
-        }
-        return 'The generated subtitle sentence that follows the custom style.';
     }
 
     /**

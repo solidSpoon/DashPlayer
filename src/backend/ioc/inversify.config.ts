@@ -54,8 +54,10 @@ import SubtitleTranslationService, {
 } from '@/backend/services/subtitle-translation/SubtitleTranslationService';
 import { YouDaoDictionaryClient } from '@/backend/services/gateways/translate/YouDaoDictionaryClient';
 import { TencentTranslateClient } from '@/backend/services/gateways/translate/TencentTranslateClient';
-import SubtitleTranslationGateway from '@/backend/services/gateways/translate/SubtitleTranslationGateway';
-import SubtitleTranslationGatewayImpl from '@/backend/infrastructure/translate/SubtitleTranslationGatewayImpl';
+import OpenAiSubtitleBatchTranslator from '@/backend/services/gateways/translate/OpenAiSubtitleBatchTranslator';
+import LocalSubtitleBatchTranslator from '@/backend/services/gateways/translate/LocalSubtitleBatchTranslator';
+import OpenAiSubtitleBatchTranslatorImpl from '@/backend/infrastructure/translate/OpenAiSubtitleBatchTranslatorImpl';
+import LocalSubtitleBatchTranslatorImpl from '@/backend/infrastructure/translate/LocalSubtitleBatchTranslatorImpl';
 import ConfigStoreFactoryImpl from '@/backend/infrastructure/config/ConfigStoreFactoryImpl';
 import { ConfigStoreFactory } from '@/backend/services/gateways/ConfigStore';
 import { SettingsStore } from '@/backend/services/gateways/SettingsStore';
@@ -127,8 +129,11 @@ container.bind<ConfigStoreFactory>(TYPES.ConfigStoreFactory).to(ConfigStoreFacto
 container.bind<SettingsStore>(TYPES.SettingsStore).to(SettingsStoreImpl).inSingletonScope();
 container.bind<ModelRoutingService>(TYPES.ModelRoutingService).to(ModelRoutingServiceImpl).inSingletonScope();
 container.bind<AiProviderService>(TYPES.AiProviderService).to(AiProviderServiceImpl).inSingletonScope();
-container.bind<SubtitleTranslationGateway>(TYPES.SubtitleTranslationGateway)
-    .to(SubtitleTranslationGatewayImpl)
+container.bind<OpenAiSubtitleBatchTranslator>(TYPES.OpenAiSubtitleBatchTranslator)
+    .to(OpenAiSubtitleBatchTranslatorImpl)
+    .inSingletonScope();
+container.bind<LocalSubtitleBatchTranslator>(TYPES.LocalSubtitleBatchTranslator)
+    .to(LocalSubtitleBatchTranslatorImpl)
     .inSingletonScope();
 // Controllers
 container.bind<Controller>(TYPES.Controller).to(FavoriteClipsController).inSingletonScope();
