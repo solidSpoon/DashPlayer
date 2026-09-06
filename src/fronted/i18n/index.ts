@@ -13,6 +13,8 @@ import zhPlayer from '@/fronted/i18n/locales/zh-CN/player.json';
 import enPlayer from '@/fronted/i18n/locales/en-US/player.json';
 import zhPages from '@/fronted/i18n/locales/zh-CN/pages.json';
 import enPages from '@/fronted/i18n/locales/en-US/pages.json';
+import zhOnboarding from '@/fronted/i18n/locales/zh-CN/onboarding.json';
+import enOnboarding from '@/fronted/i18n/locales/en-US/onboarding.json';
 import zhCommon from '@/fronted/i18n/locales/zh-CN/common.json';
 import enCommon from '@/fronted/i18n/locales/en-US/common.json';
 
@@ -29,6 +31,7 @@ export const resources = {
         errors: zhErrors,
         player: zhPlayer,
         pages: zhPages,
+        onboarding: zhOnboarding,
         common: zhCommon,
     },
     'en-US': {
@@ -38,6 +41,7 @@ export const resources = {
         errors: enErrors,
         player: enPlayer,
         pages: enPages,
+        onboarding: enOnboarding,
         common: enCommon,
     },
 };

@@ -1,11 +1,14 @@
 import { createRoot } from 'react-dom/client';
 import React, { useEffect } from 'react';
 import useSetting from '@/fronted/features/settings/settingsStore';
-import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
+import { HashRouter, Navigate, Route, Routes, useNavigate } from 'react-router-dom';
 import HomePage from '@/fronted/features/file-browser/HomePage';
 import TitleBarLayout from '@/fronted/pages/TieleBarLayout';
 import PlayerPage from '@/fronted/features/player/PlayerPage';
 import Layout from '@/fronted/pages/Layout';
+import OnboardingPage from '@/fronted/features/onboarding/OnboardingPage';
+import { onboardingApi } from '@/fronted/features/onboarding/onboardingApi';
+import { getRendererLogger } from '@/fronted/log/simple-logger';
 import SettingLayout from '@/fronted/features/settings/SettingLayout';
 import ShortcutSetting from '@/fronted/features/settings/ShortcutSetting';
 import StorageSetting from '@/fronted/features/settings/StorageSetting';
@@ -31,6 +34,27 @@ import { applyLanguageSetting } from '@/fronted/i18n';
 
 const UPDATE_CHECK_DELAY_MS = 6000;
 const UPDATE_TOAST_ID = 'update-available';
+
+/**
+ * 引导门卫：启动时查询引导状态，需要展示时跳转到引导页。
+ *
+ * 状态查询失败时只记录错误，不阻塞主界面；下次启动会重新判定。
+ */
+const OnboardingGate = () => {
+    const navigate = useNavigate();
+    useEffect(() => {
+        onboardingApi.getStatus()
+            .then((status) => {
+                if (status.shouldShow) {
+                    navigate('/onboarding');
+                }
+            })
+            .catch((error) => {
+                getRendererLogger('OnboardingGate').error('failed to load onboarding status', { error });
+            });
+    }, [navigate]);
+    return null;
+};
 const App = () => {
     const { t } = useI18nTranslation('toast');
     const theme = useSetting((s) => s.values.get('appearance.theme'));
@@ -87,6 +111,7 @@ const App = () => {
         <>
             <div className="w-full h-screen text-black overflow-hidden select-none font-sans">
                 <HashRouter>
+                    <OnboardingGate />
                     <Routes>
                         <Route path="/" element={<HomePage />} />
                         <Route path="home" element={<HomePage />} />
@@ -95,6 +120,7 @@ const App = () => {
                                 path="player/:videoId"
                                 element={<PlayerPage />}
                             />
+                            <Route path="onboarding" element={<OnboardingPage />} />
                             <Route path="*" element={<Layout />}>
                                 <Route
                                     path="transcript"
