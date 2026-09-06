@@ -13,6 +13,7 @@ const TYPES = {
     MainWindowRegistry: Symbol('MainWindowRegistry'),
     WindowPort: Symbol('WindowPort'),
     SystemConfigService: Symbol('SystemConfigService'),
+    OnboardingService: Symbol('OnboardingService'),
     CacheService: Symbol('CacheService'),
     SettingService: Symbol('SettingService'),
     StorageDirectoryProvider: Symbol('StorageDirectoryProvider'),

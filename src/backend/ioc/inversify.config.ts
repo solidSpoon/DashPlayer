@@ -2,6 +2,8 @@ import { Container } from 'inversify';
 import { LocalAiController } from '@/backend/controllers/LocalAiController';
 import { LocalAiRuntime } from '@/backend/infrastructure/ai/LocalAiRuntime';
 import type LocalAiService from '@/backend/services/LocalAiService';
+import { OnboardingController } from '@/backend/controllers/OnboardingController';
+import OnboardingService, { OnboardingServiceImpl } from '@/backend/services/OnboardingService';
 import TYPES from './types';
 import FavoriteClipsController from '@/backend/controllers/FavoriteClipsController';
 import Controller from '@/backend/controllers/Controller';
@@ -148,6 +150,8 @@ container.bind<Controller>(TYPES.Controller).to(SettingsController).inSingletonS
 container.bind<Controller>(TYPES.Controller).to(ParakeetModelController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(LocalAiController).inSingletonScope();
 container.bind<LocalAiService>(TYPES.LocalAiService).to(LocalAiRuntime).inSingletonScope();
+container.bind<Controller>(TYPES.Controller).to(OnboardingController).inSingletonScope();
+container.bind<OnboardingService>(TYPES.OnboardingService).to(OnboardingServiceImpl).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(SherpaTtsModelController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VocabularyController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VideoLearningApiController).inSingletonScope();

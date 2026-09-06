@@ -42,6 +42,7 @@ import {
 import { ModelInstallationStatusVO } from '@/common/types/vo/model-installation-vo';
 import { VideoInfo } from '@/common/types/video-info';
 import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
+import type { OnboardingStatusVO } from '@/common/contracts/onboarding';
 import { TranscriptTask } from '@/common/contracts/transcript/transcript-task';
 
 /** 跨进程请求与返回值契约。 */
@@ -237,6 +238,11 @@ interface StorageDef {
     'storage/collection/paths': { params: void, return: string[] };
 }
 
+interface OnboardingDef {
+    'onboarding/status': { params: void, return: OnboardingStatusVO };
+    'onboarding/complete': { params: void, return: void };
+}
+
 interface SettingsDef {
     'settings/runtime/detail': { params: void, return: RuntimeSettingsSnapshot };
     'settings/runtime/save': { params: RuntimeSettingSaveRequest, return: void };
@@ -409,6 +415,7 @@ export type ApiDefinitions = ApiDefinition
     & MediaDef
     & SubtitleTimestampAdjustmentControllerDef
     & StorageDef
+    & OnboardingDef
     & SettingsDef
     & ParakeetModelDef
     & ConvertDef
