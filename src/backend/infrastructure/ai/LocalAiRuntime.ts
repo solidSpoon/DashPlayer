@@ -29,9 +29,12 @@ import {
 } from '@/common/contracts/local-ai';
 import type RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
 
+/** 本地生成的 completion token 上限；与采样参数一同约束输出规模。 */
+const MAX_COMPLETION_TOKENS = 2048;
+
 const responseSchema = z.object({ choices: z.array(z.object({
-    finish_reason: z.literal('stop'),
-    message: z.object({ content: z.string().min(1) }),
+    finish_reason: z.string(),
+    message: z.object({ content: z.string() }),
 })).length(1) });
 
 /** 速度测试响应中 token 用量的宽松解析；推理端未返回用量时为 undefined。 */
@@ -527,7 +530,20 @@ export class LocalAiRuntime implements LocalAiService {
             const startedAt = Date.now();
             try {
                 const result = responseSchema.parse(await this.postChat(endpoint, this.buildChatBody(model.id, prompt, schema), combined));
-                const parsed: unknown = JSON.parse(result.choices[0].message.content);
+                const finishReason = result.choices[0].finish_reason;
+                if (finishReason !== 'stop') {
+                    // length：输出顶到 max_tokens 上限被截断，JSON 必然不完整；
+                    // 其余原因原样透出，避免 zod 天书直接冒给用户。
+                    throw new Error(finishReason === 'length'
+                        ? `本地模型输出超过单次 ${MAX_COMPLETION_TOKENS} token 上限被截断（多为模型输出循环），请重试`
+                        : `本地模型输出未正常结束（finish_reason=${finishReason}）`);
+                }
+                let parsed: unknown;
+                try {
+                    parsed = JSON.parse(result.choices[0].message.content);
+                } catch (error) {
+                    throw new Error(`本地模型返回的 JSON 无法解析：${error instanceof Error ? error.message : String(error)}`);
+                }
                 this.logger.info('local generation completed', { model: model.id, durationMs: Date.now() - startedAt });
                 return parsed;
             } catch (error) {
@@ -635,7 +651,7 @@ export class LocalAiRuntime implements LocalAiService {
             model: modelId,
             messages: [{ role: 'user', content: prompt }],
             stream: false, temperature: 0.6, top_p: 0.95, top_k: 20,
-            max_tokens: 2048,
+            max_tokens: MAX_COMPLETION_TOKENS,
             response_format: { type: 'json_object', schema },
             chat_template_kwargs: { enable_thinking: false },
         };
