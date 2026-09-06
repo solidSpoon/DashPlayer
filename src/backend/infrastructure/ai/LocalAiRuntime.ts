@@ -75,8 +75,8 @@ export class LocalAiRuntime implements LocalAiService {
     }
 
     /** 估算模型运行内存占用；约为文件体积的 1.5 倍，覆盖权重 + KV cache + 推理缓冲。 */
-    private memoryLabel(bytes: number): string {
-        return `内存约 ${(bytes * 1.5 / 1024 / 1024 / 1024).toFixed(1)} GB`;
+    private memoryEstimateGb(bytes: number): string {
+        return (bytes * 1.5 / 1024 / 1024 / 1024).toFixed(1);
     }
 
     /**
@@ -139,17 +139,25 @@ export class LocalAiRuntime implements LocalAiService {
         return getRuntimeResourcePath('lib', 'llama', 'b10819', `${process.platform}-${process.arch}`, process.platform === 'win32' ? 'llama-server.exe' : 'llama-server');
     }
 
-    /** 返回各平台官方运行包中必须与 llama-server 同目录存在的动态库。 */
-    private async runtimeDependencyReady(): Promise<boolean> {
-        const directory = path.dirname(this.runtimePath());
-        const prefix = process.platform === 'darwin' ? 'libmtmd' : process.platform === 'win32' ? 'mtmd' : 'libmtmd';
+    /**
+     * 运行时是否就绪：以安装脚本写入的 .complete 标记为准。
+     *
+     * 依赖库清单由 scripts/download.mjs 在安装时校验并写入标记，运行时侧不重复
+     * 复刻清单，避免两份列表漂移后各自判定不一致。
+     */
+    private async runtimeMarkerReady(): Promise<boolean> {
         try {
-            const entries = await fs.promises.readdir(directory);
-            return entries.includes('.complete') && entries.some((file) => file.startsWith(prefix) && (file.endsWith('.dylib') || file.endsWith('.so') || file.endsWith('.dll')));
+            const entries = await fs.promises.readdir(path.dirname(this.runtimePath()));
+            return entries.includes('.complete');
         } catch (error) {
             if ((error as NodeJS.ErrnoException).code === 'ENOENT') return false;
             throw error;
         }
+    }
+
+    /** 返回完整的运行时就绪判断：可执行文件存在且安装标记完整。 */
+    private async runtimeReady(): Promise<boolean> {
+        return await this.fileSize(this.runtimePath()) > 0 && await this.runtimeMarkerReady();
     }
 
     /** 推送节流后的下载快照；阶段变化和终态始终立即发出。 */
@@ -190,7 +198,7 @@ export class LocalAiRuntime implements LocalAiService {
                 file: model.file,
                 bytes: model.bytes,
                 sizeLabel: model.sizeLabel,
-                memoryLabel: this.memoryLabel(model.bytes),
+                memoryEstimateGb: this.memoryEstimateGb(model.bytes),
                 ready: await this.fileSize(modelPath) === model.bytes,
                 phase: downloading ? this.phase : 'idle',
                 downloaded: downloading ? this.downloaded : await this.fileSize(`${modelPath}.part`),
@@ -207,7 +215,7 @@ export class LocalAiRuntime implements LocalAiService {
             file: model.file,
             bytes: model.bytes,
             sizeLabel: model.sizeLabel,
-            memoryLabel: this.memoryLabel(model.bytes),
+            memoryEstimateGb: this.memoryEstimateGb(model.bytes),
             ready: true,
             phase: 'idle' as const,
             downloaded: model.bytes,
@@ -218,8 +226,7 @@ export class LocalAiRuntime implements LocalAiService {
             custom: true,
         })));
         return {
-            runtimeReady: await this.fileSize(this.runtimePath()) > 0
-                && await this.runtimeDependencyReady(),
+            runtimeReady: await this.runtimeReady(),
             running: this.child !== null,
             activeModelId: await this.getActiveModelId(),
             modelsDirectory: await this.modelsDirectory(),
@@ -345,10 +352,13 @@ export class LocalAiRuntime implements LocalAiService {
     public async deleteModel(modelId: string): Promise<void> {
         const model = await this.resolveModelDefinition(modelId);
         if (this.activeDownload?.modelId === modelId) throw new Error('模型正在下载，请先取消下载');
+        // busy 计数必须在任何 await 之前递增，否则推理请求可能落在检查与递增之间。
         if (this.busy > 0) throw new Error('本地模型正在使用，请稍后删除');
-        if (modelId === await this.getActiveModelId()) throw new Error(`「${model.name}」是使用中的本地模型，请先在服务凭据页切换到其他模型`);
         this.busy++;
         try {
+            if (modelId === await this.getActiveModelId()) {
+                throw new Error(`「${model.name}」是使用中的本地模型，请先在服务凭据页切换到其他模型`);
+            }
             await this.stop();
             const modelPath = await this.modelPath(model);
             await fs.promises.rm(modelPath, { force: true });
@@ -371,6 +381,13 @@ export class LocalAiRuntime implements LocalAiService {
         });
     }
 
+    /** 判断加载轮询中捕获的错误是否属于“进程仍在启动”的可重试状态。 */
+    private static isRuntimeWarmingUp(error: unknown): boolean {
+        if (!axios.isAxiosError(error)) return false;
+        if (error.code === 'ECONNREFUSED' || error.code === 'ECONNABORTED') return true;
+        return error.response?.status === 503;
+    }
+
     /** 按需加载模型，使用随机鉴权密钥并等待就绪；加载失败会结束子进程。 */
     private async start(model: LocalAiModelDefinition, signal: AbortSignal): Promise<string> {
         const modelPath = await this.modelPath(model);
@@ -379,8 +396,9 @@ export class LocalAiRuntime implements LocalAiService {
         if (await this.fileSize(modelPath) !== model.bytes) {
             throw new Error(`本地模型「${model.name}」未安装，请前往设置-服务凭据下载`);
         }
-        const status = await this.getStatus();
-        if (!status.runtimeReady) throw new Error('llama.cpp 运行时缺失，请重新执行 yarn run download 或重新安装应用');
+        if (!(await this.runtimeReady())) {
+            throw new Error('llama.cpp 运行时缺失，请重新执行 yarn run download 或重新安装应用');
+        }
         const port = await this.reservePort();
         signal.throwIfAborted();
         const endpoint = `http://127.0.0.1:${port}`;
@@ -421,7 +439,7 @@ export class LocalAiRuntime implements LocalAiService {
                     this.endpoint = endpoint; this.loadedPath = modelPath;
                     return endpoint;
                 } catch (error) {
-                    if (!axios.isAxiosError(error) || !['ECONNREFUSED', 'ECONNABORTED'].includes(error.code ?? '') && error.response?.status !== 503) throw error;
+                    if (!LocalAiRuntime.isRuntimeWarmingUp(error)) throw error;
                 }
                 await delay(250, undefined, { signal: loadingSignal });
             }

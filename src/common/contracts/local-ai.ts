@@ -89,8 +89,8 @@ export interface LocalAiModelStatus {
     bytes: number;
     /** 展示用大小标签。 */
     sizeLabel: string;
-    /** 运行时内存占用估算标签，按模型体积约 1.5 倍估算（权重 + KV cache + 推理缓冲）。 */
-    memoryLabel: string;
+    /** 运行时内存估算值（GB，保留一位小数），按模型体积约 1.5 倍估算（权重 + KV cache + 推理缓冲）；文案由前端按语言格式化。 */
+    memoryEstimateGb: string;
     /** 是否已完整安装。 */
     ready: boolean;
     /** 下载任务阶段；自定义模型恒为 idle。 */

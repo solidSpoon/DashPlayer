@@ -327,10 +327,23 @@
             "appKey": "App Key"
         },
         "localAi": {
+            "cardTitle": "Local AI models",
+            "cardDescription": "Qwen3.5 GGUF models for offline subtitle translation and dictionary lookup. Download multiple models, one of which is active and shared by all local features. You can also drop in your own GGUF files.",
             "inUse": "In use",
             "readyNotInUse": "Downloaded",
             "use": "Set as active",
-            "useSuccess": "Now the active model; all local features share it"
+            "useSuccess": "Now the active model; all local features share it",
+            "custom": "Custom",
+            "phaseDownloading": "Downloading",
+            "phaseVerifying": "Verifying",
+            "cancelDownload": "Cancel download",
+            "checkRun": "Test run",
+            "checkSuccess": "Minimal inference check passed",
+            "deleteSuccess": "Model deleted",
+            "memoryEstimate": "~{{gb}} GB memory",
+            "rescan": "Rescan",
+            "runtimeReady": "The llama.cpp runtime is ready; all models share it.",
+            "runtimeMissing": "Runtime not installed: run `yarn run download` again or reinstall the app."
         }
     }
 }

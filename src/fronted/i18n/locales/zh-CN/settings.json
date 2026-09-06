@@ -327,10 +327,23 @@
             "appKey": "应用密钥"
         },
         "localAi": {
+            "cardTitle": "本地 AI 模型",
+            "cardDescription": "Qwen3.5 系列 GGUF 模型，供字幕翻译和词典查询离线使用；可下载多个模型，其中一个作为使用中的模型，全部本地功能共用。也支持手动放入其他 GGUF 模型。",
             "inUse": "使用中",
             "readyNotInUse": "已下载",
             "use": "设为使用",
-            "useSuccess": "已设为使用中，全部本地功能将共用该模型"
+            "useSuccess": "已设为使用中，全部本地功能将共用该模型",
+            "custom": "自定义",
+            "phaseDownloading": "下载中",
+            "phaseVerifying": "校验中",
+            "cancelDownload": "取消下载",
+            "checkRun": "检查运行",
+            "checkSuccess": "最小推理检查通过",
+            "deleteSuccess": "模型已删除",
+            "memoryEstimate": "内存约 {{gb}} GB",
+            "rescan": "重新扫描",
+            "runtimeReady": "llama.cpp 运行时已就绪，所有模型共用同一运行时。",
+            "runtimeMissing": "运行时未安装：请重新执行 yarn run download 或重新安装应用"
         }
     }
 }

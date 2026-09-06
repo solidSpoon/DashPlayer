@@ -214,7 +214,7 @@ const ServiceCredentialSetting = () => {
                 ),
             } : current);
             if (progress.phase === 'idle') {
-                settingsApi.getLocalAiStatus().then(setLocalAiStatus).catch(() => null);
+                refreshLocalAiStatus();
             }
         };
         window.addEventListener('local-ai-model-download-progress', handler);
@@ -235,7 +235,7 @@ const ServiceCredentialSetting = () => {
         catch (error) { toast.error(`${name}：${error instanceof Error ? error.message : String(error)}`); }
         finally {
             setLocalAiBusy(false);
-            settingsApi.getLocalAiStatus().then(setLocalAiStatus).catch(() => null);
+            refreshLocalAiStatus();
         }
     };
 
@@ -255,7 +255,7 @@ const ServiceCredentialSetting = () => {
                 toast.error(`${name}：${error instanceof Error ? error.message : String(error)}`);
             }
         } finally {
-            settingsApi.getLocalAiStatus().then(setLocalAiStatus).catch(() => null);
+            refreshLocalAiStatus();
         }
     };
 
@@ -266,7 +266,7 @@ const ServiceCredentialSetting = () => {
         catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
         finally {
             setLocalAiBusy(false);
-            settingsApi.getLocalAiStatus().then(setLocalAiStatus).catch(() => null);
+            refreshLocalAiStatus();
         }
     };
 
@@ -850,7 +850,11 @@ const ServiceCredentialSetting = () => {
                     </div>
                 </SettingCard>
 
-                <SettingCard title="本地 AI 模型" description="Qwen3.5 系列 GGUF 模型，供字幕翻译和词典查询离线使用；可下载多个模型，其中一个作为使用中的模型，全部本地功能共用。也支持手动放入其他 GGUF 模型。" icon={Bot}>
+                <SettingCard
+                    title={t('serviceCredentials.localAi.cardTitle')}
+                    description={t('serviceCredentials.localAi.cardDescription')}
+                    icon={Bot}
+                >
                     <div className="flex flex-col gap-3 p-4">
                         {localAiStatus?.models.map((model) => {
                             const anyDownloading = (localAiStatus?.models.some((item) => item.phase !== 'idle')) ?? false;
@@ -860,9 +864,9 @@ const ServiceCredentialSetting = () => {
                                         <div className="flex items-center gap-2.5 flex-wrap">
                                             <span className="text-sm font-semibold text-foreground">{model.name}</span>
                                             <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">{model.sizeLabel}</span>
-                                            <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">{model.memoryLabel}</span>
+                                            <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">{t('serviceCredentials.localAi.memoryEstimate', { gb: model.memoryEstimateGb })}</span>
                                             {model.custom && (
-                                                <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">自定义</span>
+                                                <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">{t('serviceCredentials.localAi.custom')}</span>
                                             )}
                                             {model.ready && model.modelId === localAiStatus.activeModelId ? (
                                                 <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
@@ -873,9 +877,12 @@ const ServiceCredentialSetting = () => {
                                                 <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
                                                     {t('serviceCredentials.localAi.readyNotInUse')}
                                                 </span>
-                                            ) : model.phase !== 'idle' ? (                                                <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
+                                            ) : model.phase !== 'idle' ? (
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
                                                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                                                    {model.phase === 'verifying' ? '校验中' : '下载中'}
+                                                    {model.phase === 'verifying'
+                                                        ? t('serviceCredentials.localAi.phaseVerifying')
+                                                        : t('serviceCredentials.localAi.phaseDownloading')}
                                                 </span>
                                             ) : (
                                                 <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
@@ -893,7 +900,7 @@ const ServiceCredentialSetting = () => {
                                             {!model.ready && model.phase !== 'idle' && (
                                                 <Button type="button" variant="outline" size="sm" disabled={localAiBusy} onClick={() => cancelLocalAiDownload()}>
                                                     <Square className="mr-1.5 h-3.5 w-3.5 text-destructive" />
-                                                    取消下载
+                                                    {t('serviceCredentials.localAi.cancelDownload')}
                                                 </Button>
                                             )}
                                             {model.ready && model.modelId !== localAiStatus.activeModelId && (
@@ -903,13 +910,13 @@ const ServiceCredentialSetting = () => {
                                                 </Button>
                                             )}
                                             {model.ready && (
-                                                <Button type="button" variant="outline" size="sm" disabled={localAiBusy} onClick={() => runLocalAiAction(model.modelId, model.name, () => settingsApi.checkLocalAi(model.modelId), '最小推理检查通过')}>
+                                                <Button type="button" variant="outline" size="sm" disabled={localAiBusy} onClick={() => runLocalAiAction(model.modelId, model.name, () => settingsApi.checkLocalAi(model.modelId), t('serviceCredentials.localAi.checkSuccess'))}>
                                                     <TestTube className="mr-1.5 h-3.5 w-3.5" />
-                                                    检查运行
+                                                    {t('serviceCredentials.localAi.checkRun')}
                                                 </Button>
                                             )}
                                             {model.ready && (
-                                                <Button type="button" variant="ghost" size="sm" disabled={localAiBusy} onClick={() => runLocalAiAction(model.modelId, model.name, () => settingsApi.deleteLocalAi(model.modelId), '模型已删除')}>
+                                                <Button type="button" variant="ghost" size="sm" disabled={localAiBusy} onClick={() => runLocalAiAction(model.modelId, model.name, () => settingsApi.deleteLocalAi(model.modelId), t('serviceCredentials.localAi.deleteSuccess'))}>
                                                     <Trash2 className="mr-1.5 h-3.5 w-3.5" />
                                                     删除
                                                 </Button>
@@ -982,12 +989,14 @@ const ServiceCredentialSetting = () => {
                                     </span>
                                 </div>
                                 <Button type="button" variant="outline" size="sm" className="h-7 text-xs" disabled={localAiBusy} onClick={refreshLocalAiStatus}>
-                                    重新扫描
+                                    {t('serviceCredentials.localAi.rescan')}
                                 </Button>
                             </div>
                         </details>
                         <div className="text-xs text-muted-foreground">
-                            {localAiStatus?.runtimeReady ? 'llama.cpp 运行时已就绪，所有模型共用同一运行时。' : '运行时未安装：请重新执行 yarn run download 或重新安装应用'}
+                            {localAiStatus?.runtimeReady
+                                ? t('serviceCredentials.localAi.runtimeReady')
+                                : t('serviceCredentials.localAi.runtimeMissing')}
                         </div>
                     </div>
                 </SettingCard>

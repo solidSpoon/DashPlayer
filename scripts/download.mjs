@@ -386,6 +386,8 @@ const arch = process.env.npm_config_arch || os.arch()
             outputPath: ttsExePath,
             binaryNameCandidates: [ttsExeName],
         });
+        // .complete 标记是“安装侧完成校验”的唯一凭据，LocalAiRuntime 只检查该标记，
+        // 不在运行时侧复刻依赖库清单，避免两份清单漂移。
         fs.writeFileSync(path.join(llamaDir, '.complete'), `${llamaVersion}\n`);
     }
 }

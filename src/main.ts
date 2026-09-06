@@ -264,9 +264,16 @@ app.on('before-quit', (event) => {
     logger.info('app before quit');
     if (localAiStopped) return;
     event.preventDefault();
-    void container.get<LocalAiService>(TYPES.LocalAiService).shutdown().catch((error) => {
+    try {
+        void container.get<LocalAiService>(TYPES.LocalAiService).shutdown().catch((error) => {
+            logger.error('local AI shutdown failed', { error });
+        }).finally(() => { localAiStopped = true; app.quit(); });
+    } catch (error) {
+        // 容器未初始化等同步异常也必须继续退出，否则应用会卡在“退不出”状态。
         logger.error('local AI shutdown failed', { error });
-    }).finally(() => { localAiStopped = true; app.quit(); });
+        localAiStopped = true;
+        app.quit();
+    }
 });
 app.on('activate', () => {
     // On OS X it's common to re-create a window in the app when the
