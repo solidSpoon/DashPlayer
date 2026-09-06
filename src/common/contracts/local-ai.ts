@@ -18,18 +18,8 @@ export interface LocalAiModelDefinition {
     source: 'catalog' | 'custom';
 }
 
-/** 可下载的本地模型目录，按从小到大排列；同一家族保证提示词与推理参数行为一致。 */
+/** 可下载的本地模型目录；同一家族保证提示词与推理参数行为一致。 */
 export const LOCAL_AI_MODELS: readonly LocalAiModelDefinition[] = [
-    {
-        id: 'qwen3.5-0.8b-q4_k_m',
-        name: 'Qwen3.5 0.8B Q4_K_M',
-        file: 'Qwen3.5-0.8B-Q4_K_M.gguf',
-        bytes: 532517120,
-        sizeLabel: '~533 MB',
-        url: 'https://huggingface.co/unsloth/Qwen3.5-0.8B-GGUF/resolve/main/Qwen3.5-0.8B-Q4_K_M.gguf',
-        sha256: 'bd258782e35f7f458f8aced1adc053e6e92e89bc735ba3be89d38a06121dc517',
-        source: 'catalog',
-    },
     {
         id: 'qwen3.5-2b-q4_k_m',
         name: 'Qwen3.5 2B Q4_K_M',
@@ -75,27 +65,6 @@ export function requireLocalAiModel(modelId: string): LocalAiModelDefinition {
         throw new Error(`未知的本地模型：${modelId}`);
     }
     return found;
-}
-
-/** 本地推理的 GPU 后端模式：metal 固定开启，vulkan 由用户开关，cpu 固定关闭。 */
-export type LocalAiGpuMode = 'metal' | 'vulkan' | 'cpu';
-
-/**
- * 判定当前平台 llama.cpp 官方运行包提供的 GPU 后端。
- *
- * 与 scripts/download.mjs 的包选择一一对应：macOS arm64 为 Metal 包；
- * Linux x64/arm64 与 Windows x64 为 Vulkan 包；Windows arm64 官方无 Vulkan 包，
- * Intel Mac 的 Metal 收益不稳，两者统一按 CPU 处理。
- *
- * @param platform 平台标识，默认取当前进程。
- * @param arch 架构标识，默认取当前进程。
- * @returns 当前平台可用的 GPU 后端模式。
- */
-export function localAiGpuMode(platform: string = process.platform, arch: string = process.arch): LocalAiGpuMode {
-    if (platform === 'darwin' && arch === 'arm64') return 'metal';
-    if (platform === 'linux' && (arch === 'x64' || arch === 'arm64')) return 'vulkan';
-    if (platform === 'win32' && arch === 'x64') return 'vulkan';
-    return 'cpu';
 }
 
 /** 单个本地模型的安装与下载状态；大小单位为字节。 */
@@ -158,8 +127,4 @@ export interface LocalAiStatus {
     modelsDirectory: string;
     /** 按目录顺序列出目录模型，末尾追加用户手动放入的自定义模型。 */
     models: LocalAiModelStatus[];
-    /** 当前平台的 GPU 后端模式；vulkan 平台可在设置页开关，metal 固定开启，cpu 固定关闭。 */
-    gpuMode: LocalAiGpuMode;
-    /** GPU 加速开关当前取值；vulkan 平台来自设置，metal 平台恒为 true，cpu 平台恒为 false。 */
-    gpuEnabled: boolean;
 }

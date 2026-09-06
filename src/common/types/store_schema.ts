@@ -41,8 +41,6 @@ export const SettingKeyObj = {
     'models.openai.subtitleTranslation': 'gpt-5.4-nano',
     'models.openai.dictionary': 'gpt-5.4-nano',
     'models.local.active': LOCAL_AI_DEFAULT_MODEL_ID,
-    // 本地模型 GPU 加速开关（Vulkan 平台生效）；默认开启，显卡/驱动不支持时由用户显式关闭。
-    'models.local.gpu': 'true',
     'subtitleTranslation.engine': 'openai',
     'dictionary.engine': 'openai',
     // Service function enablement

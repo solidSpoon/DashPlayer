@@ -14,10 +14,6 @@ export class LocalAiController implements Controller {
     public registerRoutes(): void {
         registerRoute('local-ai/status', () => this.localAi.getStatus());
         registerRoute('local-ai/use', ({ modelId }) => this.localAi.setActiveModelId(modelId));
-        registerRoute('local-ai/gpu-acceleration', ({ enabled }) => {
-            if (typeof enabled !== 'boolean') throw new Error('GPU 加速开关取值必须是布尔值');
-            return this.localAi.setGpuEnabled(enabled);
-        });
         registerRoute('local-ai/download', ({ modelId }) => this.localAi.download(modelId));
         registerRoute('local-ai/cancel-download', () => this.localAi.cancelDownload());
         registerRoute('local-ai/delete', ({ modelId }) => this.localAi.deleteModel(modelId));

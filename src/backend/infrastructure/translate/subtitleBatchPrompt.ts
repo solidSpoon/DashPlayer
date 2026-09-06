@@ -25,9 +25,8 @@ type SubtitleBatchPromptInput = {
  */
 type SubtitleBatchPromptOptions = {
     /**
-     * 禁止"原文回传"后门。不可译行（♪ 等）在业务层已被过滤，永远不会
-     * 进入提示词，该后门对能整批处理的模型没有价值；而小模型会把它当成
-     * 偷懒授权，大量照抄英文原文充数（实测 0.8B 照抄率 37.5%），
+     * 禁止“原文回传”后门。不可译行（♪ 等）在业务层已被过滤，永远不会
+     * 进入提示词；而模型可能把它当成偷懒授权，大量照抄英文原文充数，
      * 本地网关必须开启此项。
      */
     forbidEcho?: boolean;
@@ -57,7 +56,7 @@ Subtitle request:
  *
  * @param input 当前批次的目标字幕与只读上下文。
  * @param style 风格约束文本；由业务层解析保证非空，这里不做兜底替换。
- * @param options 拼装选项；本地网关传 forbidEcho 以禁止小模型照抄原文充数。
+ * @param options 拼装选项；本地网关传 forbidEcho 以禁止模型照抄原文充数。
  * @returns 可直接发送给模型的批量翻译 prompt。
  */
 export const buildSubtitleBatchPrompt = (

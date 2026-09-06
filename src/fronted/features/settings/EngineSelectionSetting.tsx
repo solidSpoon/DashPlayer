@@ -16,12 +16,15 @@ import { ServiceCredentialSettingDetailVO } from '@/common/types/vo/service-cred
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
+import useSystem from '@/fronted/hooks/useSystem';
 
 /**
  * 功能设置页。
  */
 const EngineSelectionSetting = () => {
     const { t } = useI18nTranslation('settings');
+    // 本地模型推理目前仅支持 macOS，其余平台不展示本地引擎选项。
+    const isMac = useSystem((s) => s.isMac);
 
     const { data: settings } = useSWR('settings/engine-selection/detail', () =>
         settingsApi.getEngineSelection(),
@@ -222,7 +225,7 @@ const EngineSelectionSetting = () => {
                                             <SelectItem key={`subtitle-${model}`} value={`openai:${model}`}>{model}</SelectItem>
                                         ))}
                                     </SelectGroup>
-                                    <SelectItem value="local">{t('engineSelection.localEngine')}</SelectItem>
+                                    {isMac && <SelectItem value="local">{t('engineSelection.localEngine')}</SelectItem>}
                                     <SelectItem value="none">{t('engineSelection.engineNone')}</SelectItem>
                                 </SelectContent>
                             </Select>
@@ -303,7 +306,7 @@ const EngineSelectionSetting = () => {
                                             <SelectItem key={`dict-${model}`} value={`openai:${model}`}>{model}</SelectItem>
                                         ))}
                                     </SelectGroup>
-                                    <SelectItem value="local">{t('engineSelection.localEngine')}</SelectItem>
+                                    {isMac && <SelectItem value="local">{t('engineSelection.localEngine')}</SelectItem>}
                                     <SelectItem value="none">{t('engineSelection.engineNone')}</SelectItem>
                                 </SelectContent>
                             </Select>

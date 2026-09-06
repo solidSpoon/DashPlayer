@@ -293,11 +293,9 @@ const arch = process.env.npm_config_arch || os.arch()
 
 /**
  * llama.cpp 运行包必须存在的依赖库文件名前缀，isLlamaRuntimeReady 与安装后校验共用。
- * macOS 与 Linux 官方包的动态库带 lib 前缀，Windows 包不带。
+ * macOS 官方包的动态库带 lib 前缀；本地推理仅支持 macOS。
  */
-const llamaDependencyPrefixes = platform === 'win32'
-    ? ['mtmd', 'llama-common', 'llama-server-impl']
-    : ['libmtmd', 'libllama-common', 'libllama-server-impl'];
+const llamaDependencyPrefixes = ['libmtmd', 'libllama-common', 'libllama-server-impl'];
 
 {
     // ffmpeg
@@ -393,34 +391,27 @@ const llamaDependencyPrefixes = platform === 'win32'
     }
 }
 
-// llama.cpp 本地推理运行时：按平台和架构下载官方二进制（macOS Metal / Win-Linux Vulkan / Win-arm64 CPU）。
+// llama.cpp 本地推理运行时：仅支持 macOS，按架构下载官方 Metal 二进制包。
 {
     const llamaVersion = 'b10819';
     const llamaDir = path.join(dir, 'llama', llamaVersion, `${platform}-${arch}`);
     mkdirp(llamaDir);
-    const exeName = platform === 'win32' ? 'llama-server.exe' : 'llama-server';
-    // 包选择必须与 src/common/contracts/local-ai.ts 的 localAiGpuMode 一一对应：
-    // macOS arm64 为 Metal 包，Linux x64/arm64 与 Windows x64 为 Vulkan 包；
-    // Windows arm64 官方没有 Vulkan 包，只能保持 CPU 包，Intel Mac 按 CPU 处理。
+    const exeName = 'llama-server';
+    // 仅提供 macOS 官方 Metal 包；arm64 走 GPU，Intel Mac 按纯 CPU 推理。
     const assetNames = {
         darwin: { arm64: `llama-${llamaVersion}-bin-macos-arm64.tar.gz`, x64: `llama-${llamaVersion}-bin-macos-x64.tar.gz` },
-        linux: { x64: `llama-${llamaVersion}-bin-ubuntu-vulkan-x64.tar.gz`, arm64: `llama-${llamaVersion}-bin-ubuntu-vulkan-arm64.tar.gz` },
-        win32: { x64: `llama-${llamaVersion}-bin-win-vulkan-x64.zip`, arm64: `llama-${llamaVersion}-bin-win-cpu-arm64.zip` },
     };
     const assetName = assetNames[platform]?.[arch];
-    if (!assetName) throw new Error(`Unsupported llama.cpp platform/arch: ${platform}/${arch}`);
+    if (!assetName) throw new Error(`本地推理仅支持 macOS，不支持平台：${platform}/${arch}`);
     const exePath = path.join(llamaDir, exeName);
     if (!isLlamaRuntimeReady(llamaDir, exeName)) {
         await downloadAndExtractBinaryFromArchive({
             url: `https://github.com/ggml-org/llama.cpp/releases/download/${llamaVersion}/${assetName}`,
             outputPath: exePath,
             binaryNameCandidates: [exeName],
-            extraCopyPatterns: [/\.dylib$/, /\.so(?:\.\d+)*$/, /\.dll$/, /\.metal$/],
+            extraCopyPatterns: [/\.dylib$/, /\.metal$/],
         });
-        // 官方包不含 Vulkan 加载器（vulkan-1.dll / libvulkan.so.1），它由显卡驱动提供；
-        // 机器缺失时 llama-server 启动即失败，由 LocalAiRuntime 显式报错并提示关闭 GPU。
-        const entries = fs.readdirSync(llamaDir);
-        if (!llamaDependencyPrefixes.every((prefix) => entries.some((entry) => entry.startsWith(prefix)))) {
+        if (!llamaDependencyPrefixes.every((prefix) => fs.readdirSync(llamaDir).some((entry) => entry.startsWith(prefix)))) {
             throw new Error(`llama.cpp 运行时包不完整，缺少依赖库（${llamaDependencyPrefixes.join(', ')}），请重试 yarn run download`);
         }
         // .complete 标记是“安装侧完成校验”的唯一凭据，LocalAiRuntime 只检查该标记，
