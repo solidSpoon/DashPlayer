@@ -3,23 +3,23 @@ import { inject, injectable } from 'inversify';
 import { z } from 'zod';
 import TYPES from '@/backend/ioc/types';
 import AiProviderService from '@/backend/services/AiProviderService';
-import OpenAiSubtitleTranslationGateway, {
-    OpenAiSubtitleTranslationRequest,
-    OpenAiSubtitleTranslationResultItem,
-} from '@/backend/services/gateways/translate/OpenAiSubtitleTranslationGateway';
+import SubtitleTranslationGateway, {
+    SubtitleTranslationGatewayRequest,
+    SubtitleTranslationResultItem,
+} from '@/backend/services/gateways/translate/SubtitleTranslationGateway';
 import { concurrency } from '@/backend/utils/concurrency';
 import type LocalAiService from '@/backend/services/LocalAiService';
-import { storeGet } from '@/backend/infrastructure/settings/store';
 
 const OPENAI_SUBTITLE_REQUEST_TIMEOUT_MS = 40_000;
 
 /**
- * 使用当前配置的 OpenAI 兼容模型执行字幕翻译。
+ * 按请求指定的引擎执行字幕翻译：云端走 OpenAI 兼容结构化输出，本地走 GGUF 推理。
+ * 引擎路径由调用方随请求显式传入，本类不读取设置。
  */
 @injectable()
-export default class OpenAiSubtitleTranslationGatewayImpl
-implements OpenAiSubtitleTranslationGateway {
-    /** 注入云端和本地推理入口，按当前引擎选择唯一调用路径。 */
+export default class SubtitleTranslationGatewayImpl
+implements SubtitleTranslationGateway {
+    /** 注入云端和本地推理入口，按请求指定的引擎选择唯一调用路径。 */
     public constructor(
         @inject(TYPES.AiProviderService) private readonly aiProviderService: AiProviderService,
         @inject(TYPES.LocalAiService) private readonly localAi: LocalAiService,
@@ -28,12 +28,12 @@ implements OpenAiSubtitleTranslationGateway {
     /**
      * 执行一次非流式结构化字幕翻译，并关闭 SDK 内部重试。
      *
-     * @param request 提示词、字段说明与取消信号。
+     * @param request 提示词、字段说明、引擎路径与取消信号。
      * @returns 模型返回的结构化字幕条目。
      */
     public async translate(
-        request: OpenAiSubtitleTranslationRequest
-    ): Promise<OpenAiSubtitleTranslationResultItem[]> {
+        request: SubtitleTranslationGatewayRequest
+    ): Promise<SubtitleTranslationResultItem[]> {
         const schema = z.object({
             items: z.array(z.object({
                 key: z.string().describe('Original subtitle key.'),
@@ -41,9 +41,13 @@ implements OpenAiSubtitleTranslationGateway {
             })),
         });
 
-        if (storeGet('providers.subtitleTranslation') === 'local') {
-            const modelId = storeGet('models.local.active');
-            return schema.parse(await this.localAi.generate(request.prompt, z.toJSONSchema(schema), modelId, request.signal)).items;
+        if (request.engine.kind === 'local') {
+            return schema.parse(await this.localAi.generate(
+                request.prompt,
+                z.toJSONSchema(schema),
+                request.engine.modelId,
+                request.signal,
+            )).items;
         }
         const model = this.aiProviderService.getModel('subtitleTranslation');
         if (!model) {

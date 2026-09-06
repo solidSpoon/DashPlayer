@@ -54,8 +54,8 @@ import SubtitleTranslationService, {
 } from '@/backend/services/subtitle-translation/SubtitleTranslationService';
 import { YouDaoDictionaryClient } from '@/backend/services/gateways/translate/YouDaoDictionaryClient';
 import { TencentTranslateClient } from '@/backend/services/gateways/translate/TencentTranslateClient';
-import OpenAiSubtitleTranslationGateway from '@/backend/services/gateways/translate/OpenAiSubtitleTranslationGateway';
-import OpenAiSubtitleTranslationGatewayImpl from '@/backend/infrastructure/translate/OpenAiSubtitleTranslationGatewayImpl';
+import SubtitleTranslationGateway from '@/backend/services/gateways/translate/SubtitleTranslationGateway';
+import SubtitleTranslationGatewayImpl from '@/backend/infrastructure/translate/SubtitleTranslationGatewayImpl';
 import ConfigStoreFactoryImpl from '@/backend/infrastructure/config/ConfigStoreFactoryImpl';
 import { ConfigStoreFactory } from '@/backend/services/gateways/ConfigStore';
 import { SettingsStore } from '@/backend/services/gateways/SettingsStore';
@@ -127,8 +127,8 @@ container.bind<ConfigStoreFactory>(TYPES.ConfigStoreFactory).to(ConfigStoreFacto
 container.bind<SettingsStore>(TYPES.SettingsStore).to(SettingsStoreImpl).inSingletonScope();
 container.bind<ModelRoutingService>(TYPES.ModelRoutingService).to(ModelRoutingServiceImpl).inSingletonScope();
 container.bind<AiProviderService>(TYPES.AiProviderService).to(AiProviderServiceImpl).inSingletonScope();
-container.bind<OpenAiSubtitleTranslationGateway>(TYPES.OpenAiSubtitleTranslationGateway)
-    .to(OpenAiSubtitleTranslationGatewayImpl)
+container.bind<SubtitleTranslationGateway>(TYPES.SubtitleTranslationGateway)
+    .to(SubtitleTranslationGatewayImpl)
     .inSingletonScope();
 // Controllers
 container.bind<Controller>(TYPES.Controller).to(FavoriteClipsController).inSingletonScope();

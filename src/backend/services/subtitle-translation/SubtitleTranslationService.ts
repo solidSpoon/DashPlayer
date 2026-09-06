@@ -6,10 +6,10 @@ import ClientProviderService from '@/backend/services/ClientProviderService';
 import ModelRoutingService from '@/backend/services/ModelRoutingService';
 import SettingService from '@/backend/services/SettingService';
 import type LocalAiService from '@/backend/services/LocalAiService';
-import OpenAiSubtitleTranslationGateway, {
-    OpenAiSubtitleTranslationResultItem,
-    OpenAiSubtitleTranslationTarget,
-} from '@/backend/services/gateways/translate/OpenAiSubtitleTranslationGateway';
+import SubtitleTranslationGateway, {
+    SubtitleTranslationResultItem,
+    SubtitleTranslationTarget,
+} from '@/backend/services/gateways/translate/SubtitleTranslationGateway';
 import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
 import { TencentTranslateClient } from '@/backend/services/gateways/translate/TencentTranslateClient';
 import SentenceTranslatesRepository from '@/backend/services/repositories/SentenceTranslatesRepository';
@@ -23,6 +23,10 @@ import {
     resolvePromptNeighbor,
     shouldTranslateSubtitleText,
 } from '@/backend/services/subtitle-translation/SubtitleTranslationCacheKey';
+import {
+    buildSubtitleStorageMode,
+    SubtitleTranslationStorageMode,
+} from '@/backend/services/subtitle-translation/SubtitleTranslationStorageMode';
 import { concurrency } from '@/backend/utils/concurrency';
 import {
     buildSubtitleBatchPrompt,
@@ -37,15 +41,6 @@ import {
 import TimeUtil from '@/common/utils/TimeUtil';
 
 /**
- * 字幕翻译缓存的持久化模式。
- *
- * 除 'tencent' 外统一用 '#' 分段：`openai#模型#模式#风格签名` 与
- * `local#模型#模式#风格签名`。不用 '_' 分段是因为模型 ID 自带下划线
- * （如 qwen3-0.6b-q4_k_m-v1），混在一起无法辨认分段边界。
- */
-type SubtitleTranslationStorageMode = 'tencent' | `openai#${string}` | `local#${string}`;
-
-/**
  * 单个字幕翻译会话使用的稳定配置。
  */
 interface SubtitleTranslationExecutionContext {
@@ -55,6 +50,8 @@ interface SubtitleTranslationExecutionContext {
     storageMode: SubtitleTranslationStorageMode;
     /** 前端用于过滤过期结果的翻译模式。 */
     mode: TranslationMode;
+    /** 本地引擎使用中的模型 ID；云端引擎为 null。网关请求从这里取模型，不再二次读设置。 */
+    localModelId: string | null;
     /**
      * 当前字幕文件按稳定坐标（sentence.index）索引的句子映射。
      * 增量转录会话的坐标为「分片序号 × 100000 + 片内序号」，与数组下标不同，
@@ -153,28 +150,6 @@ export default interface SubtitleTranslationService {
 }
 
 /**
- * 将云端模型、OpenAI 字幕模式与风格签名映射为持久化模式。
- *
- * @param modelId 云端字幕翻译当前路由到的模型 ID。
- * @param mode 当前 OpenAI 字幕模式。
- * @param signature 当前风格签名。
- * @returns 用于按配置隔离缓存的持久化模式；分段分隔符约定见 SubtitleTranslationStorageMode。
- */
-const mapOpenAiModeToStorage = (
-    modelId: string,
-    mode: TranslationMode,
-    signature: string
-): SubtitleTranslationStorageMode => {
-    if (mode === 'simple_en') {
-        return `openai#${modelId}#simple_en#${signature}`;
-    }
-    if (mode === 'custom') {
-        return `openai#${modelId}#custom#${signature}`;
-    }
-    return `openai#${modelId}#zh#${signature}`;
-};
-
-/**
  * 将未知异常转换为适合提示用户的短消息。
  *
  * @param error 原始异常。
@@ -253,8 +228,8 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
     @inject(TYPES.TencentClientProvider)
     private tencentProvider!: ClientProviderService<TencentTranslateClient>;
 
-    @inject(TYPES.OpenAiSubtitleTranslationGateway)
-    private openAiGateway!: OpenAiSubtitleTranslationGateway;
+    @inject(TYPES.SubtitleTranslationGateway)
+    private subtitleGateway!: SubtitleTranslationGateway;
 
     /** 按字幕文件维护事件驱动的优先级翻译窗口。 */
     private readonly scheduler =
@@ -344,7 +319,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             throw new Error('未启用字幕翻译服务');
         }
 
-        const { mode, storageMode, style } = await this.resolveCurrentStorageContext(provider);
+        const { mode, storageMode, style, localModelId } = await this.resolveCurrentStorageContext(provider);
 
         const targets = Array.from(targetsByKey.values());
         const cached = await this.getTranslations(
@@ -367,7 +342,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             const startedAt = Date.now();
             const onlineResults = provider === 'tencent'
                 ? await this.translateDirectWithTencent(onlineTargets, batchId)
-                : await this.translateDirectWithOpenAi(onlineTargets, mode, style);
+                : await this.translateDirectWithGateway(onlineTargets, mode, style, localModelId);
             onlineResults.forEach((translation, key) => {
                 result.set(key, translation);
                 freshResults.set(key, translation);
@@ -398,16 +373,26 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
     }
 
     /**
-     * 解析当前设置对应的风格与持久化缓存模式。
+     * 解析当前设置对应的风格、持久化缓存模式与调度 profileKey。
+     *
+     * 这是设置到缓存键/网关引擎路径的唯一解析入口：播放调度与独立直翻都从这里取值，
+     * 避免同一配置在多处重复拼装后产生不一致。
      *
      * @param provider 当前字幕翻译 provider。
-     * @returns 风格模式与对应的缓存模式；OpenAI 引擎未配置模型时拋出显式错误。
+     * @returns 翻译模式、缓存模式、风格、调度 profileKey 与本地模型 ID（云端为 null）；
+     *          OpenAI 引擎未配置模型时抛出显式错误。
      */
     private async resolveCurrentStorageContext(
         provider: NonNullable<Awaited<ReturnType<SettingService['getCurrentTranslationProvider']>>>
-    ): Promise<{ mode: TranslationMode, storageMode: SubtitleTranslationStorageMode, style?: string }> {
+    ): Promise<{
+        mode: TranslationMode,
+        storageMode: SubtitleTranslationStorageMode,
+        style?: string,
+        profileKey: string,
+        localModelId: string | null,
+    }> {
         if (provider === 'tencent') {
-            return { mode: 'zh', storageMode: 'tencent' };
+            return { mode: 'zh', storageMode: 'tencent', profileKey: 'tencent', localModelId: null };
         }
         const mode = await this.settingService.getOpenAiSubtitleTranslationMode();
         const customStyle = mode === 'custom'
@@ -415,15 +400,14 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             : undefined;
         const resolved = resolveSubtitleStyleWithSignature(mode, customStyle);
         const localModelId = provider === 'local' ? await this.localAiService.getActiveModelId() : null;
-        let storageMode: SubtitleTranslationStorageMode;
         if (localModelId) {
-            storageMode = `local#${localModelId}#${mode}#${resolved.signature}`;
-        } else {
-            const routed = this.modelRoutingService.resolveOpenAiModel('subtitleTranslation');
-            if (!routed) throw new Error('OpenAI 字幕翻译模型未配置');
-            storageMode = mapOpenAiModeToStorage(routed.modelId, mode, resolved.signature);
+            const storageMode = buildSubtitleStorageMode('local', localModelId, mode, resolved.signature);
+            return { mode, storageMode, style: resolved.style, profileKey: `${storageMode}:${localModelId}`, localModelId };
         }
-        return { mode, storageMode, style: resolved.style };
+        const routed = this.modelRoutingService.resolveOpenAiModel('subtitleTranslation');
+        if (!routed) throw new Error('OpenAI 字幕翻译模型未配置');
+        const storageMode = buildSubtitleStorageMode('openai', routed.modelId, mode, resolved.signature);
+        return { mode, storageMode, style: resolved.style, profileKey: `${storageMode}:${routed.fullModelId}`, localModelId: null };
     }
 
     /**
@@ -474,6 +458,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
                     provider,
                     storageMode: 'tencent',
                     mode: 'zh',
+                    localModelId: null,
                     sentencesByIndex: this.buildSentencesByIndex(srtData.sentences),
                     fileHash,
                 },
@@ -481,44 +466,26 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             return;
         }
 
-        const mode = await this.settingService.getOpenAiSubtitleTranslationMode();
-        const customStyle = mode === 'custom'
-            ? await this.settingService.getOpenAiSubtitleCustomStyle()
-            : undefined;
-        const { style, signature } = resolveSubtitleStyleWithSignature(mode, customStyle);
-        const localModelId = provider === 'local' ? await this.localAiService.getActiveModelId() : null;
-        const routedOpenAiModel = localModelId
-            ? null
-            : this.modelRoutingService.resolveOpenAiModel('subtitleTranslation');
-        if (!localModelId && !routedOpenAiModel) {
+        let resolvedContext;
+        try {
+            resolvedContext = await this.resolveCurrentStorageContext(provider);
+        } catch (error) {
             this.scheduler.release(fileHash, input.rendererSessionId);
-            throw new Error('OpenAI 字幕翻译模型未配置');
+            throw error;
         }
-
-        let storageMode: SubtitleTranslationStorageMode;
-        let profileKeyModelId: string;
-        if (!localModelId) {
-            if (!routedOpenAiModel) {
-                this.scheduler.release(fileHash, input.rendererSessionId);
-                throw new Error('OpenAI 字幕翻译模型未配置');
-            }
-            storageMode = mapOpenAiModeToStorage(routedOpenAiModel.modelId, mode, signature);
-            profileKeyModelId = routedOpenAiModel.fullModelId;
-        } else {
-            storageMode = `local#${localModelId}#${mode}#${signature}`;
-            profileKeyModelId = localModelId;
-        }
+        const { mode, storageMode, style, profileKey, localModelId } = resolvedContext;
         this.scheduler.updateDemand({
             fileHash,
             currentIndex: input.currentIndex,
             demandId: input.demandId,
             rendererSessionId: input.rendererSessionId,
             sentenceIndices,
-            profileKey: `${storageMode}:${profileKeyModelId}`,
+            profileKey,
             context: {
                 provider,
                 storageMode,
                 mode,
+                localModelId,
                 sentencesByIndex: this.buildSentencesByIndex(srtData.sentences),
                 fileHash,
                 style,
@@ -616,7 +583,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
 
             const onlineResults = request.context.provider === 'tencent'
                 ? await this.translateWithTencent(request, onlineTargets)
-                : await this.translateWithOpenAi(request, onlineTargets);
+                : await this.translateWithGateway(request, onlineTargets);
             this.throwIfAborted(request.signal);
             await this.saveTranslations(
                 this.toStorageKeyedTranslations(onlineResults, onlineTargets),
@@ -652,9 +619,10 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             });
 
             if (failedIndices.size > 0 && request.requeueCount > 0) {
+                const engineLabel = request.context.provider === 'local' ? '本地模型' : 'OpenAI';
                 this.showFailureToast(
                     request.context.provider !== 'tencent'
-                        ? `OpenAI 字幕翻译未返回完整结果，失败 ${failedIndices.size} 条`
+                        ? `${engineLabel}字幕翻译未返回完整结果，失败 ${failedIndices.size} 条`
                         : `腾讯字幕翻译未返回完整结果，失败 ${failedIndices.size} 条`,
                     `subtitle-translation:${request.context.provider}-incomplete:${request.context.mode}`,
                 );
@@ -694,9 +662,10 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
                 error,
             });
             if (request.requeueCount > 0) {
+                const engineLabel = request.context.provider === 'local' ? '本地模型' : 'OpenAI';
                 this.showFailureToast(
                     request.context.provider !== 'tencent'
-                        ? 'OpenAI 字幕翻译请求失败'
+                        ? `${engineLabel}字幕翻译请求失败`
                         : '腾讯字幕翻译请求失败',
                     `subtitle-translation:${request.context.provider}-batch-failed:${request.context.mode}`,
                     error,
@@ -896,7 +865,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
     }
 
     /**
-     * 使用 OpenAI 非流式结构化输出翻译当前目标。
+     * 通过字幕翻译网关（云端或本地引擎）对当前目标执行一次结构化翻译。
      *
      * 失败后的重新执行由窗口调度器统一控制，当前方法本身只发起一次请求。
      * 提示词中的回显键使用 renderer 定位键而非数据库存储键：存储键是长哈希，
@@ -906,7 +875,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
      * @param targets 当前未命中缓存的字幕描述符。
      * @returns 以 renderer 定位键索引的完整翻译结果。
      */
-    private async translateWithOpenAi(
+    private async translateWithGateway(
         request: SubtitleTranslationBatchRequest<SubtitleTranslationExecutionContext>,
         targets: SubtitleBatchTarget[]
     ): Promise<Map<string, string>> {
@@ -915,7 +884,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             throw new Error('OpenAI 字幕翻译风格配置缺失');
         }
 
-        const targetItems: OpenAiSubtitleTranslationTarget[] = targets.map((target) => ({
+        const targetItems: SubtitleTranslationTarget[] = targets.map((target) => ({
             key: target.publishKey,
             text: target.text,
         }));
@@ -935,12 +904,15 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
         }, style);
         const translationDescription = this.getTranslationDescription(request.context.mode);
         this.throwIfAborted(request.signal);
-        const items = await this.openAiGateway.translate({
+        const items = await this.subtitleGateway.translate({
             prompt,
             translationDescription,
+            engine: request.context.localModelId
+                ? { kind: 'local', modelId: request.context.localModelId }
+                : { kind: 'openai' },
             signal: request.signal,
         });
-        const validated = this.validateOpenAiItems(targetItems, items);
+        const validated = this.validateGatewayItems(targetItems, items);
         return validated;
     }
 
@@ -949,13 +921,15 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
      *
      * @param targets 使用归一化原文作为 key 的目标条目。
      * @param mode 当前字幕翻译模式。
-     * @param style 已解析的 OpenAI 风格约束。
+     * @param style 已解析的风格约束。
+     * @param localModelId 本地引擎使用中的模型 ID；云端引擎为 null。
      * @returns 归一化原文到翻译结果的映射。
      */
-    private async translateDirectWithOpenAi(
+    private async translateDirectWithGateway(
         targets: DirectTranslationTarget[],
         mode: TranslationMode,
-        style?: string
+        style?: string,
+        localModelId: string | null = null
     ): Promise<Map<string, string>> {
         if (!style) {
             throw new Error('OpenAI 字幕翻译风格配置缺失');
@@ -965,12 +939,13 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             contextBefore: [],
             contextAfter: [],
         }, style);
-        const items = await this.openAiGateway.translate({
+        const items = await this.subtitleGateway.translate({
             prompt,
             translationDescription: this.getTranslationDescription(mode),
+            engine: localModelId ? { kind: 'local', modelId: localModelId } : { kind: 'openai' },
             signal: new AbortController().signal,
         });
-        return this.validateOpenAiItems(targets, items);
+        return this.validateGatewayItems(targets, items);
     }
 
     /**
@@ -980,9 +955,9 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
      * @param items 模型返回条目。
      * @returns 以稳定字幕键索引的翻译结果。
      */
-    private validateOpenAiItems(
-        targets: OpenAiSubtitleTranslationTarget[],
-        items: OpenAiSubtitleTranslationResultItem[]
+    private validateGatewayItems(
+        targets: SubtitleTranslationTarget[],
+        items: SubtitleTranslationResultItem[]
     ): Map<string, string> {
         if (items.length !== targets.length) {
             throw createSubtitleValidationError(
@@ -1025,7 +1000,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
      */
     private buildContextItem(
         sentence: Sentence | undefined
-    ): OpenAiSubtitleTranslationTarget | null {
+    ): SubtitleTranslationTarget | null {
         if (!sentence) {
             return null;
         }
