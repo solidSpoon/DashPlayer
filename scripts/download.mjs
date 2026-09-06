@@ -246,14 +246,10 @@ const downloadAndExtractBinaryFromArchive = async ({
  * @returns {boolean} 可执行文件和平台动态库均存在时返回 true。
  */
 const isLlamaRuntimeReady = (runtimeDir, executableName) => {
-    const dependencyPrefixes = platform === 'darwin'
-        ? ['libmtmd', 'libllama-common', 'libllama-server-impl']
-        : platform === 'win32' ? ['mtmd', 'llama-common', 'llama-server-impl']
-            : ['libmtmd', 'libllama-common', 'libllama-server-impl'];
     const entries = fs.existsSync(runtimeDir) ? fs.readdirSync(runtimeDir) : [];
     return fs.existsSync(path.join(runtimeDir, '.complete'))
         && fs.existsSync(path.join(runtimeDir, executableName))
-        && dependencyPrefixes.every((prefix) => entries.some((entry) => entry.startsWith(prefix)));
+        && llamaDependencyPrefixes.every((prefix) => entries.some((entry) => entry.startsWith(prefix)));
 };
 
 const ffmpegUrls = {
@@ -294,6 +290,14 @@ mkdirp(dir);
 
 const platform = process.env.npm_config_platform || os.platform()
 const arch = process.env.npm_config_arch || os.arch()
+
+/**
+ * llama.cpp 运行包必须存在的依赖库文件名前缀，isLlamaRuntimeReady 与安装后校验共用。
+ * macOS 与 Linux 官方包的动态库带 lib 前缀，Windows 包不带。
+ */
+const llamaDependencyPrefixes = platform === 'win32'
+    ? ['mtmd', 'llama-common', 'llama-server-impl']
+    : ['libmtmd', 'libllama-common', 'libllama-server-impl'];
 
 {
     // ffmpeg
@@ -386,13 +390,10 @@ const arch = process.env.npm_config_arch || os.arch()
             outputPath: ttsExePath,
             binaryNameCandidates: [ttsExeName],
         });
-        // .complete 标记是“安装侧完成校验”的唯一凭据，LocalAiRuntime 只检查该标记，
-        // 不在运行时侧复刻依赖库清单，避免两份清单漂移。
-        fs.writeFileSync(path.join(llamaDir, '.complete'), `${llamaVersion}\n`);
     }
 }
 
-// llama.cpp 本地推理运行时：按平台和架构下载官方 CPU/Metal 二进制。
+// llama.cpp 本地推理运行时：按平台和架构下载官方二进制。
 {
     const llamaVersion = 'b10819';
     const llamaDir = path.join(dir, 'llama', llamaVersion, `${platform}-${arch}`);
@@ -413,6 +414,15 @@ const arch = process.env.npm_config_arch || os.arch()
             binaryNameCandidates: [exeName],
             extraCopyPatterns: [/\.dylib$/, /\.so(?:\.\d+)*$/, /\.dll$/, /\.metal$/],
         });
+        // 官方包不含 Vulkan 加载器（vulkan-1.dll / libvulkan.so.1），它由显卡驱动提供；
+        // 机器缺失时 llama-server 启动即失败，由 LocalAiRuntime 显式报错并提示关闭 GPU。
+        const entries = fs.readdirSync(llamaDir);
+        if (!llamaDependencyPrefixes.every((prefix) => entries.some((entry) => entry.startsWith(prefix)))) {
+            throw new Error(`llama.cpp 运行时包不完整，缺少依赖库（${llamaDependencyPrefixes.join(', ')}），请重试 yarn run download`);
+        }
+        // .complete 标记是“安装侧完成校验”的唯一凭据，LocalAiRuntime 只检查该标记，
+        // 不在运行时侧复刻依赖库清单，避免两份清单漂移。
+        fs.writeFileSync(path.join(llamaDir, '.complete'), `${llamaVersion}\n`);
     }
 }
 
