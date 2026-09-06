@@ -97,8 +97,6 @@ const ServiceCredentialSetting = () => {
     const [testingModelId, setTestingModelId] = React.useState<string | null>(null);
     const [testResultsMap, setTestResultsMap] = React.useState<Record<string, {
         success: boolean;
-        loadSec: string;
-        firstSec: string;
         warmSec: string;
         tps: string;
         errorMessage?: string;
@@ -233,8 +231,6 @@ const ServiceCredentialSetting = () => {
                 ...prev,
                 [modelId]: {
                     success: true,
-                    loadSec: (result.loadMs / 1000).toFixed(1),
-                    firstSec: (result.firstMs / 1000).toFixed(1),
                     warmSec: (result.warmMs / 1000).toFixed(1),
                     tps: result.tokensPerSecond === null ? '—' : result.tokensPerSecond.toFixed(1),
                 },
@@ -244,8 +240,6 @@ const ServiceCredentialSetting = () => {
                 ...prev,
                 [modelId]: {
                     success: false,
-                    loadSec: '—',
-                    firstSec: '—',
                     warmSec: '—',
                     tps: '—',
                     errorMessage: error instanceof Error ? error.message : String(error),
@@ -1107,10 +1101,6 @@ const ServiceCredentialSetting = () => {
                                                     <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg bg-background/60 p-2.5 border border-border/40 text-xs">
                                                         <div className="flex items-center gap-1.5">
                                                             <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
-                                                            <span className="text-muted-foreground">{t('serviceCredentials.localAi.speedLoad')}</span>
-                                                            <span className="font-mono font-medium text-foreground">{testResult.loadSec}s</span>
-                                                        </div>
-                                                        <div className="flex items-center gap-1.5">
                                                             <span className="text-muted-foreground">{t('serviceCredentials.localAi.speedWarm')}</span>
                                                             <span className="font-mono font-medium text-foreground">{testResult.warmSec}s</span>
                                                         </div>

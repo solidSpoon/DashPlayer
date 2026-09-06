@@ -349,7 +349,6 @@
             "rescan": "Refresh Models",
             "openFolder": "Open Folder",
             "copyPath": "Copy Path",
-            "speedLoad": "Initial Startup",
             "speedWarm": "Typical Response",
             "speedTps": "Speed",
             "speedTpsUnit": "words/s",
