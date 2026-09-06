@@ -18,19 +18,5 @@ export class LocalAiController implements Controller {
         registerRoute('local-ai/cancel-download', () => this.localAi.cancelDownload());
         registerRoute('local-ai/delete', ({ modelId }) => this.localAi.deleteModel(modelId));
         registerRoute('local-ai/speed-test', ({ modelId }) => this.localAi.speedTest(modelId));
-        registerRoute('local-ai/check', async ({ modelId }) => {
-            const startedAt = Date.now();
-            const result = await this.localAi.generate(
-                'Translate "Good morning" into Simplified Chinese. Return JSON with a translation field.',
-                {
-                    type: 'object', properties: { translation: { type: 'string', minLength: 1 } }, required: ['translation'], additionalProperties: false,
-                },
-                modelId,
-            );
-            if (!result || typeof result !== 'object' || !('translation' in result) || typeof result.translation !== 'string' || !result.translation.trim()) {
-                throw new Error('本地模型没有返回有效译文');
-            }
-            return { translation: result.translation, durationMs: Date.now() - startedAt };
-        });
     }
 }
