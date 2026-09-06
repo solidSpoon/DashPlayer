@@ -14,7 +14,7 @@ export default interface LocalAiService {
     cancelDownload(): Promise<void>;
     /** 删除指定模型及未完成下载；使用中或下载中时拒绝删除。 */
     deleteModel(modelId: string): Promise<void>;
-    /** 对指定模型执行速度测试：先释放已加载模型再冷加载，两轮固定批量生成取耗时与吞吐。 */
+    /** 对指定模型执行稳态速度测试：不释放已加载模型，两轮固定批量生成取热身轮耗时与吞吐。 */
     speedTest(modelId: string): Promise<LocalAiSpeedTestResult>;
     /**
      * 按当前设置同步本地引擎的常驻策略。
