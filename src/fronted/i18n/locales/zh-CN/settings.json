@@ -342,6 +342,11 @@
             "deleteSuccess": "模型已删除",
             "memoryEstimate": "内存约 {{gb}} GB",
             "rescan": "重新扫描",
+            "gpuTitle": "GPU 加速",
+            "gpuDescription": "通过 Vulkan 调用显卡推理，速度大幅提升。显卡或驱动不支持时推理会失败，关闭开关即改用 CPU；修改在下次加载模型时生效。",
+            "gpuToggleSuccess": "已更新 GPU 加速设置，下次加载模型时生效",
+            "gpuMetal": "已通过 Metal 启用 GPU 加速（Apple Silicon）。",
+            "gpuCpu": "当前平台无受支持的 GPU 后端，使用 CPU 推理。",
             "runtimeReady": "llama.cpp 运行时已就绪，所有模型共用同一运行时。",
             "runtimeMissing": "运行时未安装：请重新执行 yarn run download 或重新安装应用"
         }

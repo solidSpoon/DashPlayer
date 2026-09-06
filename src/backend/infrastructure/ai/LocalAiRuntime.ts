@@ -20,6 +20,8 @@ import {
     isCustomModelId,
     LOCAL_AI_DEFAULT_MODEL_ID,
     LOCAL_AI_MODELS,
+    localAiGpuMode,
+    LocalAiGpuMode,
     LocalAiModelDefinition,
     LocalAiStatus,
     requireLocalAiModel,
@@ -139,6 +141,19 @@ export class LocalAiRuntime implements LocalAiService {
         return getRuntimeResourcePath('lib', 'llama', 'b10819', `${process.platform}-${process.arch}`, process.platform === 'win32' ? 'llama-server.exe' : 'llama-server');
     }
 
+    /** 当前平台 llama.cpp 官方包的 GPU 后端模式；判定集中在 contracts，与下载脚本保持一一对应。 */
+    private gpuMode(): LocalAiGpuMode {
+        return localAiGpuMode();
+    }
+
+    /** GPU 加速是否生效：Metal 平台固定开启，Vulkan 平台读设置开关，CPU 平台固定关闭。 */
+    private gpuEnabled(): boolean {
+        const mode = this.gpuMode();
+        if (mode === 'metal') return true;
+        if (mode === 'cpu') return false;
+        return this.settingsStore.get('models.local.gpu') === 'true';
+    }
+
     /**
      * 运行时是否就绪：以安装脚本写入的 .complete 标记为准。
      *
@@ -231,6 +246,8 @@ export class LocalAiRuntime implements LocalAiService {
             activeModelId: await this.getActiveModelId(),
             modelsDirectory: await this.modelsDirectory(),
             models: [...models, ...customModels],
+            gpuMode: this.gpuMode(),
+            gpuEnabled: this.gpuEnabled(),
         };
     }
 
@@ -265,6 +282,14 @@ export class LocalAiRuntime implements LocalAiService {
         if (!this.settingsStore.set('models.local.active', model.id)) {
             throw new Error(`保存本地模型选择失败：${model.name}`);
         }
+    }
+
+    /** 保存 Vulkan 平台的 GPU 加速开关；已加载的模型进程不受影响，下次加载时生效。 */
+    public async setGpuEnabled(enabled: boolean): Promise<void> {
+        if (this.gpuMode() !== 'vulkan') {
+            throw new Error('当前平台不支持切换本地模型 GPU 加速');
+        }
+        this.settingsStore.set('models.local.gpu', enabled ? 'true' : 'false');
     }
 
     /** 启动指定模型的下载并保留唯一任务；错误保存在状态中，切页后仍可查看。 */
@@ -402,11 +427,13 @@ export class LocalAiRuntime implements LocalAiService {
         const port = await this.reservePort();
         signal.throwIfAborted();
         const endpoint = `http://127.0.0.1:${port}`;
+        const gpuRequested = this.gpuEnabled();
         const child = spawn(this.runtimePath(), [
             '--model', modelPath, '--host', '127.0.0.1', '--port', String(port),
             '--ctx-size', '8192', '--parallel', '1', '--jinja', '--no-webui',
             '--chat-template-kwargs', '{"enable_thinking":false}', '--reasoning-budget', '0',
-            '--n-gpu-layers', process.platform === 'darwin' && process.arch === 'arm64' ? '99' : '0',
+            // Metal/Vulkan 平台把全部层放进 GPU；CPU 包传 0 保持纯 CPU 推理。
+            '--n-gpu-layers', gpuRequested ? '99' : '0',
         ], { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'], env: { ...process.env, LLAMA_API_KEY: this.apiKey } });
         this.child = child;
         let failure: Error | null = null;
@@ -446,8 +473,25 @@ export class LocalAiRuntime implements LocalAiService {
         } catch (error) {
             this.logger.error('local runtime load failed', { error, stderrTail });
             await this.stop();
-            throw error;
+            throw this.enrichLoadFailure(error, gpuRequested, stderrTail);
         }
+    }
+
+    /**
+     * 将加载失败包装为对用户可操作的错误信息。
+     *
+     * Vulkan 平台开启 GPU 时，机器缺 Vulkan 驱动或显卡不支持会导致 llama-server 启动即退出，
+     * 此时应补充关闭 GPU 开关的指引，并附带推理进程最后几行输出方便定位；
+     * 其它场景维持原错误信息不变。
+     */
+    private enrichLoadFailure(error: unknown, gpuRequested: boolean, stderrTail: string[]): Error {
+        const base = error instanceof Error ? error.message : String(error);
+        if (!(gpuRequested && this.gpuMode() === 'vulkan')) {
+            return error instanceof Error ? error : new Error(base);
+        }
+        const detail = stderrTail.map((line) => line.trim()).filter(Boolean).slice(-3).join(' ｜ ').slice(0, 300);
+        const hint = '本地模型 GPU 加速已开启：若显卡或驱动不支持 Vulkan，请在设置-服务凭据中关闭 GPU 加速后重试';
+        return new Error(detail ? `${base}（${hint}）进程输出：${detail}` : `${base}（${hint}）`);
     }
 
     /** 串行生成，限制上下文和输出长度；仅接受完整结束且可解析的 JSON。 */

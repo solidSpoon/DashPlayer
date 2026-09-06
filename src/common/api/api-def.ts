@@ -48,6 +48,7 @@ import { TranscriptTask } from '@/common/contracts/transcript/transcript-task';
 interface ApiDefinition {
     'local-ai/status': { params: void, return: LocalAiStatus };
     'local-ai/use': { params: { modelId: string }, return: void };
+    'local-ai/gpu-acceleration': { params: { enabled: boolean }, return: void };
     'local-ai/download': { params: { modelId: string }, return: void };
     'local-ai/cancel-download': { params: void, return: void };
     'local-ai/delete': { params: { modelId: string }, return: void };

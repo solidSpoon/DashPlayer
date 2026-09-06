@@ -195,6 +195,20 @@ const ServiceCredentialSetting = () => {
         return settingsApi.getLocalAiStatus().then(setLocalAiStatus).catch(() => null);
     }, []);
 
+    /** 切换 Vulkan 平台的本地模型 GPU 加速；后端保存后刷新状态，下次加载模型时生效。 */
+    const toggleLocalAiGpu = async (enabled: boolean) => {
+        setLocalAiBusy(true);
+        try {
+            await settingsApi.setLocalAiGpuAcceleration(enabled);
+            toast.success(t('serviceCredentials.localAi.gpuToggleSuccess'));
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : String(error));
+        } finally {
+            setLocalAiBusy(false);
+            refreshLocalAiStatus();
+        }
+    };
+
     React.useEffect(() => { refreshLocalAiStatus(); }, [refreshLocalAiStatus]);
 
     React.useEffect(() => {
@@ -856,6 +870,19 @@ const ServiceCredentialSetting = () => {
                     icon={Bot}
                 >
                     <div className="flex flex-col gap-3 p-4">
+                        {localAiStatus?.gpuMode === 'vulkan' && (
+                            <div className="flex items-center justify-between gap-3 rounded-xl border border-border/50 bg-muted/20 p-3.5">
+                                <div className="space-y-0.5">
+                                    <div className="text-sm font-semibold text-foreground">{t('serviceCredentials.localAi.gpuTitle')}</div>
+                                    <div className="text-xs text-muted-foreground">{t('serviceCredentials.localAi.gpuDescription')}</div>
+                                </div>
+                                <Switch
+                                    checked={localAiStatus.gpuEnabled}
+                                    disabled={localAiBusy}
+                                    onCheckedChange={(checked) => toggleLocalAiGpu(checked)}
+                                />
+                            </div>
+                        )}
                         {localAiStatus?.models.map((model) => {
                             const anyDownloading = (localAiStatus?.models.some((item) => item.phase !== 'idle')) ?? false;
                             return (
@@ -960,7 +987,7 @@ const ServiceCredentialSetting = () => {
                                             <li>上下文窗口：8192 tokens，过长字幕批次会被截断</li>
                                             <li>采样参数：temperature 0.6 / top_p 0.95 / top_k 20，单次最多输出 2048 tokens</li>
                                             <li>思考模式：关闭；模型需支持直接输出 JSON 结构化结果</li>
-                                            <li>运行方式：串行推理，同一时间只加载一个模型；Apple Silicon 走 GPU，其它平台 CPU</li>
+                                            <li>运行方式：串行推理，同一时间只加载一个模型；Apple Silicon 走 Metal、Windows/Linux 走 Vulkan（可在上方开关，显卡不支持时关闭即改用 CPU），其余平台 CPU</li>
                                             <li>内存占用：运行时约为模型体积的 1.5 倍（如 2B 模型约 2 GB）；整机内存建议 8 GB 起。模型站标注的「requires X GB+ memory」指的是整机内存档位，不是模型实际占用</li>
                                         </ul>
                                     </div>
@@ -993,6 +1020,10 @@ const ServiceCredentialSetting = () => {
                                 </Button>
                             </div>
                         </details>
+                        <div className="text-xs text-muted-foreground">
+                            {localAiStatus?.gpuMode === 'metal' && t('serviceCredentials.localAi.gpuMetal')}
+                            {localAiStatus?.gpuMode === 'cpu' && t('serviceCredentials.localAi.gpuCpu')}
+                        </div>
                         <div className="text-xs text-muted-foreground">
                             {localAiStatus?.runtimeReady
                                 ? t('serviceCredentials.localAi.runtimeReady')

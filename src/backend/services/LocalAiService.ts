@@ -6,8 +6,10 @@ export default interface LocalAiService {
     getStatus(): Promise<LocalAiStatus>;
     /** 读取全部本地功能共用的模型 id，并校验属于目录。 */
     getActiveModelId(): Promise<string>;
-    /** 将全部本地功能切换到指定模型；下次推理时自动切换加载。 */
+    /** 将全部功能切换到指定模型；下次推理时自动切换加载。 */
     setActiveModelId(modelId: string): Promise<void>;
+    /** 保存 Vulkan 平台的 GPU 加速开关；下次模型加载时生效。 */
+    setGpuEnabled(enabled: boolean): Promise<void>;
     /** 下载指定模型（可续传）；同一时间只允许一个安装任务。 */
     download(modelId: string): Promise<void>;
     /** 取消当前下载并等待写入结束，保留已下载的部分。 */

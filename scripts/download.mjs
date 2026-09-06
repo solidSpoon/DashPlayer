@@ -393,16 +393,19 @@ const llamaDependencyPrefixes = platform === 'win32'
     }
 }
 
-// llama.cpp 本地推理运行时：按平台和架构下载官方二进制。
+// llama.cpp 本地推理运行时：按平台和架构下载官方二进制（macOS Metal / Win-Linux Vulkan / Win-arm64 CPU）。
 {
     const llamaVersion = 'b10819';
     const llamaDir = path.join(dir, 'llama', llamaVersion, `${platform}-${arch}`);
     mkdirp(llamaDir);
     const exeName = platform === 'win32' ? 'llama-server.exe' : 'llama-server';
+    // 包选择必须与 src/common/contracts/local-ai.ts 的 localAiGpuMode 一一对应：
+    // macOS arm64 为 Metal 包，Linux x64/arm64 与 Windows x64 为 Vulkan 包；
+    // Windows arm64 官方没有 Vulkan 包，只能保持 CPU 包，Intel Mac 按 CPU 处理。
     const assetNames = {
         darwin: { arm64: `llama-${llamaVersion}-bin-macos-arm64.tar.gz`, x64: `llama-${llamaVersion}-bin-macos-x64.tar.gz` },
-        linux: { x64: `llama-${llamaVersion}-bin-ubuntu-x64.tar.gz`, arm64: `llama-${llamaVersion}-bin-ubuntu-arm64.tar.gz` },
-        win32: { x64: `llama-${llamaVersion}-bin-win-cpu-x64.zip`, arm64: `llama-${llamaVersion}-bin-win-cpu-arm64.zip` },
+        linux: { x64: `llama-${llamaVersion}-bin-ubuntu-vulkan-x64.tar.gz`, arm64: `llama-${llamaVersion}-bin-ubuntu-vulkan-arm64.tar.gz` },
+        win32: { x64: `llama-${llamaVersion}-bin-win-vulkan-x64.zip`, arm64: `llama-${llamaVersion}-bin-win-cpu-arm64.zip` },
     };
     const assetName = assetNames[platform]?.[arch];
     if (!assetName) throw new Error(`Unsupported llama.cpp platform/arch: ${platform}/${arch}`);

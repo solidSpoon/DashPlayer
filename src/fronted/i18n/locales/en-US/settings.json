@@ -342,6 +342,11 @@
             "deleteSuccess": "Model deleted",
             "memoryEstimate": "~{{gb}} GB memory",
             "rescan": "Rescan",
+            "gpuTitle": "GPU acceleration",
+            "gpuDescription": "Runs the model on your GPU via Vulkan for much faster inference. If your GPU or driver lacks Vulkan support, inference fails — turn this off to use the CPU instead. Applies the next time a model loads.",
+            "gpuToggleSuccess": "GPU acceleration updated; takes effect the next time a model loads",
+            "gpuMetal": "GPU acceleration via Metal is enabled (Apple Silicon).",
+            "gpuCpu": "No supported GPU backend on this platform; running on CPU.",
             "runtimeReady": "The llama.cpp runtime is ready; all models share it.",
             "runtimeMissing": "Runtime not installed: run `yarn run download` again or reinstall the app."
         }

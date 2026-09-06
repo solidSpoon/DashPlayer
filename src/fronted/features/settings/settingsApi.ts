@@ -148,6 +148,8 @@ export const settingsApi = {
     getLocalAiStatus: () => backendClient.call('local-ai/status'),
     /** 将全部本地功能切换到指定模型。 */
     useLocalAiModel: (modelId: string) => backendClient.call('local-ai/use', { modelId }),
+    /** 保存 Vulkan 平台的本地模型 GPU 加速开关，下次加载模型时生效。 */
+    setLocalAiGpuAcceleration: (enabled: boolean) => backendClient.call('local-ai/gpu-acceleration', { enabled }),
     /** 清除当前字幕翻译配置（引擎、模型、风格一致）的翻译缓存，返回删除条数。 */
     clearSubtitleTranslationCache: () => backendClient.call('ai-trans/clear-subtitle-translation-cache'),
     /** 清除当前词典配置的查询缓存，返回删除条数。 */
