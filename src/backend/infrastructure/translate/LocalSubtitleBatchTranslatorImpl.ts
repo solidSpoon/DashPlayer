@@ -16,9 +16,10 @@ import {
 /**
  * 已知输出不稳定、需要逐句降级的小模型集合。
  *
- * 这些模型整批翻译时偶发条目错乱（多给/漏给/带出上下文键），
- * 甚至输出循环顶满 max_tokens（正式日志 expected=5 actual=7、
- * finish_reason=length 均来自 0.8B）；更大的模型无此问题。
+ * 0.8B 整批翻译存在随机性条目错乱（多给/漏给/带出上下文键，生产日志
+ * expected=5 actual=7 即此类），基准实测逐句模式成功率为 100%；
+ * 更大的模型无此问题。注意：数字短键重映射实测反而降低整批成功率
+ * （哈希键是更强的逐句锚点），不要改回。
  */
 const SINGLE_SENTENCE_MODEL_IDS = new Set(['qwen3.5-0.8b-q4_k_m']);
 
@@ -29,7 +30,7 @@ type BatchResultSchema = ReturnType<typeof createSubtitleBatchResultSchema>;
  *
  * 推理进程、模型加载与请求超时都由 LocalAiRuntime 管理；这里负责把语义输入
  * 拼成本地模型可执行的提示词，并校验输出形状。本地模型特有的容错策略
- * （如小模型逐句降级）也落在本实现内，业务层不感知。
+ * （小模型逐句降级）也落在本实现内，业务层不感知。
  */
 @injectable()
 export default class LocalSubtitleBatchTranslatorImpl
@@ -68,8 +69,7 @@ implements LocalSubtitleBatchTranslator {
      *
      * 句间邻居优先取同批相邻句，批首尾取调用方传入的组外邻居，
      * 保证每条 prompt 内的字幕都是连续的三句。任意一句失败即整体失败，
-     * 由调度器的重试路径处理；单句请求下模型偶发带出上下文键或多条结果，
-     * 只认当前句的键，缺失即显式报错。
+     * 由调度器的重试路径处理；单句响应若缺失当前句的键，显式报错。
      */
     private async translateSentenceBySentence(
         input: LocalSubtitleBatchTranslationInput,
