@@ -36,6 +36,11 @@ jobs:
         run: |
           choco install wixtoolset
           echo "C:\Program Files (x86)\WiX Toolset v3.11\bin" >> $GITHUB_PATH
+      # AppImage maker (@reforged/maker-appimage) 需要系统提供 mksquashfs，
+      # 显式安装而不依赖 runner 镜像恰好预装
+      - name: Install squashfs-tools (Linux only)
+        if: matrix.os.name == 'linux'
+        run: sudo apt-get update && sudo apt-get install -y squashfs-tools
       - name: Install dependencies
         if: matrix.os.name != 'windows'
         run: yarn install --frozen-lockfile

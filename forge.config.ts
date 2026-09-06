@@ -3,6 +3,8 @@ import { MakerSquirrel } from '@electron-forge/maker-squirrel';
 import { MakerDeb } from '@electron-forge/maker-deb';
 import { MakerRpm } from '@electron-forge/maker-rpm';
 import { MakerWix } from '@electron-forge/maker-wix';
+// Forge 官方没有 AppImage maker，使用社区维护的 ReForged 实现（覆盖 Arch/NixOS 等无 deb/rpm 的发行版）
+import { MakerAppImage } from '@reforged/maker-appimage';
 import { VitePlugin } from '@electron-forge/plugin-vite';
 import { FusesPlugin } from '@electron-forge/plugin-fuses';
 import { FuseV1Options, FuseVersion } from '@electron/fuses';
@@ -80,6 +82,26 @@ const config: ForgeConfig = {
                 bin: 'dash-player',
                 productName: 'DashPlayer',
                 icon: './assets/icons/icon.png',
+            },
+        }),
+        // AppImage：单文件免安装格式，产物命名 DashPlayer-<version>-<arch>.AppImage。
+        // bin 必须与 packagerConfig.executableName 一致，maker 会按它校验打包产物内的可执行文件。
+        // icon 给出 hicolor 多尺寸集合，maker 自动把最大尺寸作为 .DirIcon 默认图标。
+        new MakerAppImage({
+            options: {
+                name: 'dash-player',
+                bin: 'dash-player',
+                productName: 'DashPlayer',
+                icon: {
+                    '16x16': './assets/icons/16x16.png',
+                    '24x24': './assets/icons/24x24.png',
+                    '32x32': './assets/icons/32x32.png',
+                    '48x48': './assets/icons/48x48.png',
+                    '64x64': './assets/icons/64x64.png',
+                    '128x128': './assets/icons/128x128.png',
+                    '256x256': './assets/icons/256x256.png',
+                },
+                categories: ['AudioVideo', 'Video'],
             },
         }),
         new MakerWix({
