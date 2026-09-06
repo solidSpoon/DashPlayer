@@ -67,11 +67,29 @@ const EngineStep = ({ engineDetail, credentialDetail, onApplied }: EngineStepPro
         setEndpoint(credentialDetail.openai.endpoint);
     }
 
-    /** 拉取本地模型状态；下载结束后由进度事件触发刷新。 */
+    /**
+     * 仅拉取并更新本地模型状态，不改动当前选中项。
+     *
+     * 供下载进度事件与操作后刷新使用：刷新时保持用户已选的模型，避免覆盖用户意图。
+     */
     const refreshLocalStatus = React.useCallback(() => {
+        settingsApi.getLocalAiStatus().then(setLocalStatus).catch((error) => {
+            toast.error(error instanceof Error ? error.message : String(error));
+        });
+    }, []);
+
+    React.useEffect(() => {
+        refreshLocalStatus();
+    }, [refreshLocalStatus]);
+
+    // 首次加载后自动选中默认模型：优先使用中的就绪模型，其次任意就绪模型，最后保持推荐档。
+    React.useEffect(() => {
+        let cancelled = false;
         settingsApi.getLocalAiStatus().then((status) => {
+            if (cancelled) {
+                return;
+            }
             setLocalStatus(status);
-            // 默认选中已就绪且在使用中的模型，其次任意已就绪模型，最后保持默认推荐档。
             const activeReady = status.models.find((model) => model.ready && model.modelId === status.activeModelId);
             const anyReady = status.models.find((model) => model.ready);
             if (activeReady) {
@@ -80,13 +98,14 @@ const EngineStep = ({ engineDetail, credentialDetail, onApplied }: EngineStepPro
                 setSelectedModelId(anyReady.modelId);
             }
         }).catch((error) => {
-            toast.error(error instanceof Error ? error.message : String(error));
+            if (!cancelled) {
+                toast.error(error instanceof Error ? error.message : String(error));
+            }
         });
+        return () => {
+            cancelled = true;
+        };
     }, []);
-
-    React.useEffect(() => {
-        refreshLocalStatus();
-    }, [refreshLocalStatus]);
 
     React.useEffect(() => {
         const handler = (event: Event) => {
@@ -112,7 +131,7 @@ const EngineStep = ({ engineDetail, credentialDetail, onApplied }: EngineStepPro
         return () => window.removeEventListener('local-ai-model-download-progress', handler);
     }, [refreshLocalStatus]);
 
-    /** 是否有任意本地模型已就绪；决定本地路线是否可应用。 */
+    /** 当前选中的本地模型；决定本地路线是否可应用。 */
     const selectedModel = localStatus?.models.find((model) => model.modelId === selectedModelId) ?? null;
     const anyDownloading = localStatus?.models.some((model) => model.phase !== 'idle') ?? false;
 
