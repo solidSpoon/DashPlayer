@@ -1,0 +1,1 @@
+DROP TABLE `dp_kvs`;
