@@ -20,6 +20,19 @@ type SubtitleBatchPromptInput = {
     contextAfter: BatchPromptItem[];
 };
 
+/**
+ * 提示词拼装选项。
+ */
+type SubtitleBatchPromptOptions = {
+    /**
+     * 禁止"原文回传"后门。不可译行（♪ 等）在业务层已被过滤，永远不会
+     * 进入提示词，该后门对能整批处理的模型没有价值；而小模型会把它当成
+     * 偷懒授权，大量照抄英文原文充数（实测 0.8B 照抄率 37.5%），
+     * 本地网关必须开启此项。
+     */
+    forbidEcho?: boolean;
+};
+
 const OPENAI_SUBTITLE_BATCH_PROMPT = `You are a professional subtitle translation assistant.
 
 Follow these style guidelines closely:
@@ -33,8 +46,7 @@ Rules:
 2. Copy every target key exactly; never change, omit, duplicate, or invent keys.
 3. NEVER translate, include, or return contextBefore or contextAfter items.
 4. Do not merge or split target lines.
-5. Every translation must be a non-empty string. If a target should remain unchanged, return its original text.
-6. Respond with valid JSON only in the following shape:
+{{unchangedRule}}6. Respond with valid JSON only in the following shape:
 {"items":[{"key":"target_key","translation":"translated_text"}]}
 
 Subtitle request:
@@ -45,10 +57,19 @@ Subtitle request:
  *
  * @param input 当前批次的目标字幕与只读上下文。
  * @param style 风格约束文本；由业务层解析保证非空，这里不做兜底替换。
+ * @param options 拼装选项；本地网关传 forbidEcho 以禁止小模型照抄原文充数。
  * @returns 可直接发送给模型的批量翻译 prompt。
  */
-export const buildSubtitleBatchPrompt = (input: SubtitleBatchPromptInput, style: string): string => {
+export const buildSubtitleBatchPrompt = (
+    input: SubtitleBatchPromptInput,
+    style: string,
+    options: SubtitleBatchPromptOptions = {},
+): string => {
+    const unchangedRule = options.forbidEcho
+        ? '5. Every translation must be a non-empty translation into the target language described for the translation field. NEVER return the original sentence text as its own translation.\n'
+        : '5. Every translation must be a non-empty string. If a target should remain unchanged, return its original text.\n';
     return OPENAI_SUBTITLE_BATCH_PROMPT
+        .replace(/{{\s*unchangedRule\s*}}/gi, unchangedRule)
         .replace(/{{\s*style\s*}}/gi, style)
         .replace(/{{\s*request\s*}}/gi, JSON.stringify(input, null, 2));
 };

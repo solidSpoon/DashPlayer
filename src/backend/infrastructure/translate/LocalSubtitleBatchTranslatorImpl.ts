@@ -23,6 +23,15 @@ import {
  */
 const SINGLE_SENTENCE_MODEL_IDS = new Set(['qwen3.5-0.8b-q4_k_m']);
 
+/**
+ * 照抄检测前对文本做的归一化：去首尾空白、压缩连续空白、忽略大小写。
+ */
+const normalizeForEchoCheck = (text: string): string =>
+    text.replace(/\s+/g, ' ').trim().toLowerCase();
+
+/** 单句照抄检测未通过时的最大生成尝试次数（首次 + 一次重试）。 */
+const ECHO_CHECK_MAX_ATTEMPTS = 2;
+
 type BatchResultSchema = ReturnType<typeof createSubtitleBatchResultSchema>;
 
 /**
@@ -55,13 +64,17 @@ implements LocalSubtitleBatchTranslator {
         if (SINGLE_SENTENCE_MODEL_IDS.has(input.modelId)) {
             return this.translateSentenceBySentence(input, schema);
         }
-        const prompt = buildSubtitleBatchPrompt(input, input.style);
-        return schema.parse(await this.localAi.generate(
+        const prompt = buildSubtitleBatchPrompt(input, input.style, { forbidEcho: input.mode === 'zh' });
+        const parsed = schema.parse(await this.localAi.generate(
             prompt,
             z.toJSONSchema(schema),
             input.modelId,
             input.signal,
-        )).items;
+        ));
+        if (input.mode === 'zh') {
+            this.throwIfEchoed(input.targets, parsed.items);
+        }
+        return parsed.items;
     }
 
     /**
@@ -89,19 +102,57 @@ implements LocalSubtitleBatchTranslator {
                 targets: [target],
                 contextBefore,
                 contextAfter,
-            }, input.style);
-            const parsed = schema.parse(await this.localAi.generate(
-                prompt,
-                z.toJSONSchema(schema),
-                input.modelId,
-                input.signal,
-            ));
-            const matched = parsed.items.find((item) => item.key === target.key && item.translation.trim().length > 0);
+            }, input.style, { forbidEcho: input.mode === 'zh' });
+            let matched: SubtitleTranslationResultItem | undefined;
+            // 小模型偶发照抄原文充数：重试一次后仍照抄则显式报错，
+            // 交由调度器的批次重试路径处理，不静默用原文充当翻译。
+            for (let attempt = 1; attempt <= ECHO_CHECK_MAX_ATTEMPTS && !matched; attempt += 1) {
+                const parsed = schema.parse(await this.localAi.generate(
+                    prompt,
+                    z.toJSONSchema(schema),
+                    input.modelId,
+                    input.signal,
+                ));
+                const candidate = parsed.items.find(
+                    (item) => item.key === target.key && item.translation.trim().length > 0
+                );
+                if (!candidate) {
+                    break;
+                }
+                if (input.mode === 'zh'
+                    && normalizeForEchoCheck(candidate.translation) === normalizeForEchoCheck(target.text)) {
+                    this.logger.warn('本地模型照抄原文，重试', {
+                        key: target.key,
+                        attempt,
+                    });
+                    continue;
+                }
+                matched = { key: target.key, translation: candidate.translation.trim() };
+            }
             if (!matched) {
                 throw new Error(`本地模型未返回句子译文（key=${target.key}）`);
             }
-            items.push({ key: target.key, translation: matched.translation.trim() });
+            items.push(matched);
         }
         return items;
+    }
+
+    /**
+     * 整批结果的照抄检测：任一句译文与原文相同即显式报错。
+     *
+     * @param targets 发给模型的目标条目。
+     * @param items 模型返回的结构化条目。
+     */
+    private throwIfEchoed(
+        targets: LocalSubtitleBatchTranslationInput['targets'],
+        items: SubtitleTranslationResultItem[],
+    ): void {
+        for (const target of targets) {
+            const item = items.find((candidate) => candidate.key === target.key);
+            if (item
+                && normalizeForEchoCheck(item.translation) === normalizeForEchoCheck(target.text)) {
+                throw new Error(`本地模型照抄原文未翻译（key=${target.key}）`);
+            }
+        }
     }
 }
