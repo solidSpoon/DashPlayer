@@ -18,6 +18,30 @@
         "languageSystem": "System",
         "saveFailed": "Save failed: {{message}}"
     },
+    "models": {
+        "title": "Download voice models",
+        "description": "Transcription and pronunciation run offline on local models. Download now to use them without network — or skip and download later in Settings → Service Credentials.",
+        "transcriptionDescription": "Generates subtitles automatically when you import a video. Core dependency.",
+        "ttsDescription": "Offline pronunciation for words and clips, without cloud usage.",
+        "badge": {
+            "recommended": "Recommended",
+            "optional": "Optional"
+        },
+        "download": "Download",
+        "cancelDownload": "Cancel",
+        "phase": {
+            "downloading": "Downloading…",
+            "extracting": "Extracting model…",
+            "installing": "Installing model…",
+            "cleaning": "Cleaning up…",
+            "idle": ""
+        },
+        "ready": "Ready",
+        "notDownloaded": "Not downloaded",
+        "downloadDone": "Download complete",
+        "downloadFailed": "Download failed",
+        "downloadCancelled": "Download cancelled"
+    },
     "engine": {
         "title": "Choose where AI features run",
         "description": "Subtitle translation and dictionary can run locally or through a cloud API. You can change this anytime in Settings.",

@@ -23,9 +23,10 @@ import type { ServiceCredentialSettingDetailVO } from '@/common/types/vo/service
 import { onboardingApi } from './onboardingApi';
 import type { OnboardingEngineChoice } from './types';
 import WelcomeStep from './components/WelcomeStep';
+import ModelsStep from './components/ModelsStep';
 import EngineStep from './components/EngineStep';
 
-/** 引导页各步骤的顺序；索引同时用于步骤指示。 */
+/** 需要计步的步骤数量：欢迎、语音模型、引擎选择；最后的确认页不计入。 */
 const STEP_COUNT = 3;
 
 /**
@@ -39,7 +40,7 @@ const OnboardingPage = () => {
     const { t } = useTranslation('onboarding');
     const navigate = useNavigate();
 
-    /** 当前步骤索引；0 欢迎，1 引擎，2 完成。 */
+    /** 当前页面索引；0 欢迎，1 语音模型，2 引擎，3 完成确认（不计步）。 */
     const [step, setStep] = React.useState(0);
     /** 引擎步骤的应用结果；决定完成页展示的摘要。 */
     const [appliedChoice, setAppliedChoice] = React.useState<OnboardingEngineChoice | null>(null);
@@ -82,43 +83,50 @@ const OnboardingPage = () => {
         <div className="w-full h-full overflow-y-auto bg-background">
             <div className="mx-auto flex min-h-full w-full max-w-2xl flex-col px-6 py-10">
                 <div className="flex items-center justify-between">
-                    <span className="text-xs text-muted-foreground">
-                        {t('stepEngineOf', { current: step + 1, total: STEP_COUNT })}
-                    </span>
-                    <AlertDialog>
-                        <AlertDialogTrigger asChild>
-                            <Button type="button" variant="ghost" size="sm" className="text-muted-foreground">
-                                {t('skip')}
-                            </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                            <AlertDialogHeader>
-                                <AlertDialogTitle>{t('skipTitle')}</AlertDialogTitle>
-                                <AlertDialogDescription>{t('skipDescription')}</AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                                <AlertDialogCancel>{t('skipCancel')}</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => finish()}>
-                                    {t('skipConfirm')}
-                                </AlertDialogAction>
-                            </AlertDialogFooter>
-                        </AlertDialogContent>
-                    </AlertDialog>
+                    {step < STEP_COUNT ? (
+                        <span className="text-xs text-muted-foreground">
+                            {t('stepEngineOf', { current: step + 1, total: STEP_COUNT })}
+                        </span>
+                    ) : (
+                        <span />
+                    )}
+                    {step < STEP_COUNT && (
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button type="button" variant="ghost" size="sm" className="text-muted-foreground">
+                                    {t('skip')}
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>{t('skipTitle')}</AlertDialogTitle>
+                                    <AlertDialogDescription>{t('skipDescription')}</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>{t('skipCancel')}</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => finish()}>
+                                        {t('skipConfirm')}
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    )}
                 </div>
 
                 <div className="flex flex-1 flex-col justify-center py-8">
                     {step === 0 && <WelcomeStep appearance={appearance ?? null} />}
-                    {step === 1 && (
+                    {step === 1 && <ModelsStep />}
+                    {step === 2 && (
                         <EngineStep
                             engineDetail={engineDetail ?? null}
                             credentialDetail={credentialDetail ?? null}
                             onApplied={(choice) => {
                                 setAppliedChoice(choice);
-                                setStep(2);
+                                setStep(3);
                             }}
                         />
                     )}
-                    {step === 2 && (
+                    {step === 3 && (
                         <div className="flex flex-col items-center gap-4 text-center">
                             <CheckCircle2 className="h-14 w-14 text-primary" />
                             <h2 className="text-2xl font-bold">{t('done.title')}</h2>
@@ -147,7 +155,7 @@ const OnboardingPage = () => {
                     >
                         {t('back')}
                     </Button>
-                    {step < STEP_COUNT - 1 ? (
+                    {step < STEP_COUNT ? (
                         <Button type="button" onClick={() => setStep((current) => current + 1)}>
                             {t('next')}
                         </Button>

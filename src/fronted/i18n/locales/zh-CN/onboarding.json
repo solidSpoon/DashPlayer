@@ -18,6 +18,30 @@
         "languageSystem": "跟随系统",
         "saveFailed": "保存失败：{{message}}"
     },
+    "models": {
+        "title": "下载语音模型",
+        "description": "字幕识别和发音朗读都由本地模型离线完成，现在下载好，之后无需网络即可使用；也可以先跳过，稍后在「设置 → 服务凭据」中下载。",
+        "transcriptionDescription": "导入视频后自动识别语音、生成字幕，核心功能依赖它。",
+        "ttsDescription": "生词和片段的离线发音朗读，不消耗云端额度。",
+        "badge": {
+            "recommended": "建议下载",
+            "optional": "可选"
+        },
+        "download": "下载",
+        "cancelDownload": "取消下载",
+        "phase": {
+            "downloading": "下载中…",
+            "extracting": "正在解压模型…",
+            "installing": "正在安装模型…",
+            "cleaning": "正在清理…",
+            "idle": ""
+        },
+        "ready": "已就绪",
+        "notDownloaded": "未下载",
+        "downloadDone": "下载完成",
+        "downloadFailed": "下载失败",
+        "downloadCancelled": "下载已取消"
+    },
     "engine": {
         "title": "选择 AI 能力的来源",
         "description": "字幕翻译、查词释义等 AI 能力可以在本地运行，也可以接入云端 API，之后随时可以在设置里更改。",
