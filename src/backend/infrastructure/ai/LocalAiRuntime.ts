@@ -32,6 +32,18 @@ import type RendererGateway from '@/backend/services/gateways/renderer/RendererG
 /** 本地生成的 completion token 上限；与采样参数一同约束输出规模。 */
 const MAX_COMPLETION_TOKENS = 2048;
 
+/**
+ * llama-server 并行 slot 数，与并发内核 localAi 信号量容量保持一致。
+ *
+ * 逐句翻译会把同组的 5 句并发发出，多 slot 借助 llama.cpp 连续批处理
+ * 在一次解码中交织多条序列，组耗时从“逐句串行相加”降为约两倍单句。
+ * 总上下文需按 slot 均分：16384 / 4 = 每 slot 4096，容纳约 500 prompt
+ * + 2048 输出上限，不会触发 slot 内截断。
+ */
+const LOCAL_PARALLEL_SLOTS = 4;
+/** llama-server 总上下文 = slot 数 × 每 slot 上下文（见 LOCAL_PARALLEL_SLOTS）。 */
+const LOCAL_TOTAL_CTX = 16384;
+
 const responseSchema = z.object({
     choices: z.array(z.object({
         finish_reason: z.string(),
@@ -460,7 +472,7 @@ export class LocalAiRuntime implements LocalAiService {
         const gpuRequested = this.gpuEnabled();
         const child = spawn(this.runtimePath(), [
             '--model', modelPath, '--host', '127.0.0.1', '--port', String(port),
-            '--ctx-size', '8192', '--parallel', '1', '--jinja', '--no-webui',
+            '--ctx-size', String(LOCAL_TOTAL_CTX), '--parallel', String(LOCAL_PARALLEL_SLOTS), '--jinja', '--no-webui',
             '--chat-template-kwargs', '{"enable_thinking":false}', '--reasoning-budget', '0',
             // Metal/Vulkan 平台把全部层放进 GPU；CPU 包传 0 保持纯 CPU 推理。
             '--n-gpu-layers', gpuRequested ? '99' : '0',

@@ -59,7 +59,9 @@ export interface ConcurrencyProfiles {
  */
 export const defaultConcurrencyProfiles: ConcurrencyProfiles = {
     semaphore: {
-        localAi: { capacity: 1 },
+        // 与 LocalAiRuntime 的 llama-server 并行 slot 数一致：
+        // 逐句翻译并发发出同组多句，多 slot 走连续批处理。
+        localAi: { capacity: 4 },
         transcription: { capacity: 1 },
         ffmpeg: { capacity: 5 },
         ffprobe: { capacity: 5 },

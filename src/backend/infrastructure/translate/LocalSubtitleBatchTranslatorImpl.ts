@@ -78,11 +78,13 @@ implements LocalSubtitleBatchTranslator {
     }
 
     /**
-     * 逐句翻译：每次只翻一句，输入当前句及其前后句作只读上下文。
+     * 逐句翻译：每句独立生成，输入当前句及其前后句作只读上下文。
      *
      * 句间邻居优先取同批相邻句，批首尾取调用方传入的组外邻居，
-     * 保证每条 prompt 内的字幕都是连续的三句。任意一句失败即整体失败，
-     * 由调度器的重试路径处理；单句响应若缺失当前句的键，显式报错。
+     * 保证每条 prompt 内的字幕都是连续的三句。全部句子并发发出，
+     * 依赖 llama-server 多 slot 连续批处理交织解码；并发上限由
+     * localAi 信号量（与 slot 数一致）控制，超出部分自动排队。
+     * 单句失败（缺键/持续照抄）即整体失败，由调度器的重试路径处理。
      */
     private async translateSentenceBySentence(
         input: LocalSubtitleBatchTranslationInput,
@@ -92,49 +94,57 @@ implements LocalSubtitleBatchTranslator {
             modelId: input.modelId,
             sentenceCount: input.targets.length,
         });
-        const items: SubtitleTranslationResultItem[] = [];
-        for (let i = 0; i < input.targets.length; i += 1) {
-            input.signal.throwIfAborted();
-            const target = input.targets[i];
-            const contextBefore = i > 0 ? [input.targets[i - 1]] : input.contextBefore;
-            const contextAfter = i < input.targets.length - 1 ? [input.targets[i + 1]] : input.contextAfter;
-            const prompt = buildSubtitleBatchPrompt({
-                targets: [target],
-                contextBefore,
-                contextAfter,
-            }, input.style, { forbidEcho: input.mode === 'zh' });
-            let matched: SubtitleTranslationResultItem | undefined;
-            // 小模型偶发照抄原文充数：重试一次后仍照抄则显式报错，
-            // 交由调度器的批次重试路径处理，不静默用原文充当翻译。
-            for (let attempt = 1; attempt <= ECHO_CHECK_MAX_ATTEMPTS && !matched; attempt += 1) {
-                const parsed = schema.parse(await this.localAi.generate(
-                    prompt,
-                    z.toJSONSchema(schema),
-                    input.modelId,
-                    input.signal,
-                ));
-                const candidate = parsed.items.find(
-                    (item) => item.key === target.key && item.translation.trim().length > 0
-                );
-                if (!candidate) {
-                    break;
-                }
-                if (input.mode === 'zh'
-                    && normalizeForEchoCheck(candidate.translation) === normalizeForEchoCheck(target.text)) {
-                    this.logger.warn('本地模型照抄原文，重试', {
-                        key: target.key,
-                        attempt,
-                    });
-                    continue;
-                }
-                matched = { key: target.key, translation: candidate.translation.trim() };
-            }
-            if (!matched) {
-                throw new Error(`本地模型未返回句子译文（key=${target.key}）`);
-            }
-            items.push(matched);
-        }
+        const items = await Promise.all(input.targets.map((target, i) =>
+            this.translateSingleSentence(input, schema, target, i)));
         return items;
+    }
+
+    /**
+     * 翻译单句并做照抄检测。
+     *
+     * @param input 原始批量输入，用于取邻居上下文、模式与取消信号。
+     * @param schema 结构化输出 schema。
+     * @param target 当前句。
+     * @param i 当前句在组内的下标，决定邻居取同批相邻句还是组外上下文。
+     * @returns 当前句的译文；缺键或重试后仍照抄原文则抛错。
+     */
+    private async translateSingleSentence(
+        input: LocalSubtitleBatchTranslationInput,
+        schema: BatchResultSchema,
+        target: LocalSubtitleBatchTranslationInput['targets'][number],
+        i: number,
+    ): Promise<SubtitleTranslationResultItem> {
+        input.signal.throwIfAborted();
+        const contextBefore = i > 0 ? [input.targets[i - 1]] : input.contextBefore;
+        const contextAfter = i < input.targets.length - 1 ? [input.targets[i + 1]] : input.contextAfter;
+        const prompt = buildSubtitleBatchPrompt({
+            targets: [target],
+            contextBefore,
+            contextAfter,
+        }, input.style, { forbidEcho: input.mode === 'zh' });
+        // 小模型偶发照抄原文充数：重试一次后仍照抄则显式报错，
+        // 交由调度器的批次重试路径处理，不静默用原文充当翻译。
+        for (let attempt = 1; attempt <= ECHO_CHECK_MAX_ATTEMPTS; attempt += 1) {
+            const parsed = schema.parse(await this.localAi.generate(
+                prompt,
+                z.toJSONSchema(schema),
+                input.modelId,
+                input.signal,
+            ));
+            const candidate = parsed.items.find(
+                (item) => item.key === target.key && item.translation.trim().length > 0
+            );
+            if (candidate
+                && !(input.mode === 'zh'
+                    && normalizeForEchoCheck(candidate.translation) === normalizeForEchoCheck(target.text))) {
+                return { key: target.key, translation: candidate.translation.trim() };
+            }
+            this.logger.warn(candidate ? '本地模型照抄原文，重试' : '本地模型未返回句子译文，重试', {
+                key: target.key,
+                attempt,
+            });
+        }
+        throw new Error(`本地模型未返回句子译文（key=${target.key}）`);
     }
 
     /**
