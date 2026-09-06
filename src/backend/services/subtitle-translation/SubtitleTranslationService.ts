@@ -141,7 +141,7 @@ export default interface SubtitleTranslationService {
     updateDemand(input: SubtitleTranslationDemandInput): Promise<void>;
 
     /**
-     * 释放指定字幕文件的内存会话并取消过期请求。
+     * 释放指定字幕文件的内存会话；在途批次继续执行完成并写缓存，不再调度新批次。
      *
      * @param fileHash 字幕文件哈希。
      * @param rendererSessionId 当前 renderer 进程的会话标识。

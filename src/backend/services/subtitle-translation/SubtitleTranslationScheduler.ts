@@ -232,9 +232,7 @@ export default class SubtitleTranslationScheduler<TContext> {
             || existing.profileKey !== demand.profileKey
             || existing.rendererSessionId !== demand.rendererSessionId
         ) {
-            if (existing) {
-                this.abortSession(existing);
-            }
+            // 旧会话被替换后在途批次继续执行完成并写缓存，理由同 release()。
             const session = this.createSession(demand, currentIndex);
             this.sessions.set(demand.fileHash, session);
             this.refreshWindow(session);
@@ -253,7 +251,12 @@ export default class SubtitleTranslationScheduler<TContext> {
     }
 
     /**
-     * 释放指定字幕文件的翻译会话并取消仍在执行的请求。
+     * 释放指定字幕文件的翻译会话；不再调度新批次，在途批次继续执行完成。
+     *
+     * 在途批次的结果由执行器照常写缓存：storageMode 按引擎、模型、模式与风格隔离，
+     * 不会污染新配置；renderer 侧会按当前会话丢弃过期推送，因此放行无副作用。
+     * 本地推理单批可达数十秒，中止意味着算力全部浪费且模型进程被连带重启，
+     * 所以这里刻意不取消：新会话覆盖到重叠句时会直接从缓存命中。
      *
      * @param fileHash 字幕文件哈希。
      * @param rendererSessionId 仅释放对应 renderer 会话，避免旧窗口误删新会话。
@@ -267,7 +270,6 @@ export default class SubtitleTranslationScheduler<TContext> {
             return;
         }
         this.sessions.delete(fileHash);
-        this.abortSession(session);
         session.pendingJobs.length = 0;
     }
 
@@ -471,7 +473,11 @@ export default class SubtitleTranslationScheduler<TContext> {
                 const failedIndices = result.failedIndices.filter((index) =>
                     !session.completedIndices.has(index)
                 );
-                if (failedIndices.length > 0) {
+                // 会话已被释放/替换时不再重试：结果已写缓存，重试对死会话无意义。
+                if (
+                    failedIndices.length > 0
+                    && this.sessions.get(session.fileHash) === session
+                ) {
                     this.requeueOrDeadLetter(session, job, failedIndices, request);
                 }
             })
@@ -488,7 +494,9 @@ export default class SubtitleTranslationScheduler<TContext> {
                     requeueCount: request.requeueCount,
                     context: request.context,
                 });
-                this.requeueOrDeadLetter(session, job, job.indices, request);
+                if (this.sessions.get(session.fileHash) === session) {
+                    this.requeueOrDeadLetter(session, job, job.indices, request);
+                }
             })
             .finally(() => {
                 job.indices.forEach((index) => session.inFlightIndices.delete(index));
@@ -646,16 +654,5 @@ export default class SubtitleTranslationScheduler<TContext> {
      */
     private priorityRank(priority: SubtitleTranslationPriority): number {
         return priority === 'high' ? 1 : 0;
-    }
-
-    /**
-     * 取消会话内所有正在执行的任务。
-     *
-     * 只有释放字幕或切换翻译配置时才会调用；播放位置滚动不会取消已经发出的请求。
-     *
-     * @param session 需要停止的字幕会话。
-     */
-    private abortSession(session: SubtitleTranslationSession<TContext>): void {
-        session.runningJobs.forEach((job) => job.controller?.abort());
     }
 }
