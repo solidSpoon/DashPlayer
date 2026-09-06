@@ -25,6 +25,7 @@ import { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
 import { getSubtitleDefaultStyle } from '@/common/constants/openaiSubtitlePrompts';
 import ModelRoutingService from '@/backend/services/ModelRoutingService';
 import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type LocalAiService from '@/backend/services/LocalAiService';
 import {
     isRuntimeSettingKey,
     runtimeSettingKeys,
@@ -78,6 +79,7 @@ export class SettingServiceImpl implements SettingService {
     @inject(TYPES.SettingsStore) private settingsStore!: SettingsStore;
     @inject(TYPES.ModelRoutingService) private modelRoutingService!: ModelRoutingService;
     @inject(TYPES.StorageDirectoryProvider) private storageDirectoryProvider!: StorageDirectoryProvider;
+    @inject(TYPES.LocalAiService) private localAi!: LocalAiService;
     private logger = getMainLogger('SettingServiceImpl');
 
     /**
@@ -412,6 +414,8 @@ export class SettingServiceImpl implements SettingService {
         }
         await this.setValue('providers.subtitleTranslation', subtitleTranslationEngine);
         await this.setValue('providers.dictionary', dictionaryEngine);
+        // 引擎切换即时反映到本地模型常驻策略：切到 local 后台预加载，切走后恢复空闲卸载。
+        this.localAi.syncEngineResidency();
 
         const subtitleMode = this.requireEnumValue(
             settings.openai.subtitleTranslationMode,

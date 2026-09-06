@@ -63,8 +63,9 @@ const speedUsageSchema = z.object({
 
 /**
  * 管理目录内多个 GGUF 模型和应用私有的 llama-server 子进程。
- * 推理串行执行；完整校验后原子安装，空闲五分钟释放模型；
- * 同一时间只允许一个模型下载任务，删除前必须先释放推理进程。
+ * 推理串行执行；完整校验后原子安装；本地引擎启用时后台预加载并常驻内存，
+ * 未启用时空闲五分钟释放模型；同一时间只允许一个模型下载任务，
+ * 删除前必须先释放推理进程。
  */
 @injectable()
 export class LocalAiRuntime implements LocalAiService {
@@ -184,6 +185,12 @@ export class LocalAiRuntime implements LocalAiService {
     /** 是否启用 GPU 推理：当前仅支持 Apple Silicon 的 Metal，其余平台一律纯 CPU。 */
     private gpuEnabled(): boolean {
         return process.platform === 'darwin' && process.arch === 'arm64';
+    }
+
+    /** 字幕翻译或词典任一引擎配置为本地模型即视为引擎启用；读设置即时生效，无需事件通知。 */
+    private isLocalEngineEnabled(): boolean {
+        return this.settingsStore.get('providers.subtitleTranslation') === 'local'
+            || this.settingsStore.get('providers.dictionary') === 'local';
     }
 
     /**
@@ -312,6 +319,8 @@ export class LocalAiRuntime implements LocalAiService {
         if (!this.settingsStore.set('models.local.active', model.id)) {
             throw new Error(`保存本地模型选择失败：${model.name}`);
         }
+        // 常驻模式下后台切换到新模型；引擎未启用时不做任何加载。
+        if (this.isLocalEngineEnabled()) void this.preloadActiveModel();
     }
 
     /** 启动指定模型的下载并保留唯一任务；错误保存在状态中，切页后仍可查看。 */
@@ -613,21 +622,65 @@ export class LocalAiRuntime implements LocalAiService {
         } finally {
             this.busy--;
             this.settleBusy();
+            // 测速加载的是指定模型；常驻模式下把使用中模型重新拉起，避免常驻错模型。
+            if (this.isLocalEngineEnabled()) void this.preloadActiveModel();
         }
     }
 
-    /** 归零占用计数后重新武装空闲卸载计时器。 */
+    /** 归零占用计数后的常驻决策：本地引擎启用时模型常驻内存，否则武装空闲卸载。 */
     private settleBusy(): void {
-        if (this.busy === 0 && !this.lifetime.signal.aborted) {
-            this.idleTimer = setTimeout(() => { void this.stop().catch((error) => this.logger.error('local runtime stop failed', { error })); }, 300_000);
-            this.idleTimer.unref();
+        if (this.busy > 0 || this.lifetime.signal.aborted) return;
+        if (this.isLocalEngineEnabled()) return;
+        this.armIdleUnload();
+    }
+
+    /** 武装空闲卸载计时器（幂等，不重置已有计时器）；没有在跑的进程时无事可做。 */
+    private armIdleUnload(): void {
+        if (this.idleTimer || this.busy > 0 || !this.child || this.lifetime.signal.aborted) return;
+        this.idleTimer = setTimeout(() => { void this.stop().catch((error) => this.logger.error('local runtime stop failed', { error })); }, 300_000);
+        this.idleTimer.unref();
+    }
+
+    /** 清除空闲卸载计时器。 */
+    private clearIdleTimer(): void {
+        if (this.idleTimer) { clearTimeout(this.idleTimer); this.idleTimer = null; }
+    }
+
+    /** 按当前设置同步常驻策略；预加载在后台进行，失败只记日志不阻塞调用方。 */
+    public syncEngineResidency(): void {
+        this.clearIdleTimer();
+        if (!this.isLocalEngineEnabled()) {
+            this.armIdleUnload();
+            return;
+        }
+        void this.preloadActiveModel();
+    }
+
+    /**
+     * 后台预加载使用中的模型；已加载目标模型时直接返回。
+     *
+     * 借助 localAi 信号量串行执行，与推理请求共享同一互斥边界，避免与在途
+     * 请求并发触发两次进程启动；冷加载期间到达的翻译请求自动排队。
+     * 模型未安装、运行时缺失等预加载失败只记日志，由首次推理显式报错。
+     */
+    private async preloadActiveModel(): Promise<void> {
+        try {
+            this.lifetime.signal.throwIfAborted();
+            const model = await this.resolveModelDefinition(await this.getActiveModelId());
+            if (this.child && this.loadedPath === await this.modelPath(model)) return;
+            await this.runSerial(async () => {
+                await this.start(model, this.lifetime.signal);
+            }, this.lifetime.signal);
+            this.logger.info('local model preloaded', { model: model.id });
+        } catch (error) {
+            this.logger.warn('local model preload failed', { error });
         }
     }
 
     /** 在本地推理互斥信号量内执行；占用期间暂停空闲卸载，结束后重新计时。 */
     private async runSerial<T>(fn: (signal: AbortSignal) => Promise<T>, signal: AbortSignal): Promise<T> {
         this.busy++;
-        if (this.idleTimer) clearTimeout(this.idleTimer);
+        this.clearIdleTimer();
         try {
             return await concurrency.withSemaphore('localAi', () => fn(signal), { signal });
         } finally {
@@ -658,7 +711,7 @@ export class LocalAiRuntime implements LocalAiService {
 
     /** 结束私有子进程并等待文件句柄释放；超时强制终止。 */
     private async stop(): Promise<void> {
-        if (this.idleTimer) { clearTimeout(this.idleTimer); this.idleTimer = null; }
+        this.clearIdleTimer();
         const child = this.child;
         const exited = this.childExit;
         this.child = null; this.endpoint = null; this.loadedPath = null;

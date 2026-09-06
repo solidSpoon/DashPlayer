@@ -233,6 +233,8 @@ app.on('ready', async () => {
     await runResyncAfterResetDbIfNeeded();
     await initProxyFeature();
     logStartupPhase('proxy');
+    // 本地引擎启用时后台预加载模型常驻内存；失败只记日志，不阻塞也不影响启动流程。
+    container.get<LocalAiService>(TYPES.LocalAiService).syncEngineResidency();
     // 生命周期标记：会话何时开始、以什么配置运行，便于回溯“有活动却无日志”的问题。
     logger.info('app ready', {
         version: app.getVersion(),
