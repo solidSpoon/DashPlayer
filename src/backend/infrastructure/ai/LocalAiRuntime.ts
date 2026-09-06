@@ -32,10 +32,16 @@ import type RendererGateway from '@/backend/services/gateways/renderer/RendererG
 /** 本地生成的 completion token 上限；与采样参数一同约束输出规模。 */
 const MAX_COMPLETION_TOKENS = 2048;
 
-const responseSchema = z.object({ choices: z.array(z.object({
-    finish_reason: z.string(),
-    message: z.object({ content: z.string() }),
-})).length(1) });
+const responseSchema = z.object({
+    choices: z.array(z.object({
+        finish_reason: z.string(),
+        message: z.object({ content: z.string() }),
+    })).length(1),
+    usage: z.object({
+        prompt_tokens: z.number(),
+        completion_tokens: z.number(),
+    }).optional(),
+});
 
 /** 速度测试响应中 token 用量的宽松解析；推理端未返回用量时为 undefined。 */
 const speedUsageSchema = z.object({
@@ -544,7 +550,17 @@ export class LocalAiRuntime implements LocalAiService {
                 } catch (error) {
                     throw new Error(`本地模型返回的 JSON 无法解析：${error instanceof Error ? error.message : String(error)}`);
                 }
-                this.logger.info('local generation completed', { model: model.id, durationMs: Date.now() - startedAt });
+                const durationMs = Date.now() - startedAt;
+                this.logger.info('local generation completed', {
+                    model: model.id,
+                    durationMs,
+                    // 键名避开 "token" 子串：日志脱敏规则会把含 token 的键整体打码。
+                    usage: result.usage ? {
+                        prompt: result.usage.prompt_tokens,
+                        completion: result.usage.completion_tokens,
+                        perSecond: Number((result.usage.completion_tokens / (durationMs / 1000)).toFixed(1)),
+                    } : null,
+                });
                 return parsed;
             } catch (error) {
                 this.logger.error('local generation failed', { error, model: model.id, durationMs: Date.now() - startedAt });
