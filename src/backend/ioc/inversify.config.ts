@@ -1,4 +1,7 @@
 import { Container } from 'inversify';
+import { LocalAiController } from '@/backend/controllers/LocalAiController';
+import { LocalAiRuntime } from '@/backend/infrastructure/ai/LocalAiRuntime';
+import type LocalAiService from '@/backend/services/LocalAiService';
 import TYPES from './types';
 import FavoriteClipsController from '@/backend/controllers/FavoriteClipsController';
 import Controller from '@/backend/controllers/Controller';
@@ -51,8 +54,10 @@ import SubtitleTranslationService, {
 } from '@/backend/services/subtitle-translation/SubtitleTranslationService';
 import { YouDaoDictionaryClient } from '@/backend/services/gateways/translate/YouDaoDictionaryClient';
 import { TencentTranslateClient } from '@/backend/services/gateways/translate/TencentTranslateClient';
-import OpenAiSubtitleTranslationGateway from '@/backend/services/gateways/translate/OpenAiSubtitleTranslationGateway';
-import OpenAiSubtitleTranslationGatewayImpl from '@/backend/infrastructure/translate/OpenAiSubtitleTranslationGatewayImpl';
+import OpenAiSubtitleBatchTranslator from '@/backend/services/gateways/translate/OpenAiSubtitleBatchTranslator';
+import LocalSubtitleBatchTranslator from '@/backend/services/gateways/translate/LocalSubtitleBatchTranslator';
+import OpenAiSubtitleBatchTranslatorImpl from '@/backend/infrastructure/translate/OpenAiSubtitleBatchTranslatorImpl';
+import LocalSubtitleBatchTranslatorImpl from '@/backend/infrastructure/translate/LocalSubtitleBatchTranslatorImpl';
 import ConfigStoreFactoryImpl from '@/backend/infrastructure/config/ConfigStoreFactoryImpl';
 import { ConfigStoreFactory } from '@/backend/services/gateways/ConfigStore';
 import { SettingsStore } from '@/backend/services/gateways/SettingsStore';
@@ -124,8 +129,11 @@ container.bind<ConfigStoreFactory>(TYPES.ConfigStoreFactory).to(ConfigStoreFacto
 container.bind<SettingsStore>(TYPES.SettingsStore).to(SettingsStoreImpl).inSingletonScope();
 container.bind<ModelRoutingService>(TYPES.ModelRoutingService).to(ModelRoutingServiceImpl).inSingletonScope();
 container.bind<AiProviderService>(TYPES.AiProviderService).to(AiProviderServiceImpl).inSingletonScope();
-container.bind<OpenAiSubtitleTranslationGateway>(TYPES.OpenAiSubtitleTranslationGateway)
-    .to(OpenAiSubtitleTranslationGatewayImpl)
+container.bind<OpenAiSubtitleBatchTranslator>(TYPES.OpenAiSubtitleBatchTranslator)
+    .to(OpenAiSubtitleBatchTranslatorImpl)
+    .inSingletonScope();
+container.bind<LocalSubtitleBatchTranslator>(TYPES.LocalSubtitleBatchTranslator)
+    .to(LocalSubtitleBatchTranslatorImpl)
     .inSingletonScope();
 // Controllers
 container.bind<Controller>(TYPES.Controller).to(FavoriteClipsController).inSingletonScope();
@@ -143,6 +151,8 @@ container.bind<Controller>(TYPES.Controller).to(SubtitleController).inSingletonS
 container.bind<Controller>(TYPES.Controller).to(WatchHistoryController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(SettingsController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(ParakeetModelController).inSingletonScope();
+container.bind<Controller>(TYPES.Controller).to(LocalAiController).inSingletonScope();
+container.bind<LocalAiService>(TYPES.LocalAiService).to(LocalAiRuntime).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(SherpaTtsModelController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VocabularyController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VideoLearningApiController).inSingletonScope();

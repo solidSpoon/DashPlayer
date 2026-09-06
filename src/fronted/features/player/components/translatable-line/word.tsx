@@ -137,10 +137,11 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
     const setting = useSetting((state) => state.setting);
     const dictionaryEngineRaw = setting('providers.dictionary');
     const dictionaryEngine =
-        dictionaryEngineRaw === 'youdao' || dictionaryEngineRaw === 'openai'
+        dictionaryEngineRaw === 'youdao' || dictionaryEngineRaw === 'openai' || dictionaryEngineRaw === 'local'
             ? dictionaryEngineRaw
             : 'openai';
-    const openaiDictionaryEnabled = dictionaryEngine === 'openai';
+    // 本地词典与 OpenAI 返回同一结构，复用 AI 词典卡片与最终结果同步路径
+    const openaiDictionaryEnabled = dictionaryEngine === 'openai' || dictionaryEngine === 'local';
     const dictionaryMode = dictionaryEngine;
 
     const dictionaryEntry = useDictionaryStream((state) => state.getActiveEntry(original));

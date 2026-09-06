@@ -14,6 +14,7 @@ import ClientProviderService from '@/backend/services/ClientProviderService';
 import SettingService from '@/backend/services/SettingService';
 import { YouDaoDictionaryClient } from '@/backend/services/gateways/translate/YouDaoDictionaryClient';
 import { getMainLogger } from '@/backend/infrastructure/logger';
+import type LocalAiService from '@/backend/services/LocalAiService';
 
 export default interface TranslateService {
     transWord(
@@ -21,6 +22,16 @@ export default interface TranslateService {
         forceRefresh?: boolean,
         requestId?: string
     ): Promise<YdRes | OpenAIDictionaryResult | null>;
+
+    /**
+     * 删除当前词典配置（引擎完全一致）产生的全部查询缓存。
+     *
+     * 供“对词典结果不满意、想重新查询”的场景使用：只精确删除当前引擎对应的
+     * provider 缓存，不影响其他引擎的历史缓存。
+     *
+     * @returns 实际删除的记录数。
+     */
+    clearDictionaryCache(): Promise<number>;
 }
 
 
@@ -200,6 +211,8 @@ export class TranslateServiceImpl implements TranslateService {
     private settingService!: SettingService;
     @inject(TYPES.WordTranslatesRepository)
     private wordTranslatesRepository!: WordTranslatesRepository;
+    @inject(TYPES.LocalAiService)
+    private localAiService!: LocalAiService;
 
     public async transWord(
         str: string,
@@ -243,7 +256,7 @@ export class TranslateServiceImpl implements TranslateService {
      * @param word 原始查询词。
      * @returns 可用于 in-flight 映射的稳定 key。
      */
-    private buildWordLookupKey(provider: 'openai' | 'youdao', word: string): string {
+    private buildWordLookupKey(provider: 'openai' | 'local' | 'youdao', word: string): string {
         return `${provider}:${word.trim().toLowerCase()}`;
     }
 
@@ -258,7 +271,7 @@ export class TranslateServiceImpl implements TranslateService {
      */
     private async executeWordLookup(
         str: string,
-        currentProvider: 'openai' | 'youdao',
+        currentProvider: 'openai' | 'local' | 'youdao',
         forceRefresh: boolean,
         requestId?: string
     ): Promise<YdRes | OpenAIDictionaryResult | null> {
@@ -288,6 +301,10 @@ export class TranslateServiceImpl implements TranslateService {
             const or = JSON.parse(onlineRes) as YdRes;
             await this.wordRecord(str, or);
             return or;
+        } else if (currentProvider === 'local') {
+            const result = await this.translateWordWithLocal(str, requestId);
+            if (result) await this.wordRecordOpenAI(str, result, 'local');
+            return result;
         } else if (currentProvider === 'openai') {
             return await this.translateWordWithOpenAI(str, requestId);
         }
@@ -404,6 +421,18 @@ export class TranslateServiceImpl implements TranslateService {
         }
     }
 
+    /** 使用使用中的本地模型生成同一份词典结构，复用现有清洗与缓存格式。 */
+    private async translateWordWithLocal(word: string, requestId?: string): Promise<OpenAIDictionaryResult | null> {
+        const modelId = await this.localAiService.getActiveModelId();
+        const result = await this.localAiService.generate(buildDictionaryPrompt(word), z.toJSONSchema(openAIDictionaryResultSchema), modelId);
+        const parsed = openAIDictionaryResultSchema.safeParse(result);
+        if (!parsed.success) {
+            this.logger.error('本地字典模型返回结构无效', { word, issues: parsed.error.issues, requestId });
+            return null;
+        }
+        return sanitizeDictionaryResult(parsed.data);
+    }
+
     /**
      * 将简化词典结果推送到渲染层，供弹窗实时刷新。
      * @param requestId 当前流式请求 id。
@@ -449,7 +478,7 @@ export class TranslateServiceImpl implements TranslateService {
         }
     }
 
-    private async wordLoad(word: string, provider: 'youdao' | 'openai'): Promise<YdRes | OpenAIDictionaryResult | undefined> {
+    private async wordLoad(word: string, provider: 'youdao' | 'openai' | 'local'): Promise<YdRes | OpenAIDictionaryResult | undefined> {
         const value: WordTranslate | null = await this.wordTranslatesRepository.findOne(p(word), provider);
         if (!value) return undefined;
 
@@ -460,7 +489,7 @@ export class TranslateServiceImpl implements TranslateService {
 
         try {
             const parsed = JSON.parse(trans ?? '');
-            if (provider === 'openai') {
+            if (provider === 'openai' || provider === 'local') {
                 const parsedResult = openAIDictionaryCacheSchema.safeParse(parsed);
                 if (!parsedResult.success) {
                     this.logger.warn('OpenAI 字典缓存格式不正确，忽略本地缓存', {
@@ -490,11 +519,21 @@ export class TranslateServiceImpl implements TranslateService {
         await this.wordTranslatesRepository.upsert(wt.word, 'youdao', value, TimeUtil.timeUtc());
     }
 
-    private async wordRecordOpenAI(word: string, translate: OpenAIDictionaryResult): Promise<void> {
+    private async wordRecordOpenAI(word: string, translate: OpenAIDictionaryResult, provider: 'openai' | 'local' = 'openai'): Promise<void> {
         const sanitized = sanitizeDictionaryResult(translate);
         const value = JSON.stringify(sanitized);
-        const wt: InsertWordTranslate = { word: p(word), provider: 'openai', translate: value };
-        await this.wordTranslatesRepository.upsert(wt.word, 'openai', value, TimeUtil.timeUtc());
+        const wt: InsertWordTranslate = { word: p(word), provider, translate: value };
+        await this.wordTranslatesRepository.upsert(wt.word, provider, value, TimeUtil.timeUtc());
+    }
+
+    public async clearDictionaryCache(): Promise<number> {
+        const provider = await this.settingService.getCurrentDictionaryProvider();
+        if (!provider) {
+            throw new Error('未启用词典服务');
+        }
+        const deleted = await this.wordTranslatesRepository.deleteByProvider(provider);
+        this.logger.info('已清除当前配置的词典缓存', { provider, deleted });
+        return deleted;
     }
 
 }

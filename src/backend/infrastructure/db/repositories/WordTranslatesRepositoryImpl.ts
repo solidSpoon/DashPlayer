@@ -32,5 +32,12 @@ export default class WordTranslatesRepositoryImpl implements WordTranslatesRepos
                 set: { translate, updated_at: updatedAt ?? TimeUtil.timeUtc() },
             });
     }
+
+    public async deleteByProvider(provider: string): Promise<number> {
+        const result = await db
+            .delete(wordTranslates)
+            .where(eq(wordTranslates.provider, provider));
+        return result.changes ?? 0;
+    }
 }
 

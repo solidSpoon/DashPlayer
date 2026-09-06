@@ -12,6 +12,7 @@ import {
     Download,
     ExternalLink,
     FolderOpen,
+    Gauge,
     HelpCircle,
     Languages,
     Loader2,
@@ -34,10 +35,12 @@ import { SettingCard, SettingsLoadingSkeleton } from '@/fronted/features/setting
 import { OpenAiModelUsageFeature, ServiceCredentialSettingDetailVO, ServiceCredentialSettingSaveVO } from '@/common/types/vo/service-credentials-setting-vo';
 import type { ModelInstallationStatusVO } from '@/common/types/vo/model-installation-vo';
 import type { ModelDownloadPhase } from '@/common/contracts/model-download-phase';
+import type { LocalAiModelStatus, LocalAiStatus } from '@/common/contracts/local-ai';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import toast from 'react-hot-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
+import useSystem from '@/fronted/hooks/useSystem';
 import {
     ContextMenu,
     ContextMenuContent,
@@ -50,6 +53,8 @@ import {
  */
 const ServiceCredentialSetting = () => {
     const { t } = useI18nTranslation('settings');
+    // 本地模型推理目前仅支持 macOS，其余平台不展示相关设置。
+    const isMac = useSystem((s) => s.isMac);
     const { data: settings } = useSWR('settings/service-credentials/detail', () =>
         settingsApi.getServiceCredentials(),
     );
@@ -91,6 +96,8 @@ const ServiceCredentialSetting = () => {
     const [deletingSherpaTtsModel, setDeletingSherpaTtsModel] = React.useState(false);
     const [sherpaTtsDownloadProgress, setSherpaTtsDownloadProgress] = React.useState(0);
     const [sherpaTtsDownloadPhase, setSherpaTtsDownloadPhase] = React.useState<ModelDownloadPhase>('downloading');
+    const [localAiStatus, setLocalAiStatus] = React.useState<LocalAiStatus | null>(null);
+    const [localAiBusy, setLocalAiBusy] = React.useState(false);
 
     /** 是否已由用户手动触发下载；用于丢弃过期的状态查询响应。 */
     const downloadingRef = React.useRef(false);
@@ -186,6 +193,105 @@ const ServiceCredentialSetting = () => {
     React.useEffect(() => {
         refreshSherpaTtsModelStatus().catch(() => null);
     }, [refreshSherpaTtsModelStatus]);
+
+    /** 拉取本地模型最新状态；手动放入自定义模型后由「重新扫描」按钮触发。 */
+    const refreshLocalAiStatus = React.useCallback(() => {
+        return settingsApi.getLocalAiStatus().then(setLocalAiStatus).catch(() => null);
+    }, []);
+
+    /** 对指定模型执行速度测试；后端冷加载后连跑两轮固定批量生成，吐司展示耗时与吞吐。 */
+    const speedTestLocalAi = async (modelId: string, name: string) => {
+        setLocalAiBusy(true);
+        try {
+            const result = await settingsApi.speedTestLocalAi(modelId);
+            toast.success(`${name}：${t('serviceCredentials.localAi.speedTestResult', {
+                load: (result.loadMs / 1000).toFixed(1),
+                first: (result.firstMs / 1000).toFixed(1),
+                warm: (result.warmMs / 1000).toFixed(1),
+                tps: result.tokensPerSecond === null ? '—' : result.tokensPerSecond.toFixed(1),
+            })}`);
+        } catch (error) {
+            toast.error(`${name}：${error instanceof Error ? error.message : String(error)}`);
+        } finally {
+            setLocalAiBusy(false);
+            refreshLocalAiStatus();
+        }
+    };
+
+    React.useEffect(() => { refreshLocalAiStatus(); }, [refreshLocalAiStatus]);
+
+    React.useEffect(() => {
+        const handler = (event: Event) => {
+            const progress = (event as CustomEvent<{
+                modelId: string;
+                downloaded: number;
+                total: number;
+                phase: LocalAiModelStatus['phase'];
+            }>).detail;
+            setLocalAiStatus((current) => current ? {
+                ...current,
+                models: current.models.map((model) =>
+                    model.modelId === progress.modelId
+                        ? { ...model, downloaded: progress.downloaded, total: progress.total, phase: progress.phase }
+                        : model
+                ),
+            } : current);
+            if (progress.phase === 'idle') {
+                refreshLocalAiStatus();
+            }
+        };
+        window.addEventListener('local-ai-model-download-progress', handler);
+        return () => window.removeEventListener('local-ai-model-download-progress', handler);
+    }, []);
+
+    /**
+     * 对指定本地模型执行短操作（检查/删除/取消），完成后刷新整页状态。
+     *
+     * @param modelId 目标模型标识。
+     * @param name 模型展示名，用于提示文案。
+     * @param action 要执行的 API 调用。
+     * @param successMessage 成功提示文案。
+     */
+    const runLocalAiAction = async (modelId: string, name: string, action: () => Promise<unknown>, successMessage: string) => {
+        setLocalAiBusy(true);
+        try { await action(); toast.success(`${name}：${successMessage}`); }
+        catch (error) { toast.error(`${name}：${error instanceof Error ? error.message : String(error)}`); }
+        finally {
+            setLocalAiBusy(false);
+            refreshLocalAiStatus();
+        }
+    };
+
+    /** 下载指定模型；进度由事件持续更新页面，后端同一时间只允许一个下载任务。 */
+    const downloadLocalAi = async (modelId: string, name: string) => {
+        setLocalAiStatus((current) => current ? {
+            ...current,
+            models: current.models.map((model) =>
+                model.modelId === modelId ? { ...model, phase: 'downloading' } : model
+            ),
+        } : current);
+        try {
+            await settingsApi.downloadLocalAi(modelId);
+            toast.success(`${name} 下载完成`);
+        } catch (error) {
+            if ((error instanceof Error ? error.name : '') !== 'AbortError') {
+                toast.error(`${name}：${error instanceof Error ? error.message : String(error)}`);
+            }
+        } finally {
+            refreshLocalAiStatus();
+        }
+    };
+
+    /** 取消当前下载并保留已完成部分，以便下次续传。 */
+    const cancelLocalAiDownload = async () => {
+        setLocalAiBusy(true);
+        try { await settingsApi.cancelLocalAiDownload(); }
+        catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
+        finally {
+            setLocalAiBusy(false);
+            refreshLocalAiStatus();
+        }
+    };
 
     React.useEffect(() => {
         const handler = (evt: Event) => {
@@ -766,6 +872,165 @@ const ServiceCredentialSetting = () => {
                         )}
                     </div>
                 </SettingCard>
+
+                {isMac && (
+                <SettingCard
+                    title={t('serviceCredentials.localAi.cardTitle')}
+                    description={t('serviceCredentials.localAi.cardDescription')}
+                    icon={Bot}
+                >
+                    <div className="flex flex-col gap-3 p-4">
+                        {localAiStatus?.models.map((model) => {
+                            const anyDownloading = (localAiStatus?.models.some((item) => item.phase !== 'idle')) ?? false;
+                            return (
+                                <div key={model.modelId} className="space-y-2.5 rounded-xl border border-border/50 bg-muted/20 p-3.5">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div className="flex items-center gap-2.5 flex-wrap">
+                                            <span className="text-sm font-semibold text-foreground">{model.name}</span>
+                                            <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">{model.sizeLabel}</span>
+                                            <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">{t('serviceCredentials.localAi.memoryEstimate', { gb: model.memoryEstimateGb })}</span>
+                                            {model.custom && (
+                                                <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">{t('serviceCredentials.localAi.custom')}</span>
+                                            )}
+                                            {model.ready && model.modelId === localAiStatus.activeModelId ? (
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+                                                    <CheckCircle2 className="h-3.5 w-3.5" />
+                                                    {t('serviceCredentials.localAi.inUse')}
+                                                </span>
+                                            ) : model.ready ? (
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                                                    {t('serviceCredentials.localAi.readyNotInUse')}
+                                                </span>
+                                            ) : model.phase !== 'idle' ? (
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
+                                                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                    {model.phase === 'verifying'
+                                                        ? t('serviceCredentials.localAi.phaseVerifying')
+                                                        : t('serviceCredentials.localAi.phaseDownloading')}
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                                                    {t('common.notDownloaded')}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <div className="flex shrink-0 items-center gap-2">
+                                            {!model.ready && model.phase === 'idle' && (
+                                                <Button type="button" size="sm" disabled={localAiBusy || anyDownloading} onClick={() => downloadLocalAi(model.modelId, model.name)}>
+                                                    <Download className="mr-1.5 h-3.5 w-3.5" />
+                                                    {t('common.download')}
+                                                </Button>
+                                            )}
+                                            {!model.ready && model.phase !== 'idle' && (
+                                                <Button type="button" variant="outline" size="sm" disabled={localAiBusy} onClick={() => cancelLocalAiDownload()}>
+                                                    <Square className="mr-1.5 h-3.5 w-3.5 text-destructive" />
+                                                    {t('serviceCredentials.localAi.cancelDownload')}
+                                                </Button>
+                                            )}
+                                            {model.ready && model.modelId !== localAiStatus.activeModelId && (
+                                                <Button type="button" size="sm" disabled={localAiBusy} onClick={() => runLocalAiAction(model.modelId, model.name, () => settingsApi.useLocalAiModel(model.modelId), t('serviceCredentials.localAi.useSuccess'))}>
+                                                    <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                                                    {t('serviceCredentials.localAi.use')}
+                                                </Button>
+                                            )}
+                                            {model.ready && (
+                                                <Button type="button" variant="outline" size="sm" disabled={localAiBusy} onClick={() => runLocalAiAction(model.modelId, model.name, () => settingsApi.checkLocalAi(model.modelId), t('serviceCredentials.localAi.checkSuccess'))}>
+                                                    <TestTube className="mr-1.5 h-3.5 w-3.5" />
+                                                    {t('serviceCredentials.localAi.checkRun')}
+                                                </Button>
+                                            )}
+                                            {model.ready && (
+                                                <Button type="button" variant="outline" size="sm" disabled={localAiBusy} onClick={() => speedTestLocalAi(model.modelId, model.name)}>
+                                                    <Gauge className="mr-1.5 h-3.5 w-3.5" />
+                                                    {t('serviceCredentials.localAi.speedTest')}
+                                                </Button>
+                                            )}
+                                            {model.ready && (
+                                                <Button type="button" variant="ghost" size="sm" disabled={localAiBusy} onClick={() => runLocalAiAction(model.modelId, model.name, () => settingsApi.deleteLocalAi(model.modelId), t('serviceCredentials.localAi.deleteSuccess'))}>
+                                                    <Trash2 className="mr-1.5 h-3.5 w-3.5" />
+                                                    删除
+                                                </Button>
+                                            )}
+                                        </div>
+                                    </div>
+                                    {!model.ready && model.phase !== 'idle' && (
+                                        <div className="space-y-1.5 rounded-lg border border-border/40 bg-muted/30 p-3">
+                                            <div className="flex justify-between text-xs font-medium text-muted-foreground">
+                                                <span>{model.phase === 'verifying' ? '正在校验模型…' : '正在下载模型…'}</span>
+                                                <span>{Math.min(100, Math.floor(model.downloaded / model.total * 100))}%</span>
+                                            </div>
+                                            <Progress value={model.downloaded / model.total * 100} className="h-1.5" />
+                                        </div>
+                                    )}
+                                    {model.error && (
+                                        <div className="text-xs text-destructive">{model.error}</div>
+                                    )}
+                                    <div className="break-all text-xs text-muted-foreground">{model.modelPath}</div>
+                                </div>
+                            );
+                        })}
+                        <details className="group rounded-xl border border-border/50 bg-muted/20 p-3.5">
+                            <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-semibold text-foreground">
+                                <HelpCircle className="h-4 w-4 text-muted-foreground" />
+                                如何使用其他 GGUF 模型？
+                                <ChevronDown className="ml-auto h-4 w-4 text-muted-foreground transition-transform group-open:rotate-180" />
+                            </summary>
+                            <div className="mt-3 space-y-2.5 text-xs text-muted-foreground/90">
+                                <div className="space-y-1">
+                                    <div className="font-semibold text-foreground">1. 下载模型文件：</div>
+                                    <div>
+                                        从 Hugging Face 等渠道下载 instruct 对话版 GGUF 文件（推荐 Q4_K_M 量化；
+                                        模型需支持指令对话，建议优先选择 Qwen3.5 系列）。
+                                    </div>
+                                    <div className="rounded border border-border/40 bg-muted/40 p-2">
+                                        <div className="mb-1 font-semibold text-foreground">推荐配置（应用内固定，不可调）</div>
+                                        <ul className="list-disc space-y-0.5 pl-4">
+                                            <li>文件格式：GGUF，instruct 对话版（不要选 Base 基座模型）</li>
+                                            <li>量化等级：Q4_K_M 体积/质量平衡；追求质量可用 Q8_0（体积翻倍）</li>
+                                            <li>上下文窗口：8192 tokens，过长字幕批次会被截断</li>
+                                            <li>采样参数：temperature 0.6 / top_p 0.95 / top_k 20，单次最多输出 2048 tokens</li>
+                                            <li>思考模式：关闭；模型需支持直接输出 JSON 结构化结果</li>
+                                            <li>运行方式：串行推理，同一时间只加载一个模型；Apple Silicon 走 Metal，Intel Mac 与其他平台 CPU</li>
+                                            <li>内存占用：运行时约为模型体积的 1.5 倍（如 2B 模型约 2 GB）；整机内存建议 8 GB 起。模型站标注的「requires X GB+ memory」指的是整机内存档位，不是模型实际占用</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div className="space-y-1.5">
+                                    <div className="font-semibold text-foreground">2. 放入模型目录：</div>
+                                    <div className="bg-background/80 rounded border border-border/60 p-2 space-y-1.5 font-mono text-[11px] break-all select-text">
+                                        <div className="text-muted-foreground/70">{localAiStatus?.modelsDirectory ?? ''}</div>
+                                        <div className="flex items-center gap-2 pt-1 font-sans">
+                                            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" disabled={!localAiStatus} onClick={() => localAiStatus && copyText(localAiStatus.modelsDirectory)}>
+                                                <Copy className="w-3 h-3 mr-1" />
+                                                复制目录路径
+                                            </Button>
+                                            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" disabled={!localAiStatus} onClick={() => localAiStatus && openModelFolder(localAiStatus.modelsDirectory)}>
+                                                <FolderOpen className="w-3 h-3 mr-1" />
+                                                打开模型文件夹
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="space-y-0.5 bg-muted/30 p-2 rounded">
+                                    <span className="font-semibold text-foreground">3. 刷新并启用：</span>
+                                    <span>
+                                        文件放入上述目录后点击「重新扫描」，新模型会出现在上方列表（带自定义标记），
+                                        点击「使用」切换，并用「检查运行」验证可用性。目录模型不做完整性校验，来源请自行确认可靠。
+                                    </span>
+                                </div>
+                                <Button type="button" variant="outline" size="sm" className="h-7 text-xs" disabled={localAiBusy} onClick={refreshLocalAiStatus}>
+                                    {t('serviceCredentials.localAi.rescan')}
+                                </Button>
+                            </div>
+                        </details>
+                        <div className="text-xs text-muted-foreground">
+                            {localAiStatus?.runtimeReady
+                                ? t('serviceCredentials.localAi.runtimeReady')
+                                : t('serviceCredentials.localAi.runtimeMissing')}
+                        </div>
+                    </div>
+                </SettingCard>
+                )}
 
                 {/* 英语语音朗读模型卡片 */}
                 <SettingCard

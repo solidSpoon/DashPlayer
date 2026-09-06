@@ -571,6 +571,7 @@ const runTests = (): void => {
                 const wordRepo: WordTranslatesRepository = {
                     findOne: vi.fn().mockResolvedValue(overrides.findOne?.() ?? null),
                     upsert: vi.fn(),
+                    deleteByProvider: vi.fn().mockResolvedValue(0),
                 };
                 const youDaoProvider: ClientProviderService<{ translate: (s: string) => Promise<string> }> = {
                     getClient: vi.fn().mockReturnValue(null),
