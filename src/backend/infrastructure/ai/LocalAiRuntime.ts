@@ -567,21 +567,35 @@ export class LocalAiRuntime implements LocalAiService {
                 const body = this.buildChatBody(model.id, LocalAiRuntime.SPEED_TEST_PROMPT, z.toJSONSchema(schema));
                 try {
                     const firstStartedAt = Date.now();
-                    await this.postChat(endpoint, body, combined);
+                    const first = await this.postChat(endpoint, body, combined);
                     const firstMs = Date.now() - firstStartedAt;
                     const warmStartedAt = Date.now();
                     const warm = await this.postChat(endpoint, body, combined);
                     const warmMs = Date.now() - warmStartedAt;
-                    const usage = speedUsageSchema.parse(warm).usage;
+                    const firstUsage = speedUsageSchema.parse(first).usage;
+                    const warmUsage = speedUsageSchema.parse(warm).usage;
                     const result: LocalAiSpeedTestResult = {
                         loadMs,
                         firstMs,
                         warmMs,
-                        promptTokens: usage?.prompt_tokens ?? null,
-                        completionTokens: usage?.completion_tokens ?? null,
-                        tokensPerSecond: usage ? Number((usage.completion_tokens / (warmMs / 1000)).toFixed(1)) : null,
+                        promptTokens: warmUsage?.prompt_tokens ?? null,
+                        completionTokens: warmUsage?.completion_tokens ?? null,
+                        tokensPerSecond: warmUsage ? Number((warmUsage.completion_tokens / (warmMs / 1000)).toFixed(1)) : null,
                     };
-                    this.logger.info('local speed test completed', { model: model.id, ...result });
+                    // 键名避开 "token" 子串：日志脱敏规则会把含 token 的键整体打码。
+                    const usageForLog = (usage: { prompt_tokens: number; completion_tokens: number } | undefined, durationMs: number) => usage
+                        ? { prompt: usage.prompt_tokens, completion: usage.completion_tokens, perSecond: Number((usage.completion_tokens / (durationMs / 1000)).toFixed(1)) }
+                        : null;
+                    this.logger.info('local speed test completed', {
+                        model: model.id,
+                        loadMs,
+                        firstMs,
+                        warmMs,
+                        usage: {
+                            first: usageForLog(firstUsage, firstMs),
+                            warm: usageForLog(warmUsage, warmMs),
+                        },
+                    });
                     return result;
                 } catch (error) {
                     this.logger.error('local speed test failed', { error, model: model.id });
