@@ -622,7 +622,7 @@
     source-map-support "^0.5.13"
     username "^5.1.0"
 
-"@electron-forge/maker-base@7.11.2":
+"@electron-forge/maker-base@7.11.2", "@electron-forge/maker-base@^6.0.0 || ^7.0.0":
   version "7.11.2"
   resolved "https://registry.yarnpkg.com/@electron-forge/maker-base/-/maker-base-7.11.2.tgz#9388c64094dda139a032703cb69f4fcb29484fa9"
   integrity sha512-9934zYu9WVdgCYQXvtS+eL1oyLagsY8JlWhZmoK8yWTYftSAydH7jb3seVpfy6n85SYmY/yjcAy2lvOTy5dUwA==
@@ -2684,6 +2684,21 @@
   resolved "https://registry.yarnpkg.com/@radix-ui/rect/-/rect-1.1.3.tgz#5a58fbae3deefb7f8cfe6ea314287d699eb694a9"
   integrity sha512-JtyZR+mqgBibTo8xea3B6ZRmzZiM/YeVBtUkas6zMuXjAlfIFIW2FgqeM9eLyvEaYX66vr6DJMK+4U6LV0KhNw==
 
+"@reforged/maker-appimage@^5.3.1":
+  version "5.3.1"
+  resolved "https://registry.yarnpkg.com/@reforged/maker-appimage/-/maker-appimage-5.3.1.tgz#b3914caf80772d733f632f972d8d36c191b69e1e"
+  integrity sha512-lJqSZO+/qZmkarZ9pKZgE5DnZxuEvRe7JXupLo6YSTEOL+bkETthWP3XCLgAxLDsLCwPuPmF1tooYCt2dcIRCQ==
+  dependencies:
+    "@electron-forge/maker-base" "^6.0.0 || ^7.0.0"
+    "@reforged/maker-types" "^2.2.0"
+    "@spacingbat3/lss" "^1.0.0"
+    semver "^7.3.8"
+
+"@reforged/maker-types@^2.2.0":
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/@reforged/maker-types/-/maker-types-2.2.0.tgz#9c51547e947a292c7757cbed70560dbcc8dca884"
+  integrity sha512-14B5Tu6fG2AWgH+bdsfJaQkAi8Bc7YC8GmMuNEWCJupU9IhvKHrdte3GAncBYO10yqSbsQx7Pi9xpyveJ5vL+Q==
+
 "@remix-run/router@1.23.4":
   version "1.23.4"
   resolved "https://registry.yarnpkg.com/@remix-run/router/-/router-1.23.4.tgz#d2becd2afca4a40c30a659d913b9b0bcc28bced8"
@@ -2963,6 +2978,11 @@
   version "4.0.0"
   resolved "https://registry.yarnpkg.com/@sindresorhus/merge-streams/-/merge-streams-4.0.0.tgz#abb11d99aeb6d27f1b563c38147a72d50058e339"
   integrity sha512-tlqY9xq5ukxTUZBmoOp+m61cqwQD5pHJtFY3Mn8CA8ps6yghLH/Hw8UPdqg4OLmFW3IFlcXnQNmo/dh8HzXYIQ==
+
+"@spacingbat3/lss@^1.0.0":
+  version "1.2.0"
+  resolved "https://registry.yarnpkg.com/@spacingbat3/lss/-/lss-1.2.0.tgz#0d04ddee2e41682fd09b7eda67d43c1d49e28c05"
+  integrity sha512-aywhxHNb6l7COooF3m439eT/6QN8E/RSl5IVboSKthMHcp0GlZYMSoS7546rqDLmFRxTD8f1tu/NIS9vtDwYAg==
 
 "@standard-schema/spec@^1.0.0":
   version "1.0.0"
@@ -13221,15 +13241,15 @@ semver@^7.1.1, semver@^7.1.3, semver@^7.2.1, semver@^7.3.2, semver@^7.3.5, semve
   dependencies:
     lru-cache "^6.0.0"
 
+semver@^7.3.8, semver@^7.6.3:
+  version "7.8.5"
+  resolved "https://registry.yarnpkg.com/semver/-/semver-7.8.5.tgz#39b646037dd50c14fb451e7e4cac58ed8b863f69"
+  integrity sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==
+
 semver@^7.5.3:
   version "7.7.4"
   resolved "https://registry.yarnpkg.com/semver/-/semver-7.7.4.tgz#28464e36060e991fa7a11d0279d2d3f3b57a7e8a"
   integrity sha512-vFKC2IEtQnVhpT78h1Yp8wzwrf8CM+MzKMHGJZfBtzhZNycRFnXsHk6E5TxIkkMsgNS7mdX3AGB7x2QM2di4lA==
-
-semver@^7.6.3:
-  version "7.8.5"
-  resolved "https://registry.yarnpkg.com/semver/-/semver-7.8.5.tgz#39b646037dd50c14fb451e7e4cac58ed8b863f69"
-  integrity sha512-Y7/KDsb8LjooZpwaqGyulO6DQlksgCncchHGk+sZIY4SBvUocMBEFH5Ur1fI4dV+Jvl0w6cjvucaIi40puRioA==
 
 send@^1.1.0, send@^1.2.0:
   version "1.2.1"

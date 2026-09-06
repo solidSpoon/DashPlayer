@@ -171,6 +171,38 @@ Linux 提供 `.deb` 和 `.rpm` 两种安装包格式，请根据发行版选择�
 - `.rpm`：适用于 Fedora、openSUSE、RHEL 及其衍生发行版，下载后使用 `sudo rpm -i <安装包>` 或图形界面安装
 
 ---
+## Linux
+
+### AppImage（免安装，推荐）
+
+1. 在 [Latest Release](https://github.com/solidSpoon/DashPlayer/releases/latest) 页面下载以 `.AppImage` 结尾的安装包
+2. 添加可执行权限后直接运行：
+
+```bash
+chmod +x DashPlayer-*.AppImage
+./DashPlayer-*.AppImage
+```
+
+3. 开始使用吧！
+
+> 如果启动时提示缺少 FUSE（`dlopen(): error loading libfuse.so.2`），请安装 `libfuse2`（Debian/Ubuntu：`sudo apt install libfuse2`），或改用 `./DashPlayer-*.AppImage --appimage-extract-and-run` 运行。
+
+### deb / rpm
+
+1. 在 [Latest Release](https://github.com/solidSpoon/DashPlayer/releases/latest) 页面下载 `.deb`（Debian/Ubuntu 系）或 `.rpm`（Fedora/RHEL/openSUSE 系）安装包
+2. 使用系统包管理器安装：
+
+```bash
+# Debian/Ubuntu 系
+sudo dpkg -i DashPlayer-*.deb
+
+# Fedora/RHEL 系
+sudo rpm -i DashPlayer-*.rpm
+```
+
+3. 开始使用吧！
+
+---
 # 使用指南
 
 > 字幕生成为内置本地模型，开箱即用；AI 功能（字幕翻译、查单词、整句学习）需配置 OpenAI 接口，具体方法及详细指南请看[Wiki](https://solidspoon.xyz/DashPlayer/home.html)
