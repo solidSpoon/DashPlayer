@@ -1295,51 +1295,51 @@ const ServiceCredentialSetting = () => {
                 >
                     <div className="p-4 space-y-4">
                         <div className={cn(
-                            "rounded-xl border p-4 transition-all",
+                            "relative rounded-xl border p-3.5 transition-colors",
                             localMtStatus?.ready
-                                ? "border-primary/50 bg-primary/5 shadow-xs"
-                                : "border-border/60 bg-muted/20 hover:border-border"
+                                ? "border-primary/40 bg-primary/[0.03]"
+                                : "border-border/60 bg-muted/20"
                         )}>
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                <div className="space-y-1.5 min-w-0">
+                                <div className="space-y-1 min-w-0">
                                     <div className="flex items-center gap-2 flex-wrap">
                                         <span className="text-sm font-semibold text-foreground tracking-tight">OPUS-MT en→zh</span>
-                                        <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">~0.3 GB</span>
+                                        <span className="rounded bg-muted/80 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">~0.3 GB</span>
                                         {localMtStatus?.ready ? (
-                                            <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
-                                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+                                                <CheckCircle2 className="h-3 w-3" />
                                                 {t('serviceCredentials.localAi.readyNotInUse')}
                                             </span>
                                         ) : localMtStatus?.phase !== 'idle' && localMtStatus ? (
-                                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
-                                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
+                                                <Loader2 className="h-3 w-3 animate-spin" />
                                                 {localMtStatus.phase === 'verifying'
                                                     ? t('serviceCredentials.localAi.phaseVerifying')
                                                     : t('serviceCredentials.localAi.phaseDownloading')}
                                             </span>
                                         ) : (
-                                            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-muted/80 px-2 py-0.5 text-xs text-muted-foreground">
                                                 {t('common.notDownloaded')}
                                             </span>
                                         )}
                                     </div>
-                                    <p className="text-xs text-muted-foreground">{t('serviceCredentials.localMt.modelNote')}</p>
+                                    <p className="text-xs text-muted-foreground line-clamp-1">{t('serviceCredentials.localMt.modelNote')}</p>
                                     {localMtStatus?.error && (
                                         <p className="text-xs text-destructive">{localMtStatus.error}</p>
                                     )}
                                 </div>
-                                <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+                                <div className="flex items-center gap-1.5 shrink-0 flex-wrap sm:flex-nowrap">
                                     {localMtStatus?.ready ? (
                                         <AlertDialog>
                                             <AlertDialogTrigger asChild>
                                                 <Button
                                                     type="button"
-                                                    variant="outline"
+                                                    variant="ghost"
                                                     size="sm"
+                                                    className="text-muted-foreground hover:text-destructive"
                                                     disabled={localMtBusy}
                                                 >
-                                                    <Trash2 className="mr-1.5 h-3.5 w-3.5 text-destructive" />
-                                                    {t('serviceCredentials.localAi.delete')}
+                                                    <Trash2 className="h-3.5 w-3.5" />
                                                 </Button>
                                             </AlertDialogTrigger>
                                             <AlertDialogContent>
@@ -1382,17 +1382,19 @@ const ServiceCredentialSetting = () => {
                                 </div>
                             </div>
                             {localMtStatus && localMtStatus.phase !== 'idle' && (
-                                <div className="mt-3 space-y-1.5">
+                                <div className="mt-3 space-y-1.5 rounded-lg border border-border/40 bg-muted/30 p-2.5">
+                                    <div className="flex justify-between text-xs font-medium text-muted-foreground">
+                                        <span>
+                                            {localMtStatus.phase === 'verifying'
+                                                ? t('serviceCredentials.localAi.phaseVerifying')
+                                                : t('serviceCredentials.localAi.phaseDownloading')}
+                                        </span>
+                                        <span>{Math.min(100, Math.floor(localMtStatus.downloaded / (localMtStatus.total || 1) * 100))}%</span>
+                                    </div>
                                     <Progress
                                         value={(localMtStatus.downloaded / (localMtStatus.total || 1)) * 100}
                                         className="h-1.5"
                                     />
-                                    <div className="flex justify-between text-xs text-muted-foreground">
-                                        <span>
-                                            {(localMtStatus.downloaded / 1024 / 1024).toFixed(1)} MB / {(localMtStatus.total / 1024 / 1024).toFixed(1)} MB
-                                        </span>
-                                        <span>{Math.min(100, Math.floor(localMtStatus.downloaded / (localMtStatus.total || 1) * 100))}%</span>
-                                    </div>
                                 </div>
                             )}
                         </div>
