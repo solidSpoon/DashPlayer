@@ -42,6 +42,8 @@ import { splitSystemMessages } from '@/backend/services/chat/ChatPromptBuilder';
 import { ChatServiceImpl } from '../ChatService';
 import { ChatSessionServiceImpl } from '../ChatSessionService';
 import { TranslateServiceImpl } from '../TranslateService';
+import { BuiltinDictionaryStoreImpl } from '@/backend/infrastructure/translate/BuiltinDictionaryStoreImpl';
+import { createBuiltinDictionaryFixture } from '@/test/builtinDictionaryFixture';
 import { AiProviderServiceImpl } from '../AiProviderService';
 import { ModelRoutingServiceImpl } from '../ModelRoutingService';
 import type DpTaskService from '../DpTaskService';
@@ -575,7 +577,17 @@ const runTests = (): void => {
                 const youDaoProvider: ClientProviderService<{ translate: (s: string) => Promise<string> }> = {
                     getClient: vi.fn().mockReturnValue(null),
                 };
-                const service = new TranslateServiceImpl();
+                const builtinFixture = createBuiltinDictionaryFixture([
+                    { word: 'serendipity', phonetic: '', translation: 'n. 意外发现珍奇事物的运气' },
+                ]);
+                const service = new TranslateServiceImpl(
+                    youDaoProvider,
+                    gateway,
+                    aiProvider,
+                    settingService,
+                    wordRepo,
+                    new BuiltinDictionaryStoreImpl(builtinFixture.dbPath),
+                );
                 (service as unknown as { youDaoProvider: typeof youDaoProvider }).youDaoProvider = youDaoProvider;
                 (service as unknown as { rendererGateway: RendererGateway }).rendererGateway = gateway;
                 (service as unknown as { aiProviderService: AiProviderService }).aiProviderService = aiProvider;

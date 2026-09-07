@@ -6,6 +6,7 @@
   "main": ".vite/build/main.js",
   "scripts": {
     "download": "zx ./scripts/download.mjs",
+    "build:dictionary": "node scripts/build-dictionary.mjs",
     "start": "yarn run download && electron-forge start",
     "package": "yarn run download && electron-forge package",
     "make": "yarn run download && electron-forge make",

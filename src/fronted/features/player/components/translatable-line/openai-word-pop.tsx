@@ -21,6 +21,18 @@ const formatPartOfSpeech = (pos?: string) => {
     return cleaned ? `${cleaned}.` : '';
 };
 
+/** ECDICT 考试标签到 i18n key 的映射；构建脚本保证只会产出这些取值。 */
+const DICT_TAG_I18N_KEYS: Record<string, string> = {
+    zk: 'dictTagZk',
+    gk: 'dictTagGk',
+    cet4: 'dictTagCet4',
+    cet6: 'dictTagCet6',
+    ky: 'dictTagKy',
+    toefl: 'dictTagToefl',
+    ielts: 'dictTagIelts',
+    gre: 'dictTagGre',
+};
+
 interface OpenAIWordPopProps {
     data: OpenAIDictionaryResult | null | undefined;
     isLoading?: boolean;
@@ -80,6 +92,8 @@ const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({
         }
 
         const phonetic = formatPhonetic(data.phonetic);
+        const dictTags = (data.tags ?? []).filter((tag) => DICT_TAG_I18N_KEYS[tag]);
+        const hasMeta = Boolean(data.collins || data.oxford || data.bnc || data.frq || dictTags.length > 0);
 
         return (
             <div className="h-full flex flex-col overflow-hidden">
@@ -95,6 +109,47 @@ const OpenAIWordPop: React.FC<OpenAIWordPopProps> = ({
                             <span className="text-sm font-mono text-muted-foreground/75 mt-0.5 inline-block select-text">
                                 {phonetic}
                             </span>
+                        )}
+                        {hasMeta && (
+                            <div className="flex flex-wrap items-center gap-1.5 mt-1.5 select-none">
+                                {data.collins ? (
+                                    <span
+                                        className="text-[11px] font-medium text-amber-500 tracking-tight"
+                                        title={t('collinsRating')}
+                                    >
+                                        {`Collins ${'★'.repeat(data.collins)}`}
+                                    </span>
+                                ) : null}
+                                {data.oxford ? (
+                                    <span className="text-[11px] leading-none px-1.5 py-1 rounded bg-muted/70 text-muted-foreground">
+                                        Oxford
+                                    </span>
+                                ) : null}
+                                {data.bnc ? (
+                                    <span
+                                        className="text-[11px] leading-none px-1.5 py-1 rounded bg-muted/70 text-muted-foreground"
+                                        title="BNC"
+                                    >
+                                        {`BNC #${data.bnc}`}
+                                    </span>
+                                ) : null}
+                                {data.frq ? (
+                                    <span
+                                        className="text-[11px] leading-none px-1.5 py-1 rounded bg-muted/70 text-muted-foreground"
+                                        title="COCA"
+                                    >
+                                        {`COCA #${data.frq}`}
+                                    </span>
+                                ) : null}
+                                {dictTags.map((tag) => (
+                                    <span
+                                        key={tag}
+                                        className="text-[11px] leading-none px-1.5 py-1 rounded bg-muted/70 text-muted-foreground"
+                                    >
+                                        {t(DICT_TAG_I18N_KEYS[tag])}
+                                    </span>
+                                ))}
+                            </div>
                         )}
                         {isStreaming && (
                             <span className="text-xs text-muted-foreground/70 animate-pulse mt-0.5 inline-block select-none font-normal">

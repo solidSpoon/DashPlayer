@@ -112,6 +112,9 @@ import FileSystemGatewayImpl from '@/backend/infrastructure/storage/FileSystemGa
 import AccessRecoveringFileSystemGateway from '@/backend/infrastructure/storage/AccessRecoveringFileSystemGateway';
 import db from '@/backend/infrastructure/db';
 import type { Db } from '@/backend/infrastructure/db/createDb';
+import BuiltinDictionaryStore from '@/backend/services/gateways/translate/BuiltinDictionaryStore';
+import { BuiltinDictionaryStoreImpl } from '@/backend/infrastructure/translate/BuiltinDictionaryStoreImpl';
+import { getRuntimeResourcePath } from '@/backend/utils/runtimeEnv';
 
 
 const container = new Container();
@@ -127,6 +130,10 @@ container.bind<AiProviderService>(TYPES.AiProviderService).to(AiProviderServiceI
 container.bind<OpenAiSubtitleTranslationGateway>(TYPES.OpenAiSubtitleTranslationGateway)
     .to(OpenAiSubtitleTranslationGatewayImpl)
     .inSingletonScope();
+// 预置词典：随应用打包的只读 SQLite，不依赖任何密钥配置。
+container.bind<BuiltinDictionaryStore>(TYPES.BuiltinDictionaryStore).to(BuiltinDictionaryStoreImpl).inSingletonScope();
+container.bind<string>(TYPES.BuiltinDictionaryPath)
+    .toConstantValue(getRuntimeResourcePath('resources', 'dictionary.sqlite'));
 // Controllers
 container.bind<Controller>(TYPES.Controller).to(FavoriteClipsController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(TagController).inSingletonScope();

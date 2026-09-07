@@ -13,6 +13,7 @@ import AiProviderService from '@/backend/services/AiProviderService';
 import ClientProviderService from '@/backend/services/ClientProviderService';
 import SettingService from '@/backend/services/SettingService';
 import { YouDaoDictionaryClient } from '@/backend/services/gateways/translate/YouDaoDictionaryClient';
+import BuiltinDictionaryStore from '@/backend/services/gateways/translate/BuiltinDictionaryStore';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 
 export default interface TranslateService {
@@ -190,26 +191,48 @@ export class TranslateServiceImpl implements TranslateService {
      * - 请求完成后必须立即清理，避免脏状态长期驻留。
      */
     private readonly wordLookupInFlight = new Map<string, Promise<YdRes | OpenAIDictionaryResult | null>>();
-    @inject(TYPES.YouDaoClientProvider)
-    private youDaoProvider!: ClientProviderService<YouDaoDictionaryClient>;
-    @inject(TYPES.RendererGateway)
-    private rendererGateway!: RendererGateway;
-    @inject(TYPES.AiProviderService)
-    private aiProviderService!: AiProviderService;
-    @inject(TYPES.SettingService)
-    private settingService!: SettingService;
-    @inject(TYPES.WordTranslatesRepository)
-    private wordTranslatesRepository!: WordTranslatesRepository;
+    private readonly youDaoProvider: ClientProviderService<YouDaoDictionaryClient>;
+    private readonly rendererGateway: RendererGateway;
+    private readonly aiProviderService: AiProviderService;
+    private readonly settingService: SettingService;
+    private readonly wordTranslatesRepository: WordTranslatesRepository;
+    private readonly builtinDictionaryStore: BuiltinDictionaryStore;
+
+    constructor(
+        @inject(TYPES.YouDaoClientProvider) youDaoProvider: ClientProviderService<YouDaoDictionaryClient>,
+        @inject(TYPES.RendererGateway) rendererGateway: RendererGateway,
+        @inject(TYPES.AiProviderService) aiProviderService: AiProviderService,
+        @inject(TYPES.SettingService) settingService: SettingService,
+        @inject(TYPES.WordTranslatesRepository) wordTranslatesRepository: WordTranslatesRepository,
+        @inject(TYPES.BuiltinDictionaryStore) builtinDictionaryStore: BuiltinDictionaryStore,
+    ) {
+        this.youDaoProvider = youDaoProvider;
+        this.rendererGateway = rendererGateway;
+        this.aiProviderService = aiProviderService;
+        this.settingService = settingService;
+        this.wordTranslatesRepository = wordTranslatesRepository;
+        this.builtinDictionaryStore = builtinDictionaryStore;
+    }
 
     public async transWord(
         str: string,
         forceRefresh?: boolean,
         requestId?: string
     ): Promise<YdRes | OpenAIDictionaryResult | null> {
+        // 预置词典不依赖任何密钥配置，命中即返回，保证未配置词典服务时也能开箱查词；
+        // 强制刷新的语义是绕过预置库与缓存重新在线查询，因此不在这里拦截。
+        if (!forceRefresh) {
+            const builtinResult = this.builtinDictionaryStore.lookup(str);
+            if (builtinResult) {
+                this.logger.info('命中预置词典', { word: str });
+                return builtinResult;
+            }
+        }
+
         const currentProvider = await this.settingService.getCurrentDictionaryProvider();
 
         if (!currentProvider) {
-            this.logger.info('没有启用的字典服务');
+            this.logger.info('没有启用的字典服务', { word: str });
             return null;
         }
 

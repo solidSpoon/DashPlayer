@@ -166,6 +166,21 @@ const WordPop = React.forwardRef(
                 );
             }
 
+            // youdao 引擎下后端返回预置词典命中的简化单词卡（OpenAI 卡形状），用同一张卡静态展示
+            if (openAIData) {
+                return (
+                    <OpenAIWordPop
+                        className={cn(theme.pop.openaiContainer, classNames?.openaiContainer)}
+                        data={openAIData}
+                        isLoading={openAILoading}
+                        onRefresh={onRefresh}
+                        onFavorite={onFavorite}
+                        isFavorited={isFavorited}
+                        isFavoriting={isFavoriting}
+                    />
+                );
+            }
+
             return (
                 <div
                     className={cn(
