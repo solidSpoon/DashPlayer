@@ -23,7 +23,7 @@ const TitleBarWindows = ({ maximizable, className }: TitleBarWindowsProps) => {
 
     return (
         <div
-            className={`absolute top-0 right-0 z-50 select-none drag flex items-center pr-4 pt-4 ${className}`}
+            className={`absolute top-0 right-0 z-50 select-none drag flex items-center justify-end pr-4 pt-4 ${className}`}
         >
             <div
                 onMouseEnter={onMouseEnter}
