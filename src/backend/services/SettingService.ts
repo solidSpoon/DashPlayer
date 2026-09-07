@@ -181,7 +181,10 @@ export class SettingServiceImpl implements SettingService {
     }
 
     /**
-     * 查询渲染进程启动所需的非敏感设置，并严格校验有枚举约束的字段。
+     * 查询渲染进程启动所需的非敏感设置。
+     *
+     * 枚举字段的存储值非法时不抛错：记录告警并原样透传，避免单个坏值
+     * 导致渲染进程拿不到整份快照；用户提示与修复入口在渲染进程和设置页。
      *
      * @returns 完整运行时设置快照。
      */
@@ -190,41 +193,33 @@ export class SettingServiceImpl implements SettingService {
             runtimeSettingKeys.map((key) => [key, this.getValue(key)]),
         ) as RuntimeSettingsSnapshot;
 
-        values['appearance.theme'] = this.requireEnumValue(
-            values['appearance.theme'],
-            ['dark', 'light'] as const,
-            'appearance.theme',
-        );
-        values['appearance.fontSize'] = this.requireEnumValue(
+        // 运行时快照承载渲染进程整体初始化（主题、语言、快捷键等），单个坏值
+        // （常见于多分支开发后枚举残留）不允许阻断整份快照下发。
+        // 非法值原样透传，由渲染进程窄化检查后显式提示用户去设置页修复。
+        this.warnInvalidEnum(values['appearance.theme'], ['dark', 'light'] as const, 'appearance.theme');
+        this.warnInvalidEnum(
             values['appearance.fontSize'],
             ['fontSizeSmall', 'fontSizeMedium', 'fontSizeLarge'] as const,
             'appearance.fontSize',
         );
-        values['i18n.language'] = this.requireEnumValue(
-            values['i18n.language'],
-            ['system', 'zh-CN', 'en-US'] as const,
-            'i18n.language',
-        );
-        values['player.autoPlayNext'] = this.requireBooleanString(
-            values['player.autoPlayNext'],
-            'player.autoPlayNext',
-        ) ? 'true' : 'false';
-        values['providers.subtitleTranslation'] = this.requireEnumValue(
+        this.warnInvalidEnum(values['i18n.language'], ['system', 'zh-CN', 'en-US'] as const, 'i18n.language');
+        this.warnInvalidEnum(values['player.autoPlayNext'], ['true', 'false'] as const, 'player.autoPlayNext');
+        this.warnInvalidEnum(
             values['providers.subtitleTranslation'],
             ['openai', 'tencent', 'none'] as const,
             'providers.subtitleTranslation',
         );
-        values['providers.dictionary'] = this.requireEnumValue(
-            values['providers.dictionary'],
-            ['openai', 'none'] as const,
-            'providers.dictionary',
-        );
-        values['features.openai.subtitleTranslationMode'] = this.requireEnumValue(
+        this.warnInvalidEnum(values['providers.dictionary'], ['openai', 'none'] as const, 'providers.dictionary');
+        this.warnInvalidEnum(
             values['features.openai.subtitleTranslationMode'],
             ['zh', 'simple_en', 'custom'] as const,
             'features.openai.subtitleTranslationMode',
         );
-        this.requirePlaybackRateStack(values['userSelect.playbackRateStack']);
+        if (!this.isValidPlaybackRateStack(values['userSelect.playbackRateStack'])) {
+            this.logger.warn(
+                `设置项 userSelect.playbackRateStack 存储值非法: ${values['userSelect.playbackRateStack']}`,
+            );
+        }
         return values;
     }
 
@@ -243,7 +238,9 @@ export class SettingServiceImpl implements SettingService {
                 value = this.requireBooleanString(value, request.key) ? 'true' : 'false';
                 break;
             case 'userSelect.playbackRateStack':
-                this.requirePlaybackRateStack(value);
+                if (!this.isValidPlaybackRateStack(value)) {
+                    throw new Error(`设置项 userSelect.playbackRateStack 非法: ${value}`);
+                }
                 break;
             default:
                 throw new Error(`不允许直接修改运行时设置: ${String(request.key)}`);
@@ -252,19 +249,55 @@ export class SettingServiceImpl implements SettingService {
     }
 
     /**
-     * 校验常用播放速度列表的序列化值。
+     * 枚举设置存储值非法时记录告警。
      *
-     * @param value 逗号分隔的播放速度。
+     * 与 {@link requireEnumValue} 的区别：不阻断调用方，用于允许带病透传、
+     * 由上层显式提示用户修复的场景。
      */
-    private requirePlaybackRateStack(value: string): void {
+    private warnInvalidEnum(value: string, allowedValues: readonly string[], fieldName: string): void {
+        if (!allowedValues.includes(value)) {
+            this.logger.warn(`设置项 ${fieldName} 存储值非法: ${value}`);
+        }
+    }
+
+    /**
+     * 读取枚举设置；存储值非法时返回 `'invalid'` 占位并记入 `invalidValues`。
+     *
+     * 用于设置页详情读取：页面必须能打开让用户重新选择，同时通过
+     * `invalidValues` 显式暴露原始坏值，不做静默纠偏。
+     *
+     * @param value 存储的原始值。
+     * @param allowedValues 当前版本的合法枚举。
+     * @param fieldName 设置仓库键，用于日志与 `invalidValues`。
+     * @param invalidValues 收集非法项的容器。
+     * @returns 合法值或 `'invalid'` 占位。
+     */
+    private readEnumOrInvalid<TValue extends string>(
+        value: string,
+        allowedValues: readonly TValue[],
+        fieldName: string,
+        invalidValues: Record<string, string>,
+    ): TValue | 'invalid' {
+        if (allowedValues.includes(value as TValue)) {
+            return value as TValue;
+        }
+        this.logger.warn(`设置项 ${fieldName} 存储值非法: ${value}，等待用户在设置页重新选择`);
+        invalidValues[fieldName] = value;
+        return 'invalid';
+    }
+
+    /**
+     * 判断常用播放速度列表的序列化值是否合法。
+     *
+     * @param value 逗号分隔的播放速度；空字符串表示未配置，视为合法。
+     */
+    private isValidPlaybackRateStack(value: string): boolean {
         if (value.length === 0) {
-            return;
+            return true;
         }
         const allowedRates = new Set(['0.25', '0.5', '0.75', '1', '1.25', '1.5', '1.75', '2']);
         const rates = value.split(',');
-        if (rates.some((rate) => !allowedRates.has(rate)) || new Set(rates).size !== rates.length) {
-            throw new Error(`设置项 userSelect.playbackRateStack 非法: ${value}`);
-        }
+        return !rates.some((rate) => !allowedRates.has(rate)) && new Set(rates).size === rates.length;
     }
 
     /**
@@ -337,23 +370,30 @@ export class SettingServiceImpl implements SettingService {
     }
 
     /**
-     * 获取功能设置页面详情，按严格模式校验存储值。
+     * 获取功能设置页面详情。
+     *
+     * 枚举字段的存储值非法时不抛错：返回 `'invalid'` 占位并把原始值记入
+     * `invalidValues`，保证设置页能打开且坏值被显式暴露，等待用户重新选择。
      */
     public async getEngineSelectionDetail(): Promise<EngineSelectionSettingVO> {
-        const subtitleTranslationEngine = this.requireEnumValue(
+        const invalidValues: EngineSelectionSettingVO['invalidValues'] = {};
+        const subtitleTranslationEngine = this.readEnumOrInvalid(
             this.getValue('providers.subtitleTranslation'),
             ['openai', 'tencent', 'none'] as const,
             'providers.subtitleTranslation',
+            invalidValues,
         );
-        const dictionaryEngine = this.requireEnumValue(
+        const dictionaryEngine = this.readEnumOrInvalid(
             this.getValue('providers.dictionary'),
             ['openai', 'none'] as const,
             'providers.dictionary',
+            invalidValues,
         );
-        const subtitleMode = this.requireEnumValue(
+        const subtitleMode = this.readEnumOrInvalid(
             this.getValue('features.openai.subtitleTranslationMode'),
             ['zh', 'simple_en', 'custom'] as const,
             'features.openai.subtitleTranslationMode',
+            invalidValues,
         );
         const subtitleCustomStyle = this.getValue('features.openai.subtitleCustomStyle');
 
@@ -375,38 +415,59 @@ export class SettingServiceImpl implements SettingService {
                 subtitleTranslationEngine,
                 dictionaryEngine,
             },
+            invalidValues,
         };
     }
 
     /**
      * 保存功能设置页面数据，不进行静默回退。
+     *
+     * 枚举字段为 `'invalid'` 占位时跳过对应键，保留原存储值（仍非法），
+     * 其余字段正常保存；用户重新选择合法值后才会写回。
      */
     public async saveEngineSelection(settings: EngineSelectionSettingVO): Promise<void> {
-        const subtitleTranslationEngine = this.requireEnumValue(
-            settings.providers.subtitleTranslationEngine,
-            ['openai', 'tencent', 'none'] as const,
-            'providers.subtitleTranslationEngine',
-        );
-        const dictionaryEngine = this.requireEnumValue(
-            settings.providers.dictionaryEngine,
-            ['openai', 'none'] as const,
-            'providers.dictionaryEngine',
-        );
+        if (settings.providers.subtitleTranslationEngine === 'invalid') {
+            this.logger.warn('providers.subtitleTranslationEngine 为非法占位值，跳过保存并保留原存储值');
+        } else {
+            await this.setValue(
+                'providers.subtitleTranslation',
+                this.requireEnumValue(
+                    settings.providers.subtitleTranslationEngine,
+                    ['openai', 'tencent', 'none'] as const,
+                    'providers.subtitleTranslationEngine',
+                ),
+            );
+        }
+        if (settings.providers.dictionaryEngine === 'invalid') {
+            this.logger.warn('providers.dictionaryEngine 为非法占位值，跳过保存并保留原存储值');
+        } else {
+            await this.setValue(
+                'providers.dictionary',
+                this.requireEnumValue(
+                    settings.providers.dictionaryEngine,
+                    ['openai', 'none'] as const,
+                    'providers.dictionaryEngine',
+                ),
+            );
+        }
         const availableModels = this.parseOpenAiModels(this.getValue('models.openai.available'));
         if (availableModels.length === 0) {
             throw new Error('models.openai.available 为空，无法保存功能模型选择');
         }
-        await this.setValue('providers.subtitleTranslation', subtitleTranslationEngine);
-        await this.setValue('providers.dictionary', dictionaryEngine);
-
-        const subtitleMode = this.requireEnumValue(
-            settings.openai.subtitleTranslationMode,
-            ['zh', 'simple_en', 'custom'] as const,
-            'openai.subtitleTranslationMode',
-        );
 
         await this.setValue('features.openai.enableSentenceLearning', settings.openai.enableSentenceLearning ? 'true' : 'false');
-        await this.setValue('features.openai.subtitleTranslationMode', subtitleMode);
+        if (settings.openai.subtitleTranslationMode === 'invalid') {
+            this.logger.warn('openai.subtitleTranslationMode 为非法占位值，跳过保存并保留原存储值');
+        } else {
+            await this.setValue(
+                'features.openai.subtitleTranslationMode',
+                this.requireEnumValue(
+                    settings.openai.subtitleTranslationMode,
+                    ['zh', 'simple_en', 'custom'] as const,
+                    'openai.subtitleTranslationMode',
+                ),
+            );
+        }
         await this.setValue('features.openai.subtitleCustomStyle', settings.openai.subtitleCustomStyle);
 
         await this.setValue(

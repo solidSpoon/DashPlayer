@@ -63,6 +63,21 @@ const EngineSelectionSetting = () => {
         return credentialSettings.openai.models.map((item) => item.model);
     }, [credentialSettings]);
 
+    // 存储值非法的设置项列表（常见于多分支开发后旧枚举值残留），
+    // 用于在页面顶部显式提示用户重新选择。
+    const invalidItems = React.useMemo(() => {
+        if (!settings) {
+            return [];
+        }
+        const labelByKey: Record<string, string> = {
+            'providers.subtitleTranslation': t('engineSelection.invalidStorage.subtitleEngine'),
+            'providers.dictionary': t('engineSelection.invalidStorage.dictionaryEngine'),
+            'features.openai.subtitleTranslationMode': t('engineSelection.invalidStorage.subtitleMode'),
+        };
+        return Object.entries(settings.invalidValues ?? {}).map(([key, value]) =>
+            `${labelByKey[key] ?? key}: "${value}"`);
+    }, [settings, t]);
+
 
     if (!ready || !credentialSettings) {
         return (
@@ -89,6 +104,12 @@ const EngineSelectionSetting = () => {
                     </div>
                 )}
 
+                {invalidItems.length > 0 && (
+                    <div className="rounded-xl border border-amber-500/40 bg-amber-500/10 p-3 text-sm text-amber-600 dark:text-amber-400">
+                        {t('engineSelection.invalidStorage.warning', { items: invalidItems.join('、') })}
+                    </div>
+                )}
+
                 {/* 字幕翻译引擎 */}
                 <SettingCard
                     title={t('engineSelection.subtitleTranslation.title')}
@@ -108,6 +129,11 @@ const EngineSelectionSetting = () => {
                         >
                             <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                             <SelectContent>
+                                {watchedValues.providers?.subtitleTranslationEngine === 'invalid' && (
+                                    <SelectItem value="invalid" disabled>
+                                        {t('engineSelection.invalidStorage.reselect')}
+                                    </SelectItem>
+                                )}
                                 <SelectItem value="openai">OpenAI</SelectItem>
                                 <SelectItem value="tencent">{t('engineSelection.engineTencent')}</SelectItem>
                                 <SelectItem value="none">{t('engineSelection.engineNone')}</SelectItem>
@@ -150,6 +176,11 @@ const EngineSelectionSetting = () => {
                                     >
                                         <SelectTrigger><SelectValue /></SelectTrigger>
                                         <SelectContent>
+                                            {watchedValues.openai?.subtitleTranslationMode === 'invalid' && (
+                                                <SelectItem value="invalid" disabled>
+                                                    {t('engineSelection.invalidStorage.reselect')}
+                                                </SelectItem>
+                                            )}
                                             <SelectItem value="zh">{t('engineSelection.subtitleTranslation.styleZh')}</SelectItem>
                                             <SelectItem value="simple_en">{t('engineSelection.subtitleTranslation.styleSimpleEn')}</SelectItem>
                                             <SelectItem value="custom">{t('engineSelection.subtitleTranslation.styleCustom')}</SelectItem>
@@ -191,6 +222,11 @@ const EngineSelectionSetting = () => {
                         >
                             <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                             <SelectContent>
+                                {watchedValues.providers?.dictionaryEngine === 'invalid' && (
+                                    <SelectItem value="invalid" disabled>
+                                        {t('engineSelection.invalidStorage.reselect')}
+                                    </SelectItem>
+                                )}
                                 <SelectItem value="openai">OpenAI</SelectItem>
                                 <SelectItem value="none">{t('engineSelection.engineNone')}</SelectItem>
                             </SelectContent>

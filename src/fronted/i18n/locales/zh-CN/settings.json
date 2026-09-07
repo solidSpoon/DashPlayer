@@ -319,6 +319,13 @@
             "styleCustom": "自定义",
             "hiddenHint": "当前未使用 OpenAI 字幕翻译，风格设置已自动隐藏。"
         },
+        "invalidStorage": {
+            "warning": "以下设置的存储值无效：{{items}}。请在上方重新选择并保存，保存前对应功能不可用。",
+            "subtitleEngine": "字幕翻译引擎",
+            "dictionaryEngine": "词典引擎",
+            "subtitleMode": "OpenAI 字幕输出风格",
+            "reselect": "当前值无效，请重新选择"
+        },
         "dictionary": {
             "title": "词典查询",
             "description": "用于单词释义与例句查询。",

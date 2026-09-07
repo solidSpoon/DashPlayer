@@ -319,6 +319,13 @@
             "styleCustom": "Custom",
             "hiddenHint": "OpenAI subtitle translation is currently not selected, so style options are hidden."
         },
+        "invalidStorage": {
+            "warning": "The stored value of these settings is invalid: {{items}}. Please choose again above and save; affected features stay unavailable until then.",
+            "subtitleEngine": "Subtitle translation engine",
+            "dictionaryEngine": "Dictionary engine",
+            "subtitleMode": "OpenAI subtitle output style",
+            "reselect": "Invalid value, choose again"
+        },
         "dictionary": {
             "title": "Dictionary Lookup",
             "description": "Used for word definitions and example sentences.",
