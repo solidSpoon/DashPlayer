@@ -1023,53 +1023,53 @@ const ServiceCredentialSetting = () => {
                                     <div
                                         key={model.modelId}
                                         className={cn(
-                                            "relative rounded-xl border p-4 transition-all",
+                                            "relative rounded-xl border p-3.5 transition-colors",
                                             isActive
-                                                ? "border-primary/50 bg-primary/5 shadow-xs"
-                                                : "border-border/60 bg-muted/20 hover:border-border"
+                                                ? "border-primary/40 bg-primary/[0.03]"
+                                                : "border-border/60 bg-muted/20"
                                         )}
                                     >
                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                            <div className="space-y-1.5 min-w-0">
+                                            <div className="space-y-1 min-w-0">
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     <span className="text-sm font-semibold text-foreground tracking-tight">{model.name}</span>
-                                                    <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">{model.sizeLabel}</span>
-                                                    <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{t('serviceCredentials.localAi.memoryEstimate', { gb: model.memoryEstimateGb })}</span>
+                                                    <span className="rounded bg-muted/80 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">{model.sizeLabel}</span>
+                                                    <span className="rounded bg-muted/80 px-1.5 py-0.5 text-[11px] text-muted-foreground">{t('serviceCredentials.localAi.memoryEstimate', { gb: model.memoryEstimateGb })}</span>
                                                     {model.custom && (
-                                                        <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                                        <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400 border border-amber-500/20">
                                                             {t('serviceCredentials.localAi.custom')}
                                                         </span>
                                                     )}
                                                     {isActive ? (
-                                                        <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
-                                                            <CheckCircle2 className="h-3.5 w-3.5" />
+                                                        <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+                                                            <CheckCircle2 className="h-3 w-3" />
                                                             {t('serviceCredentials.localAi.inUse')}
                                                         </span>
                                                     ) : model.ready ? (
-                                                        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                                                        <span className="inline-flex items-center gap-1 rounded-full bg-muted/80 px-2 py-0.5 text-xs text-muted-foreground">
                                                             {t('serviceCredentials.localAi.readyNotInUse')}
                                                         </span>
                                                     ) : model.phase !== 'idle' ? (
                                                         <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
-                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                            <Loader2 className="h-3 w-3 animate-spin" />
                                                             {model.phase === 'verifying'
                                                                 ? t('serviceCredentials.localAi.phaseVerifying')
                                                                 : t('serviceCredentials.localAi.phaseDownloading')}
                                                         </span>
                                                     ) : (
-                                                        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                                                        <span className="inline-flex items-center gap-1 rounded-full bg-muted/80 px-2 py-0.5 text-xs text-muted-foreground">
                                                             {t('common.notDownloaded')}
                                                         </span>
                                                     )}
                                                 </div>
-                                                <p className="text-xs text-muted-foreground">
+                                                <p className="text-xs text-muted-foreground line-clamp-1">
                                                     {model.custom
                                                         ? model.modelPath
                                                         : '轻量高效，适合日常字幕翻译与词典查询，低显存/内存消耗。'}
                                                 </p>
                                             </div>
 
-                                            <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+                                            <div className="flex items-center gap-1.5 shrink-0 flex-wrap sm:flex-nowrap">
                                                 {!model.ready && model.phase === 'idle' && (
                                                     <Button
                                                         type="button"
@@ -1135,8 +1135,7 @@ const ServiceCredentialSetting = () => {
                                                                 className="text-muted-foreground hover:text-destructive"
                                                                 disabled={localAiBusy || testingModelId !== null}
                                                             >
-                                                                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                                                                {t('serviceCredentials.localAi.delete')}
+                                                                <Trash2 className="h-3.5 w-3.5" />
                                                             </Button>
                                                         </AlertDialogTrigger>
                                                         <AlertDialogContent>
@@ -1158,7 +1157,7 @@ const ServiceCredentialSetting = () => {
 
                                         {/* 下载/校验进度条 */}
                                         {!model.ready && model.phase !== 'idle' && (
-                                            <div className="mt-3 space-y-1.5 rounded-lg border border-border/40 bg-muted/30 p-3">
+                                            <div className="mt-3 space-y-1.5 rounded-lg border border-border/40 bg-muted/30 p-2.5">
                                                 <div className="flex justify-between text-xs font-medium text-muted-foreground">
                                                     <span>{model.phase === 'verifying' ? t('serviceCredentials.localAi.phaseVerifying') : t('serviceCredentials.localAi.phaseDownloading')}</span>
                                                     <span>{Math.min(100, Math.floor(model.downloaded / (model.total || 1) * 100))}%</span>
@@ -1169,9 +1168,9 @@ const ServiceCredentialSetting = () => {
 
                                         {/* 内嵌测试结果展示 */}
                                         {testResult && (
-                                            <div className="mt-3 pt-3 border-t border-border/40">
+                                            <div className="mt-2.5 pt-2.5 border-t border-border/40">
                                                 {testResult.success ? (
-                                                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg bg-background/60 p-2.5 border border-border/40 text-xs">
+                                                    <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 rounded-lg bg-muted/40 px-3 py-2 border border-border/30 text-xs">
                                                         <div className="flex items-center gap-1.5">
                                                             <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
                                                             <span className="text-muted-foreground">{t('serviceCredentials.localAi.speedWarm')}</span>

@@ -320,6 +320,8 @@
             "title": "字幕翻译",
             "description": "控制字幕翻译服务来源。",
             "styleLabel": "AI 字幕输出风格",
+            "clearCacheLabel": "翻译缓存",
+            "clearCacheDesc": "仅清除当前引擎与配置下已生成的字幕翻译缓存",
             "clearCacheConfirmTitle": "清除字幕翻译缓存",
             "clearCacheConfirmDescription": "将删除当前字幕翻译配置（引擎、模型、风格完全一致）已产生的翻译缓存，下次播放时会重新翻译。此操作不可撤销。",
             "styleZh": "中文直译",
@@ -330,6 +332,8 @@
         "dictionary": {
             "title": "词典查询",
             "description": "用于单词释义与例句查询。",
+            "clearCacheLabel": "词典缓存",
+            "clearCacheDesc": "仅清除当前词典引擎已保存的查询缓存",
             "clearCacheConfirmTitle": "清除词典缓存",
             "clearCacheConfirmDescription": "将删除当前词典配置（引擎一致）已产生的查询缓存，下次查询时会重新请求。此操作不可撤销。"
         },

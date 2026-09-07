@@ -144,28 +144,41 @@ const EngineSelectionSetting = () => {
      *
      * @param target 清除目标（字幕翻译或词典）。
      */
-    const renderClearCacheButton = (target: 'subtitle' | 'dictionary') => (
-        <AlertDialog>
-            <AlertDialogTrigger asChild>
-                <Button type="button" variant="ghost" size="sm" disabled={cacheClearing !== null}>
-                    <Eraser className="mr-1.5 h-3.5 w-3.5" />
-                    {t('engineSelection.clearCache')}
-                </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>{t(`engineSelection.${target === 'subtitle' ? 'subtitleTranslation' : 'dictionary'}.clearCacheConfirmTitle`)}</AlertDialogTitle>
-                    <AlertDialogDescription>{t(`engineSelection.${target === 'subtitle' ? 'subtitleTranslation' : 'dictionary'}.clearCacheConfirmDescription`)}</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>{t('engineSelection.clearCacheCancel')}</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => clearCache(target).catch(() => null)}>
+    const renderClearCacheButton = (target: 'subtitle' | 'dictionary') => {
+        const isClearing = cacheClearing === target;
+        return (
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="text-xs text-muted-foreground hover:text-foreground"
+                        disabled={cacheClearing !== null}
+                    >
+                        {isClearing ? (
+                            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                            <Eraser className="mr-1.5 h-3.5 w-3.5" />
+                        )}
                         {t('engineSelection.clearCache')}
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-    );
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t(`engineSelection.${target === 'subtitle' ? 'subtitleTranslation' : 'dictionary'}.clearCacheConfirmTitle`)}</AlertDialogTitle>
+                        <AlertDialogDescription>{t(`engineSelection.${target === 'subtitle' ? 'subtitleTranslation' : 'dictionary'}.clearCacheConfirmDescription`)}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{t('engineSelection.clearCacheCancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => clearCache(target).catch(() => null)}>
+                            {t('engineSelection.clearCache')}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        );
+    };
 
 
     if (!ready || !credentialSettings) {
@@ -238,9 +251,18 @@ const EngineSelectionSetting = () => {
                             {subtitleEngine === 'local-mt' && !localMtReady && (
                                 <div className="text-xs text-destructive">{t('engineSelection.localMtNotDownloadedHint')}</div>
                             )}
-                            {subtitleEngine !== 'none' && renderClearCacheButton('subtitle')}
                         </div>
                     </SettingRow>
+
+                    {subtitleEngine !== 'none' && (
+                        <SettingRow
+                            title={t('engineSelection.subtitleTranslation.clearCacheLabel')}
+                            description={t('engineSelection.subtitleTranslation.clearCacheDesc')}
+                            icon={Eraser}
+                        >
+                            {renderClearCacheButton('subtitle')}
+                        </SettingRow>
+                    )}
 
                     {subtitleEngine === 'local-mt' ? (
                         <SettingRow
@@ -326,9 +348,18 @@ const EngineSelectionSetting = () => {
                             {watchedValues.providers?.dictionaryEngine === 'local' && !anyLocalModelReady && (
                                 <div className="text-xs text-destructive">{t('engineSelection.notDownloadedHint')}</div>
                             )}
-                            {watchedValues.providers?.dictionaryEngine !== 'none' && renderClearCacheButton('dictionary')}
                         </div>
                     </SettingRow>
+
+                    {watchedValues.providers?.dictionaryEngine !== 'none' && (
+                        <SettingRow
+                            title={t('engineSelection.dictionary.clearCacheLabel')}
+                            description={t('engineSelection.dictionary.clearCacheDesc')}
+                            icon={Eraser}
+                        >
+                            {renderClearCacheButton('dictionary')}
+                        </SettingRow>
+                    )}
                 </SettingCard>
 
                 {/* 句法分析与例句学习 */}
