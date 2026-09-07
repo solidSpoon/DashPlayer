@@ -5,7 +5,7 @@ import {RuntimeSettingKey} from './common/contracts/runtime-settings';
 import {ApiDefinitions, ApiMap} from '@/common/api/api-def';
 import {DpTask} from '@/common/contracts/dp-task';
 import {RendererApiDefinitions, RendererApiMap} from '@/common/api/renderer-api-def';
-import type { TraceCarrier } from '@/common/log/simple-types';
+import type { SimpleEvent, TraceCarrier } from '@/common/log/simple-types';
 
 export type Channels =
     | 'main-state'
