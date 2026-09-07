@@ -113,6 +113,12 @@ export const createSubtitleBatchResultSchema = (mode: TranslationMode) =>
  * 「每行一条译文、按输入顺序对齐」，由调用方按行数与行序校验：
  * 省 key 回抄与 JSON 结构 token，本地模型每批解码量约减半。
  *
+ * 行数/非空/不合并等结构规则由 buildSubtitleBatchLinesGrammar 的语法约束
+ * 在解码层硬保证，提示词不再重复，避免小模型指令稀释；提示词只保留
+ * 语法管不了的事：逐句翻译语义、行内无装饰符号、禁照抄。禁照抄规则
+ * 放在最贴近源文的位置（小模型对末尾指令遵从度最高），且用正向
+ * 措辞（必须做什么）而不是否定句。
+ *
  * @param input 当前批次的目标字幕与只读上下文。
  * @param style 风格约束文本；由业务层解析保证非空。
  * @param options 拼装选项；本地网关传 forbidEcho 以禁止模型照抄原文充数。
@@ -126,7 +132,7 @@ export const buildLocalSubtitleBatchPrompt = (
     const targetLanguage = options.targetLanguageDescription
         ?? 'the target language';
     const unchangedRule = options.forbidEcho
-        ? 'Never return the original sentence text as its own translation; every line must be a non-empty translation.'
+        ? `Every line must be your own natural translation into ${targetLanguage}; copying a source line as its own translation is forbidden.`
         : 'If a target should remain unchanged, return its original text.';
     // 源行不加列表符号：小参数量模型会把符号模仿进译文，污染最终字幕。
     const requestLines = input.targets.map((target) => target.text).join('\n');
@@ -140,10 +146,8 @@ export const buildLocalSubtitleBatchPrompt = (
         style,
         '',
         ...contextParts,
-        `Translate each subtitle line below into ${targetLanguage}.`,
-        `Output exactly ${input.targets.length} lines, one translation per line, in the same order as the input.`,
-        'Output the translations only: no numbering, no bullet points, no quotes, no blank lines, no extra words.',
-        'Do not merge or split lines.',
+        // 行数与行分隔已由 GBNF 语法硬约束，这里只保留按序对齐与行内净洁的语义要求。
+        `Translate each subtitle line below into ${targetLanguage}. One translation per line, in the same order as the input, translations only: no numbering, no bullet points, no quotes, no extra words.`,
         unchangedRule,
         '',
         'Lines:',
