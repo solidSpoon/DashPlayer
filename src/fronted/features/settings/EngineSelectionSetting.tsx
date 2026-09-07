@@ -2,7 +2,7 @@ import React from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import useSWR from 'swr';
 import { toast } from 'react-hot-toast';
-import { Book, Eraser, Languages, Settings2, Sparkles } from 'lucide-react';
+import { Book, Eraser, Languages, Loader2, Settings2, Sparkles } from 'lucide-react';
 import { Label } from '@/fronted/components/ui/label';
 import { Button } from '@/fronted/components/ui/button';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
