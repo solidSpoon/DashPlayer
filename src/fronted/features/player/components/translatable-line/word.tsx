@@ -20,6 +20,7 @@ import { getRendererLogger } from '@/fronted/log/simple-logger';
 import Eb from '@/fronted/components/shared/common/Eb';
 import useVocabulary from '@/fronted/features/player/vocabularyStore';
 import { useTransLineTheme } from './translatable-theme';
+import useSetting from '@/fronted/features/settings/settingsStore';
 import { usePlayer } from '@/fronted/features/player/playerStore';
 import useDictionaryStream, { createDictionaryRequestId } from '@/fronted/features/player/dictionaryStore';
 import { playerApi } from '@/fronted/features/player/playerApi';
@@ -122,6 +123,15 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
 
     const hoverBg = classNames?.hover ?? (alwaysDark ? 'hover:bg-neutral-600' : theme.word.hoverBgClass);
     const vocabCls = isVocabularyWord ? (classNames?.vocab ?? theme.word.vocabHighlightClass) : undefined;
+    const setting = useSetting((state) => state.setting);
+    const dictionaryEngineRaw = setting('providers.dictionary');
+    const dictionaryEngine =
+        dictionaryEngineRaw === 'openai' || dictionaryEngineRaw === 'local'
+            ? dictionaryEngineRaw
+            : 'openai';
+    // 本地词典与 OpenAI 返回同一结构，复用 AI 词典卡片与最终结果同步路径
+    const openaiDictionaryEnabled = dictionaryEngine === 'openai' || dictionaryEngine === 'local';
+    const dictionaryMode = dictionaryEngine;
     const dictionaryEntry = useDictionaryStream((state) => state.getActiveEntry(original));
 
     const shouldFetch = hovered;

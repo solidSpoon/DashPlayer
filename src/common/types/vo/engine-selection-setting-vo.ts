@@ -20,9 +20,9 @@ export type EngineSelectionSettingVO = {
     };
     providers: {
         /** 字幕翻译引擎；`'invalid'` 表示存储值非法，等待用户重新选择。 */
-        subtitleTranslationEngine: 'openai' | 'tencent' | 'none' | 'invalid';
-        /** 词典引擎；`'invalid'` 表示存储值非法，等待用户重新选择。 */
-        dictionaryEngine: 'openai' | 'none' | 'invalid';
+        subtitleTranslationEngine: 'openai' | 'local' | 'tencent' | 'none' | 'invalid';
+        /** 词典引擎；`'invalid'` 表示存储值非法（含已移除的 youdao 旧值），等待用户重新选择。 */
+        dictionaryEngine: 'openai' | 'local' | 'none' | 'invalid';
     };
     /**
      * 存储值不在当前合法枚举内的设置项。

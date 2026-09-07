@@ -571,6 +571,7 @@ const runTests = (): void => {
                 const wordRepo: WordTranslatesRepository = {
                     findOne: vi.fn().mockResolvedValue(overrides.findOne?.() ?? null),
                     upsert: vi.fn(),
+                    deleteByProvider: vi.fn().mockResolvedValue(0),
                 };
                 const builtinFixture = createBuiltinDictionaryFixture([
                     { word: 'serendipity', phonetic: '', translation: 'n. 意外发现珍奇事物的运气' },

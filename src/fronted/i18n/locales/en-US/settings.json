@@ -309,11 +309,18 @@
         "featureSwitches": "Feature Switches",
         "engineTencent": "Tencent Translation",
         "engineNone": "Disabled",
+        "cloudModelGroup": "Cloud Models",
+        "localEngine": "Local Model",
+        "notDownloadedHint": "No local model is downloaded yet. Download one on the Service Credentials page first.",
+        "clearCache": "Clear cache",
+        "clearCacheCancel": "Cancel",
+        "clearCacheSuccess": "Cleared {{count}} cached entries",
         "subtitleTranslation": {
             "title": "Subtitle Translation",
             "description": "Control which provider powers subtitle translation.",
-            "modelLabel": "Subtitle Translation Model",
-            "styleLabel": "OpenAI Subtitle Output Style",
+            "styleLabel": "AI Subtitle Output Style",
+            "clearCacheConfirmTitle": "Clear subtitle translation cache",
+            "clearCacheConfirmDescription": "This deletes translations produced by the current subtitle translation config (same engine, model and style); they will be re-translated on next playback. This cannot be undone.",
             "styleZh": "Direct Chinese translation",
             "styleSimpleEn": "Simplified English",
             "styleCustom": "Custom",
@@ -329,7 +336,8 @@
         "dictionary": {
             "title": "Dictionary Lookup",
             "description": "Used for word definitions and example sentences.",
-            "modelLabel": "Dictionary Model"
+            "clearCacheConfirmTitle": "Clear dictionary cache",
+            "clearCacheConfirmDescription": "This deletes query results produced by the current dictionary config (same engine); they will be re-fetched on next lookup. This cannot be undone."
         },
         "sentenceLearning": {
             "title": "Sentence Learning",
@@ -377,6 +385,39 @@
         },
         "sherpaTts": {
             "manualDownload": "If the download is blocked, open {{url}}, download model.tar.bz2, and save it to {{path}}. Then click Download here to resume or install it."
+        },
+        "localAi": {
+            "cardTitle": "Local Large Language Model (LLM)",
+            "cardDescription": "Runs continuously in the background for instant response. Provides completely offline subtitle translation and dictionary lookup without network dependency or API costs.",
+            "inUse": "Active",
+            "readyNotInUse": "Ready",
+            "use": "Set as Active",
+            "useSuccess": "Switched to active model; shared across all local AI features",
+            "custom": "Custom",
+            "phaseDownloading": "Downloading",
+            "phaseVerifying": "Verifying",
+            "cancelDownload": "Cancel",
+            "test": "Test",
+            "testing": "Testing…",
+            "delete": "Delete",
+            "deleteConfirmTitle": "Delete local model?",
+            "deleteConfirmDescription": "Deleting will free up local disk space. You can redownload or import it again anytime.",
+            "cancelDelete": "Cancel",
+            "confirmDelete": "Delete",
+            "deleteSuccess": "Model deleted",
+            "memoryEstimate": "~{{gb}} GB RAM required",
+            "rescan": "Refresh Models",
+            "openFolder": "Open Folder",
+            "copyPath": "Copy Path",
+            "speedWarm": "Typical Response",
+            "speedTps": "Speed",
+            "speedTpsUnit": "words/s",
+            "runtimeReady": "Local engine is ready and running in the background for instant response",
+            "runtimeMissing": "Inference engine not installed. Run `yarn run download` or reinstall the app.",
+            "customGuideTitle": "How to import custom GGUF models?",
+            "customGuideStep1": "Download model: Download an Instruct-tuned GGUF model (Qwen series recommended, Q4_K_M quantization for best balance).",
+            "customGuideStep2": "Place into directory: Click the button below to open the directory and drop your .gguf file there.",
+            "customGuideStep3": "Refresh & Enable: Click \"Refresh Models\", then choose the model and click \"Set as Active\"."
         }
     }
 }

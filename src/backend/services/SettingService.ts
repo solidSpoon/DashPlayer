@@ -24,12 +24,18 @@ import { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
 import { getSubtitleDefaultStyle } from '@/common/constants/openaiSubtitlePrompts';
 import ModelRoutingService from '@/backend/services/ModelRoutingService';
 import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type LocalAiService from '@/backend/services/LocalAiService';
 import {
     isRuntimeSettingKey,
     runtimeSettingKeys,
     RuntimeSettingSaveRequest,
     RuntimeSettingsSnapshot,
 } from '@/common/contracts/runtime-settings';
+
+/** 字幕翻译引擎的合法取值；设置校验与运行时查询共用，避免各处字面量漂移。 */
+const SUBTITLE_TRANSLATION_ENGINES = ['openai', 'local', 'tencent', 'none'] as const;
+/** 词典引擎的合法取值。 */
+const DICTIONARY_ENGINES = ['openai', 'local', 'none'] as const;
 
 /**
  * 管理设置页数据和渲染进程需要的非敏感运行时设置。
@@ -50,10 +56,10 @@ export default interface SettingService {
     getProxySettingDetail(): Promise<ProxySettingDetailVO>;
     saveProxySettings(settings: ProxySettingSaveVO): Promise<void>;
     getCurrentSentenceLearningProvider(): Promise<'openai' | null>;
-    getCurrentTranslationProvider(): Promise<'openai' | 'tencent' | null>;
+    getCurrentTranslationProvider(): Promise<'openai' | 'local' | 'tencent' | null>;
     getOpenAiSubtitleTranslationMode(): Promise<'zh' | 'simple_en' | 'custom'>;
     getOpenAiSubtitleCustomStyle(): Promise<string>;
-    getCurrentDictionaryProvider(): Promise<'openai' | null>;
+    getCurrentDictionaryProvider(): Promise<'openai' | 'local' | null>;
     testOpenAi(): Promise<{ success: boolean, message: string }>;
     testTencent(): Promise<{ success: boolean, message: string }>;
 }
@@ -70,6 +76,7 @@ export class SettingServiceImpl implements SettingService {
     @inject(TYPES.SettingsStore) private settingsStore!: SettingsStore;
     @inject(TYPES.ModelRoutingService) private modelRoutingService!: ModelRoutingService;
     @inject(TYPES.StorageDirectoryProvider) private storageDirectoryProvider!: StorageDirectoryProvider;
+    @inject(TYPES.LocalAiService) private localAi!: LocalAiService;
     private logger = getMainLogger('SettingServiceImpl');
 
     /**
@@ -206,10 +213,10 @@ export class SettingServiceImpl implements SettingService {
         this.warnInvalidEnum(values['player.autoPlayNext'], ['true', 'false'] as const, 'player.autoPlayNext');
         this.warnInvalidEnum(
             values['providers.subtitleTranslation'],
-            ['openai', 'tencent', 'none'] as const,
+            SUBTITLE_TRANSLATION_ENGINES,
             'providers.subtitleTranslation',
         );
-        this.warnInvalidEnum(values['providers.dictionary'], ['openai', 'none'] as const, 'providers.dictionary');
+        this.warnInvalidEnum(values['providers.dictionary'], DICTIONARY_ENGINES, 'providers.dictionary');
         this.warnInvalidEnum(
             values['features.openai.subtitleTranslationMode'],
             ['zh', 'simple_en', 'custom'] as const,
@@ -379,13 +386,13 @@ export class SettingServiceImpl implements SettingService {
         const invalidValues: EngineSelectionSettingVO['invalidValues'] = {};
         const subtitleTranslationEngine = this.readEnumOrInvalid(
             this.getValue('providers.subtitleTranslation'),
-            ['openai', 'tencent', 'none'] as const,
+            SUBTITLE_TRANSLATION_ENGINES,
             'providers.subtitleTranslation',
             invalidValues,
         );
         const dictionaryEngine = this.readEnumOrInvalid(
             this.getValue('providers.dictionary'),
-            ['openai', 'none'] as const,
+            DICTIONARY_ENGINES,
             'providers.dictionary',
             invalidValues,
         );
@@ -433,7 +440,7 @@ export class SettingServiceImpl implements SettingService {
                 'providers.subtitleTranslation',
                 this.requireEnumValue(
                     settings.providers.subtitleTranslationEngine,
-                    ['openai', 'tencent', 'none'] as const,
+                    SUBTITLE_TRANSLATION_ENGINES,
                     'providers.subtitleTranslationEngine',
                 ),
             );
@@ -445,11 +452,13 @@ export class SettingServiceImpl implements SettingService {
                 'providers.dictionary',
                 this.requireEnumValue(
                     settings.providers.dictionaryEngine,
-                    ['openai', 'none'] as const,
+                    DICTIONARY_ENGINES,
                     'providers.dictionaryEngine',
                 ),
             );
         }
+        // 引擎切换即时反映到本地模型常驻策略：切到 local 后台预加载，切走后恢复空闲卸载。
+        this.localAi.syncEngineResidency();
         const availableModels = this.parseOpenAiModels(this.getValue('models.openai.available'));
         if (availableModels.length === 0) {
             throw new Error('models.openai.available 为空，无法保存功能模型选择');
@@ -679,13 +688,13 @@ export class SettingServiceImpl implements SettingService {
         return openaiEnabled ? 'openai' : null;
     }
 
-    public async getCurrentTranslationProvider(): Promise<'openai' | 'tencent' | null> {
+    public async getCurrentTranslationProvider(): Promise<'openai' | 'local' | 'tencent' | null> {
         const engine = this.requireEnumValue(
             this.getValue('providers.subtitleTranslation'),
-            ['openai', 'tencent', 'none'] as const,
+            SUBTITLE_TRANSLATION_ENGINES,
             'providers.subtitleTranslation',
         );
-        if (engine === 'openai' || engine === 'tencent') {
+        if (engine === 'local' || engine === 'openai' || engine === 'tencent') {
             return engine;
         }
         return null;
@@ -707,13 +716,13 @@ export class SettingServiceImpl implements SettingService {
         return getSubtitleDefaultStyle('custom');
     }
 
-    public async getCurrentDictionaryProvider(): Promise<'openai' | null> {
+    public async getCurrentDictionaryProvider(): Promise<'openai' | 'local' | null> {
         const engine = this.requireEnumValue(
             this.getValue('providers.dictionary'),
-            ['openai', 'none'] as const,
+            DICTIONARY_ENGINES,
             'providers.dictionary',
         );
-        if (engine === 'openai') {
+        if (engine === 'local' || engine === 'openai') {
             return engine;
         }
         return null;

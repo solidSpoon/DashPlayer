@@ -37,6 +37,7 @@ const TYPES = {
     RendererEvents: Symbol('RendererEvents'),
     AiFuncService: Symbol('AiFuncService'),
     ParakeetModelService: Symbol('ParakeetModelService'),
+    LocalAiService: Symbol('LocalAiService'),
     SherpaOnnxCli: Symbol('SherpaOnnxCli'),
     SpeechRecognitionGateway: Symbol('SpeechRecognitionGateway'),
     SherpaTtsModelService: Symbol('SherpaTtsModelService'),
@@ -57,7 +58,8 @@ const TYPES = {
     // Clients
     TencentClientProvider: Symbol('TencentClientProvider'),
     AiProviderService: Symbol('AiProviderService'),
-    OpenAiSubtitleTranslationGateway: Symbol('OpenAiSubtitleTranslationGateway'),
+    OpenAiSubtitleBatchTranslator: Symbol('OpenAiSubtitleBatchTranslator'),
+    LocalSubtitleBatchTranslator: Symbol('LocalSubtitleBatchTranslator'),
     ModelRoutingService: Symbol('ModelRoutingService'),
     ConfigStoreFactory: Symbol('ConfigStoreFactory'),
     SettingsStore: Symbol('SettingsStore'),
