@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { parseSubtitleBatchLines } from '@/backend/infrastructure/translate/subtitleBatchPrompt';
+import {
+    buildSubtitleBatchLinesGrammar,
+    parseSubtitleBatchLines,
+} from '@/backend/infrastructure/translate/subtitleBatchPrompt';
 
 /**
  * 紧凑行式输出的解析契约：本地模型按「每行一条译文」返回，
@@ -25,5 +28,22 @@ describe('紧凑行式译文解析', () => {
     it('行数多于或少于目标数时显式报错，不做静默对齐', () => {
         expect(() => parseSubtitleBatchLines('甲\n乙', 3)).toThrow('行数不匹配');
         expect(() => parseSubtitleBatchLines('甲\n乙\n丙', 2)).toThrow('行数不匹配');
+    });
+});
+
+describe('行式输出 GBNF 语法构造', () => {
+    it('多句批次约束为恰好 N 行、行间用换行分隔、行首不允许 think 残留字符', () => {
+        expect(buildSubtitleBatchLinesGrammar(5)).toBe(
+            'root ::= line ("\\n" line){4}\nline ::= [^<\\n][^\\n]*',
+        );
+    });
+
+    it('单句批次退化为单行语法，不产生重复计数片段', () => {
+        expect(buildSubtitleBatchLinesGrammar(1)).toBe('root ::= line\nline ::= [^<\\n][^\\n]*');
+    });
+
+    it('非正整数句数显式报错', () => {
+        expect(() => buildSubtitleBatchLinesGrammar(0)).toThrow('非法的字幕批次行数');
+        expect(() => buildSubtitleBatchLinesGrammar(-1)).toThrow('非法的字幕批次行数');
     });
 });

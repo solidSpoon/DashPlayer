@@ -152,6 +152,31 @@ export const buildLocalSubtitleBatchPrompt = (
 };
 
 /**
+ * 构建约束本地模型「恰好输出 N 行、每行非空」的 GBNF 语法。
+ *
+ * 小参数量模型在自由解码下会把相邻两行合并或漏翻一行（实测 qwen3.5-2b
+ * 在 5 句批次稳定少 1 行），仅靠提示词无法根治；llama-server 在解码层
+ * 应用该语法后，行数与行分隔在结构上不可能出错，解析层校验退化为
+ * 纯防御。与提示词中的行数要求语义一致，此处是硬约束。
+ *
+ * 行首字符排除 `<`：qwen 系列模板在思考开关关闭时仍可能残留独立的
+ * `</think>` 行，若被当作译文行会顶替真实译文并使后续行整体错位；
+ * 正常译文不会以 `<` 开头，在解码层直接绕开比事后剥离更可靠。
+ *
+ * @param expectedCount 目标句数，必须 ≥ 1。
+ * @returns 可直接传给 llama-server `grammar` 参数的 GBNF 文本。
+ */
+export const buildSubtitleBatchLinesGrammar = (expectedCount: number): string => {
+    if (!Number.isInteger(expectedCount) || expectedCount < 1) {
+        throw new Error(`非法的字幕批次行数：${expectedCount}`);
+    }
+    const lines = expectedCount === 1
+        ? 'line'
+        : `line ("\\n" line){${expectedCount - 1}}`;
+    return `root ::= ${lines}\nline ::= [^<\\n][^\\n]*`;
+};
+
+/**
  * 解析本地模型返回的紧凑行式译文。
  *
  * 去除首尾空白行后按行拆分；行数必须与目标数一致（多行/少行都显式报错，

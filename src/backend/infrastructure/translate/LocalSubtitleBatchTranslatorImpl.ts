@@ -8,9 +8,11 @@ import {
 } from '@/backend/services/gateways/translate/SubtitleBatchTranslationInput';
 import {
     buildLocalSubtitleBatchPrompt,
+    buildSubtitleBatchLinesGrammar,
     getSubtitleTranslationDescription,
     parseSubtitleBatchLines,
 } from '@/backend/infrastructure/translate/subtitleBatchPrompt';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 
 /**
  * 照抄检测前对文本做的归一化：剥离所有非字母数字字符（含标点、空白）
@@ -45,7 +47,8 @@ const isUsableZhTranslation = (source: string, translation: string): boolean => 
  * 拼成本地模型可执行的提示词，并校验输出形状。字幕按 5 句一组整批发送，
  * 输出为「每行一条译文、按输入顺序对齐」的紧凑格式——不要求模型回抄字幕键
  * 与 JSON 结构，每批解码 token 约减半。译文照抄原文时显式报错交由调度器
- * 重试，业务层不感知。
+ * 重试，业务层不感知。行数与行分隔由 GBNF 语法在解码层硬约束，
+ * 解析层校验退化为纯防御。
  */
 @injectable()
 export default class LocalSubtitleBatchTranslatorImpl
@@ -54,6 +57,8 @@ implements LocalSubtitleBatchTranslator {
     public constructor(
         @inject(TYPES.LocalAiService) private readonly localAi: LocalAiService,
     ) {}
+
+    private readonly logger = getMainLogger('LocalSubtitleBatchTranslator');
 
     /**
      * 执行一次非流式紧凑批量翻译。
@@ -68,8 +73,23 @@ implements LocalSubtitleBatchTranslator {
             forbidEcho: input.mode === 'zh',
             targetLanguageDescription: getSubtitleTranslationDescription(input.mode),
         });
-        const text = await this.localAi.generateText(prompt, input.modelId, input.signal);
-        const lines = parseSubtitleBatchLines(text, input.targets.length);
+        const grammar = buildSubtitleBatchLinesGrammar(input.targets.length);
+        const text = await this.localAi.generateText(prompt, input.modelId, input.signal, { grammar });
+        let lines: string[];
+        try {
+            lines = parseSubtitleBatchLines(text, input.targets.length);
+        } catch (error) {
+            // 解析失败时把模型原始输出按行落盘留归因证据（长文本以行数组入日志，
+            // 避免单字段长度上限截掉尾部）；语法约束下该分支属于纯防御。
+            this.logger.warn('local subtitle batch parse failed', {
+                model: input.modelId,
+                mode: input.mode,
+                expected: input.targets.length,
+                rawLines: text.trim().split('\n'),
+                error,
+            });
+            throw error;
+        }
         const items = input.targets.map((target, index) => ({
             key: target.key,
             translation: lines[index],
