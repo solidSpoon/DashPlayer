@@ -10,7 +10,7 @@ import {
 } from '@/common/contracts/runtime-settings';
 
 /** 字幕翻译引擎的合法取值，需与后端 `providers.subtitleTranslation` 枚举保持一致。 */
-const SUBTITLE_ENGINE_VALUES = ['openai', 'local', 'tencent', 'none'] as const;
+const SUBTITLE_ENGINE_VALUES = ['openai', 'local', 'local-mt', 'tencent', 'none'] as const;
 type SubtitleEngine = (typeof SUBTITLE_ENGINE_VALUES)[number];
 
 /**

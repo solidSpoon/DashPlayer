@@ -160,6 +160,14 @@ export const settingsApi = {
     deleteLocalAi: (modelId: string) => backendClient.call('local-ai/delete', { modelId }),
     /** 对指定本地模型执行稳态速度测试（两轮固定批量生成，取热身轮吞吐）。 */
     speedTestLocalAi: (modelId: string) => backendClient.call('local-ai/speed-test', { modelId }),
+    /** 查询轻量翻译模型（opus-mt）安装状态。 */
+    getLocalMtStatus: () => backendClient.call('local-mt/status'),
+    /** 下载轻量翻译模型（可续传）。 */
+    downloadLocalMt: () => backendClient.call('local-mt/download'),
+    /** 取消轻量翻译模型下载。 */
+    cancelLocalMtDownload: () => backendClient.call('local-mt/cancel-download'),
+    /** 删除轻量翻译模型。 */
+    deleteLocalMt: () => backendClient.call('local-mt/delete'),
 
     /**
      * 下载 Sherpa TTS 模型。

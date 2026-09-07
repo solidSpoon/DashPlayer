@@ -36,6 +36,10 @@ interface UIRendererDef {
         params: { modelId: string; percent: number; downloaded: number; total: number; phase: 'idle' | 'downloading' | 'verifying' },
         return: void
     };
+    'settings/local-mt-download-progress': {
+        params: { downloaded: number; total: number; phase: 'idle' | 'downloading' | 'verifying' },
+        return: void
+    };
 }
 
 // 翻译相关的前端API定义

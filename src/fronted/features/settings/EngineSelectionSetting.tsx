@@ -2,7 +2,7 @@ import React from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import useSWR from 'swr';
 import { toast } from 'react-hot-toast';
-import { Book, Eraser, Languages, Settings2, Sparkles } from 'lucide-react';
+import { Book, Eraser, Languages, Loader2, Settings2, Sparkles } from 'lucide-react';
 import { Label } from '@/fronted/components/ui/label';
 import { Button } from '@/fronted/components/ui/button';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
@@ -16,15 +16,12 @@ import { ServiceCredentialSettingDetailVO } from '@/common/types/vo/service-cred
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
-import useSystem from '@/fronted/hooks/useSystem';
 
 /**
  * 功能设置页。
  */
 const EngineSelectionSetting = () => {
     const { t } = useI18nTranslation('settings');
-    // 本地模型推理目前仅支持 macOS，其余平台不展示本地引擎选项。
-    const isMac = useSystem((s) => s.isMac);
 
     const { data: settings } = useSWR('settings/engine-selection/detail', () =>
         settingsApi.getEngineSelection(),
@@ -37,6 +34,11 @@ const EngineSelectionSetting = () => {
         'local-ai/status',
         settingsApi.getLocalAiStatus,
     );
+    const { data: localMtStatus } = useSWR(
+        'local-mt/status',
+        settingsApi.getLocalMtStatus,
+    );
+    const localMtReady = localMtStatus?.ready ?? false;
 
     const form = useForm<EngineSelectionSettingVO>();
     const { setValue } = form;
@@ -120,7 +122,7 @@ const EngineSelectionSetting = () => {
         const separator = value.indexOf(':');
         const engine = separator === -1 ? value : value.slice(0, separator);
         const model = separator === -1 ? '' : value.slice(separator + 1);
-        setValue(engineKey, engine as 'openai' | 'local' | 'tencent' | 'none', { shouldDirty: true });
+        setValue(engineKey, engine as 'openai' | 'local' | 'local-mt' | 'tencent' | 'none', { shouldDirty: true });
         if (engine === 'openai') {
             setValue(modelField, model, { shouldDirty: true });
         }
@@ -157,28 +159,41 @@ const EngineSelectionSetting = () => {
      *
      * @param target 清除目标（字幕翻译或词典）。
      */
-    const renderClearCacheButton = (target: 'subtitle' | 'dictionary') => (
-        <AlertDialog>
-            <AlertDialogTrigger asChild>
-                <Button type="button" variant="ghost" size="sm" disabled={cacheClearing !== null}>
-                    <Eraser className="mr-1.5 h-3.5 w-3.5" />
-                    {t('engineSelection.clearCache')}
-                </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-                <AlertDialogHeader>
-                    <AlertDialogTitle>{t(`engineSelection.${target === 'subtitle' ? 'subtitleTranslation' : 'dictionary'}.clearCacheConfirmTitle`)}</AlertDialogTitle>
-                    <AlertDialogDescription>{t(`engineSelection.${target === 'subtitle' ? 'subtitleTranslation' : 'dictionary'}.clearCacheConfirmDescription`)}</AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                    <AlertDialogCancel>{t('engineSelection.clearCacheCancel')}</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => clearCache(target).catch(() => null)}>
+    const renderClearCacheButton = (target: 'subtitle' | 'dictionary') => {
+        const isClearing = cacheClearing === target;
+        return (
+            <AlertDialog>
+                <AlertDialogTrigger asChild>
+                    <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="text-xs text-muted-foreground hover:text-foreground"
+                        disabled={cacheClearing !== null}
+                    >
+                        {isClearing ? (
+                            <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                        ) : (
+                            <Eraser className="mr-1.5 h-3.5 w-3.5" />
+                        )}
                         {t('engineSelection.clearCache')}
-                    </AlertDialogAction>
-                </AlertDialogFooter>
-            </AlertDialogContent>
-        </AlertDialog>
-    );
+                    </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                    <AlertDialogHeader>
+                        <AlertDialogTitle>{t(`engineSelection.${target === 'subtitle' ? 'subtitleTranslation' : 'dictionary'}.clearCacheConfirmTitle`)}</AlertDialogTitle>
+                        <AlertDialogDescription>{t(`engineSelection.${target === 'subtitle' ? 'subtitleTranslation' : 'dictionary'}.clearCacheConfirmDescription`)}</AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                        <AlertDialogCancel>{t('engineSelection.clearCacheCancel')}</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => clearCache(target).catch(() => null)}>
+                            {t('engineSelection.clearCache')}
+                        </AlertDialogAction>
+                    </AlertDialogFooter>
+                </AlertDialogContent>
+            </AlertDialog>
+        );
+    };
 
 
     if (!ready || !credentialSettings) {
@@ -251,18 +266,38 @@ const EngineSelectionSetting = () => {
                                             <SelectItem key={`subtitle-${model}`} value={`openai:${model}`}>{model}</SelectItem>
                                         ))}
                                     </SelectGroup>
-                                    {isMac && <SelectItem value="local">{t('engineSelection.localEngine')}</SelectItem>}
+                                    <SelectItem value="local">{t('engineSelection.localEngine')}</SelectItem>
+                                    <SelectItem value="local-mt">{t('engineSelection.localMtEngine')}</SelectItem>
                                     <SelectItem value="none">{t('engineSelection.engineNone')}</SelectItem>
                                 </SelectContent>
                             </Select>
                             {subtitleEngine === 'local' && !anyLocalModelReady && (
                                 <div className="text-xs text-destructive">{t('engineSelection.notDownloadedHint')}</div>
                             )}
-                            {subtitleEngine !== 'none' && renderClearCacheButton('subtitle')}
+                            {subtitleEngine === 'local-mt' && !localMtReady && (
+                                <div className="text-xs text-destructive">{t('engineSelection.localMtNotDownloadedHint')}</div>
+                            )}
                         </div>
                     </SettingRow>
 
-                    {(subtitleEngine === 'openai' || subtitleEngine === 'local') && (
+                    {subtitleEngine !== 'none' && (
+                        <SettingRow
+                            title={t('engineSelection.subtitleTranslation.clearCacheLabel')}
+                            description={t('engineSelection.subtitleTranslation.clearCacheDesc')}
+                            icon={Eraser}
+                        >
+                            {renderClearCacheButton('subtitle')}
+                        </SettingRow>
+                    )}
+
+                    {subtitleEngine === 'local-mt' ? (
+                        <SettingRow
+                            title={t('engineSelection.subtitleTranslation.styleLabel')}
+                            icon={Settings2}
+                        >
+                            <div className="text-xs text-muted-foreground">{t('engineSelection.localMtZhOnlyHint')}</div>
+                        </SettingRow>
+                    ) : (subtitleEngine === 'openai' || subtitleEngine === 'local') && (
                         <SettingRow
                                 title={t('engineSelection.subtitleTranslation.styleLabel')}
                                 icon={Settings2}
@@ -341,16 +376,25 @@ const EngineSelectionSetting = () => {
                                             <SelectItem key={`dict-${model}`} value={`openai:${model}`}>{model}</SelectItem>
                                         ))}
                                     </SelectGroup>
-                                    {isMac && <SelectItem value="local">{t('engineSelection.localEngine')}</SelectItem>}
+                                    <SelectItem value="local">{t('engineSelection.localEngine')}</SelectItem>
                                     <SelectItem value="none">{t('engineSelection.engineNone')}</SelectItem>
                                 </SelectContent>
                             </Select>
                             {watchedValues.providers?.dictionaryEngine === 'local' && !anyLocalModelReady && (
                                 <div className="text-xs text-destructive">{t('engineSelection.notDownloadedHint')}</div>
                             )}
-                            {watchedValues.providers?.dictionaryEngine !== 'none' && renderClearCacheButton('dictionary')}
                         </div>
                     </SettingRow>
+
+                    {watchedValues.providers?.dictionaryEngine !== 'none' && (
+                        <SettingRow
+                            title={t('engineSelection.dictionary.clearCacheLabel')}
+                            description={t('engineSelection.dictionary.clearCacheDesc')}
+                            icon={Eraser}
+                        >
+                            {renderClearCacheButton('dictionary')}
+                        </SettingRow>
+                    )}
                 </SettingCard>
 
                 {/* 句法分析与例句学习 */}
