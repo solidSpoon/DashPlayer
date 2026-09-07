@@ -34,6 +34,11 @@ const EngineSelectionSetting = () => {
         'local-ai/status',
         settingsApi.getLocalAiStatus,
     );
+    const { data: localMtStatus } = useSWR(
+        'local-mt/status',
+        settingsApi.getLocalMtStatus,
+    );
+    const localMtReady = localMtStatus?.ready ?? false;
 
     const form = useForm<EngineSelectionSettingVO>();
     const { setValue } = form;
@@ -102,7 +107,7 @@ const EngineSelectionSetting = () => {
         const separator = value.indexOf(':');
         const engine = separator === -1 ? value : value.slice(0, separator);
         const model = separator === -1 ? '' : value.slice(separator + 1);
-        setValue(engineKey, engine as 'openai' | 'local' | 'tencent' | 'youdao' | 'none', { shouldDirty: true });
+        setValue(engineKey, engine as 'openai' | 'local' | 'local-mt' | 'tencent' | 'youdao' | 'none', { shouldDirty: true });
         if (engine === 'openai') {
             setValue(modelField, model, { shouldDirty: true });
         }
@@ -223,17 +228,28 @@ const EngineSelectionSetting = () => {
                                         ))}
                                     </SelectGroup>
                                     <SelectItem value="local">{t('engineSelection.localEngine')}</SelectItem>
+                                    <SelectItem value="local-mt">{t('engineSelection.localMtEngine')}</SelectItem>
                                     <SelectItem value="none">{t('engineSelection.engineNone')}</SelectItem>
                                 </SelectContent>
                             </Select>
                             {subtitleEngine === 'local' && !anyLocalModelReady && (
                                 <div className="text-xs text-destructive">{t('engineSelection.notDownloadedHint')}</div>
                             )}
+                            {subtitleEngine === 'local-mt' && !localMtReady && (
+                                <div className="text-xs text-destructive">{t('engineSelection.localMtNotDownloadedHint')}</div>
+                            )}
                             {subtitleEngine !== 'none' && renderClearCacheButton('subtitle')}
                         </div>
                     </SettingRow>
 
-                    {(subtitleEngine === 'openai' || subtitleEngine === 'local') && (
+                    {subtitleEngine === 'local-mt' ? (
+                        <SettingRow
+                            title={t('engineSelection.subtitleTranslation.styleLabel')}
+                            icon={Settings2}
+                        >
+                            <div className="text-xs text-muted-foreground">{t('engineSelection.localMtZhOnlyHint')}</div>
+                        </SettingRow>
+                    ) : (subtitleEngine === 'openai' || subtitleEngine === 'local') && (
                         <SettingRow
                                 title={t('engineSelection.subtitleTranslation.styleLabel')}
                                 icon={Settings2}

@@ -37,6 +37,7 @@ import { OpenAiModelUsageFeature, ServiceCredentialSettingDetailVO, ServiceCrede
 import type { ModelInstallationStatusVO } from '@/common/types/vo/model-installation-vo';
 import type { ModelDownloadPhase } from '@/common/contracts/model-download-phase';
 import type { LocalAiModelStatus, LocalAiStatus } from '@/common/contracts/local-ai';
+import type { LocalMtStatus } from '@/common/contracts/local-mt';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import toast from 'react-hot-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
@@ -89,6 +90,8 @@ const ServiceCredentialSetting = () => {
     const [sherpaTtsDownloadProgress, setSherpaTtsDownloadProgress] = React.useState(0);
     const [sherpaTtsDownloadPhase, setSherpaTtsDownloadPhase] = React.useState<ModelDownloadPhase>('downloading');
     const [localAiStatus, setLocalAiStatus] = React.useState<LocalAiStatus | null>(null);
+    const [localMtStatus, setLocalMtStatus] = React.useState<LocalMtStatus | null>(null);
+    const [localMtBusy, setLocalMtBusy] = React.useState(false);
     const [localAiBusy, setLocalAiBusy] = React.useState(false);
     const [localAiRescanning, setLocalAiRescanning] = React.useState(false);
     const [testingModelId, setTestingModelId] = React.useState<string | null>(null);
@@ -293,8 +296,7 @@ const ServiceCredentialSetting = () => {
     };
 
     /** 下载指定模型；进度由事件持续更新页面，后端同一时间只允许一个下载任务。 */
-    const downloadLocalAi = async (modelId: string, name: string) => {
-        setLocalAiStatus((current) => current ? {
+    const downloadLocalAi = async (modelId: string, name: string) => {        setLocalAiStatus((current) => current ? {
             ...current,
             models: current.models.map((model) =>
                 model.modelId === modelId ? { ...model, phase: 'downloading' } : model
@@ -320,6 +322,78 @@ const ServiceCredentialSetting = () => {
         finally {
             setLocalAiBusy(false);
             refreshLocalAiStatus();
+        }
+    };
+
+    /** 拉取轻量翻译模型最新状态。 */
+    const refreshLocalMtStatus = React.useCallback(async () => {
+        try {
+            const status = await settingsApi.getLocalMtStatus();
+            setLocalMtStatus(status);
+        } catch {
+            // ignore
+        }
+    }, []);
+
+    React.useEffect(() => { refreshLocalMtStatus(); }, [refreshLocalMtStatus]);
+
+    React.useEffect(() => {
+        const handler = (event: Event) => {
+            const progress = (event as CustomEvent<{
+                downloaded: number;
+                total: number;
+                phase: LocalMtStatus['phase'];
+            }>).detail;
+            setLocalMtStatus((current) => current ? {
+                ...current,
+                downloaded: progress.downloaded,
+                total: progress.total,
+                phase: progress.phase,
+            } : current);
+            if (progress.phase === 'idle') {
+                refreshLocalMtStatus();
+            }
+        };
+        window.addEventListener('local-mt-download-progress', handler);
+        return () => window.removeEventListener('local-mt-download-progress', handler);
+    }, [refreshLocalMtStatus]);
+
+    /** 下载轻量翻译模型；进度由事件持续更新页面。 */
+    const downloadLocalMt = async () => {
+        setLocalMtStatus((current) => current ? { ...current, phase: 'downloading' } : current);
+        try {
+            await settingsApi.downloadLocalMt();
+            toast.success(t('serviceCredentials.localMt.downloadDone'));
+        } catch (error) {
+            if ((error instanceof Error ? error.name : '') !== 'AbortError') {
+                toast.error(error instanceof Error ? error.message : String(error));
+            }
+        } finally {
+            refreshLocalMtStatus();
+        }
+    };
+
+    /** 取消轻量翻译模型下载并保留已完成部分，以便下次续传。 */
+    const cancelLocalMtDownload = async () => {
+        setLocalMtBusy(true);
+        try { await settingsApi.cancelLocalMtDownload(); }
+        catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
+        finally {
+            setLocalMtBusy(false);
+            refreshLocalMtStatus();
+        }
+    };
+
+    /** 删除轻量翻译模型。 */
+    const deleteLocalMt = async () => {
+        setLocalMtBusy(true);
+        try {
+            await settingsApi.deleteLocalMt();
+            toast.success(t('serviceCredentials.localMt.deleteDone'));
+        } catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
+        finally {
+            setLocalMtBusy(false);
+            refreshLocalMtStatus();
         }
     };
 
@@ -1194,6 +1268,128 @@ const ServiceCredentialSetting = () => {
                                     ? t('serviceCredentials.localAi.runtimeReady')
                                     : t('serviceCredentials.localAi.runtimeMissing')}
                             </span>
+                        </div>
+                    </div>
+                </SettingCard>
+
+                {/* 轻量翻译模型卡片 */}
+                <SettingCard
+                    title={t('serviceCredentials.localMt.cardTitle')}
+                    description={t('serviceCredentials.localMt.cardDescription')}
+                    icon={Languages}
+                    headerAction={
+                        localMtStatus?.modelPath ? (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openModelFolder(localMtStatus.modelPath)}
+                            >
+                                <FolderOpen className="w-3.5 h-3.5 mr-1.5" />
+                                {t('serviceCredentials.localAi.openFolder')}
+                            </Button>
+                        ) : null
+                    }
+                >
+                    <div className="p-4 space-y-4">
+                        <div className={cn(
+                            "rounded-xl border p-4 transition-all",
+                            localMtStatus?.ready
+                                ? "border-primary/50 bg-primary/5 shadow-xs"
+                                : "border-border/60 bg-muted/20 hover:border-border"
+                        )}>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div className="space-y-1.5 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="text-sm font-semibold text-foreground tracking-tight">OPUS-MT en→zh</span>
+                                        <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">~0.3 GB</span>
+                                        {localMtStatus?.ready ? (
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+                                                <CheckCircle2 className="h-3.5 w-3.5" />
+                                                {t('serviceCredentials.localAi.readyNotInUse')}
+                                            </span>
+                                        ) : localMtStatus?.phase !== 'idle' && localMtStatus ? (
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2.5 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
+                                                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                {localMtStatus.phase === 'verifying'
+                                                    ? t('serviceCredentials.localAi.phaseVerifying')
+                                                    : t('serviceCredentials.localAi.phaseDownloading')}
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                                                {t('common.notDownloaded')}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground">{t('serviceCredentials.localMt.modelNote')}</p>
+                                </div>
+                                <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+                                    {localMtStatus?.ready ? (
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    disabled={localMtBusy}
+                                                >
+                                                    <Trash2 className="mr-1.5 h-3.5 w-3.5 text-destructive" />
+                                                    {t('serviceCredentials.localAi.delete')}
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>{t('serviceCredentials.localMt.deleteConfirmTitle')}</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        {t('serviceCredentials.localMt.deleteConfirmDescription')}
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={deleteLocalMt}>
+                                                        {t('common.confirm')}
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    ) : localMtStatus && localMtStatus.phase !== 'idle' ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={localMtBusy}
+                                            onClick={cancelLocalMtDownload}
+                                        >
+                                            <Square className="mr-1.5 h-3.5 w-3.5 text-destructive" />
+                                            {t('serviceCredentials.localAi.cancelDownload')}
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            disabled={localMtBusy}
+                                            onClick={downloadLocalMt}
+                                        >
+                                            <Download className="mr-1.5 h-3.5 w-3.5" />
+                                            {t('common.download')}
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                            {localMtStatus && localMtStatus.phase !== 'idle' && (
+                                <div className="mt-3 space-y-1.5">
+                                    <Progress
+                                        value={(localMtStatus.downloaded / (localMtStatus.total || 1)) * 100}
+                                        className="h-1.5"
+                                    />
+                                    <div className="flex justify-between text-xs text-muted-foreground">
+                                        <span>
+                                            {(localMtStatus.downloaded / 1024 / 1024).toFixed(1)} MB / {(localMtStatus.total / 1024 / 1024).toFixed(1)} MB
+                                        </span>
+                                        <span>{Math.min(100, Math.floor(localMtStatus.downloaded / (localMtStatus.total || 1) * 100))}%</span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     </div>
                 </SettingCard>

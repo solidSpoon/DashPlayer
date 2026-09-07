@@ -11,7 +11,7 @@ export type EngineSelectionSettingVO = {
         };
     };
     providers: {
-        subtitleTranslationEngine: 'openai' | 'local' | 'tencent' | 'none';
+        subtitleTranslationEngine: 'openai' | 'local' | 'local-mt' | 'tencent' | 'none';
         dictionaryEngine: 'openai' | 'local' | 'youdao' | 'none';
     };
 };

@@ -2,6 +2,11 @@ import { Container } from 'inversify';
 import { LocalAiController } from '@/backend/controllers/LocalAiController';
 import { LocalAiRuntime } from '@/backend/infrastructure/ai/LocalAiRuntime';
 import type LocalAiService from '@/backend/services/LocalAiService';
+import { LocalMtController } from '@/backend/controllers/LocalMtController';
+import { LocalMtRuntime } from '@/backend/infrastructure/ai/LocalMtRuntime';
+import type LocalMtService from '@/backend/services/LocalMtService';
+import LocalMtSubtitleBatchTranslator from '@/backend/services/gateways/translate/LocalMtSubtitleBatchTranslator';
+import LocalMtSubtitleBatchTranslatorImpl from '@/backend/infrastructure/translate/LocalMtSubtitleBatchTranslatorImpl';
 import TYPES from './types';
 import FavoriteClipsController from '@/backend/controllers/FavoriteClipsController';
 import Controller from '@/backend/controllers/Controller';
@@ -135,6 +140,9 @@ container.bind<OpenAiSubtitleBatchTranslator>(TYPES.OpenAiSubtitleBatchTranslato
 container.bind<LocalSubtitleBatchTranslator>(TYPES.LocalSubtitleBatchTranslator)
     .to(LocalSubtitleBatchTranslatorImpl)
     .inSingletonScope();
+container.bind<LocalMtSubtitleBatchTranslator>(TYPES.LocalMtSubtitleBatchTranslator)
+    .to(LocalMtSubtitleBatchTranslatorImpl)
+    .inSingletonScope();
 // Controllers
 container.bind<Controller>(TYPES.Controller).to(FavoriteClipsController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(TagController).inSingletonScope();
@@ -153,6 +161,8 @@ container.bind<Controller>(TYPES.Controller).to(SettingsController).inSingletonS
 container.bind<Controller>(TYPES.Controller).to(ParakeetModelController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(LocalAiController).inSingletonScope();
 container.bind<LocalAiService>(TYPES.LocalAiService).to(LocalAiRuntime).inSingletonScope();
+container.bind<Controller>(TYPES.Controller).to(LocalMtController).inSingletonScope();
+container.bind<LocalMtService>(TYPES.LocalMtService).to(LocalMtRuntime).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(SherpaTtsModelController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VocabularyController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VideoLearningApiController).inSingletonScope();
