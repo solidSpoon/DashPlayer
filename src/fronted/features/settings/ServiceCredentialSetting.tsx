@@ -1350,9 +1350,9 @@ const ServiceCredentialSetting = () => {
                                                     </AlertDialogDescription>
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>
-                                                    <AlertDialogCancel>{t('common.cancel')}</AlertDialogCancel>
+                                                    <AlertDialogCancel>{t('serviceCredentials.localAi.cancelDelete')}</AlertDialogCancel>
                                                     <AlertDialogAction onClick={deleteLocalMt}>
-                                                        {t('common.confirm')}
+                                                        {t('serviceCredentials.localAi.confirmDelete')}
                                                     </AlertDialogAction>
                                                 </AlertDialogFooter>
                                             </AlertDialogContent>
