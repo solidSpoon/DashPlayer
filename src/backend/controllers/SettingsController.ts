@@ -140,11 +140,6 @@ export default class SettingsController implements Controller {
         return this.settingService.testTencent();
     }
 
-    public async testYoudao(): Promise<{ success: boolean, message: string }> {
-        this.logger.info('testing youdao connection');
-        return this.settingService.testYoudao();
-    }
-
     registerRoutes(): void {
         registerRoute('settings/runtime/detail', () => this.getRuntimeSettings());
         registerRoute('settings/runtime/save', (p) => this.saveRuntimeSetting(p));
@@ -152,7 +147,6 @@ export default class SettingsController implements Controller {
         registerRoute('settings/service-credentials/save', (p) => this.saveServiceCredentials(p));
         registerRoute('settings/service-credentials/test-openai', () => this.testOpenAi());
         registerRoute('settings/service-credentials/test-tencent', () => this.testTencent());
-        registerRoute('settings/service-credentials/test-youdao', () => this.testYoudao());
         registerRoute('settings/engine-selection/detail', () => this.getEngineSelectionDetail());
         registerRoute('settings/engine-selection/save', (p) => this.saveEngineSelection(p));
         registerRoute('settings/shortcuts/detail', () => this.getShortcutSettingsDetail());

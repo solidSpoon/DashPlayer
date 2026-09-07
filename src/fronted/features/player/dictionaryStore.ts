@@ -2,7 +2,7 @@
  * 管理词典流式查询过程，按 requestId 缓存中间结果和最终释义。
  */
 import { create } from 'zustand';
-import { OpenAIDictionaryResult, OpenAIDictionaryDefinition, OpenAIDictionaryExample } from '@/common/types/YdRes';
+import { OpenAIDictionaryResult, OpenAIDictionaryDefinition, OpenAIDictionaryExample } from '@/common/types/DictionaryResult';
 
 interface DictionaryEntry {
     requestId: string;
@@ -45,11 +45,19 @@ const cloneDefinitions = (definitions: OpenAIDictionaryDefinition[]): OpenAIDict
 
 /**
  * 复制单词卡数据，保证外部更新不会直接污染状态树。
+ *
+ * 说明：collins/oxford/bnc/frq/tags 是预置词典命中的结果才有的词库元信息，
+ * 需要一并透传，否则预置词条目经流式 store 后会丢失元信息展示。
  */
 const cloneEntryData = (data: OpenAIDictionaryResult): OpenAIDictionaryResult => ({
     word: data.word,
     phonetic: data.phonetic,
-    definitions: cloneDefinitions(data.definitions)
+    definitions: cloneDefinitions(data.definitions),
+    ...(data.collins !== undefined ? { collins: data.collins } : {}),
+    ...(data.oxford !== undefined ? { oxford: data.oxford } : {}),
+    ...(data.bnc !== undefined ? { bnc: data.bnc } : {}),
+    ...(data.frq !== undefined ? { frq: data.frq } : {}),
+    ...(data.tags !== undefined ? { tags: [...data.tags] } : {}),
 });
 
 /**

@@ -4,7 +4,7 @@ import registerRoute from '@/backend/controllers/ipc/registerRoute';
 
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types'; // 使用接口定义
-import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
+import { OpenAIDictionaryResult } from '@/common/types/DictionaryResult';
 import Controller from '@/backend/controllers/Controller';
 import TranslateService from '@/backend/services/TranslateService';
 import SubtitleTranslationService from '@/backend/services/subtitle-translation/SubtitleTranslationService';
@@ -18,9 +18,9 @@ export default class AiTransController implements Controller {
     private subtitleTranslationService!: SubtitleTranslationService;
 
     /**
-     * 单独的单词翻译（有道）
+     * 单词词典查询：预置词典优先，未命中走 OpenAI 词典模型。
      */
-    public async youDaoTrans(params: { word: string; forceRefresh?: boolean; requestId?: string }): Promise<YdRes | OpenAIDictionaryResult | null> {
+    public async transWord(params: { word: string; forceRefresh?: boolean; requestId?: string }): Promise<OpenAIDictionaryResult | null> {
         return this.translateService.transWord(params.word, params.forceRefresh, params.requestId);
     }
 
@@ -51,7 +51,7 @@ export default class AiTransController implements Controller {
      * 注册IPC路由
      */
     registerRoutes(): void {
-        registerRoute('ai-trans/word', (p) => this.youDaoTrans(p));
+        registerRoute('ai-trans/word', (p) => this.transWord(p));
 
         registerRoute('ai-trans/update-subtitle-demand', (p) => this.updateSubtitleDemand(p));
         registerRoute('ai-trans/release-subtitle-session', (p) => this.releaseSubtitleSession(p));

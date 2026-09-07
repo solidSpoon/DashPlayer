@@ -46,13 +46,11 @@ import ConvertService, { ConvertServiceImpl } from '@/backend/services/ConvertSe
 import SplitVideoService, { SplitVideoServiceImpl } from '@/backend/services/SplitVideoService';
 import MediaService, { MediaServiceImpl } from '@/backend/services/MediaService';
 import ClientProviderService from '@/backend/services/ClientProviderService';
-import YouDaoProvider from '@/backend/infrastructure/translate/providers/YouDaoProvider';
 import TencentProvider from '@/backend/infrastructure/translate/providers/TencentProvider';
 import TranslateService, { TranslateServiceImpl } from '@/backend/services/TranslateService';
 import SubtitleTranslationService, {
     SubtitleTranslationServiceImpl,
 } from '@/backend/services/subtitle-translation/SubtitleTranslationService';
-import { YouDaoDictionaryClient } from '@/backend/services/gateways/translate/YouDaoDictionaryClient';
 import { TencentTranslateClient } from '@/backend/services/gateways/translate/TencentTranslateClient';
 import OpenAiSubtitleBatchTranslator from '@/backend/services/gateways/translate/OpenAiSubtitleBatchTranslator';
 import LocalSubtitleBatchTranslator from '@/backend/services/gateways/translate/LocalSubtitleBatchTranslator';
@@ -117,13 +115,15 @@ import FileSystemGatewayImpl from '@/backend/infrastructure/storage/FileSystemGa
 import AccessRecoveringFileSystemGateway from '@/backend/infrastructure/storage/AccessRecoveringFileSystemGateway';
 import db from '@/backend/infrastructure/db';
 import type { Db } from '@/backend/infrastructure/db/createDb';
+import BuiltinDictionaryStore from '@/backend/services/gateways/translate/BuiltinDictionaryStore';
+import { BuiltinDictionaryStoreImpl } from '@/backend/infrastructure/translate/BuiltinDictionaryStoreImpl';
+import { getRuntimeResourcePath } from '@/backend/utils/runtimeEnv';
 
 
 const container = new Container();
 // 数据库单例：仓储层统一从这里注入，测试可用内存库替换。
 container.bind<Db>(TYPES.Database).toConstantValue(db);
 // Clients
-container.bind<ClientProviderService<YouDaoDictionaryClient>>(TYPES.YouDaoClientProvider).to(YouDaoProvider).inSingletonScope();
 container.bind<ClientProviderService<TencentTranslateClient>>(TYPES.TencentClientProvider).to(TencentProvider).inSingletonScope();
 container.bind<ConfigStoreFactory>(TYPES.ConfigStoreFactory).to(ConfigStoreFactoryImpl).inSingletonScope();
 container.bind<SettingsStore>(TYPES.SettingsStore).to(SettingsStoreImpl).inSingletonScope();
@@ -135,6 +135,10 @@ container.bind<OpenAiSubtitleBatchTranslator>(TYPES.OpenAiSubtitleBatchTranslato
 container.bind<LocalSubtitleBatchTranslator>(TYPES.LocalSubtitleBatchTranslator)
     .to(LocalSubtitleBatchTranslatorImpl)
     .inSingletonScope();
+// 预置词典：随应用打包的只读 SQLite，不依赖任何密钥配置。
+container.bind<BuiltinDictionaryStore>(TYPES.BuiltinDictionaryStore).to(BuiltinDictionaryStoreImpl).inSingletonScope();
+container.bind<string>(TYPES.BuiltinDictionaryPath)
+    .toConstantValue(getRuntimeResourcePath('resources', 'dictionary.sqlite'));
 // Controllers
 container.bind<Controller>(TYPES.Controller).to(FavoriteClipsController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(TagController).inSingletonScope();

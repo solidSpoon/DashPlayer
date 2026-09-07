@@ -1,6 +1,6 @@
 import {DpTask} from '@/common/contracts/dp-task';
 import type { LocalAiSpeedTestResult, LocalAiStatus } from '@/common/contracts/local-ai';
-import {YdRes, OpenAIDictionaryResult} from '@/common/types/YdRes';
+import {OpenAIDictionaryResult} from '@/common/types/DictionaryResult';
 import {ChapterParseResult} from '@/common/types/chapter-result';
 import {SrtSentence, Sentence} from '@/common/types/SentenceC';
 import {SentenceStruct} from '@/common/types/SentenceStruct';
@@ -132,7 +132,7 @@ interface SystemDef {
 interface AiTransDef {
     'ai-trans/word': {
         params: { word: string; forceRefresh?: boolean; requestId?: string },
-        return: YdRes | OpenAIDictionaryResult | null
+        return: OpenAIDictionaryResult | null
     };
     /** 更新当前字幕播放位置，后端异步处理当前批次与预取批次。 */
     'ai-trans/update-subtitle-demand': {
@@ -244,7 +244,6 @@ interface SettingsDef {
     'settings/service-credentials/save': { params: ServiceCredentialSettingSaveVO, return: void };
     'settings/service-credentials/test-openai': { params: void, return: { success: boolean, message: string } };
     'settings/service-credentials/test-tencent': { params: void, return: { success: boolean, message: string } };
-    'settings/service-credentials/test-youdao': { params: void, return: { success: boolean, message: string } };
     'settings/engine-selection/detail': { params: void, return: EngineSelectionSettingVO };
     'settings/engine-selection/save': { params: EngineSelectionSettingVO, return: void };
     'settings/shortcuts/detail': { params: void, return: ShortcutSettingDetailVO };

@@ -56,7 +56,6 @@ const TYPES = {
     SysConfRepository: Symbol('SysConfRepository'),
     SubtitleTimestampAdjustmentsRepository: Symbol('SubtitleTimestampAdjustmentsRepository'),
     // Clients
-    YouDaoClientProvider: Symbol('YouDaoClientProvider'),
     TencentClientProvider: Symbol('TencentClientProvider'),
     AiProviderService: Symbol('AiProviderService'),
     OpenAiSubtitleBatchTranslator: Symbol('OpenAiSubtitleBatchTranslator'),
@@ -64,6 +63,8 @@ const TYPES = {
     ModelRoutingService: Symbol('ModelRoutingService'),
     ConfigStoreFactory: Symbol('ConfigStoreFactory'),
     SettingsStore: Symbol('SettingsStore'),
+    BuiltinDictionaryStore: Symbol('BuiltinDictionaryStore'),
+    BuiltinDictionaryPath: Symbol('BuiltinDictionaryPath'),
 };
 
 export default TYPES;

@@ -1,24 +1,12 @@
-import UrlUtil from '@/common/utils/UrlUtil';
 import StrUtil from '@/common/utils/str-util';
+import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { Nullable } from '@/common/types/Types';
 import { TypeGuards } from '@/common/utils/TypeGuards';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
-import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 
-const cache = new Map<string, string>();
 const api = backendClient;
+const cache = new Map<string, string>();
 let player: HTMLAudioElement | null = null;
-
-async function getAudioUrl(outURl: string) {
-    let audioUrl = cache.get(outURl);
-    if (!audioUrl) {
-        const data = await fetch(UrlUtil.toUrl(outURl));
-        const blob = new Blob([await data.arrayBuffer()]);
-        audioUrl = URL.createObjectURL(blob);
-        cache.set(outURl, audioUrl);
-    }
-    return audioUrl;
-}
 
 export const playAudioUrl = async (audioUrl: Nullable<string>) => {
     if (TypeGuards.isNull(audioUrl)) {
@@ -31,26 +19,21 @@ export const playAudioUrl = async (audioUrl: Nullable<string>) => {
     await player.play();
 };
 
-export const playUrl = async (outURl: string) => {
-    const audioUrl = await getAudioUrl(outURl);
-    getRendererLogger('AudioPlayer').debug('play url', { url: outURl });
-    await playAudioUrl(audioUrl);
-};
-
+/**
+ * 使用浏览器内置语音朗读单词，作为 sherpa 离线 TTS 不可用时的回退。
+ *
+ * @param word 待朗读的英文单词。
+ */
 export const playWord = async (word: string) => {
-    let blobUrl = cache.get(word);
-    if (blobUrl) {
-        await playAudioUrl(blobUrl);
+    if (!('speechSynthesis' in window)) {
+        getRendererLogger('AudioPlayer').debug('speech synthesis unavailable');
         return;
     }
-    const trans = await api.call('ai-trans/word', { word });
-    const outUrl = trans && 'speakUrl' in trans ? trans.speakUrl : null;
-    if (StrUtil.isBlank(outUrl)) {
-        return;
-    }
-    blobUrl = await getAudioUrl(outUrl);
-    cache.set(word, blobUrl);
-    await playAudioUrl(blobUrl);
+    const utterance = new SpeechSynthesisUtterance(word);
+    utterance.lang = 'en-US';
+    utterance.rate = 0.9;
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
 };
 
 export const getTtsUrl = async (str: string) => {

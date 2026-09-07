@@ -287,6 +287,15 @@ function RenameTagForm({
 }) {
     const { t } = useTranslation('common');
     const [newName, setNewName] = React.useState(tag?.name || '');
+    const inputRef = React.useRef<HTMLInputElement>(null);
+
+    // 弹出重命名表单时主动聚焦输入框：不用 autoFocus 属性（a11y 规则禁用），
+    // 仅在表单打开（tag 从无到有）时聚焦一次，不重复抢焦点。
+    React.useEffect(() => {
+        if (tag) {
+            inputRef.current?.focus();
+        }
+    }, [tag]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -306,7 +315,7 @@ function RenameTagForm({
                 onChange={(e) => setNewName(e.target.value)}
                 className="w-full px-3 py-1.5 text-sm bg-background border border-border/80 rounded-lg focus:outline-none focus:ring-1 focus:ring-primary"
                 placeholder={t('newTagName')}
-                autoFocus
+                ref={inputRef}
                 required
             />
             <div className="flex justify-end gap-2">

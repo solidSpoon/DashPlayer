@@ -33,12 +33,6 @@ export type ServiceCredentialSettingDetailVO = {
         /** 腾讯云 SecretKey。 */
         secretKey: string;
     };
-    youdao: {
-        /** 有道应用 ID。 */
-        secretId: string;
-        /** 有道应用密钥。 */
-        secretKey: string;
-    };
 };
 
 /**
@@ -59,12 +53,6 @@ export type ServiceCredentialSettingSaveVO = {
         /** 腾讯云 SecretId。 */
         secretId: string;
         /** 腾讯云 SecretKey。 */
-        secretKey: string;
-    };
-    youdao: {
-        /** 有道应用 ID。 */
-        secretId: string;
-        /** 有道应用密钥。 */
         secretKey: string;
     };
 };
