@@ -7,7 +7,7 @@ import { TranslationMode } from '@/common/types/TranslationResult';
  * `local#模型#模式#风格签名`。不用 '_' 分段是因为模型 ID 自带下划线
  * （如 qwen3-0.6b-q4_k_m-v1），混在一起无法辨认分段边界。
  */
-export type SubtitleTranslationStorageMode = 'tencent' | `openai#${string}` | `local#${string}`;
+export type SubtitleTranslationStorageMode = 'tencent' | `openai#${string}` | `local#${string}` | `local-mt#${string}`;
 
 /**
  * 将云端/本地引擎、路由到的模型 ID、翻译模式与风格签名映射为持久化模式。
@@ -22,7 +22,7 @@ export type SubtitleTranslationStorageMode = 'tencent' | `openai#${string}` | `l
  * @returns 用于按配置隔离缓存的持久化模式；分段分隔符约定见 SubtitleTranslationStorageMode。
  */
 export const buildSubtitleStorageMode = (
-    engine: 'openai' | 'local',
+    engine: 'openai' | 'local' | 'local-mt',
     modelId: string,
     mode: TranslationMode,
     signature: string

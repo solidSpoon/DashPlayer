@@ -1,5 +1,13 @@
 import type { LocalAiSpeedTestResult, LocalAiStatus } from '@/common/contracts/local-ai';
 
+/**
+ * 纯文本生成的可选约束。
+ */
+export interface LocalGenerateTextOptions {
+    /** GBNF 语法文本；传入后 llama-server 在解码层约束输出形状（如恰好 N 行）。 */
+    grammar?: string;
+}
+
 /** 本地模型安装、生命周期和结构化推理的业务边界。 */
 export default interface LocalAiService {
     /** 查询全部目录模型的安装状态、下载进度、当前使用模型和运行时就绪情况，不加载模型。 */
@@ -33,6 +41,18 @@ export default interface LocalAiService {
      * @param signal 外部取消信号。
      */
     generate(prompt: string, schema: Record<string, unknown>, modelId: string, signal?: AbortSignal): Promise<unknown>;
+    /**
+     * 使用指定模型生成纯文本（可选 GBNF 语法约束输出形状）；取消、截断时抛错。
+     *
+     * 供紧凑行式输出等非 JSON 场景使用，省去 JSON 结构 token 开销；
+     * 需要在解码层硬约束行数等形状时传入 options.grammar。
+     *
+     * @param prompt 完整提示词。
+     * @param modelId 目录内的模型标识，必须显式指定，不做默认回退。
+     * @param signal 外部取消信号。
+     * @param options 可选生成约束（GBNF 语法等）。
+     */
+    generateText(prompt: string, modelId: string, signal?: AbortSignal, options?: LocalGenerateTextOptions): Promise<string>;
     /** 中止下载、推理并等待子进程退出。 */
     shutdown(): Promise<void>;
 }
