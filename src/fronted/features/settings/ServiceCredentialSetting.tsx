@@ -2,7 +2,6 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import useSWR from 'swr';
 import {
-    Book,
     Bot,
     CheckCircle2,
     ChevronDown,
@@ -16,7 +15,6 @@ import {
     Languages,
     Loader2,
     Plus,
-    ShieldCheck,
     Square,
     TestTube,
     Trash2,
@@ -79,7 +77,6 @@ const ServiceCredentialSetting = () => {
 
     const [testingOpenAi, setTestingOpenAi] = React.useState(false);
     const [testingTencent, setTestingTencent] = React.useState(false);
-    const [testingYoudao, setTestingYoudao] = React.useState(false);
     const [testResults, setTestResults] = React.useState<Record<string, { success: boolean; message: string } | null>>({});
     const [parakeetModelStatus, setParakeetModelStatus] = React.useState<ModelInstallationStatusVO | null>(null);
     const [downloadingParakeetModel, setDownloadingParakeetModel] = React.useState(false);
@@ -238,7 +235,7 @@ const ServiceCredentialSetting = () => {
     /**
      * 测试指定服务商连通性。
      */
-    const testProvider = async (provider: 'openai' | 'tencent' | 'youdao') => {
+    const testProvider = async (provider: 'openai' | 'tencent') => {
         try {
             await flush();
         } catch (flushError) {
@@ -249,7 +246,6 @@ const ServiceCredentialSetting = () => {
         const setTesting = {
             openai: setTestingOpenAi,
             tencent: setTestingTencent,
-            youdao: setTestingYoudao,
         }[provider];
 
         setTesting(true);
@@ -576,37 +572,6 @@ const ServiceCredentialSetting = () => {
                     </div>
                 </SettingCard>
 
-                {/* 有道词典凭据卡片 */}
-                <SettingCard
-                    title={t('serviceCredentials.youdao.title')}
-                    description={t('serviceCredentials.youdao.description')}
-                    icon={Book}
-                    headerAction={
-                        <div className="flex items-center gap-2">
-                            {testResults.youdao && (
-                                <span className={`flex items-center gap-1 text-xs ${testResults.youdao.success ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}>
-                                    {testResults.youdao.success ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
-                                    {testResults.youdao.success ? t('common.testSuccess') : testResults.youdao.message}
-                                </span>
-                            )}
-                            <Button type="button" variant="outline" size="sm" onClick={() => testProvider('youdao').catch(() => null)} disabled={testingYoudao || autoSaveStatus === 'saving'}>
-                                <TestTube className="w-3.5 h-3.5 mr-1.5" />
-                                {testingYoudao ? t('common.testing') : t('common.testConnection')}
-                            </Button>
-                        </div>
-                    }
-                >
-                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>{t('serviceCredentials.youdao.appId')}</Label>
-                            <Input {...register('youdao.secretId')} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>{t('serviceCredentials.youdao.appKey')}</Label>
-                            <Input type="password" {...register('youdao.secretKey')} />
-                        </div>
-                    </div>
-                </SettingCard>
 
                 {/* 英语字幕识别模型卡片 */}
                 <SettingCard

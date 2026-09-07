@@ -1,4 +1,4 @@
-import { OpenAIDictionaryResult } from '@/common/types/YdRes';
+import { OpenAIDictionaryResult } from '@/common/types/DictionaryResult';
 
 /**
  * 预置词典数据读取接口。

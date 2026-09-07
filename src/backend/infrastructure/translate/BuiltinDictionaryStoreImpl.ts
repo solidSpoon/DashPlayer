@@ -7,7 +7,7 @@ import BuiltinDictionaryStore from '@/backend/services/gateways/translate/Builti
 import { lemmatizeWord } from '@/backend/utils/language/VocabularyMatcher';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import TYPES from '@/backend/ioc/types';
-import { OpenAIDictionaryDefinition, OpenAIDictionaryResult } from '@/common/types/YdRes';
+import { OpenAIDictionaryDefinition, OpenAIDictionaryResult } from '@/common/types/DictionaryResult';
 import {
     BuiltinDictionaryMeta,
     BUILTIN_DICTIONARY_SCHEMA_VERSION,

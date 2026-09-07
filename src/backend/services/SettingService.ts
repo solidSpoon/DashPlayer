@@ -7,7 +7,6 @@ import AiProviderService from '@/backend/services/AiProviderService';
 import StrUtil from '@/common/utils/str-util';
 import ClientProviderService from '@/backend/services/ClientProviderService';
 import { TencentTranslateClient } from '@/backend/services/gateways/translate/TencentTranslateClient';
-import { YouDaoDictionaryClient } from '@/backend/services/gateways/translate/YouDaoDictionaryClient';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import RendererEvents from '@/backend/services/gateways/renderer/RendererEvents';
 import { SettingsStore } from '@/backend/services/gateways/SettingsStore';
@@ -54,10 +53,9 @@ export default interface SettingService {
     getCurrentTranslationProvider(): Promise<'openai' | 'tencent' | null>;
     getOpenAiSubtitleTranslationMode(): Promise<'zh' | 'simple_en' | 'custom'>;
     getOpenAiSubtitleCustomStyle(): Promise<string>;
-    getCurrentDictionaryProvider(): Promise<'openai' | 'youdao' | null>;
+    getCurrentDictionaryProvider(): Promise<'openai' | null>;
     testOpenAi(): Promise<{ success: boolean, message: string }>;
     testTencent(): Promise<{ success: boolean, message: string }>;
-    testYoudao(): Promise<{ success: boolean, message: string }>;
 }
 
 
@@ -69,7 +67,6 @@ export class SettingServiceImpl implements SettingService {
     @inject(TYPES.RendererEvents) private rendererEvents!: RendererEvents;
     @inject(TYPES.AiProviderService) private aiProviderService!: AiProviderService;
     @inject(TYPES.TencentClientProvider) private tencentProvider!: ClientProviderService<TencentTranslateClient>;
-    @inject(TYPES.YouDaoClientProvider) private youDaoProvider!: ClientProviderService<YouDaoDictionaryClient>;
     @inject(TYPES.SettingsStore) private settingsStore!: SettingsStore;
     @inject(TYPES.ModelRoutingService) private modelRoutingService!: ModelRoutingService;
     @inject(TYPES.StorageDirectoryProvider) private storageDirectoryProvider!: StorageDirectoryProvider;
@@ -219,7 +216,7 @@ export class SettingServiceImpl implements SettingService {
         );
         values['providers.dictionary'] = this.requireEnumValue(
             values['providers.dictionary'],
-            ['openai', 'youdao', 'none'] as const,
+            ['openai', 'none'] as const,
             'providers.dictionary',
         );
         values['features.openai.subtitleTranslationMode'] = this.requireEnumValue(
@@ -294,10 +291,6 @@ export class SettingServiceImpl implements SettingService {
                 secretId: this.getValue('apiKeys.tencent.secretId'),
                 secretKey: this.getValue('apiKeys.tencent.secretKey'),
             },
-            youdao: {
-                secretId: this.getValue('apiKeys.youdao.secretId'),
-                secretKey: this.getValue('apiKeys.youdao.secretKey'),
-            },
         };
     }
 
@@ -340,8 +333,6 @@ export class SettingServiceImpl implements SettingService {
         await this.setValue('apiKeys.tencent.secretId', settings.tencent.secretId);
         await this.setValue('apiKeys.tencent.secretKey', settings.tencent.secretKey);
 
-        await this.setValue('apiKeys.youdao.secretId', settings.youdao.secretId);
-        await this.setValue('apiKeys.youdao.secretKey', settings.youdao.secretKey);
 
     }
 
@@ -356,7 +347,7 @@ export class SettingServiceImpl implements SettingService {
         );
         const dictionaryEngine = this.requireEnumValue(
             this.getValue('providers.dictionary'),
-            ['openai', 'youdao', 'none'] as const,
+            ['openai', 'none'] as const,
             'providers.dictionary',
         );
         const subtitleMode = this.requireEnumValue(
@@ -398,7 +389,7 @@ export class SettingServiceImpl implements SettingService {
         );
         const dictionaryEngine = this.requireEnumValue(
             settings.providers.dictionaryEngine,
-            ['openai', 'youdao', 'none'] as const,
+            ['openai', 'none'] as const,
             'providers.dictionaryEngine',
         );
         const availableModels = this.parseOpenAiModels(this.getValue('models.openai.available'));
@@ -655,13 +646,13 @@ export class SettingServiceImpl implements SettingService {
         return getSubtitleDefaultStyle('custom');
     }
 
-    public async getCurrentDictionaryProvider(): Promise<'openai' | 'youdao' | null> {
+    public async getCurrentDictionaryProvider(): Promise<'openai' | null> {
         const engine = this.requireEnumValue(
             this.getValue('providers.dictionary'),
-            ['openai', 'youdao', 'none'] as const,
+            ['openai', 'none'] as const,
             'providers.dictionary',
         );
-        if (engine === 'openai' || engine === 'youdao') {
+        if (engine === 'openai') {
             return engine;
         }
         return null;
@@ -722,26 +713,4 @@ export class SettingServiceImpl implements SettingService {
         }
     }
 
-    public async testYoudao(): Promise<{ success: boolean, message: string }> {
-        try {
-            this.logger.info('testing youdao connection');
-            const client = this.youDaoProvider.getClient();
-            if (!client) {
-                this.logger.warn('youdao client not configured');
-                return { success: false, message: '有道词典配置不完整' };
-            }
-
-            const result = await client.translate('hello');
-            if (result) {
-                this.logger.info('youdao test successful');
-                return { success: true, message: '有道词典配置测试成功' };
-            }
-            this.logger.warn('youdao returned empty response');
-            return { success: false, message: '有道词典返回了空响应' };
-        } catch (error: unknown) {
-            const message = error instanceof Error ? error.message : String(error);
-            this.logger.error('youdao test failed', { error: message });
-            return { success: false, message: `有道词典测试失败: ${message}` };
-        }
-    }
 }

@@ -185,14 +185,13 @@ const EngineSelectionSetting = () => {
                     >
                         <Select
                             value={watchedValues.providers?.dictionaryEngine}
-                            onValueChange={(value: 'openai' | 'youdao' | 'none') => {
+                            onValueChange={(value: 'openai' | 'none') => {
                                 setValue('providers.dictionaryEngine', value, { shouldDirty: true });
                             }}
                         >
                             <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="openai">OpenAI</SelectItem>
-                                <SelectItem value="youdao">{t('engineSelection.engineYoudao')}</SelectItem>
                                 <SelectItem value="none">{t('engineSelection.engineNone')}</SelectItem>
                             </SelectContent>
                         </Select>

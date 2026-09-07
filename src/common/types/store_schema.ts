@@ -20,8 +20,6 @@ export const SettingKeyObj = {
     'shortcut.addClip': 'shift+l',
     'shortcut.openControlPanel': 'shift+p',
     'userSelect.playbackRateStack':'',
-    'apiKeys.youdao.secretId': '',
-    'apiKeys.youdao.secretKey': '',
     'apiKeys.tencent.secretId': '',
     'apiKeys.tencent.secretKey': '',
     'apiKeys.openAi.key': '',

@@ -6,19 +6,16 @@ import {
     useFloating,
     useInteractions
 } from '@floating-ui/react';
-import { Star, Loader2 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
-import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
+import { OpenAIDictionaryResult } from '@/common/types/DictionaryResult';
 import { cn } from '@/fronted/lib/utils';
 import OpenAIWordPop from './openai-word-pop';
-import useSetting from '@/fronted/features/settings/settingsStore';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { useTransLineTheme } from './translatable-theme';
 
 const logger = getRendererLogger('WordPop');
 
 export interface WordSubParam {
-    translation: YdRes | OpenAIDictionaryResult | null | undefined;
+    translation: OpenAIDictionaryResult | null | undefined;
     /**
      * 浮层锚点所绑定的单词元素。
      *
@@ -28,6 +25,7 @@ export interface WordSubParam {
      */
     referenceElement: HTMLElement | null;
     isLoading?: boolean;
+    /** 流式/最终单词卡数据；预置词典与 AI 生成共用同一结构。 */
     openaiStreamingData?: OpenAIDictionaryResult | null;
     isStreaming?: boolean;
     onRefresh?: () => void;
@@ -38,8 +36,7 @@ export interface WordSubParam {
     /** 收藏请求是否进行中。 */
     isFavoriting?: boolean;
     classNames?: {
-        container?: string;        // youdao 容器覆盖
-        openaiContainer?: string;  // openai 容器覆盖
+        openaiContainer?: string;  // 单词卡容器覆盖
         refreshButton?: string;    // 刷新按钮覆盖
     };
 }
@@ -62,15 +59,7 @@ const WordPop = React.forwardRef(
     ) => {
         logger.debug('WordPop translation data', { translation, openaiStreamingData, isStreaming });
 
-        const { t } = useTranslation('common');
         const theme = useTransLineTheme();
-        const setting = useSetting((state) => state.setting);
-        const dictionaryEngineRaw = setting('providers.dictionary');
-        const dictionaryEngine =
-            dictionaryEngineRaw === 'youdao' || dictionaryEngineRaw === 'openai'
-                ? dictionaryEngineRaw
-                : 'openai';
-        const openaiDictionaryEnabled = dictionaryEngine === 'openai';
         const { refs, floatingStyles } = useFloating({
             middleware: [
                 offset(50),
@@ -89,13 +78,6 @@ const WordPop = React.forwardRef(
 
         const { getReferenceProps, getFloatingProps } = useInteractions([]);
 
-        const [isLoading, setIsLoading] = React.useState(true);
-
-        // 监听 iframe 加载完成
-        const handleIframeLoad = () => {
-            setIsLoading(false);
-        };
-
         /**
          * 将浮层显式锚定到外层稳定存在的单词节点，避免悬停时替换文本 DOM。
          */
@@ -103,119 +85,7 @@ const WordPop = React.forwardRef(
             refs.setReference(referenceElement);
         }, [referenceElement, refs]);
 
-        const isYoudaoFormat = (data: unknown): data is YdRes => {
-            return typeof data === 'object' && data !== null && 'webdict' in data && 'translation' in data;
-        };
-
-        const isOpenAIFormat = (data: unknown): data is OpenAIDictionaryResult => {
-            return typeof data === 'object' && data !== null && 'definitions' in data && Array.isArray((data as { definitions?: unknown }).definitions);
-        };
-
-        const renderYoudaoContent = (ydData: YdRes) => (
-            <>
-                {ydData?.webdict?.url && (
-                    <div className={cn('w-full overflow-y-scroll overflow-x-hidden scrollbar-none')}>
-                        <iframe
-                            className="w-full h-[8000px] -mt-[50px]"
-                            src={ydData.webdict.url}
-                            title="dict"
-                            onLoad={handleIframeLoad}
-                        />
-                    </div>
-                )}
-                <div className="sticky bottom-0 text-cyan-900 text-lg text-center w-full pt-1 mt-1 pb-2">
-                    {ydData?.translation}
-                </div>
-            </>
-        );
-
-
-        const popper = () => {
-            const shouldShowYoudao = isYoudaoFormat(translation);
-            const shouldShowOpenAI = isOpenAIFormat(translation);
-            const openAIData = openaiStreamingData ?? (shouldShowOpenAI ? translation : null);
-            const openAIHasData = !!openAIData && (
-                (Array.isArray(openAIData.definitions) && openAIData.definitions.length > 0) ||
-                Boolean(openAIData.word)
-            );
-            const openAILoading = openaiDictionaryEnabled
-                ? (externalIsLoading || isStreaming) && !openAIHasData
-                : externalIsLoading;
-            logger.debug('WordPop content type detection', {
-                translation,
-                shouldShowYoudao,
-                shouldShowOpenAI,
-                hasDefinitions: translation && 'definitions' in translation,
-                definitionsArray: translation && 'definitions' in translation ? translation.definitions : null,
-                openAIHasData,
-                isStreaming
-            });
-
-            if (openaiDictionaryEnabled) {
-                return (
-                    <OpenAIWordPop
-                        className={cn(theme.pop.openaiContainer, classNames?.openaiContainer)}
-                        data={openAIData}
-                        isLoading={openAILoading}
-                        isStreaming={isStreaming}
-                        onRefresh={onRefresh}
-                        onFavorite={onFavorite}
-                        isFavorited={isFavorited}
-                        isFavoriting={isFavoriting}
-                    />
-                );
-            }
-
-            // youdao 引擎下后端返回预置词典命中的简化单词卡（OpenAI 卡形状），用同一张卡静态展示
-            if (openAIData) {
-                return (
-                    <OpenAIWordPop
-                        className={cn(theme.pop.openaiContainer, classNames?.openaiContainer)}
-                        data={openAIData}
-                        isLoading={openAILoading}
-                        onRefresh={onRefresh}
-                        onFavorite={onFavorite}
-                        isFavorited={isFavorited}
-                        isFavoriting={isFavoriting}
-                    />
-                );
-            }
-
-            return (
-                <div
-                    className={cn(
-                        theme.pop.container,
-                        classNames?.container,
-                        isLoading ? 'opacity-0' : 'opacity-100',
-                        shouldShowYoudao && translation.webdict?.url && 'pt-4',
-                        'relative'
-                    )}
-                >
-                    {onFavorite && (
-                        <button
-                            type="button"
-                            onClick={(e) => {
-                                e.stopPropagation();
-                                onFavorite();
-                            }}
-                            disabled={isFavoriting}
-                            className={cn(
-                                'absolute top-2 right-2 z-10 p-1.5 rounded-md backdrop-blur-sm bg-background/70 text-muted-foreground hover:text-foreground transition-colors cursor-pointer',
-                                isFavorited && 'text-amber-500 hover:text-amber-500',
-                                isFavoriting && 'cursor-default'
-                            )}
-                            title={isFavorited ? t('unfavoriteWord') : t('favoriteWord')}
-                        >
-                            {isFavoriting
-                                ? <Loader2 size={14} className="animate-spin" />
-                                : <Star size={14} fill={isFavorited ? 'currentColor' : 'none'} />}
-                        </button>
-                    )}
-                    {shouldShowYoudao && renderYoudaoContent(translation)}
-                    {!shouldShowYoudao && <div className="p-4 text-gray-500">无可用的字典信息</div>}
-                </div>
-            );
-        };
+        const cardData = openaiStreamingData ?? (isOpenAIFormat(translation) ? translation : null);
 
         return (
             <>
@@ -232,7 +102,16 @@ const WordPop = React.forwardRef(
                         }}
                     >
                         <div className="z-50" ref={ref}>
-                            {popper()}
+                            <OpenAIWordPop
+                                className={cn(theme.pop.openaiContainer, classNames?.openaiContainer)}
+                                data={cardData}
+                                isLoading={externalIsLoading}
+                                isStreaming={isStreaming}
+                                onRefresh={onRefresh}
+                                onFavorite={onFavorite}
+                                isFavorited={isFavorited}
+                                isFavoriting={isFavoriting}
+                            />
                         </div>
                     </div>
                 </FloatingPortal>
@@ -240,6 +119,13 @@ const WordPop = React.forwardRef(
         );
     }
 );
+
+/**
+ * 判断数据是否为统一的简化单词卡形状（预置词典与 AI 生成共用）。
+ */
+const isOpenAIFormat = (data: unknown): data is OpenAIDictionaryResult => {
+    return typeof data === 'object' && data !== null && 'definitions' in data && Array.isArray((data as { definitions?: unknown }).definitions);
+};
 
 WordPop.displayName = 'WordPop';
 

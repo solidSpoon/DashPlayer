@@ -13,10 +13,8 @@ vi.mock('electron', () => ({
 }));
 
 import AiProviderService from '@/backend/services/AiProviderService';
-import ClientProviderService from '@/backend/services/ClientProviderService';
 import { TranslateServiceImpl } from '@/backend/services/TranslateService';
 import SettingService from '@/backend/services/SettingService';
-import { YouDaoDictionaryClient } from '@/backend/services/gateways/translate/YouDaoDictionaryClient';
 import WordTranslatesRepository from '@/backend/services/repositories/WordTranslatesRepository';
 import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
 import { BuiltinDictionaryStoreImpl } from '@/backend/infrastructure/translate/BuiltinDictionaryStoreImpl';
@@ -40,7 +38,7 @@ describe('单词查询的预置词典优先链路', () => {
      * @param options getCurrentDictionaryProvider 的返回值与预置词表。
      */
     const buildService = (options: {
-        dictionaryProvider: Promise<'openai' | 'youdao' | null>;
+        dictionaryProvider: Promise<'openai' | null>;
         words: Parameters<typeof createBuiltinDictionaryFixture>[0];
     }) => {
         const fixture = createBuiltinDictionaryFixture(options.words);
@@ -49,9 +47,6 @@ describe('单词查询的预置词典优先链路', () => {
         const settingService = {
             getCurrentDictionaryProvider: vi.fn().mockResolvedValue(options.dictionaryProvider),
         } as unknown as SettingService;
-        const youDaoProvider = {
-            getClient: vi.fn().mockReturnValue(null),
-        } as unknown as ClientProviderService<YouDaoDictionaryClient>;
         const rendererGateway = {
             call: vi.fn().mockResolvedValue(undefined),
             fireAndForget: vi.fn(),
@@ -66,14 +61,13 @@ describe('单词查询的预置词典优先链路', () => {
         const builtinDictionaryStore = new BuiltinDictionaryStoreImpl(fixture.dbPath);
 
         const service = new TranslateServiceImpl(
-            youDaoProvider,
             rendererGateway,
             aiProviderService,
             settingService,
             wordTranslatesRepository,
             builtinDictionaryStore,
         );
-        return { service, youDaoProvider, aiProviderService, wordTranslatesRepository };
+        return { service, aiProviderService, wordTranslatesRepository };
     };
 
     it('未配置任何词典服务时，命中预置词典仍能返回释义', async () => {
@@ -109,7 +103,7 @@ describe('单词查询的预置词典优先链路', () => {
     });
 
     it('已配置词典引擎时预置词典仍然优先，且不触发在线查询', async () => {
-        const { service, youDaoProvider, aiProviderService, wordTranslatesRepository } = buildService({
+        const { service, aiProviderService, wordTranslatesRepository } = buildService({
             dictionaryProvider: Promise.resolve('openai'),
             words: [{ word: 'cancel', phonetic: '', translation: 'n. 取消', bnc: 3183 }],
         });
@@ -118,7 +112,6 @@ describe('单词查询的预置词典优先链路', () => {
 
         expect(result).toMatchObject({ word: 'cancel', bnc: 3183 });
         // 预置命中即返回，在线链路不应被触发，也不应写入查询缓存
-        expect(youDaoProvider.getClient).not.toHaveBeenCalled();
         expect(aiProviderService.getModel).not.toHaveBeenCalled();
         expect(wordTranslatesRepository.upsert).not.toHaveBeenCalled();
     });

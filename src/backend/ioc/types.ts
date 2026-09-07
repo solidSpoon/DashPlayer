@@ -55,7 +55,6 @@ const TYPES = {
     SysConfRepository: Symbol('SysConfRepository'),
     SubtitleTimestampAdjustmentsRepository: Symbol('SubtitleTimestampAdjustmentsRepository'),
     // Clients
-    YouDaoClientProvider: Symbol('YouDaoClientProvider'),
     TencentClientProvider: Symbol('TencentClientProvider'),
     AiProviderService: Symbol('AiProviderService'),
     OpenAiSubtitleTranslationGateway: Symbol('OpenAiSubtitleTranslationGateway'),

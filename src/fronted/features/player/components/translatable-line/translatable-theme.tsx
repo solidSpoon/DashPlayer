@@ -17,8 +17,7 @@ export interface TransLineTheme {
     popReferenceBgClass: string;  // 弹层 reference 的底色（非 hover）
   };
   pop: {
-    container: string;            // 有道弹层容器
-    openaiContainer: string;      // OpenAI 弹层容器
+    openaiContainer: string;      // 单词卡弹层容器
     refreshButton: string;        // 刷新按钮样式
   };
 }
@@ -41,7 +40,6 @@ const defaultTheme: TransLineTheme = {
     popReferenceBgClass: 'bg-white/95 shadow-xs text-stone-950 dark:bg-neutral-600/80 dark:text-white'
   },
   pop: {
-    container: 'select-text relative top-0 left-0 h-[500px] w-[500px] overflow-y-hidden flex flex-col items-start bg-popover text-popover-foreground shadow-lg border border-border rounded-xl px-4 scrollbar-none',
     openaiContainer: 'w-[360px] h-[400px] bg-popover text-popover-foreground shadow-lg border border-border/80 rounded-xl overflow-hidden text-left relative flex flex-col',
     refreshButton: 'p-1 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors'
   }

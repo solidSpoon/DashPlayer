@@ -52,7 +52,6 @@ import type ModelRoutingService from '../ModelRoutingService';
 import type SettingService from '../SettingService';
 import type RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
 import type WordTranslatesRepository from '@/backend/services/repositories/WordTranslatesRepository';
-import type ClientProviderService from '@/backend/services/ClientProviderService';
 
 // 真实连接测试默认不跑（会发起计费请求）：需显式设置 DP_RUN_LIVE_AI_TESTS=true，
 // 且开发环境配置文件（config.dev.json）里已配置 Key 时才执行。
@@ -562,7 +561,6 @@ const runTests = (): void => {
                     getCurrentDictionaryProvider: vi.fn().mockResolvedValue('openai'),
                     testOpenAi: vi.fn(),
                     testTencent: vi.fn(),
-                    testYoudao: vi.fn(),
                 };
                 const gateway: RendererGateway = {
                     call: vi.fn(async (_path: never, params: Record<string, unknown>) => {
@@ -574,21 +572,16 @@ const runTests = (): void => {
                     findOne: vi.fn().mockResolvedValue(overrides.findOne?.() ?? null),
                     upsert: vi.fn(),
                 };
-                const youDaoProvider: ClientProviderService<{ translate: (s: string) => Promise<string> }> = {
-                    getClient: vi.fn().mockReturnValue(null),
-                };
                 const builtinFixture = createBuiltinDictionaryFixture([
                     { word: 'serendipity', phonetic: '', translation: 'n. 意外发现珍奇事物的运气' },
                 ]);
                 const service = new TranslateServiceImpl(
-                    youDaoProvider,
                     gateway,
                     aiProvider,
                     settingService,
                     wordRepo,
                     new BuiltinDictionaryStoreImpl(builtinFixture.dbPath),
                 );
-                (service as unknown as { youDaoProvider: typeof youDaoProvider }).youDaoProvider = youDaoProvider;
                 (service as unknown as { rendererGateway: RendererGateway }).rendererGateway = gateway;
                 (service as unknown as { aiProviderService: AiProviderService }).aiProviderService = aiProvider;
                 (service as unknown as { settingService: SettingService }).settingService = settingService;

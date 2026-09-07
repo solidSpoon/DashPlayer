@@ -1,4 +1,4 @@
-import { OpenAIDictionaryResult } from '@/common/types/YdRes';
+import { OpenAIDictionaryResult } from '@/common/types/DictionaryResult';
 import { RendererTranslationItem } from '@/common/types/TranslationResult';
 import { ChatStreamEvent } from '@/common/types/chat';
 import { AnalysisStreamEvent } from '@/common/types/analysis';

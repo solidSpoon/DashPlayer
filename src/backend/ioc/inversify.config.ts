@@ -43,13 +43,11 @@ import ConvertService, { ConvertServiceImpl } from '@/backend/services/ConvertSe
 import SplitVideoService, { SplitVideoServiceImpl } from '@/backend/services/SplitVideoService';
 import MediaService, { MediaServiceImpl } from '@/backend/services/MediaService';
 import ClientProviderService from '@/backend/services/ClientProviderService';
-import YouDaoProvider from '@/backend/infrastructure/translate/providers/YouDaoProvider';
 import TencentProvider from '@/backend/infrastructure/translate/providers/TencentProvider';
 import TranslateService, { TranslateServiceImpl } from '@/backend/services/TranslateService';
 import SubtitleTranslationService, {
     SubtitleTranslationServiceImpl,
 } from '@/backend/services/subtitle-translation/SubtitleTranslationService';
-import { YouDaoDictionaryClient } from '@/backend/services/gateways/translate/YouDaoDictionaryClient';
 import { TencentTranslateClient } from '@/backend/services/gateways/translate/TencentTranslateClient';
 import OpenAiSubtitleTranslationGateway from '@/backend/services/gateways/translate/OpenAiSubtitleTranslationGateway';
 import OpenAiSubtitleTranslationGatewayImpl from '@/backend/infrastructure/translate/OpenAiSubtitleTranslationGatewayImpl';
@@ -121,7 +119,6 @@ const container = new Container();
 // 数据库单例：仓储层统一从这里注入，测试可用内存库替换。
 container.bind<Db>(TYPES.Database).toConstantValue(db);
 // Clients
-container.bind<ClientProviderService<YouDaoDictionaryClient>>(TYPES.YouDaoClientProvider).to(YouDaoProvider).inSingletonScope();
 container.bind<ClientProviderService<TencentTranslateClient>>(TYPES.TencentClientProvider).to(TencentProvider).inSingletonScope();
 container.bind<ConfigStoreFactory>(TYPES.ConfigStoreFactory).to(ConfigStoreFactoryImpl).inSingletonScope();
 container.bind<SettingsStore>(TYPES.SettingsStore).to(SettingsStoreImpl).inSingletonScope();

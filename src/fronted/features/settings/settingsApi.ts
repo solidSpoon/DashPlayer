@@ -172,11 +172,10 @@ export const settingsApi = {
      * @param provider 待测试的服务提供方。
      * @returns 凭据测试结果。
      */
-    testServiceCredential: (provider: 'openai' | 'tencent' | 'youdao') => {
+    testServiceCredential: (provider: 'openai' | 'tencent') => {
         const routeMap = {
             openai: 'settings/service-credentials/test-openai',
             tencent: 'settings/service-credentials/test-tencent',
-            youdao: 'settings/service-credentials/test-youdao',
         } as const;
         return backendClient.call(routeMap[provider]);
     },
