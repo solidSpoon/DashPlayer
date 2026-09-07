@@ -41,15 +41,12 @@ import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import toast from 'react-hot-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
-import useSystem from '@/fronted/hooks/useSystem';
 
 /**
  * 服务凭据设置页。
  */
 const ServiceCredentialSetting = () => {
     const { t } = useI18nTranslation('settings');
-    // 本地模型推理目前仅支持 macOS，其余平台不展示相关设置。
-    const isMac = useSystem((s) => s.isMac);
     const { data: settings } = useSWR('settings/service-credentials/detail', () =>
         settingsApi.getServiceCredentials(),
     );
@@ -906,7 +903,6 @@ const ServiceCredentialSetting = () => {
                     </div>
                 </SettingCard>
 
-                {isMac && (
                 <SettingCard
                     title={t('serviceCredentials.localAi.cardTitle')}
                     description={t('serviceCredentials.localAi.cardDescription')}
@@ -1201,7 +1197,6 @@ const ServiceCredentialSetting = () => {
                         </div>
                     </div>
                 </SettingCard>
-                )}
 
                 {/* 英语语音朗读模型卡片 */}
                 <SettingCard

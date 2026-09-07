@@ -177,14 +177,31 @@ export class LocalAiRuntime implements LocalAiService {
         return models.filter((model): model is LocalAiModelDefinition => model !== null);
     }
 
-    /** 只使用明确支持的平台包；缺失的运行时由设置页显式展示。 */
+    /** 只使用明确支持的平台包；缺失的运行时由设置页显式展示。Windows 可执行文件带 .exe 后缀。 */
     private runtimePath(): string {
-        return getRuntimeResourcePath('lib', 'llama', 'b10819', `${process.platform}-${process.arch}`, 'llama-server');
+        const exeName = process.platform === 'win32' ? 'llama-server.exe' : 'llama-server';
+        return getRuntimeResourcePath('lib', 'llama', 'b10819', `${process.platform}-${process.arch}`, exeName);
     }
 
-    /** 是否启用 GPU 推理：当前仅支持 Apple Silicon 的 Metal，其余平台一律纯 CPU。 */
-    private gpuEnabled(): boolean {
-        return process.platform === 'darwin' && process.arch === 'arm64';
+    /**
+     * 是否启用 GPU 推理：Apple Silicon 走 Metal；其余平台看安装的运行包是否
+     * 附带 Vulkan 后端库（download.mjs 在 linux/win32-x64 装 Vulkan 包，
+     * win32-arm64 装 CPU 包）。GPU 层数与运行包形态由安装侧决定，运行时
+     * 按包内容自适应，同一套代码无需平台分支。
+     */
+    private async gpuEnabled(): Promise<boolean> {
+        if (process.platform === 'darwin') return process.arch === 'arm64';
+        const dir = path.dirname(this.runtimePath());
+        const vulkanBackends = ['libggml-vulkan.so', 'ggml-vulkan.dll'];
+        for (const name of vulkanBackends) {
+            try {
+                await fs.promises.access(path.join(dir, name));
+                return true;
+            } catch {
+                // 尝试下一个候选文件名。
+            }
+        }
+        return false;
     }
 
     /** 字幕翻译或词典任一引擎配置为本地模型即视为引擎启用；读设置即时生效，无需事件通知。 */
@@ -458,12 +475,12 @@ export class LocalAiRuntime implements LocalAiService {
         const port = await this.reservePort();
         signal.throwIfAborted();
         const endpoint = `http://127.0.0.1:${port}`;
-        const gpuRequested = this.gpuEnabled();
+        const gpuRequested = await this.gpuEnabled();
         const child = spawn(this.runtimePath(), [
             '--model', modelPath, '--host', '127.0.0.1', '--port', String(port),
             '--ctx-size', String(LOCAL_TOTAL_CTX), '--parallel', String(LOCAL_PARALLEL_SLOTS), '--jinja', '--no-webui',
             '--chat-template-kwargs', '{"enable_thinking":false}', '--reasoning-budget', '0',
-            // Metal 平台把全部层放进 GPU；CPU 平台传 0 保持纯 CPU 推理。
+            // 带后端库时把全部层放进 GPU；纯 CPU 包传 0 保持纯 CPU 推理。
             '--n-gpu-layers', gpuRequested ? '99' : '0',
         ], { windowsHide: true, stdio: ['ignore', 'ignore', 'pipe'], env: { ...process.env, LLAMA_API_KEY: this.apiKey } });
         this.child = child;
