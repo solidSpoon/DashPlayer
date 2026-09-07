@@ -1,4 +1,5 @@
-export type TranslationProvider = 'tencent' | 'openai';
+/** 字幕结果来源，本地推理与云端分别缓存。 */
+export type TranslationProvider = 'tencent' | 'openai' | 'local';
 
 export type TranslationMode = 'zh' | 'simple_en' | 'custom';
 

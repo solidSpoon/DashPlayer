@@ -8,6 +8,20 @@ import {
     RuntimeSettingsSnapshot,
 } from '@/common/contracts/runtime-settings';
 
+/** 字幕翻译引擎的合法取值，需与后端 `providers.subtitleTranslation` 枚举保持一致。 */
+const SUBTITLE_ENGINE_VALUES = ['openai', 'local', 'tencent', 'none'] as const;
+type SubtitleEngine = (typeof SUBTITLE_ENGINE_VALUES)[number];
+
+/**
+ * 判断设置值是否为合法的字幕翻译引擎。
+ *
+ * @param value 待检查的设置值。
+ * @returns 属于合法引擎枚举时返回 `true`。
+ */
+function isSubtitleEngine(value: string): value is SubtitleEngine {
+    return (SUBTITLE_ENGINE_VALUES as readonly string[]).includes(value);
+}
+
 let cleanupFn: (() => void) | null = null;
 
 /**
@@ -26,7 +40,7 @@ export function initSettingsSync(): () => void {
     backendClient.call('settings/runtime/detail').then((snapshot: RuntimeSettingsSnapshot) => {
         useSetting.getState().initialize(snapshot);
         const subtitleProvider = snapshot['providers.subtitleTranslation'];
-        if (subtitleProvider !== 'openai' && subtitleProvider !== 'tencent' && subtitleProvider !== 'none') {
+        if (!isSubtitleEngine(subtitleProvider)) {
             throw new Error(`运行时字幕翻译引擎无效: ${subtitleProvider}`);
         }
         const subtitleMode = snapshot['features.openai.subtitleTranslationMode'];
@@ -45,7 +59,7 @@ export function initSettingsSync(): () => void {
         }
 
         if (key === 'providers.subtitleTranslation') {
-            if (value !== 'openai' && value !== 'tencent' && value !== 'none') {
+            if (!isSubtitleEngine(value)) {
                 logger.error('invalid subtitle translation provider', {value});
                 return;
             }

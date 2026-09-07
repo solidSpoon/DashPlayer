@@ -67,10 +67,11 @@ const WordPop = React.forwardRef(
         const setting = useSetting((state) => state.setting);
         const dictionaryEngineRaw = setting('providers.dictionary');
         const dictionaryEngine =
-            dictionaryEngineRaw === 'youdao' || dictionaryEngineRaw === 'openai'
+            dictionaryEngineRaw === 'youdao' || dictionaryEngineRaw === 'openai' || dictionaryEngineRaw === 'local'
                 ? dictionaryEngineRaw
                 : 'openai';
-        const openaiDictionaryEnabled = dictionaryEngine === 'openai';
+        // 本地词典与 OpenAI 返回同一结构，复用 AI 词典卡片展示
+        const openaiDictionaryEnabled = dictionaryEngine === 'openai' || dictionaryEngine === 'local';
         const { refs, floatingStyles } = useFloating({
             middleware: [
                 offset(50),
