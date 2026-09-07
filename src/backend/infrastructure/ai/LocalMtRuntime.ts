@@ -35,7 +35,6 @@ export class LocalMtRuntime implements LocalMtService {
     /** 懒加载的翻译 pipeline；加载失败后置空，下次调用重试。 */
     private pipelinePromise: Promise<MtPipeline> | null = null;
     private activeDownload: { task: Promise<void>; abort: AbortController } | null = null;
-    private readonly lifetime = new AbortController();
     private busy = 0;
     private phase: LocalMtStatus['phase'] = 'idle';
     private downloaded = 0;
@@ -130,7 +129,6 @@ export class LocalMtRuntime implements LocalMtService {
 
     /** 启动唯一模型的下载；进行中的下载或推理会拒绝新任务。 */
     public async download(): Promise<void> {
-        this.lifetime.signal.throwIfAborted();
         if (this.activeDownload) throw new Error('轻量翻译模型正在下载，请等待完成');
         if (this.busy > 0) throw new Error('轻量翻译模型正在使用，请稍后下载');
         this.phase = 'downloading';
@@ -138,7 +136,7 @@ export class LocalMtRuntime implements LocalMtService {
         this.downloaded = 0;
         const abort = new AbortController();
         this.emitProgress(true);
-        const signal = AbortSignal.any([abort.signal, this.lifetime.signal]);
+        const signal = abort.signal;
         const task = this.install(signal);
         this.activeDownload = { task, abort };
         try {
@@ -161,6 +159,8 @@ export class LocalMtRuntime implements LocalMtService {
      *
      * 已完整的文件跳过；未完成的续传（Range 请求），与 LocalAiRuntime 的
      * 安装策略一致：损坏数据显式报错，不做静默重下。
+     * TODO: 与 LocalAiRuntime 的安装段是同一「可续传文件安装」不变量的两份
+     * 实现，应提取共享的 resumable installer 基建，两处只声明文件清单。
      */
     private async install(signal: AbortSignal): Promise<void> {
         const modelPath = await this.modelPath();
@@ -178,6 +178,7 @@ export class LocalMtRuntime implements LocalMtService {
                 throw new Error(`未完成文件大小异常，请删除模型后重新下载：${file.path}`);
             }
             const response = await axios.get(file.url, {
+                // Node adapter 下 timeout 是 socket 空闲超时而非总时长，慢速连接不会误断。
                 responseType: 'stream', signal, timeout: 60_000,
                 headers: existing > 0 ? { Range: `bytes=${existing}-` } : {},
             });
@@ -203,6 +204,8 @@ export class LocalMtRuntime implements LocalMtService {
             const stream = fs.createReadStream(partialPath, { signal });
             for await (const chunk of stream) hash.update(chunk);
             if (hash.digest('hex') !== file.sha256) {
+                // 损坏的 .part 续传永远过不了校验，顺手删除让「重新下载」一步到位。
+                await fs.promises.rm(partialPath, { force: true });
                 throw new Error(`模型文件 SHA256 校验失败，请删除模型后重新下载：${file.path}`);
             }
             this.phase = 'downloading';
@@ -242,16 +245,18 @@ export class LocalMtRuntime implements LocalMtService {
     /**
      * 懒加载翻译 pipeline；transformers.js 经动态 import 引入，
      * 未启用该引擎时不为应用启动增加 onnxruntime 负担。
+     * 加载本身不可取消（onnx 会话构建无中断点）；调用方在加载前后自行检查取消。
      */
-    private async ensurePipeline(signal: AbortSignal): Promise<MtPipeline> {
+    private async ensurePipeline(): Promise<MtPipeline> {
         if (this.pipelinePromise) return this.pipelinePromise;
         const loadTask = (async () => {
             const modelPath = await this.modelPath();
             if (!(await this.isReady(modelPath))) {
                 throw new Error('轻量翻译模型未安装，请前往设置-服务凭据下载');
             }
-            signal.throwIfAborted();
             const startedAt = Date.now();
+            // 进程级全局突变：目前仓库唯一的 transformers.js 使用点；若出现第二个
+            // 使用者，这两行会静默影响它，届时应改为每次调用前设置或封装。
             env.allowLocalModels = true;
             env.allowRemoteModels = false;
             const loaded = await pipeline('translation', modelPath, {
@@ -271,14 +276,15 @@ export class LocalMtRuntime implements LocalMtService {
 
     /**
      * 批量翻译：整批占 localMt 信号量串行，批内逐句并发提交
-     * （onnxruntime 会话支持并发 run）。取消信号在批次边界检查——
-     * onnx 生成不可中断，过期批次最多浪费一次会话内推理。
+     * （onnxruntime 会话支持并发 run）。取消语义是「停止新工作、在途跑完」：
+     * 信号只在批次边界检查，已提交给 onnx 会话的推理不可中断，会完整结束。
      */
     public async translateLines(texts: string[], signal?: AbortSignal): Promise<string[]> {
-        const combined = AbortSignal.any([this.lifetime.signal, AbortSignal.timeout(120_000), ...(signal ? [signal] : [])]);
+        // 批次级超时兜底：单批 5 句正常远低于该上限，超时说明会话异常。
+        const combined = AbortSignal.any([AbortSignal.timeout(120_000), ...(signal ? [signal] : [])]);
         return this.runExclusive(async () => {
             combined.throwIfAborted();
-            const translator = await this.ensurePipeline(combined);
+            const translator = await this.ensurePipeline();
             combined.throwIfAborted();
             const startedAt = Date.now();
             const outputs = await Promise.all(texts.map((text) => translator(text))) as TranslationOutput[];

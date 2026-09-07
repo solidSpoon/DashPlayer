@@ -204,6 +204,13 @@ const createAbortError = (): Error => {
     return error;
 };
 
+/** 批次失败提示里的引擎展示名；新引擎接入时在此补一行。 */
+const PROVIDER_LABELS: Partial<Record<TranslationProvider, string>> = {
+    'local-mt': '轻量翻译',
+    local: '本地模型',
+    openai: 'OpenAI',
+};
+
 /**
  * 负责字幕缓存查询、在线翻译、结果持久化与窗口调度。
  */
@@ -638,7 +645,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             });
 
             if (failedIndices.size > 0 && request.requeueCount > 0) {
-                const engineLabel = request.context.provider === 'local-mt' ? '轻量翻译' : request.context.provider === 'local' ? '本地模型' : 'OpenAI';
+                const engineLabel = PROVIDER_LABELS[request.context.provider] ?? '翻译';
                 this.showFailureToast(
                     request.context.provider !== 'tencent'
                         ? `${engineLabel}字幕翻译未返回完整结果，失败 ${failedIndices.size} 条`
@@ -682,7 +689,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
                 error,
             });
             if (request.requeueCount > 0) {
-                const engineLabel = request.context.provider === 'local-mt' ? '轻量翻译' : request.context.provider === 'local' ? '本地模型' : 'OpenAI';
+                const engineLabel = PROVIDER_LABELS[request.context.provider] ?? '翻译';
                 this.showFailureToast(
                     request.context.provider !== 'tencent'
                         ? `${engineLabel}字幕翻译请求失败`
@@ -948,9 +955,9 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
     private async translateDirectWithGateway(
         targets: DirectTranslationTarget[],
         mode: TranslationMode,
-        style?: string,
-        localModelId: string | null = null,
-        provider: 'openai' | 'local' | 'local-mt' = 'openai'
+        style: string | undefined,
+        localModelId: string | null,
+        provider: 'openai' | 'local' | 'local-mt'
     ): Promise<Map<string, string>> {
         if (!style && provider !== 'local-mt') {
             throw new Error('OpenAI 字幕翻译风格配置缺失');

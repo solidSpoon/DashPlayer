@@ -33,4 +33,11 @@ describe('字幕翻译缓存键按配置隔离', () => {
         const otherStyle = buildSubtitleStorageMode('openai', 'gpt-5.4-nano', 'zh', 'other');
         expect(new Set([zh, simpleEn, otherStyle]).size).toBe(3);
     });
+
+    it('轻量翻译引擎的缓存键不含风格签名也能与其他引擎隔离', () => {
+        // 专用 MT 引擎固定输出中文、无风格概念，业务层固定传空签名。
+        const mt = buildSubtitleStorageMode('local-mt', 'opus-mt-en-zh', 'zh', '');
+        expect(mt).toBe('local-mt#opus-mt-en-zh#zh#');
+        expect(mt).not.toBe(buildSubtitleStorageMode('local', 'opus-mt-en-zh', 'zh', ''));
+    });
 });

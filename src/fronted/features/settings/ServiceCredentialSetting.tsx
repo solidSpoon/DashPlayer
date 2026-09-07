@@ -39,6 +39,7 @@ import type { ModelDownloadPhase } from '@/common/contracts/model-download-phase
 import type { LocalAiModelStatus, LocalAiStatus } from '@/common/contracts/local-ai';
 import type { LocalMtStatus } from '@/common/contracts/local-mt';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
+import { isUserCancellation } from '@/common/utils/cancellation';
 import toast from 'react-hot-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
@@ -296,7 +297,8 @@ const ServiceCredentialSetting = () => {
     };
 
     /** 下载指定模型；进度由事件持续更新页面，后端同一时间只允许一个下载任务。 */
-    const downloadLocalAi = async (modelId: string, name: string) => {        setLocalAiStatus((current) => current ? {
+    const downloadLocalAi = async (modelId: string, name: string) => {
+        setLocalAiStatus((current) => current ? {
             ...current,
             models: current.models.map((model) =>
                 model.modelId === modelId ? { ...model, phase: 'downloading' } : model
@@ -365,7 +367,8 @@ const ServiceCredentialSetting = () => {
             await settingsApi.downloadLocalMt();
             toast.success(t('serviceCredentials.localMt.downloadDone'));
         } catch (error) {
-            if ((error instanceof Error ? error.name : '') !== 'AbortError') {
+            // 取消是预期行为（axios 产生的可能是 CanceledError），不弹错误提示。
+            if (!isUserCancellation(error)) {
                 toast.error(error instanceof Error ? error.message : String(error));
             }
         } finally {
@@ -1322,6 +1325,9 @@ const ServiceCredentialSetting = () => {
                                         )}
                                     </div>
                                     <p className="text-xs text-muted-foreground">{t('serviceCredentials.localMt.modelNote')}</p>
+                                    {localMtStatus?.error && (
+                                        <p className="text-xs text-destructive">{localMtStatus.error}</p>
+                                    )}
                                 </div>
                                 <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
                                     {localMtStatus?.ready ? (

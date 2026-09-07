@@ -148,7 +148,7 @@ export const buildLocalSubtitleBatchPrompt = (
         '',
         'Lines:',
         requestLines,
-    ].filter((line) => line !== undefined).join('\n');
+    ].join('\n');
 };
 
 /**
@@ -166,6 +166,6 @@ export const parseSubtitleBatchLines = (text: string, expectedCount: number): st
     if (lines.length !== expectedCount) {
         throw new Error(`本地模型返回行数不匹配: expected=${expectedCount}, actual=${lines.length}`);
     }
-    // 剥离模型可能模仿输入格式带上的列表/序号前缀（如 "- "、"1. "）。
-    return lines.map((line) => line.trim().replace(/^(?:[-•*]\s+|\d+[.、)]\s+)/, '').trim());
+    // 剥离模型可能模仿输入格式带上的列表/序号前缀（如 "- "、"1. "、"2、"、"3）"）。
+    return lines.map((line) => line.trim().replace(/^(?:[-•*]\s+|\d+\s*[.、)）]\s*)/, '').trim());
 };
