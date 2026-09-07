@@ -126,9 +126,10 @@ export const buildLocalSubtitleBatchPrompt = (
     const targetLanguage = options.targetLanguageDescription
         ?? 'the target language';
     const unchangedRule = options.forbidEcho
-        ? '- NEVER return the original sentence text as its own translation; every line must be a non-empty translation.'
-        : '- If a target should remain unchanged, return its original text.';
-    const requestLines = input.targets.map((target) => `- ${target.text}`).join('\n');
+        ? 'Never return the original sentence text as its own translation; every line must be a non-empty translation.'
+        : 'If a target should remain unchanged, return its original text.';
+    // 源行不加列表符号：小参数量模型会把符号模仿进译文，污染最终字幕。
+    const requestLines = input.targets.map((target) => target.text).join('\n');
     const contextParts = [
         ...(input.contextBefore.length > 0 ? [`Context before (read-only, do NOT translate or output): ${input.contextBefore.map((item) => item.text).join(' / ')}`] : []),
         ...(input.contextAfter.length > 0 ? [`Context after (read-only, do NOT translate or output): ${input.contextAfter.map((item) => item.text).join(' / ')}`] : []),
@@ -140,9 +141,9 @@ export const buildLocalSubtitleBatchPrompt = (
         '',
         ...contextParts,
         `Translate each subtitle line below into ${targetLanguage}.`,
-        `- Output exactly ${input.targets.length} lines, one translation per line, in the same order as the input.`,
-        '- Output the translations only: no numbering, no quotes, no blank lines, no extra words.',
-        '- Do not merge or split lines.',
+        `Output exactly ${input.targets.length} lines, one translation per line, in the same order as the input.`,
+        'Output the translations only: no numbering, no bullet points, no quotes, no blank lines, no extra words.',
+        'Do not merge or split lines.',
         unchangedRule,
         '',
         'Lines:',
@@ -165,5 +166,6 @@ export const parseSubtitleBatchLines = (text: string, expectedCount: number): st
     if (lines.length !== expectedCount) {
         throw new Error(`本地模型返回行数不匹配: expected=${expectedCount}, actual=${lines.length}`);
     }
-    return lines.map((line) => line.trim());
+    // 剥离模型可能模仿输入格式带上的列表/序号前缀（如 "- "、"1. "）。
+    return lines.map((line) => line.trim().replace(/^(?:[-•*]\s+|\d+[.、)]\s+)/, '').trim());
 };
