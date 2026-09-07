@@ -170,7 +170,7 @@ const SpeedSlider = ({ speed, onSpeedChange, onSelectFinish, className }: SpeedS
                             onChange={(e) => {
                                 const val = e.currentTarget.value;
                                 logger.debug('Speed input change', { val });
-                                let s = parseFloat(parseFloat(val).toFixed(2));
+                                const s = parseFloat(parseFloat(val).toFixed(2));
                                 if (!isNaN(s) && s >= 0.25 && s <= 20) {
                                     onSpeedChange(s);
                                 }
