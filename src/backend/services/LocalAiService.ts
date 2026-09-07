@@ -33,6 +33,16 @@ export default interface LocalAiService {
      * @param signal 外部取消信号。
      */
     generate(prompt: string, schema: Record<string, unknown>, modelId: string, signal?: AbortSignal): Promise<unknown>;
+    /**
+     * 使用指定模型自由生成纯文本（无结构化输出约束）；取消、截断时抛错。
+     *
+     * 供紧凑行式输出等非 JSON 场景使用，省去 JSON 结构 token 开销。
+     *
+     * @param prompt 完整提示词。
+     * @param modelId 目录内的模型标识，必须显式指定，不做默认回退。
+     * @param signal 外部取消信号。
+     */
+    generateText(prompt: string, modelId: string, signal?: AbortSignal): Promise<string>;
     /** 中止下载、推理并等待子进程退出。 */
     shutdown(): Promise<void>;
 }

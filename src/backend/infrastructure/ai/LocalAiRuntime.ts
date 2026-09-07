@@ -529,6 +529,31 @@ export class LocalAiRuntime implements LocalAiService {
      * 串行生成，限制上下文和输出长度；仅接受完整结束且可解析的 JSON。
      */
     public async generate(prompt: string, schema: Record<string, unknown>, modelId: string, signal?: AbortSignal): Promise<unknown> {
+        const parsed = await this.completeText(prompt, schema, modelId, signal);
+        let result: unknown;
+        try {
+            result = JSON.parse(parsed.content);
+        } catch (error) {
+            throw new Error(`本地模型返回的 JSON 无法解析：${error instanceof Error ? error.message : String(error)}`);
+        }
+        return result;
+    }
+
+    /** 纯文本生成：与 generate 共用采样参数与生命周期，仅不约束 JSON 输出。 */
+    public async generateText(prompt: string, modelId: string, signal?: AbortSignal): Promise<string> {
+        return (await this.completeText(prompt, null, modelId, signal)).content;
+    }
+
+    /**
+     * 串行生成一轮完整回复；schema 为 null 时不约束输出格式。
+     * finish_reason 非 stop（截断/异常终止）时显式报错。
+     */
+    private async completeText(
+        prompt: string,
+        schema: Record<string, unknown> | null,
+        modelId: string,
+        signal?: AbortSignal,
+    ): Promise<{ content: string, usage: { prompt: number, completion: number } | null }> {
         const model = await this.resolveModelDefinition(modelId);
         if (this.activeDownload?.modelId === modelId) throw new Error(`本地模型「${model.name}」正在安装`);
         const combined = AbortSignal.any([this.lifetime.signal, AbortSignal.timeout(300_000), ...(signal ? [signal] : [])]);
@@ -539,17 +564,11 @@ export class LocalAiRuntime implements LocalAiService {
                 const result = responseSchema.parse(await this.postChat(endpoint, this.buildChatBody(model.id, prompt, schema), combined));
                 const finishReason = result.choices[0].finish_reason;
                 if (finishReason !== 'stop') {
-                    // length：输出顶到 max_tokens 上限被截断，JSON 必然不完整；
+                    // length：输出顶到 max_tokens 上限被截断，输出必然不完整；
                     // 其余原因原样透出，避免 zod 天书直接冒给用户。
                     throw new Error(finishReason === 'length'
                         ? `本地模型输出超过单次 ${MAX_COMPLETION_TOKENS} token 上限被截断（多为模型输出循环），请重试`
                         : `本地模型输出未正常结束（finish_reason=${finishReason}）`);
-                }
-                let parsed: unknown;
-                try {
-                    parsed = JSON.parse(result.choices[0].message.content);
-                } catch (error) {
-                    throw new Error(`本地模型返回的 JSON 无法解析：${error instanceof Error ? error.message : String(error)}`);
                 }
                 const durationMs = Date.now() - startedAt;
                 this.logger.info('local generation completed', {
@@ -562,7 +581,12 @@ export class LocalAiRuntime implements LocalAiService {
                         perSecond: Number((result.usage.completion_tokens / (durationMs / 1000)).toFixed(1)),
                     } : null,
                 });
-                return parsed;
+                return {
+                    content: result.choices[0].message.content,
+                    usage: result.usage
+                        ? { prompt: result.usage.prompt_tokens, completion: result.usage.completion_tokens }
+                        : null,
+                };
             } catch (error) {
                 this.logger.error('local generation failed', { error, model: model.id, durationMs: Date.now() - startedAt });
                 await this.stop();
@@ -699,14 +723,14 @@ export class LocalAiRuntime implements LocalAiService {
         }
     }
 
-    /** 组装与推理参数固定一致的 chat 请求体；本地链路所有生成共用同一采样参数。 */
-    private buildChatBody(modelId: string, prompt: string, schema: Record<string, unknown>): Record<string, unknown> {
+    /** 组装与推理参数固定一致的 chat 请求体；本地链路所有生成共用同一采样参数。schema 为 null 时不约束输出格式。 */
+    private buildChatBody(modelId: string, prompt: string, schema: Record<string, unknown> | null): Record<string, unknown> {
         return {
             model: modelId,
             messages: [{ role: 'user', content: prompt }],
             stream: false, temperature: 0.6, top_p: 0.95, top_k: 20,
             max_tokens: MAX_COMPLETION_TOKENS,
-            response_format: { type: 'json_object', schema },
+            ...(schema ? { response_format: { type: 'json_object', schema } } : {}),
             chat_template_kwargs: { enable_thinking: false },
         };
     }
