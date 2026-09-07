@@ -243,13 +243,14 @@ const downloadAndExtractBinaryFromArchive = async ({
  * 判断 llama.cpp 官方运行包是否已完整安装。
  * @param {string} runtimeDir 运行时目录。
  * @param {string} executableName 可执行文件名。
+ * @param {string[]} dependencyPrefixes 平台依赖库文件名前缀清单。
  * @returns {boolean} 可执行文件和平台动态库均存在时返回 true。
  */
-const isLlamaRuntimeReady = (runtimeDir, executableName) => {
+const isLlamaRuntimeReady = (runtimeDir, executableName, dependencyPrefixes) => {
     const entries = fs.existsSync(runtimeDir) ? fs.readdirSync(runtimeDir) : [];
     return fs.existsSync(path.join(runtimeDir, '.complete'))
         && fs.existsSync(path.join(runtimeDir, executableName))
-        && llamaDependencyPrefixes.every((prefix) => entries.some((entry) => entry.startsWith(prefix)));
+        && dependencyPrefixes.every((prefix) => entries.some((entry) => entry.startsWith(prefix)));
 };
 
 const ffmpegUrls = {
@@ -292,10 +293,12 @@ const platform = process.env.npm_config_platform || os.platform()
 const arch = process.env.npm_config_arch || os.arch()
 
 /**
- * llama.cpp 运行包必须存在的依赖库文件名前缀，isLlamaRuntimeReady 与安装后校验共用。
- * macOS 官方包的动态库带 lib 前缀；本地推理仅支持 macOS。
+ * llama.cpp 官方包的动态库命名：unix 系带 lib 前缀，Windows 不带。
+ * isLlamaRuntimeReady 与安装后校验共用同一份按平台计算的清单。
  */
-const llamaDependencyPrefixes = ['libmtmd', 'libllama-common', 'libllama-server-impl'];
+const llamaDependencyPrefixesFor = (platform) => platform === 'win32'
+    ? ['mtmd', 'llama-common', 'llama-server-impl']
+    : ['libmtmd', 'libllama-common', 'libllama-server-impl'];
 
 {
     // ffmpeg
@@ -391,28 +394,36 @@ const llamaDependencyPrefixes = ['libmtmd', 'libllama-common', 'libllama-server-
     }
 }
 
-// llama.cpp 本地推理运行时：仅支持 macOS，按架构下载官方 Metal 二进制包。
+// llama.cpp 本地推理运行时：按平台下载官方二进制包。
+// - macOS：Metal 包（arm64 走 GPU，Intel Mac 纯 CPU）
+// - linux / win32-x64：Vulkan 包（核显/独显推理；llama.cpp 官方未提供 win-arm64 Vulkan 包）
+// - win32-arm64：CPU 包
 {
     const llamaVersion = 'b10819';
     const llamaDir = path.join(dir, 'llama', llamaVersion, `${platform}-${arch}`);
     mkdirp(llamaDir);
-    const exeName = 'llama-server';
-    // 仅提供 macOS 官方 Metal 包；arm64 走 GPU，Intel Mac 按纯 CPU 推理。
+    const exeName = platform === 'win32' ? 'llama-server.exe' : 'llama-server';
     const assetNames = {
         darwin: { arm64: `llama-${llamaVersion}-bin-macos-arm64.tar.gz`, x64: `llama-${llamaVersion}-bin-macos-x64.tar.gz` },
+        linux: { arm64: `llama-${llamaVersion}-bin-ubuntu-vulkan-arm64.tar.gz`, x64: `llama-${llamaVersion}-bin-ubuntu-vulkan-x64.tar.gz` },
+        win32: { arm64: `llama-${llamaVersion}-bin-win-cpu-arm64.zip`, x64: `llama-${llamaVersion}-bin-win-vulkan-x64.zip` },
     };
     const assetName = assetNames[platform]?.[arch];
-    if (!assetName) throw new Error(`本地推理仅支持 macOS，不支持平台：${platform}/${arch}`);
+    if (!assetName) throw new Error(`本地推理不支持平台：${platform}/${arch}`);
+    const dependencyPrefixes = llamaDependencyPrefixesFor(platform);
+    // 可执行文件之外还需落地的运行包内容：unix 的动态库（含 .so.0 版本别名，
+    // 动态链接器按 SONAME 查找）；Windows 的 DLL；macOS 另有 Metal 着色器。
+    const extraCopyPatterns = platform === 'win32' ? [/\.dll$/] : [/\.dylib$/, /\.metal$/, /\.so(\.|$)/];
     const exePath = path.join(llamaDir, exeName);
-    if (!isLlamaRuntimeReady(llamaDir, exeName)) {
+    if (!isLlamaRuntimeReady(llamaDir, exeName, dependencyPrefixes)) {
         await downloadAndExtractBinaryFromArchive({
             url: `https://github.com/ggml-org/llama.cpp/releases/download/${llamaVersion}/${assetName}`,
             outputPath: exePath,
             binaryNameCandidates: [exeName],
-            extraCopyPatterns: [/\.dylib$/, /\.metal$/],
+            extraCopyPatterns,
         });
-        if (!llamaDependencyPrefixes.every((prefix) => fs.readdirSync(llamaDir).some((entry) => entry.startsWith(prefix)))) {
-            throw new Error(`llama.cpp 运行时包不完整，缺少依赖库（${llamaDependencyPrefixes.join(', ')}），请重试 yarn run download`);
+        if (!dependencyPrefixes.every((prefix) => fs.readdirSync(llamaDir).some((entry) => entry.startsWith(prefix)))) {
+            throw new Error(`llama.cpp 运行时包不完整，缺少依赖库（${dependencyPrefixes.join(', ')}），请重试 yarn run download`);
         }
         // .complete 标记是“安装侧完成校验”的唯一凭据，LocalAiRuntime 只检查该标记，
         // 不在运行时侧复刻依赖库清单，避免两份清单漂移。

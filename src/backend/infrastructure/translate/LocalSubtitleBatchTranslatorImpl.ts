@@ -1,5 +1,4 @@
 import { inject, injectable } from 'inversify';
-import { z } from 'zod';
 import TYPES from '@/backend/ioc/types';
 import type LocalAiService from '@/backend/services/LocalAiService';
 import LocalSubtitleBatchTranslator from '@/backend/services/gateways/translate/LocalSubtitleBatchTranslator';
@@ -8,9 +7,12 @@ import {
     SubtitleTranslationResultItem,
 } from '@/backend/services/gateways/translate/SubtitleBatchTranslationInput';
 import {
-    buildSubtitleBatchPrompt,
-    createSubtitleBatchResultSchema,
+    buildLocalSubtitleBatchPrompt,
+    buildSubtitleBatchLinesGrammar,
+    getSubtitleTranslationDescription,
+    parseSubtitleBatchLines,
 } from '@/backend/infrastructure/translate/subtitleBatchPrompt';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 
 /**
  * 照抄检测前对文本做的归一化：剥离所有非字母数字字符（含标点、空白）
@@ -38,14 +40,15 @@ const isUsableZhTranslation = (source: string, translation: string): boolean => 
     return normalizeForEchoCheck(translation) !== normalizeForEchoCheck(source);
 };
 
-type BatchResultSchema = ReturnType<typeof createSubtitleBatchResultSchema>;
-
 /**
- * 本地字幕批量翻译网关：自持提示词拼装与 GGUF 结构化输出。
+ * 本地字幕批量翻译网关：自持紧凑行式提示词拼装与按行解析。
  *
  * 推理进程、模型加载与请求超时都由 LocalAiRuntime 管理；这里负责把语义输入
  * 拼成本地模型可执行的提示词，并校验输出形状。字幕按 5 句一组整批发送，
- * 译文照抄原文时显式报错交由调度器重试，业务层不感知。
+ * 输出为「每行一条译文、按输入顺序对齐」的紧凑格式——不要求模型回抄字幕键
+ * 与 JSON 结构，每批解码 token 约减半。译文照抄原文时显式报错交由调度器
+ * 重试，业务层不感知。行数与行分隔由 GBNF 语法在解码层硬约束，
+ * 解析层校验退化为纯防御。
  */
 @injectable()
 export default class LocalSubtitleBatchTranslatorImpl
@@ -55,43 +58,60 @@ implements LocalSubtitleBatchTranslator {
         @inject(TYPES.LocalAiService) private readonly localAi: LocalAiService,
     ) {}
 
+    private readonly logger = getMainLogger('LocalSubtitleBatchTranslator');
+
     /**
-     * 执行一次非流式结构化批量翻译。
+     * 执行一次非流式紧凑批量翻译。
      *
      * @param input 当前组、组前后句、模式、风格、使用中模型与取消信号。
-     * @returns 模型返回的结构化字幕条目；形状非法时由 schema 显式报错。
+     * @returns 按目标顺序对齐的结构化字幕条目；行数不符时显式报错。
      */
     public async translate(
         input: LocalSubtitleBatchTranslationInput
     ): Promise<SubtitleTranslationResultItem[]> {
-        const schema = createSubtitleBatchResultSchema(input.mode);
-        const prompt = buildSubtitleBatchPrompt(input, input.style, { forbidEcho: input.mode === 'zh' });
-        const parsed = schema.parse(await this.localAi.generate(
-            prompt,
-            z.toJSONSchema(schema),
-            input.modelId,
-            input.signal,
-        ));
-        if (input.mode === 'zh') {
-            this.throwIfEchoed(input.targets, parsed.items, input.mode);
+        const prompt = buildLocalSubtitleBatchPrompt(input, input.style, {
+            forbidEcho: input.mode === 'zh',
+            targetLanguageDescription: getSubtitleTranslationDescription(input.mode),
+        });
+        const grammar = buildSubtitleBatchLinesGrammar(input.targets.length);
+        const text = await this.localAi.generateText(prompt, input.modelId, input.signal, { grammar });
+        let lines: string[];
+        try {
+            lines = parseSubtitleBatchLines(text, input.targets.length);
+        } catch (error) {
+            // 解析失败时把模型原始输出按行落盘留归因证据（长文本以行数组入日志，
+            // 避免单字段长度上限截掉尾部）；语法约束下该分支属于纯防御。
+            this.logger.warn('local subtitle batch parse failed', {
+                model: input.modelId,
+                mode: input.mode,
+                expected: input.targets.length,
+                rawLines: text.trim().split('\n'),
+                error,
+            });
+            throw error;
         }
-        return parsed.items;
+        const items = input.targets.map((target, index) => ({
+            key: target.key,
+            translation: lines[index],
+        }));
+        if (input.mode === 'zh') {
+            this.throwIfEchoed(input.targets, items);
+        }
+        return items;
     }
 
     /**
      * 整批结果的照抄检测：任一句译文与原文相同即显式报错。
      *
      * @param targets 发给模型的目标条目。
-     * @param items 模型返回的结构化条目。
+     * @param items 按序对齐后的结构化条目。
      */
     private throwIfEchoed(
         targets: LocalSubtitleBatchTranslationInput['targets'],
         items: SubtitleTranslationResultItem[],
-        mode: LocalSubtitleBatchTranslationInput['mode'],
     ): void {
-        for (const target of targets) {
-            const item = items.find((candidate) => candidate.key === target.key);
-            if (item && mode === 'zh' && !isUsableZhTranslation(target.text, item.translation)) {
+        for (const [index, target] of targets.entries()) {
+            if (!isUsableZhTranslation(target.text, items[index].translation)) {
                 throw new Error(`本地模型照抄原文未翻译（sentenceKey=${target.key}）`);
             }
         }

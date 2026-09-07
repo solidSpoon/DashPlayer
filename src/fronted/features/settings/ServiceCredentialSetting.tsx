@@ -36,19 +36,18 @@ import { OpenAiModelUsageFeature, ServiceCredentialSettingDetailVO, ServiceCrede
 import type { ModelInstallationStatusVO } from '@/common/types/vo/model-installation-vo';
 import type { ModelDownloadPhase } from '@/common/contracts/model-download-phase';
 import type { LocalAiModelStatus, LocalAiStatus } from '@/common/contracts/local-ai';
+import type { LocalMtStatus } from '@/common/contracts/local-mt';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
+import { isUserCancellation } from '@/common/utils/cancellation';
 import toast from 'react-hot-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
-import useSystem from '@/fronted/hooks/useSystem';
 
 /**
  * 服务凭据设置页。
  */
 const ServiceCredentialSetting = () => {
     const { t } = useI18nTranslation('settings');
-    // 本地模型推理目前仅支持 macOS，其余平台不展示相关设置。
-    const isMac = useSystem((s) => s.isMac);
     const { data: settings } = useSWR('settings/service-credentials/detail', () =>
         settingsApi.getServiceCredentials(),
     );
@@ -90,6 +89,8 @@ const ServiceCredentialSetting = () => {
     const [sherpaTtsDownloadProgress, setSherpaTtsDownloadProgress] = React.useState(0);
     const [sherpaTtsDownloadPhase, setSherpaTtsDownloadPhase] = React.useState<ModelDownloadPhase>('downloading');
     const [localAiStatus, setLocalAiStatus] = React.useState<LocalAiStatus | null>(null);
+    const [localMtStatus, setLocalMtStatus] = React.useState<LocalMtStatus | null>(null);
+    const [localMtBusy, setLocalMtBusy] = React.useState(false);
     const [localAiBusy, setLocalAiBusy] = React.useState(false);
     const [localAiRescanning, setLocalAiRescanning] = React.useState(false);
     const [testingModelId, setTestingModelId] = React.useState<string | null>(null);
@@ -321,6 +322,79 @@ const ServiceCredentialSetting = () => {
         finally {
             setLocalAiBusy(false);
             refreshLocalAiStatus();
+        }
+    };
+
+    /** 拉取轻量翻译模型最新状态。 */
+    const refreshLocalMtStatus = React.useCallback(async () => {
+        try {
+            const status = await settingsApi.getLocalMtStatus();
+            setLocalMtStatus(status);
+        } catch {
+            // ignore
+        }
+    }, []);
+
+    React.useEffect(() => { refreshLocalMtStatus(); }, [refreshLocalMtStatus]);
+
+    React.useEffect(() => {
+        const handler = (event: Event) => {
+            const progress = (event as CustomEvent<{
+                downloaded: number;
+                total: number;
+                phase: LocalMtStatus['phase'];
+            }>).detail;
+            setLocalMtStatus((current) => current ? {
+                ...current,
+                downloaded: progress.downloaded,
+                total: progress.total,
+                phase: progress.phase,
+            } : current);
+            if (progress.phase === 'idle') {
+                refreshLocalMtStatus();
+            }
+        };
+        window.addEventListener('local-mt-download-progress', handler);
+        return () => window.removeEventListener('local-mt-download-progress', handler);
+    }, [refreshLocalMtStatus]);
+
+    /** 下载轻量翻译模型；进度由事件持续更新页面。 */
+    const downloadLocalMt = async () => {
+        setLocalMtStatus((current) => current ? { ...current, phase: 'downloading' } : current);
+        try {
+            await settingsApi.downloadLocalMt();
+            toast.success(t('serviceCredentials.localMt.downloadDone'));
+        } catch (error) {
+            // 取消是预期行为（axios 产生的可能是 CanceledError），不弹错误提示。
+            if (!isUserCancellation(error)) {
+                toast.error(error instanceof Error ? error.message : String(error));
+            }
+        } finally {
+            refreshLocalMtStatus();
+        }
+    };
+
+    /** 取消轻量翻译模型下载并保留已完成部分，以便下次续传。 */
+    const cancelLocalMtDownload = async () => {
+        setLocalMtBusy(true);
+        try { await settingsApi.cancelLocalMtDownload(); }
+        catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
+        finally {
+            setLocalMtBusy(false);
+            refreshLocalMtStatus();
+        }
+    };
+
+    /** 删除轻量翻译模型。 */
+    const deleteLocalMt = async () => {
+        setLocalMtBusy(true);
+        try {
+            await settingsApi.deleteLocalMt();
+            toast.success(t('serviceCredentials.localMt.deleteDone'));
+        } catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
+        finally {
+            setLocalMtBusy(false);
+            refreshLocalMtStatus();
         }
     };
 
@@ -872,7 +946,6 @@ const ServiceCredentialSetting = () => {
                     </div>
                 </SettingCard>
 
-                {isMac && (
                 <SettingCard
                     title={t('serviceCredentials.localAi.cardTitle')}
                     description={t('serviceCredentials.localAi.cardDescription')}
@@ -916,53 +989,53 @@ const ServiceCredentialSetting = () => {
                                     <div
                                         key={model.modelId}
                                         className={cn(
-                                            "relative rounded-xl border p-4 transition-all",
+                                            "relative rounded-xl border p-3.5 transition-colors",
                                             isActive
-                                                ? "border-primary/50 bg-primary/5 shadow-xs"
-                                                : "border-border/60 bg-muted/20 hover:border-border"
+                                                ? "border-primary/40 bg-primary/[0.03]"
+                                                : "border-border/60 bg-muted/20"
                                         )}
                                     >
                                         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                            <div className="space-y-1.5 min-w-0">
+                                            <div className="space-y-1 min-w-0">
                                                 <div className="flex items-center gap-2 flex-wrap">
                                                     <span className="text-sm font-semibold text-foreground tracking-tight">{model.name}</span>
-                                                    <span className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">{model.sizeLabel}</span>
-                                                    <span className="rounded bg-muted px-1.5 py-0.5 text-xs text-muted-foreground">{t('serviceCredentials.localAi.memoryEstimate', { gb: model.memoryEstimateGb })}</span>
+                                                    <span className="rounded bg-muted/80 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">{model.sizeLabel}</span>
+                                                    <span className="rounded bg-muted/80 px-1.5 py-0.5 text-[11px] text-muted-foreground">{t('serviceCredentials.localAi.memoryEstimate', { gb: model.memoryEstimateGb })}</span>
                                                     {model.custom && (
-                                                        <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                                        <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400 border border-amber-500/20">
                                                             {t('serviceCredentials.localAi.custom')}
                                                         </span>
                                                     )}
                                                     {isActive ? (
-                                                        <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2.5 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
-                                                            <CheckCircle2 className="h-3.5 w-3.5" />
+                                                        <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+                                                            <CheckCircle2 className="h-3 w-3" />
                                                             {t('serviceCredentials.localAi.inUse')}
                                                         </span>
                                                     ) : model.ready ? (
-                                                        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                                                        <span className="inline-flex items-center gap-1 rounded-full bg-muted/80 px-2 py-0.5 text-xs text-muted-foreground">
                                                             {t('serviceCredentials.localAi.readyNotInUse')}
                                                         </span>
                                                     ) : model.phase !== 'idle' ? (
                                                         <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
-                                                            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                                            <Loader2 className="h-3 w-3 animate-spin" />
                                                             {model.phase === 'verifying'
                                                                 ? t('serviceCredentials.localAi.phaseVerifying')
                                                                 : t('serviceCredentials.localAi.phaseDownloading')}
                                                         </span>
                                                     ) : (
-                                                        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                                                        <span className="inline-flex items-center gap-1 rounded-full bg-muted/80 px-2 py-0.5 text-xs text-muted-foreground">
                                                             {t('common.notDownloaded')}
                                                         </span>
                                                     )}
                                                 </div>
-                                                <p className="text-xs text-muted-foreground">
+                                                <p className="text-xs text-muted-foreground line-clamp-1">
                                                     {model.custom
                                                         ? model.modelPath
-                                                        : '轻量高效，适合日常字幕翻译与词典查询，低显存/内存消耗。'}
+                                                        : t('serviceCredentials.localAi.defaultModelDescription')}
                                                 </p>
                                             </div>
 
-                                            <div className="flex items-center gap-2 shrink-0 flex-wrap sm:flex-nowrap">
+                                            <div className="flex items-center gap-1.5 shrink-0 flex-wrap sm:flex-nowrap">
                                                 {!model.ready && model.phase === 'idle' && (
                                                     <Button
                                                         type="button"
@@ -1028,8 +1101,7 @@ const ServiceCredentialSetting = () => {
                                                                 className="text-muted-foreground hover:text-destructive"
                                                                 disabled={localAiBusy || testingModelId !== null}
                                                             >
-                                                                <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                                                                {t('serviceCredentials.localAi.delete')}
+                                                                <Trash2 className="h-3.5 w-3.5" />
                                                             </Button>
                                                         </AlertDialogTrigger>
                                                         <AlertDialogContent>
@@ -1051,7 +1123,7 @@ const ServiceCredentialSetting = () => {
 
                                         {/* 下载/校验进度条 */}
                                         {!model.ready && model.phase !== 'idle' && (
-                                            <div className="mt-3 space-y-1.5 rounded-lg border border-border/40 bg-muted/30 p-3">
+                                            <div className="mt-3 space-y-1.5 rounded-lg border border-border/40 bg-muted/30 p-2.5">
                                                 <div className="flex justify-between text-xs font-medium text-muted-foreground">
                                                     <span>{model.phase === 'verifying' ? t('serviceCredentials.localAi.phaseVerifying') : t('serviceCredentials.localAi.phaseDownloading')}</span>
                                                     <span>{Math.min(100, Math.floor(model.downloaded / (model.total || 1) * 100))}%</span>
@@ -1062,9 +1134,9 @@ const ServiceCredentialSetting = () => {
 
                                         {/* 内嵌测试结果展示 */}
                                         {testResult && (
-                                            <div className="mt-3 pt-3 border-t border-border/40">
+                                            <div className="mt-2.5 pt-2.5 border-t border-border/40">
                                                 {testResult.success ? (
-                                                    <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-lg bg-background/60 p-2.5 border border-border/40 text-xs">
+                                                    <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 rounded-lg bg-muted/40 px-3 py-2 border border-border/30 text-xs">
                                                         <div className="flex items-center gap-1.5">
                                                             <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
                                                             <span className="text-muted-foreground">{t('serviceCredentials.localAi.speedWarm')}</span>
@@ -1167,7 +1239,133 @@ const ServiceCredentialSetting = () => {
                         </div>
                     </div>
                 </SettingCard>
-                )}
+
+                {/* 轻量翻译模型卡片 */}
+                <SettingCard
+                    title={t('serviceCredentials.localMt.cardTitle')}
+                    description={t('serviceCredentials.localMt.cardDescription')}
+                    icon={Languages}
+                    headerAction={
+                        localMtStatus?.modelPath ? (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openModelFolder(localMtStatus.modelPath)}
+                            >
+                                <FolderOpen className="w-3.5 h-3.5 mr-1.5" />
+                                {t('serviceCredentials.localAi.openFolder')}
+                            </Button>
+                        ) : null
+                    }
+                >
+                    <div className="p-4 space-y-4">
+                        <div className={cn(
+                            "relative rounded-xl border p-3.5 transition-colors",
+                            localMtStatus?.ready
+                                ? "border-primary/40 bg-primary/[0.03]"
+                                : "border-border/60 bg-muted/20"
+                        )}>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div className="space-y-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="text-sm font-semibold text-foreground tracking-tight">OPUS-MT en→zh</span>
+                                        <span className="rounded bg-muted/80 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">~0.3 GB</span>
+                                        {localMtStatus?.ready ? (
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+                                                <CheckCircle2 className="h-3 w-3" />
+                                                {t('serviceCredentials.localAi.readyNotInUse')}
+                                            </span>
+                                        ) : localMtStatus?.phase !== 'idle' && localMtStatus ? (
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
+                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                                {localMtStatus.phase === 'verifying'
+                                                    ? t('serviceCredentials.localAi.phaseVerifying')
+                                                    : t('serviceCredentials.localAi.phaseDownloading')}
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-muted/80 px-2 py-0.5 text-xs text-muted-foreground">
+                                                {t('common.notDownloaded')}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground line-clamp-1">{t('serviceCredentials.localMt.modelNote')}</p>
+                                    {localMtStatus?.error && (
+                                        <p className="text-xs text-destructive">{localMtStatus.error}</p>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0 flex-wrap sm:flex-nowrap">
+                                    {localMtStatus?.ready ? (
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-muted-foreground hover:text-destructive"
+                                                    disabled={localMtBusy}
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>{t('serviceCredentials.localMt.deleteConfirmTitle')}</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        {t('serviceCredentials.localMt.deleteConfirmDescription')}
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>{t('serviceCredentials.localAi.cancelDelete')}</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={deleteLocalMt}>
+                                                        {t('serviceCredentials.localAi.confirmDelete')}
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    ) : localMtStatus && localMtStatus.phase !== 'idle' ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={localMtBusy}
+                                            onClick={cancelLocalMtDownload}
+                                        >
+                                            <Square className="mr-1.5 h-3.5 w-3.5 text-destructive" />
+                                            {t('serviceCredentials.localAi.cancelDownload')}
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            disabled={localMtBusy}
+                                            onClick={downloadLocalMt}
+                                        >
+                                            <Download className="mr-1.5 h-3.5 w-3.5" />
+                                            {t('common.download')}
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                            {localMtStatus && localMtStatus.phase !== 'idle' && (
+                                <div className="mt-3 space-y-1.5 rounded-lg border border-border/40 bg-muted/30 p-2.5">
+                                    <div className="flex justify-between text-xs font-medium text-muted-foreground">
+                                        <span>
+                                            {localMtStatus.phase === 'verifying'
+                                                ? t('serviceCredentials.localAi.phaseVerifying')
+                                                : t('serviceCredentials.localAi.phaseDownloading')}
+                                        </span>
+                                        <span>{Math.min(100, Math.floor(localMtStatus.downloaded / (localMtStatus.total || 1) * 100))}%</span>
+                                    </div>
+                                    <Progress
+                                        value={(localMtStatus.downloaded / (localMtStatus.total || 1)) * 100}
+                                        className="h-1.5"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </SettingCard>
 
                 {/* 英语语音朗读模型卡片 */}
                 <SettingCard

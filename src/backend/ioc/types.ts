@@ -60,6 +60,8 @@ const TYPES = {
     AiProviderService: Symbol('AiProviderService'),
     OpenAiSubtitleBatchTranslator: Symbol('OpenAiSubtitleBatchTranslator'),
     LocalSubtitleBatchTranslator: Symbol('LocalSubtitleBatchTranslator'),
+    LocalMtService: Symbol('LocalMtService'),
+    LocalMtSubtitleBatchTranslator: Symbol('LocalMtSubtitleBatchTranslator'),
     ModelRoutingService: Symbol('ModelRoutingService'),
     ConfigStoreFactory: Symbol('ConfigStoreFactory'),
     SettingsStore: Symbol('SettingsStore'),
