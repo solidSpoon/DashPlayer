@@ -400,6 +400,7 @@
             "readyNotInUse": "已就绪",
             "use": "设为使用",
             "useSuccess": "已切换为当前模型，所有本地 AI 功能将共用此模型",
+            "defaultModelDescription": "推荐日常使用，翻译与词典查询体验流畅，运行资源占用低。",
             "custom": "自定义模型",
             "phaseDownloading": "下载中",
             "phaseVerifying": "校验中",
@@ -427,9 +428,9 @@
             "customGuideStep3": "刷新并启用：放置后点击「刷新模型列表」，新模型将出现在上方列表，点击「设为使用」即可生效。"
         },
         "localMt": {
-            "cardTitle": "轻量翻译模型",
-            "cardDescription": "专用中英字幕翻译模型（OPUS-MT），体积小、速度快；仅支持翻译为中文，不支持词典查询。",
-            "modelNote": "按行独立翻译，不消费上下文与风格；速度约为本地大模型的 15 倍。",
+            "cardTitle": "本地轻量翻译模型",
+            "cardDescription": "超轻量中英字幕专用翻译模型，极速出词且占用极低；仅支持翻译为中文，不支持词典查询。",
+            "modelNote": "专注中英字幕极速翻译，速度飞快；无需复杂推理，适合基础翻译需求。",
             "downloadDone": "轻量翻译模型下载完成",
             "deleteDone": "轻量翻译模型已删除",
             "deleteConfirmTitle": "删除轻量翻译模型？",

@@ -400,6 +400,7 @@
             "readyNotInUse": "Ready",
             "use": "Set as Active",
             "useSuccess": "Switched to active model; shared across all local AI features",
+            "defaultModelDescription": "Recommended for daily use with smooth subtitle translation, lookup, and low resource footprint.",
             "custom": "Custom",
             "phaseDownloading": "Downloading",
             "phaseVerifying": "Verifying",
@@ -427,13 +428,13 @@
             "customGuideStep3": "Refresh & Enable: Click \"Refresh Models\", then choose the model and click \"Set as Active\"."
         },
         "localMt": {
-            "cardTitle": "Lightweight Translation Model",
-            "cardDescription": "Dedicated EN→ZH subtitle translation model (OPUS-MT). Small, fast; Chinese output only, no dictionary support.",
-            "modelNote": "Translates line by line without context or style; roughly 15x faster than the local LLM.",
+            "cardTitle": "Local Lightweight MT Model",
+            "cardDescription": "Dedicated ultra-lightweight English-to-Chinese subtitle translation model. Extremely fast with minimal footprint; Chinese translation only, no dictionary lookup.",
+            "modelNote": "Specialized for rapid subtitle translation without complex reasoning, ideal for basic translations.",
             "downloadDone": "Lightweight translation model downloaded",
             "deleteDone": "Lightweight translation model deleted",
-            "deleteConfirmTitle": "Delete the lightweight translation model?",
-            "deleteConfirmDescription": "The downloaded model files (~296MB) will be removed and must be downloaded again before next use."
+            "deleteConfirmTitle": "Delete lightweight translation model?",
+            "deleteConfirmDescription": "This will delete the downloaded model files (~296MB). You can download them again anytime."
         }
     }
 }

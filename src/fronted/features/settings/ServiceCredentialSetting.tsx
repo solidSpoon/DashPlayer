@@ -1065,7 +1065,7 @@ const ServiceCredentialSetting = () => {
                                                 <p className="text-xs text-muted-foreground line-clamp-1">
                                                     {model.custom
                                                         ? model.modelPath
-                                                        : '轻量高效，适合日常字幕翻译与词典查询，低显存/内存消耗。'}
+                                                        : t('serviceCredentials.localAi.defaultModelDescription')}
                                                 </p>
                                             </div>
 
