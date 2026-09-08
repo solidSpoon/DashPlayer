@@ -163,15 +163,16 @@ export class ModelArchiveInstaller {
             await this.downloadArchive(archivePath, controller.signal);
             // raw 归档即模型文件本身，无需解压，直接在工作目录校验必需文件；
             // tar.bz2 归档先解压到 extract 目录再定位模型目录。
-            const sourceDir = this.options.archiveKind === 'raw'
-                ? workDir
-                : await (async () => {
-                    await this.fileSystemGateway.removeDirectoryIfExists(extractPath);
-                    await this.fileSystemGateway.ensureDirectory(extractPath);
-                    this.emitPhase('extracting');
-                    await this.extractArchive(archivePath, extractPath);
-                    return this.findModelDirectory(extractPath);
-                })();
+            let sourceDir: string;
+            if (this.options.archiveKind === 'raw') {
+                sourceDir = workDir;
+            } else {
+                await this.fileSystemGateway.removeDirectoryIfExists(extractPath);
+                await this.fileSystemGateway.ensureDirectory(extractPath);
+                this.emitPhase('extracting');
+                await this.extractArchive(archivePath, extractPath);
+                sourceDir = await this.findModelDirectory(extractPath);
+            }
             const missingFiles: string[] = [];
             for (const entryName of this.options.requiredFiles) {
                 if (!(await this.hasRequiredEntry(sourceDir, entryName))) {

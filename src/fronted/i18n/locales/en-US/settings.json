@@ -309,6 +309,32 @@
             "deleteFailed": "Failed to delete model",
             "manualDownload": "If the download is blocked, open {{url}}, download model.tar.bz2, and save it to {{path}}. Then click Download here to resume or install it."
         },
+        "localModel": {
+            "cancelDownload": "Cancel download",
+            "installing": "Installing model…",
+            "downloading": "Downloading model…",
+            "extracting": "Extracting model…",
+            "deleteModel": "Delete model",
+            "deleteConfirmTitle": "Delete {{name}} model",
+            "deleteConfirmDescription": "You'll need to re-download it to use local transcription. Delete it?",
+            "cancelDelete": "Not now",
+            "confirmDelete": "Delete",
+            "installed": "{{name}} model downloaded",
+            "downloadCancelled": "{{name}} download cancelled",
+            "deleted": "{{name}} model deleted",
+            "deleteFailed": "Delete failed",
+            "guideTitle": "Poor connection? View manual download & install guide",
+            "step1Archive": "1. Download the archive:",
+            "step1Raw": "1. Download the model file:",
+            "step2Title": "2. Save the downloaded file to:",
+            "step3Title": "3. Finish installation:",
+            "step3HintArchive": "After placing the file in the folder above, click \"Download\" — the app will detect and extract it.",
+            "step3HintRaw": "After placing the file in the folder above, click \"Download\" — the app will detect and install it.",
+            "copyDownloadUrl": "Copy download URL",
+            "openInBrowser": "Open in browser",
+            "copyTargetPath": "Copy target path",
+            "openTargetFolder": "Open target folder"
+        },
         "sherpaTts": {
             "manualDownload": "If the download is blocked, open {{url}}, download model.tar.bz2, and save it to {{path}}. Then click Download here to resume or install it."
         },

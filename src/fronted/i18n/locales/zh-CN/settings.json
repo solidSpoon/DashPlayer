@@ -309,6 +309,32 @@
             "deleteFailed": "删除失败"
             ,"manualDownload": "网络不稳定时，可打开 {{url}} 下载 model.tar.bz2，并保存到：{{path}}。然后回到这里点击“下载”，应用会继续断点续传或直接安装。"
         },
+        "localModel": {
+            "cancelDownload": "取消下载",
+            "installing": "正在安装模型…",
+            "downloading": "正在下载模型…",
+            "extracting": "正在解压模型…",
+            "deleteModel": "删除模型",
+            "deleteConfirmTitle": "删除 {{name}} 模型",
+            "deleteConfirmDescription": "删除后需重新下载才能使用，确定要删除吗？",
+            "cancelDelete": "暂不删除",
+            "confirmDelete": "确认删除",
+            "installed": "{{name}} 模型已下载",
+            "downloadCancelled": "{{name}} 模型下载已取消",
+            "deleted": "{{name}} 模型已删除",
+            "deleteFailed": "删除失败",
+            "guideTitle": "网络不佳？查看手动下载与安装指南",
+            "step1Archive": "1. 下载压缩包文件：",
+            "step1Raw": "1. 下载模型文件：",
+            "step2Title": "2. 将下载的文件保存到指定路径：",
+            "step3Title": "3. 完成安装：",
+            "step3HintArchive": "文件放入上述目录后，点击上方的「下载」按钮，应用会自动识别并解压生效。",
+            "step3HintRaw": "文件放入上述目录后，点击上方的「下载」按钮，应用会自动识别并安装生效。",
+            "copyDownloadUrl": "复制下载链接",
+            "openInBrowser": "在浏览器中打开",
+            "copyTargetPath": "复制目标路径",
+            "openTargetFolder": "一键打开目标文件夹"
+        },
         "sherpaTts": {
             "manualDownload": "网络不稳定时，可打开 {{url}} 下载 model.tar.bz2，并保存到：{{path}}。然后回到这里点击“下载”，应用会继续断点续传或直接安装。"
         },

@@ -1,5 +1,6 @@
 import React from 'react';
 import toast from 'react-hot-toast';
+import { useTranslation } from 'react-i18next';
 import type { ModelInstallationStatusVO } from '@/common/types/vo/model-installation-vo';
 import type { ModelDownloadPhase } from '@/common/contracts/model-download-phase';
 
@@ -36,6 +37,7 @@ export interface UseModelInstallationOptions {
  * 收到后复位 UI 并重查状态；接近 100% 且仍处于下载阶段时延时重查兜底。
  */
 export function useModelInstallation({ api, progressEventName, displayName }: UseModelInstallationOptions) {
+    const { t } = useTranslation('settings');
     const [status, setStatus] = React.useState<ModelInstallationStatusVO | null>(null);
     const [downloading, setDownloading] = React.useState(false);
     const [deleting, setDeleting] = React.useState(false);
@@ -108,10 +110,10 @@ export function useModelInstallation({ api, progressEventName, displayName }: Us
         setPhase('downloading');
         try {
             await api.download();
-            toast.success(`${'通用下载完成'}\n${displayName} 模型已下载`.replace('通用下载完成', '下载完成'));
+            toast.success(`${t('common.downloadDone')}\n${t('serviceCredentials.localModel.installed', { name: displayName })}`);
             await refresh();
         } catch (error) {
-            toast.error(`下载失败\n${error instanceof Error ? error.message : String(error)}`);
+            toast.error(`${t('common.downloadFailed')}\n${error instanceof Error ? error.message : String(error)}`);
         } finally {
             downloadingRef.current = false;
             setDownloading(false);
@@ -124,7 +126,7 @@ export function useModelInstallation({ api, progressEventName, displayName }: Us
     const cancelDownload = async () => {
         const result = await api.cancelDownload();
         if (result.cancelled) {
-            toast.success(`${displayName} 模型下载已取消`);
+            toast.success(t('serviceCredentials.localModel.downloadCancelled', { name: displayName }));
         }
     };
 
@@ -135,10 +137,10 @@ export function useModelInstallation({ api, progressEventName, displayName }: Us
         setDeleting(true);
         try {
             await api.deleteModel();
-            toast.success(`${displayName} 模型已删除`);
+            toast.success(t('serviceCredentials.localModel.deleted', { name: displayName }));
             await refresh();
         } catch (error) {
-            toast.error(`删除失败\n${error instanceof Error ? error.message : String(error)}`);
+            toast.error(`${t('serviceCredentials.localModel.deleteFailed')}\n${error instanceof Error ? error.message : String(error)}`);
         } finally {
             setDeleting(false);
         }
