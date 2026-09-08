@@ -1,6 +1,21 @@
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { ONBOARDING_COMPLETED_VERSION_KEY } from '@/common/constants/systemConfigKeys';
 
+/** 引导页需要的最小硬件信息：平台、内存总量与 CPU 核数。 */
+export interface SystemInfo {
+    isWindows: boolean;
+    isMac: boolean;
+    isLinux: boolean;
+    pathSeparator: string;
+    /** 物理内存总量（GB，保留一位小数）。 */
+    totalMemoryGb: number;
+    /** 逻辑 CPU 核数。 */
+    cpuCount: number;
+}
+
+/** 读取本机平台与硬件信息，用于按电脑配置推荐本地模型档位。 */
+export const getSystemInfo = (): Promise<SystemInfo> => backendClient.call('system/info');
+
 /**
  * 读取用户已完成的引导版本。
  *

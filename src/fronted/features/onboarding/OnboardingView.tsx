@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { Button } from '@/fronted/components/ui/button';
 import { Progress } from '@/fronted/components/ui/progress';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
+import { RadioGroup, RadioGroupItem } from '@/fronted/components/ui/radio-group';
+import { Checkbox } from '@/fronted/components/ui/checkbox';
 import { Label } from '@/fronted/components/ui/label';
 import { Input } from '@/fronted/components/ui/input';
 import TitleBar from '@/fronted/components/layout/TitleBar/TitleBar';
@@ -30,26 +31,42 @@ import {
     XCircle,
 } from 'lucide-react';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
-import { markOnboardingCompleted } from '@/fronted/features/onboarding/onboardingApi';
+import { getSystemInfo, markOnboardingCompleted } from '@/fronted/features/onboarding/onboardingApi';
 import type { ModelInstallationStatusVO } from '@/common/types/vo/model-installation-vo';
 import type { ModelDownloadPhase } from '@/common/contracts/model-download-phase';
 import type { TranscriptionEngine } from '@/common/contracts/transcription-engine';
 import type { LocalAiStatus } from '@/common/contracts/local-ai';
 import type { LocalMtStatus } from '@/common/contracts/local-mt';
+import type { SystemInfo } from '@/fronted/features/onboarding/onboardingApi';
 import { LOCAL_AI_DEFAULT_MODEL_ID } from '@/common/contracts/local-ai';
 import { cn } from '@/fronted/lib/utils';
 import toast from 'react-hot-toast';
 
 export const CURRENT_ONBOARDING_VERSION = '1';
 
-/** 字幕翻译引擎选项；云端对应 openai。 */
-type TranslationEngineChoice = 'local-mt' | 'local' | 'openai';
+/** 翻译与查词的档位：一次决定字幕翻译与查词各自使用的引擎。 */
+type TranslationTier = 'light' | 'smart' | 'cloud';
 
-/** 查词补充方式；none 表示只用内置词典。 */
-type DictionaryEngineChoice = 'none' | 'local' | 'openai';
+/** 档位展示顺序。 */
+const TRANSLATION_TIERS: readonly TranslationTier[] = ['light', 'smart', 'cloud'];
 
-/** 整句学习引擎；该功能只支持云端模型，不支持时直接禁用。 */
-type SentenceLearningChoice = 'none' | 'openai';
+/**
+ * 档位到引擎组合的映射：查词永远跟随字幕翻译。
+ *
+ * 这样就不会出现「下了 1.28 GB 智能模型却只用它查词」这类无意义组合。
+ */
+const TIER_ENGINES: Record<TranslationTier, {
+    subtitleTranslationEngine: 'local-mt' | 'local' | 'openai';
+    dictionaryEngine: 'none' | 'local' | 'openai';
+}> = {
+    light: { subtitleTranslationEngine: 'local-mt', dictionaryEngine: 'none' },
+    smart: { subtitleTranslationEngine: 'local', dictionaryEngine: 'local' },
+    cloud: { subtitleTranslationEngine: 'openai', dictionaryEngine: 'openai' },
+};
+
+/** 内存低于该值（GB）或核数低于阈值时，默认选轻量档。 */
+const LIGHT_TIER_MEMORY_GB = 8;
+const LIGHT_TIER_CPU_COUNT = 4;
 
 /** 撒花颜色；固定亮色，保证深浅色主题下都醒目。 */
 const CONFETTI_COLORS = ['#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#ec4899', '#f97316', '#14b8a6'];
@@ -114,10 +131,6 @@ interface ModelDownloadRowProps {
     downloadUrls?: readonly string[] | null;
     /** 手动下载后应保存到的文件/目录路径。 */
     targetPath?: string | null;
-    /** 可选的单选项，用于在多个模型之间二选一。 */
-    radio?: React.ReactNode;
-    /** 点击左侧标题区域时触发，配合 radio 使用。 */
-    onSelect?: () => void;
     onDownload: () => void;
     onCancel: () => void;
     onCopy: (text: string) => void;
@@ -138,8 +151,6 @@ const ModelDownloadRow: React.FC<ModelDownloadRowProps> = ({
     progress,
     downloadUrls,
     targetPath,
-    radio,
-    onSelect,
     onDownload,
     onCancel,
     onCopy,
@@ -151,11 +162,7 @@ const ModelDownloadRow: React.FC<ModelDownloadRowProps> = ({
     return (
         <div className="border rounded-xl p-4 bg-card shadow-xs flex flex-col gap-3">
             <div className="flex items-center justify-between gap-3">
-                <div
-                    className={cn('flex items-center gap-3 min-w-0', onSelect && 'cursor-pointer')}
-                    onClick={onSelect}
-                >
-                    {radio}
+                <div className="flex items-center gap-3 min-w-0">
                     <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-foreground shrink-0">
                         <Icon className="w-4.5 h-4.5" />
                     </div>
@@ -303,10 +310,11 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
     const [downloadingTranscription, setDownloadingTranscription] = useState(false);
     const [transcriptionProgress, setTranscriptionProgress] = useState(0);
 
-    // Step 3：字幕翻译与查词分别选择，允许本地 / 云端交叉搭配
-    const [translationEngine, setTranslationEngine] = useState<TranslationEngineChoice>('local-mt');
-    const [dictionaryEngine, setDictionaryEngine] = useState<DictionaryEngineChoice>('none');
-    const [sentenceLearningEngine, setSentenceLearningEngine] = useState<SentenceLearningChoice>('none');
+    // Step 3：翻译与查词档位 + 独立的整句讲解开关
+    const [translationTier, setTranslationTier] = useState<TranslationTier>('smart');
+    const [sentenceLearning, setSentenceLearning] = useState(false);
+    /** 本机硬件信息；未取到时不展示档位建议。 */
+    const [hardware, setHardware] = useState<SystemInfo | null>(null);
 
     const [localAiStatus, setLocalAiStatus] = useState<LocalAiStatus | null>(null);
     const [downloadingLocalAi, setDownloadingLocalAi] = useState(false);
@@ -355,6 +363,16 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
         } catch {
             // Ignore error
         }
+    }, []);
+
+    /** 读取本机硬件信息：低配机器默认轻量档，并按结果给出档位建议。 */
+    useEffect(() => {
+        void getSystemInfo().then((info) => {
+            setHardware(info);
+            if (info.totalMemoryGb < LIGHT_TIER_MEMORY_GB || info.cpuCount < LIGHT_TIER_CPU_COUNT) {
+                setTranslationTier('light');
+            }
+        });
     }, []);
 
     useEffect(() => {
@@ -626,12 +644,16 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
 
     const defaultLocalAiModel = localAiStatus?.models.find((m) => m.modelId === LOCAL_AI_DEFAULT_MODEL_ID);
     const isLocalAiReady = defaultLocalAiModel?.ready ?? false;
-    /** 字幕翻译、查词或整句学习任选云端时需要填写云端凭据。 */
-    const needsCloud = translationEngine === 'openai'
-        || dictionaryEngine === 'openai'
-        || sentenceLearningEngine === 'openai';
-    /** 字幕翻译或查词任选本地智能模型时需要下载它。 */
-    const needsLocalLlm = translationEngine === 'local' || dictionaryEngine === 'local';
+    /** 依据内存与核数给出的推荐档位；硬件信息未就绪时为 null。 */
+    const recommendedTier: TranslationTier | null = hardware
+        ? (hardware.totalMemoryGb < LIGHT_TIER_MEMORY_GB || hardware.cpuCount < LIGHT_TIER_CPU_COUNT ? 'light' : 'smart')
+        : null;
+    /** 选云端档位或开启整句讲解时需要填写云端凭据。 */
+    const needsCloud = translationTier === 'cloud' || sentenceLearning;
+    /** 选本地智能档位时需要下载智能模型。 */
+    const needsLocalLlm = translationTier === 'smart';
+    /** 云端凭据未填齐时不允许完成配置，避免存下用不了的引擎。 */
+    const cloudIncomplete = needsCloud && (!openAiKey.trim() || !openAiModel.trim());
 
     /**
      * 保存配置步骤的结果；成功后进入完成页，失败则留在当前步骤让用户重试或跳过。
@@ -650,7 +672,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                 openai: needsCloud && model
                     ? {
                         ...currentEngineSettings.openai,
-                        enableSentenceLearning: sentenceLearningEngine === 'openai',
+                        enableSentenceLearning: sentenceLearning,
                         featureModels: {
                             sentenceLearning: model,
                             subtitleTranslation: model,
@@ -660,8 +682,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                     : currentEngineSettings.openai,
                 providers: {
                     ...currentEngineSettings.providers,
-                    subtitleTranslationEngine: translationEngine,
-                    dictionaryEngine,
+                    ...TIER_ENGINES[translationTier],
                 },
             });
 
@@ -858,81 +879,82 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                                 </p>
                             </div>
 
-                            {/* 字幕翻译与查词独立选择，允许本地 / 云端交叉搭配 */}
-                            <div className="border rounded-xl p-4 bg-card shadow-xs space-y-3">
-                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                                    <div className="space-y-0.5 min-w-0">
-                                        <div className="text-sm font-medium text-foreground">
-                                            {t('steps.translation.subtitleLabel')}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            {t('steps.translation.subtitleHint')}
-                                        </div>
-                                    </div>
-                                    <Select
-                                        value={translationEngine}
-                                        onValueChange={(val) => setTranslationEngine(val as TranslationEngineChoice)}
+                            {/* 三档方案：一次决定字幕翻译与查词用哪套引擎，查词跟随翻译，避免无意义组合 */}
+                            <RadioGroup
+                                value={translationTier}
+                                onValueChange={(value) => setTranslationTier(value as TranslationTier)}
+                                className="space-y-2.5"
+                            >
+                                {TRANSLATION_TIERS.map((tierId) => (
+                                    <Label
+                                        key={tierId}
+                                        htmlFor={`translation-tier-${tierId}`}
+                                        className={cn(
+                                            'flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors',
+                                            translationTier === tierId
+                                                ? 'border-primary bg-primary/5'
+                                                : 'border-border bg-card hover:bg-muted/40',
+                                        )}
                                     >
-                                        <SelectTrigger className="w-full sm:w-60">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="local-mt">{t('steps.translation.translationLocalMt')}</SelectItem>
-                                            <SelectItem value="local">{t('steps.translation.translationLocalLlm')}</SelectItem>
-                                            <SelectItem value="openai">{t('steps.translation.translationCloud')}</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
+                                        <RadioGroupItem value={tierId} id={`translation-tier-${tierId}`} className="mt-0.5" />
+                                        <div className="min-w-0 flex-1 space-y-0.5">
+                                            <div className="flex items-center gap-2">
+                                                <span className="text-sm font-medium text-foreground">
+                                                    {t(`steps.translation.tier.${tierId}.title`)}
+                                                </span>
+                                                {recommendedTier === tierId && (
+                                                    <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                                                        {t('steps.translation.recommended')}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="text-xs text-muted-foreground">
+                                                {t(`steps.translation.tier.${tierId}.desc`)}
+                                            </div>
+                                            <div className="text-[11px] text-muted-foreground/80">
+                                                {t(`steps.translation.tier.${tierId}.meta`)}
+                                            </div>
+                                        </div>
+                                    </Label>
+                                ))}
+                            </RadioGroup>
 
-                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-t border-border/50 pt-3">
-                                    <div className="space-y-0.5 min-w-0">
-                                        <div className="text-sm font-medium text-foreground">
-                                            {t('steps.translation.dictionaryLabel')}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            {t('steps.translation.dictionaryHint')}
-                                        </div>
-                                    </div>
-                                    <Select
-                                        value={dictionaryEngine}
-                                        onValueChange={(val) => setDictionaryEngine(val as DictionaryEngineChoice)}
-                                    >
-                                        <SelectTrigger className="w-full sm:w-60">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="none">{t('steps.translation.dictionaryBuiltin')}</SelectItem>
-                                            <SelectItem value="local">{t('steps.translation.dictionaryLocalLlm')}</SelectItem>
-                                            <SelectItem value="openai">{t('steps.translation.dictionaryCloud')}</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between border-t border-border/50 pt-3">
-                                    <div className="space-y-0.5 min-w-0">
-                                        <div className="text-sm font-medium text-foreground">
-                                            {t('steps.translation.sentenceLearningLabel')}
-                                        </div>
-                                        <div className="text-xs text-muted-foreground">
-                                            {t('steps.translation.sentenceLearningHint')}
-                                        </div>
-                                    </div>
-                                    <Select
-                                        value={sentenceLearningEngine}
-                                        onValueChange={(val) => setSentenceLearningEngine(val as SentenceLearningChoice)}
-                                    >
-                                        <SelectTrigger className="w-full sm:w-60">
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="openai">{t('steps.translation.sentenceLearningCloud')}</SelectItem>
-                                            <SelectItem value="none">{t('steps.translation.sentenceLearningDisabled')}</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                            </div>
+                            {hardware && recommendedTier && (
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    {t('steps.translation.hardwareHint', {
+                                        memory: hardware.totalMemoryGb,
+                                        cores: hardware.cpuCount,
+                                        tier: t(`steps.translation.tier.${recommendedTier}.title`),
+                                    })}
+                                </p>
+                            )}
 
-                            {/* 选中的本地模型：各自独立下载 */}
-                            {translationEngine === 'local-mt' && (
+                            {/* 整句讲解是唯一必须云端的能力，单独开关 */}
+                            <Label
+                                htmlFor="onboarding-sentence-learning"
+                                className={cn(
+                                    'flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors',
+                                    sentenceLearning ? 'border-primary bg-primary/5' : 'border-border bg-card hover:bg-muted/40',
+                                )}
+                            >
+                                <Checkbox
+                                    id="onboarding-sentence-learning"
+                                    checked={sentenceLearning}
+                                    onCheckedChange={(checked) => setSentenceLearning(checked === true)}
+                                    className="mt-0.5"
+                                />
+                                <div className="min-w-0 flex-1 space-y-0.5">
+                                    <div className="text-sm font-medium text-foreground">
+                                        {t('steps.translation.sentenceLearningLabel')}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                        {t('steps.translation.sentenceLearningHint')}
+                                    </div>
+                                </div>
+                            </Label>
+
+                            {/* 当前档位需要的本地模型 */}
+                            {translationTier === 'light' && (
                                 <ModelDownloadRow
                                     icon={Cpu}
                                     title={t('steps.translation.localMtTitle')}
@@ -970,7 +992,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                                 />
                             )}
 
-                            {/* 云端配置：字幕翻译或查词任选云端时展开 */}
+                            {/* 云端配置：选云端档位或开启整句讲解时展开 */}
                             {needsCloud && (
                                 <div className="border rounded-xl p-4 bg-card shadow-xs space-y-3">
                                     <div className="space-y-1.5">
@@ -1058,9 +1080,11 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                                 </div>
                             )}
 
-                            <p className="text-xs text-muted-foreground leading-relaxed">
-                                {t('steps.translation.localModelTip')}
-                            </p>
+                            {cloudIncomplete && (
+                                <p className="text-xs text-amber-600 dark:text-amber-400 leading-relaxed">
+                                    {t('steps.translation.cloudIncompleteHint')}
+                                </p>
+                            )}
                         </div>
                     )}
 
@@ -1164,7 +1188,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                             <Button
                                 size="sm"
                                 className="h-8.5 px-4 text-xs gap-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
-                                disabled={finishing}
+                                disabled={finishing || cloudIncomplete}
                                 onClick={handleFinishConfig}
                             >
                                 {finishing ? (

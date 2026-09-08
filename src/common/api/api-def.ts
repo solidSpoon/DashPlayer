@@ -97,6 +97,10 @@ interface SystemDef {
             isMac: boolean,
             isLinux: boolean,
             pathSeparator: string,
+            /** 物理内存总量（GB，保留一位小数）。 */
+            totalMemoryGb: number,
+            /** 逻辑 CPU 核数。 */
+            cpuCount: number,
         }
     };
     'system/select-file': {

@@ -1,12 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { OnboardingView, CURRENT_ONBOARDING_VERSION } from '../OnboardingView';
-import { markOnboardingCompleted } from '../onboardingApi';
+import { getSystemInfo, markOnboardingCompleted } from '../onboardingApi';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
 
 vi.mock('@/fronted/features/onboarding/onboardingApi', () => ({
+    getSystemInfo: vi.fn(),
     markOnboardingCompleted: vi.fn(),
 }));
 
@@ -58,6 +58,14 @@ describe('OnboardingView Component', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         vi.mocked(markOnboardingCompleted).mockResolvedValue();
+        vi.mocked(getSystemInfo).mockResolvedValue({
+            isWindows: false,
+            isMac: true,
+            isLinux: false,
+            pathSeparator: '/',
+            totalMemoryGb: 16,
+            cpuCount: 10,
+        });
         vi.mocked(settingsApi.getTranscriptionEngine).mockResolvedValue('whisper-cpp');
         vi.mocked(settingsApi.getStorageStatus).mockResolvedValue({
             configuredPath: '',
@@ -174,17 +182,17 @@ describe('OnboardingView Component', () => {
         });
     });
 
-    it('allows downloading the selected local model in the translation step', async () => {
+    it('配置步骤里可以下载当前档位需要的本地模型', async () => {
         render(<OnboardingView />);
 
-        // 存储位置 -> 离线模型 -> 翻译与词典
+        // 存储位置 -> 离线模型 -> 翻译与查词
         fireEvent.click(screen.getByText('nextStep'));
         fireEvent.click(screen.getByText('nextStep'));
 
-        // 默认字幕翻译是本地快速翻译，页面上只有一个下载按钮
+        // 硬件足够时默认选「本地智能」档，页面上只有一个下载按钮
         fireEvent.click(screen.getByText('steps.models.actionDownload'));
 
-        expect(settingsApi.downloadLocalMt).toHaveBeenCalled();
+        expect(settingsApi.downloadLocalAi).toHaveBeenCalled();
     });
 
     it('allows entering cloud API key and saving credentials on finish', async () => {
@@ -195,13 +203,11 @@ describe('OnboardingView Component', () => {
         fireEvent.click(screen.getByText('nextStep'));
         fireEvent.click(screen.getByText('nextStep'));
 
-        // 打开「字幕翻译」下拉并选择云端大模型（Radix Select 需要真实指针事件）
-        const user = userEvent.setup();
-        await user.click(screen.getAllByRole('combobox')[0]);
-        await user.click(await screen.findByText('steps.translation.translationCloud'));
+        // 选「云端大模型」档位后才会出现云端配置
+        fireEvent.click(screen.getByRole('radio', { name: /tier\.cloud\.title/ }));
 
-        const keyInput = screen.getByPlaceholderText('steps.translation.openaiKeyPlaceholder');
-        fireEvent.change(keyInput, { target: { value: 'sk-test-123456' } });
+        fireEvent.change(screen.getByPlaceholderText('steps.translation.openaiKeyPlaceholder'), { target: { value: 'sk-test-123456' } });
+        fireEvent.change(screen.getByPlaceholderText('steps.translation.openaiModelPlaceholder'), { target: { value: 'gpt-4o-mini' } });
 
         // 翻译与词典 -> 完成配置（保存并进入完成页）
         fireEvent.click(screen.getByText('finishConfig'));
@@ -216,10 +222,12 @@ describe('OnboardingView Component', () => {
             );
             expect(settingsApi.saveEngineSelection).toHaveBeenCalledWith(
                 expect.objectContaining({
+                    // 云端档位：字幕翻译与查词一起切到云端
                     providers: expect.objectContaining({
                         subtitleTranslationEngine: 'openai',
-                        dictionaryEngine: 'none',
+                        dictionaryEngine: 'openai',
                     }),
+                    openai: expect.objectContaining({ enableSentenceLearning: false }),
                 })
             );
             expect(markOnboardingCompleted).toHaveBeenCalledWith(CURRENT_ONBOARDING_VERSION);
@@ -229,6 +237,31 @@ describe('OnboardingView Component', () => {
         fireEvent.click(screen.getByText('startUsing'));
         await waitFor(() => {
             expect(onCompleted).toHaveBeenCalled();
+        });
+    });
+
+    it('整句讲解可以单独开启，翻译档位保持本地智能', async () => {
+        render(<OnboardingView />);
+
+        fireEvent.click(screen.getByText('nextStep'));
+        fireEvent.click(screen.getByText('nextStep'));
+
+        // 开启整句讲解后需要云端凭据，但翻译档位不变
+        fireEvent.click(screen.getByRole('checkbox'));
+        fireEvent.change(screen.getByPlaceholderText('steps.translation.openaiKeyPlaceholder'), { target: { value: 'sk-test-123456' } });
+        fireEvent.change(screen.getByPlaceholderText('steps.translation.openaiModelPlaceholder'), { target: { value: 'gpt-4o-mini' } });
+        fireEvent.click(screen.getByText('finishConfig'));
+
+        await waitFor(() => {
+            expect(settingsApi.saveEngineSelection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    openai: expect.objectContaining({ enableSentenceLearning: true }),
+                    providers: expect.objectContaining({
+                        subtitleTranslationEngine: 'local',
+                        dictionaryEngine: 'local',
+                    }),
+                })
+            );
         });
     });
 

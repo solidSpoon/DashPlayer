@@ -49,18 +49,29 @@
             "downloadNote": "Downloads can be resumed. If your network is slow, you can also download later in Settings → Services & Models."
         },
         "translation": {
-            "title": "Translation & Dictionary",
-            "desc": "Subtitle translation needs an engine; lookups already cover 38,000 common words out of the box.",
-            "subtitleLabel": "Subtitle translation",
-            "subtitleHint": "Turns the subtitles in your videos into Chinese.",
-            "translationLocalMt": "Local quick translation (lighter)",
-            "translationLocalLlm": "Local AI model (more natural)",
-            "translationCloud": "Cloud model (most accurate)",
-            "dictionaryLabel": "Lookups",
-            "dictionaryHint": "The built-in dictionary already covers 38,000 common words; choose how to look up words beyond that list.",
-            "dictionaryBuiltin": "Built-in dictionary only",
-            "dictionaryLocalLlm": "Supplement with the local AI model",
-            "dictionaryCloud": "Supplement with the cloud model",
+            "title": "Translation & Lookups",
+            "desc": "Pick one setup — you can fine-tune it later in Settings → Features.",
+            "recommended": "Recommended",
+            "hardwareHint": "Detected {{memory}} GB RAM and {{cores}} CPU cores; we suggest \"{{tier}}\".",
+            "tier": {
+                "light": {
+                    "title": "Lightweight",
+                    "desc": "Lightweight model for subtitles, built-in dictionary for lookups",
+                    "meta": "~300 MB download · fastest · more literal wording"
+                },
+                "smart": {
+                    "title": "Local AI",
+                    "desc": "Local AI model for both subtitles and lookups",
+                    "meta": "~1.28 GB download · ~2 GB RAM · more natural wording"
+                },
+                "cloud": {
+                    "title": "Cloud model",
+                    "desc": "Cloud model for both subtitles and lookups",
+                    "meta": "no download · needs an API key · best quality"
+                }
+            },
+            "sentenceLearningLabel": "Sentence learning",
+            "sentenceLearningHint": "See a sentence's structure, grammar and usage; requires a cloud model.",
             "localMtTitle": "Local quick translation",
             "localMtDesc": "Translates subtitles into Chinese only — fastest and lightest, with more literal wording.",
             "localMtSize": "~300 MB",
@@ -79,11 +90,7 @@
             "testSuccess": "Connected",
             "testFailed": "Connection failed",
             "testNoModel": "Enter a model name first",
-            "localModelTip": "Low-spec machines: pick the quick translation. With more headroom: pick the local AI model for more natural wording and out-of-vocabulary lookups.",
-            "sentenceLearningLabel": "Sentence learning",
-            "sentenceLearningHint": "Breaks down sentence structure and explains grammar and usage; requires a cloud model.",
-            "sentenceLearningCloud": "Cloud model",
-            "sentenceLearningDisabled": "Disabled",
+            "cloudIncompleteHint": "Fill in the API key and model name to finish.",
             "localMtDownloadFailed": "Failed to download the quick translation model",
             "localModelDownloadFailed": "Failed to download the local model"
         },

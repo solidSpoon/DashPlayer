@@ -1,5 +1,6 @@
 import registerRoute from '@/backend/controllers/ipc/registerRoute';
 import { app, dialog, shell } from 'electron';
+import os from 'os';
 import path from 'path';
 import { clearDB } from '@/backend/infrastructure/db/db';
 import { WindowState } from '@/common/types/Types';
@@ -49,6 +50,9 @@ export default class SystemController implements Controller {
             isMac: platform === 'darwin',
             isLinux: platform === 'linux',
             pathSeparator: path.sep,
+            // 引导页据此推荐本地模型档位：内存不足或核数太少时默认轻量档
+            totalMemoryGb: Math.round(os.totalmem() / 1024 / 1024 / 1024 * 10) / 10,
+            cpuCount: os.cpus().length,
         };
     }
 

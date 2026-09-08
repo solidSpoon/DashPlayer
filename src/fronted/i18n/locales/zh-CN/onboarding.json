@@ -49,18 +49,29 @@
             "downloadNote": "下载支持断点续传。网络较慢时，也可以稍后在「设置中心 → 服务与模型」里下载。"
         },
         "translation": {
-            "title": "翻译与词典",
-            "desc": "字幕翻译需要选一个引擎；查词已经内置 3.8 万常见词，开箱即用。",
-            "subtitleLabel": "字幕翻译",
-            "subtitleHint": "把视频里的字幕翻成中文。",
-            "translationLocalMt": "本地快速翻译（省空间）",
-            "translationLocalLlm": "本地智能模型（译文更自然）",
-            "translationCloud": "云端大模型（更准）",
-            "dictionaryLabel": "查词",
-            "dictionaryHint": "内置词典已覆盖 3.8 万常见词，无需下载；这里选的是超出词库的补充方式。",
-            "dictionaryBuiltin": "仅用内置词典",
-            "dictionaryLocalLlm": "用本地智能模型补充",
-            "dictionaryCloud": "用云端补充",
+            "title": "翻译与查词",
+            "desc": "选一套方案就行，之后随时能在「设置 → 功能设置」里细调。",
+            "recommended": "推荐",
+            "hardwareHint": "检测到 {{memory}} GB 内存、{{cores}} 核 CPU，建议选「{{tier}}」。",
+            "tier": {
+                "light": {
+                    "title": "轻量",
+                    "desc": "字幕用轻量模型翻译，查词走内置词典",
+                    "meta": "下载约 300 MB · 速度最快 · 译文偏直白"
+                },
+                "smart": {
+                    "title": "本地智能",
+                    "desc": "字幕和查词都用本地智能模型",
+                    "meta": "下载约 1.28 GB · 内存占用约 2 GB · 译文更自然"
+                },
+                "cloud": {
+                    "title": "云端大模型",
+                    "desc": "字幕和查词都用云端模型",
+                    "meta": "不下载模型 · 需要 API Key · 效果最好"
+                }
+            },
+            "sentenceLearningLabel": "整句讲解",
+            "sentenceLearningHint": "选中句子看结构、语法和用法；需要云端模型。",
             "localMtTitle": "本地快速翻译",
             "localMtDesc": "只把字幕翻成中文，速度最快、占用最低，译文偏直白。",
             "localMtSize": "约 300 MB",
@@ -79,11 +90,7 @@
             "testSuccess": "连接成功",
             "testFailed": "连接失败",
             "testNoModel": "请先填写模型名称",
-            "localModelTip": "电脑配置低、想省空间就选本地快速翻译；配置够用、想要更自然的译文和查词，就选本地智能模型。",
-            "sentenceLearningLabel": "整句学习",
-            "sentenceLearningHint": "拆解句子结构、讲解语法和用法，需要云端模型。",
-            "sentenceLearningCloud": "云端大模型",
-            "sentenceLearningDisabled": "禁用",
+            "cloudIncompleteHint": "填好密钥和模型名称后才能完成配置。",
             "localMtDownloadFailed": "轻量翻译模型下载失败",
             "localModelDownloadFailed": "本地模型下载失败"
         },
