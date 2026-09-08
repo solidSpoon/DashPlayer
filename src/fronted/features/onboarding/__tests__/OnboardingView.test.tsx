@@ -130,7 +130,7 @@ describe('OnboardingView Component', () => {
             downloaded: 0,
             total: 1,
             modelPath: '/path/local-mt',
-            downloadUrl: 'https://example.com/local-mt',
+            downloadUrls: ['https://example.com/local-mt', 'https://hf-mirror.com/local-mt'],
             error: null,
         });
         vi.mocked(settingsApi.getServiceCredentials).mockResolvedValue({

@@ -11,11 +11,14 @@ import { concurrency } from '@/backend/utils/concurrency';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import type RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
 import type LocalMtService from '@/backend/services/LocalMtService';
+import { probeReachableDownloadUrl } from '@/backend/utils/probeDownloadUrl';
 import {
     LOCAL_MT_MODEL_FILES,
     LOCAL_MT_MODEL_ID,
     LOCAL_MT_REPO_URL,
+    LOCAL_MT_REPO_URLS,
     LOCAL_MT_TOTAL_BYTES,
+    LocalMtModelFile,
     LocalMtStatus,
 } from '@/common/contracts/local-mt';
 
@@ -72,6 +75,26 @@ export class LocalMtRuntime implements LocalMtService {
         return path.join(modelPath, relativePath);
     }
 
+    /** 按仓库基址拼出单个文件的下载地址（HuggingFace 的 resolve/main 路径结构）。 */
+    private fileUrl(baseUrl: string, file: LocalMtModelFile): string {
+        return `${baseUrl}/resolve/main/${file.path}`;
+    }
+
+    /**
+     * 选定本次下载使用的仓库基址：多候选时先并行探测可达性（官方优先），
+     * 全部不可达时仍按官方地址发起，失败原因由真实下载给出并展示在模型卡上。
+     *
+     * 逐个文件的 SHA256 校验是跨源下载的安全兜底：镜像与官方是同一仓库的
+     * 逐字节镜像，内容不一致会被校验拒绝；已有 .part 续传同理。
+     */
+    private async resolveBaseUrl(signal: AbortSignal): Promise<string> {
+        const probeFile = LOCAL_MT_MODEL_FILES[0];
+        const candidates = LOCAL_MT_REPO_URLS.map((baseUrl) => this.fileUrl(baseUrl, probeFile));
+        const reachable = await probeReachableDownloadUrl(candidates, signal);
+        if (!reachable) return LOCAL_MT_REPO_URL;
+        return LOCAL_MT_REPO_URLS[candidates.indexOf(reachable)];
+    }
+
     /** 查询文件大小；不存在返回 0，其余错误显式抛出。 */
     private async fileSize(file: string): Promise<number> {
         try {
@@ -124,7 +147,7 @@ export class LocalMtRuntime implements LocalMtService {
             downloaded: downloading ? this.downloaded : await this.settledBytes(modelPath),
             total: LOCAL_MT_TOTAL_BYTES,
             modelPath,
-            downloadUrl: LOCAL_MT_REPO_URL,
+            downloadUrls: [...LOCAL_MT_REPO_URLS],
             error: this.downloadError,
         };
     }
@@ -170,16 +193,22 @@ export class LocalMtRuntime implements LocalMtService {
         this.downloaded = await this.settledBytes(modelPath);
         this.logger.info('local mt model download started', { downloaded: this.downloaded });
 
+        // 手动放好全部文件后只需校验：惰性探测，避免为纯校验白等一轮网络探测。
+        let baseUrl: string | null = null;
         for (const file of LOCAL_MT_MODEL_FILES) {
             const finalPath = this.filePathFor(modelPath, file.path);
             if (await this.fileSize(finalPath) === file.bytes) continue;
+            if (baseUrl === null) {
+                baseUrl = await this.resolveBaseUrl(signal);
+                this.logger.info('local mt download base url selected', { baseUrl });
+            }
             const partialPath = `${finalPath}.part`;
             await fs.promises.mkdir(path.dirname(finalPath), { recursive: true });
             const existing = await this.fileSize(partialPath);
             if (existing > file.bytes) {
                 throw new Error(`未完成文件大小异常，请删除模型后重新下载：${file.path}`);
             }
-            const response = await axios.get(file.url, {
+            const response = await axios.get(this.fileUrl(baseUrl, file), {
                 // Node adapter 下 timeout 是 socket 空闲超时而非总时长，慢速连接不会误断。
                 responseType: 'stream', signal, timeout: 60_000,
                 headers: existing > 0 ? { Range: `bytes=${existing}-` } : {},
