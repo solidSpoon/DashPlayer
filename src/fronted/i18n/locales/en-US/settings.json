@@ -376,6 +376,24 @@
             "title": "Tencent Translation",
             "description": "Used for subtitle translation."
         },
+        "transcription": {
+            "cardTitle": "Speech Recognition (ASR)",
+            "cardDescription": "Transcribes video speech into bilingual subtitles offline, supporting GPU acceleration and CPU inference.",
+            "engineLabel": "Inference Engine",
+            "engineWhisperCpp": "whisper.cpp (GPU accelerated, recommended)",
+            "engineSherpaOnnx": "sherpa-onnx (CPU compatible)",
+            "engineNotice": "Engine change will take effect on the next subtitle transcription.",
+            "whisperCppModelName": "Parakeet TDT 0.6B v3 (GGUF q8_0)",
+            "whisperCppModelDesc": "Default engine using GPU hardware acceleration (Metal on macOS, Vulkan on Windows/Linux) for significantly faster speech recognition than CPU.",
+            "sherpaOnnxModelName": "Parakeet TDT 0.6B v3 (ONNX int8)",
+            "sherpaOnnxModelDesc": "Pure CPU offline speech recognition engine based on sherpa-onnx, offering broad hardware compatibility when GPU is unavailable."
+        },
+        "localTts": {
+            "cardTitle": "Speech Synthesis (TTS)",
+            "cardDescription": "Used for offline word and sentence pronunciation without cloud API quotas or network latency.",
+            "modelName": "Piper en_US Amy Low",
+            "modelDesc": "Lightweight local neural speech synthesis model with clear and natural pronunciation."
+        },
         "parakeet": {
             "cancelDownload": "Cancel Download",
             "installing": "Installing model…",

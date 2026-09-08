@@ -376,6 +376,24 @@
             "title": "腾讯翻译",
             "description": "用于字幕翻译能力。"
         },
+        "transcription": {
+            "cardTitle": "本地语音识别 (ASR)",
+            "cardDescription": "离线将视频语音识别为中英双语字幕，支持 GPU 核显加速与 CPU 推理。",
+            "engineLabel": "推理引擎",
+            "engineWhisperCpp": "whisper.cpp（核显加速，推荐）",
+            "engineSherpaOnnx": "sherpa-onnx（CPU 兼容）",
+            "engineNotice": "切换引擎后将在下次生成字幕时生效。",
+            "whisperCppModelName": "Parakeet TDT 0.6B v3 (GGUF q8_0)",
+            "whisperCppModelDesc": "默认推荐引擎，由 whisper.cpp 调用 GPU 核显（macOS Metal、Windows/Linux Vulkan）硬件加速推理，识别速度相比 CPU 提升数倍。",
+            "sherpaOnnxModelName": "Parakeet TDT 0.6B v3 (ONNX int8)",
+            "sherpaOnnxModelDesc": "基于 sherpa-onnx 的纯 CPU 离线识别引擎，硬件兼容性好，适合无可用核显或核显驱动异常的设备。"
+        },
+        "localTts": {
+            "cardTitle": "本地语音朗读 (TTS)",
+            "cardDescription": "用于单词与例句离线发音，无需消耗云端 API 额度，零网络延迟。",
+            "modelName": "Piper en_US Amy Low",
+            "modelDesc": "轻量级本地神经发音合成模型，发音清晰自然。"
+        },
         "parakeet": {
             "cancelDownload": "取消下载",
             "installing": "正在安装模型…",
