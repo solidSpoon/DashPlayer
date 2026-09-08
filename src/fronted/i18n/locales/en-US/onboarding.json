@@ -53,7 +53,7 @@
             "desc": "Pick one setup — you can fine-tune it later in Settings → Features.",
             "recommended": "Recommended",
             "hardwareHintGpu": "Detected {{memory}} GB RAM, {{cores}} CPU cores and {{gpu}} acceleration; we suggest \"{{tier}}\".",
-            "hardwareHintNoGpu": "Detected {{memory}} GB RAM and {{cores}} CPU cores; the local AI model cannot use GPU acceleration (CPU inference); we suggest \"{{tier}}\".",
+            "hardwareHintNoGpu": "Detected {{memory}} GB RAM and {{cores}} CPU cores; this machine runs the local AI model on CPU, which is slower; we suggest \"{{tier}}\".",
             "extrasTitle": "Extras",
             "tier": {
                 "light": {

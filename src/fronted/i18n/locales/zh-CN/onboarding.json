@@ -53,7 +53,7 @@
             "desc": "选一套方案就行，之后随时能在「设置 → 功能设置」里细调。",
             "recommended": "推荐",
             "hardwareHintGpu": "检测到 {{memory}} GB 内存、{{cores}} 核 CPU、{{gpu}} 加速，建议选「{{tier}}」。",
-            "hardwareHintNoGpu": "检测到 {{memory}} GB 内存、{{cores}} 核 CPU，本地智能模型用不上 GPU 加速（会走 CPU），建议选「{{tier}}」。",
+            "hardwareHintNoGpu": "检测到 {{memory}} GB 内存、{{cores}} 核 CPU，本机以 CPU 运行本地智能模型、速度会慢一些，建议选「{{tier}}」。",
             "extrasTitle": "附加功能",
             "tier": {
                 "light": {
