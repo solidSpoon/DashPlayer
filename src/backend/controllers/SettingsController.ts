@@ -11,6 +11,7 @@ import {
 import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 import { ShortcutSettingDetailVO, ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
 import { ProxySettingDetailVO, ProxySettingSaveVO } from '@/common/contracts/proxy-setting-vo';
+import type { TranscriptionEngine } from '@/common/contracts/transcription-engine';
 import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
 import { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
 import {
@@ -72,6 +73,20 @@ export default class SettingsController implements Controller {
     public async saveEngineSelection(settings: EngineSelectionSettingVO): Promise<void> {
         this.logger.info('update engine selection', { settings });
         await this.settingService.saveEngineSelection(settings);
+    }
+
+    /**
+     * 获取本地语音识别引擎设置。
+     */
+    public async getTranscriptionEngineDetail(): Promise<TranscriptionEngine> {
+        return this.settingService.getTranscriptionEngine();
+    }
+
+    /**
+     * 保存本地语音识别引擎设置。
+     */
+    public async saveTranscriptionEngineDetail(engine: TranscriptionEngine): Promise<void> {
+        await this.settingService.saveTranscriptionEngine(engine);
     }
 
     /**
@@ -155,6 +170,8 @@ export default class SettingsController implements Controller {
         registerRoute('settings/service-credentials/test-youdao', () => this.testYoudao());
         registerRoute('settings/engine-selection/detail', () => this.getEngineSelectionDetail());
         registerRoute('settings/engine-selection/save', (p) => this.saveEngineSelection(p));
+        registerRoute('settings/transcription-engine/detail', () => this.getTranscriptionEngineDetail());
+        registerRoute('settings/transcription-engine/save', (p) => this.saveTranscriptionEngineDetail(p));
         registerRoute('settings/shortcuts/detail', () => this.getShortcutSettingsDetail());
         registerRoute('settings/shortcuts/save', (p) => this.saveShortcutSettings(p));
         registerRoute('settings/appearance/detail', () => this.getAppearanceSettingDetail());

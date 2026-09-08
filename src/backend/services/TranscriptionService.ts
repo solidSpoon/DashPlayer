@@ -26,6 +26,7 @@ import {
 } from '@/common/contracts/transcript/transcript-task';
 import TranscriptionTaskRepository from '@/backend/services/repositories/TranscriptionTaskRepository';
 import SubtitleService from '@/backend/services/SubtitleService';
+import TranscriptionEngineSelector from '@/backend/services/TranscriptionEngineSelector';
 import { Sentence } from '@/common/types/SentenceC';
 import { CancelByUserError } from '@/backend/utils/errors/errors';
 
@@ -132,12 +133,15 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
     constructor(
         @inject(TYPES.FfmpegService) private ffmpegService: FfmpegService,
         @inject(TYPES.RendererGateway) private rendererGateway: RendererGateway,
-        @inject(TYPES.SpeechRecognitionGateway) private speechRecognitionGateway: SpeechRecognitionGateway,
+        @inject(TYPES.TranscriptionEngineSelector) private transcriptionEngineSelector: TranscriptionEngineSelector,
         @inject(TYPES.StorageDirectoryProvider) private storageDirectoryProvider: StorageDirectoryProvider,
         @inject(TYPES.FileSystemGateway) private fileSystemGateway: FileSystemGateway,
         @inject(TYPES.TranscriptionTaskRepository) private transcriptionTaskRepository: TranscriptionTaskRepository,
         @inject(TYPES.SubtitleService) private subtitleService: SubtitleService,
     ) {}
+
+    /** 当前正在识别的文件使用的网关；任务结束后置空，供取消时终止底层进程。 */
+    private activeRecognitionGateway: SpeechRecognitionGateway | null = null;
 
     private readonly subtitleSegmenter = new EnglishSubtitleSegmenter();
 
@@ -392,7 +396,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             tempFolder = path.join(tempRoot, 'parakeet', folderName);
             await this.fileSystemGateway.ensureDirectory(tempFolder);
 
-            await this.transcribeWithSherpaOnnx({
+            await this.transcribeLocally({
                 filePath,
                 tempFolder,
                 signal,
@@ -407,19 +411,26 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                 this.logger.warn('Failed to cleanup temporary files', {cleanupError});
             }
             this.activeFilePath = null;
+            this.activeRecognitionGateway = null;
             this.sessions.delete(filePath);
         }
     }
 
     /**
-     * 使用 sherpa-onnx 与 Parakeet v3 执行英语识别，并生成适合播放器展示的 SRT。
+     * 执行本地语音识别并生成适合播放器展示的 SRT。
+     *
+     * 引擎（whisper.cpp / sherpa-onnx）在任务启动时按设置选定并全程固定，
+     * 避免任务中途切换引擎导致各块时间轴风格不一致。
+     *
      * @param opts 转录所需的输入路径、临时目录与取消信号。
      */
-    private async transcribeWithSherpaOnnx(opts: { filePath: string; tempFolder: string; signal: AbortSignal }): Promise<void> {
+    private async transcribeLocally(opts: { filePath: string; tempFolder: string; signal: AbortSignal }): Promise<void> {
         const { filePath, tempFolder, signal } = opts;
         const job = transcriptionJob(filePath);
         const startedAt = Date.now();
         const modelsRoot = await this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.MODELS);
+        const speechRecognitionGateway = this.transcriptionEngineSelector.select();
+        this.activeRecognitionGateway = speechRecognitionGateway;
         await this.sendProgress(0, filePath, TranscriptTaskState.IN_PROGRESS, 0, { phase: 'preparing' });
         if (signal.aborted) throw new CancelByUserError('Transcription cancelled by user');
         const duration = await this.ffmpegService.duration(filePath);
@@ -494,6 +505,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                 filePath,
                 progress,
                 job,
+                gateway: speechRecognitionGateway,
             });
             const timeline = result.tokens.map((token) => ({ ...token, start: token.start + offset }));
             chunkTimelines[index] = timeline;
@@ -546,14 +558,15 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         filePath: string;
         progress: number;
         job: string;
+        gateway: SpeechRecognitionGateway;
     }): Promise<SpeechRecognitionResult> {
-        const { wavPath, modelsRoot, signal, filePath, progress, job } = opts;
+        const { wavPath, modelsRoot, signal, filePath, progress, job, gateway } = opts;
         for (let attempt = 1; attempt <= MAX_CHUNK_RETRY; attempt++) {
             if (signal.aborted) throw new CancelByUserError('Transcription cancelled by user');
             try {
                 // whisper 信号量统一限制识别任务并发；未配置时跳过锁顺序校验。
                 return await concurrency.withSemaphore('whisper', async () => {
-                    return await this.speechRecognitionGateway.transcribe({
+                    return await gateway.transcribe({
                         audioPath: wavPath,
                         modelsRoot,
                         job,
@@ -592,7 +605,7 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             this.abortControllers.get(normalizedFilePath)?.abort();
             // 目标是当前正在识别的任务时，再终止底层识别进程以缩短等待时间。
             if (this.activeFilePath === normalizedFilePath) {
-                this.speechRecognitionGateway.cancelActive();
+                this.activeRecognitionGateway?.cancelActive();
             }
             return true;
         }

@@ -29,6 +29,7 @@ import {
     ServiceCredentialSettingSaveVO,
 } from '@/common/types/vo/service-credentials-setting-vo';
 import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
+import type { TranscriptionEngine } from '@/common/contracts/transcription-engine';
 import { ShortcutSettingDetailVO, ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
 import { ProxySettingDetailVO, ProxySettingSaveVO } from '@/common/contracts/proxy-setting-vo';
 import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
@@ -235,6 +236,8 @@ interface SettingsDef {
     'settings/service-credentials/test-youdao': { params: void, return: { success: boolean, message: string } };
     'settings/engine-selection/detail': { params: void, return: EngineSelectionSettingVO };
     'settings/engine-selection/save': { params: EngineSelectionSettingVO, return: void };
+    'settings/transcription-engine/detail': { params: void, return: TranscriptionEngine };
+    'settings/transcription-engine/save': { params: TranscriptionEngine, return: void };
     'settings/shortcuts/detail': { params: void, return: ShortcutSettingDetailVO };
     'settings/shortcuts/save': { params: ShortcutSettingSaveVO, return: void };
     'settings/appearance/detail': { params: void, return: AppearanceSettingVO };
@@ -250,6 +253,13 @@ interface ParakeetModelDef {
     'parakeet/models/download': { params: void, return: { success: boolean; message: string } };
     'parakeet/models/cancel-download': { params: void, return: { cancelled: boolean } };
     'parakeet/models/delete': { params: void, return: { success: boolean; message: string } };
+}
+
+interface WhisperCppModelDef {
+    'whisper-cpp/models/status': { params: void, return: ModelInstallationStatusVO };
+    'whisper-cpp/models/download': { params: void, return: { success: boolean; message: string } };
+    'whisper-cpp/models/cancel-download': { params: void, return: { cancelled: boolean } };
+    'whisper-cpp/models/delete': { params: void, return: { success: boolean; message: string } };
 }
 
 /** 视频切分 IPC 定义。 */
@@ -399,6 +409,7 @@ export type ApiDefinitions = ApiDefinition
     & StorageDef
     & SettingsDef
     & ParakeetModelDef
+    & WhisperCppModelDef
     & ConvertDef
     & FavoriteClipsDef
     & TagDef

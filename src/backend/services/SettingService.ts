@@ -31,6 +31,7 @@ import {
     RuntimeSettingSaveRequest,
     RuntimeSettingsSnapshot,
 } from '@/common/contracts/runtime-settings';
+import { TRANSCRIPTION_ENGINES, TranscriptionEngine } from '@/common/contracts/transcription-engine';
 
 /**
  * 管理设置页数据和渲染进程需要的非敏感运行时设置。
@@ -42,6 +43,8 @@ export default interface SettingService {
     saveServiceCredentials(settings: ServiceCredentialSettingSaveVO): Promise<void>;
     getEngineSelectionDetail(): Promise<EngineSelectionSettingVO>;
     saveEngineSelection(settings: EngineSelectionSettingVO): Promise<void>;
+    getTranscriptionEngine(): Promise<TranscriptionEngine>;
+    saveTranscriptionEngine(engine: TranscriptionEngine): Promise<void>;
     getShortcutSettingsDetail(): Promise<ShortcutSettingDetailVO>;
     saveShortcutSettings(settings: ShortcutSettingSaveVO): Promise<void>;
     getAppearanceSettingDetail(): Promise<AppearanceSettingVO>;
@@ -268,6 +271,26 @@ export class SettingServiceImpl implements SettingService {
         if (rates.some((rate) => !allowedRates.has(rate)) || new Set(rates).size !== rates.length) {
             throw new Error(`设置项 userSelect.playbackRateStack 非法: ${value}`);
         }
+    }
+
+    /**
+     * 查询本地语音识别引擎设置，严格校验存储值。
+     */
+    public async getTranscriptionEngine(): Promise<TranscriptionEngine> {
+        return this.requireEnumValue(
+            this.getValue('transcription.engine'),
+            TRANSCRIPTION_ENGINES,
+            'transcription.engine',
+        );
+    }
+
+    /**
+     * 保存本地语音识别引擎设置，非法值立即抛错。
+     */
+    public async saveTranscriptionEngine(engine: TranscriptionEngine): Promise<void> {
+        const validated = this.requireEnumValue(engine, TRANSCRIPTION_ENGINES, 'transcription.engine');
+        this.logger.info('update transcription engine', { engine: validated });
+        await this.setValue('transcription.engine', validated);
     }
 
     /**

@@ -545,6 +545,8 @@ const runTests = (): void => {
                     saveRuntimeSetting: vi.fn(),
                     getEngineSelectionDetail: vi.fn(),
                     saveEngineSelection: vi.fn(),
+                    getTranscriptionEngine: vi.fn().mockResolvedValue('sherpa-onnx'),
+                    saveTranscriptionEngine: vi.fn(),
                     getShortcutSettingsDetail: vi.fn(),
                     saveShortcutSettings: vi.fn(),
                     getAppearanceSettingDetail: vi.fn(),

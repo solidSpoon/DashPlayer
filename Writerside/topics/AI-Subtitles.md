@@ -8,6 +8,18 @@ DashPlayer 使用内置的本地语音识别引擎为视频生成字幕，整个
 - 只需在首次使用前下载一次本地识别模型（Parakeet v3）
 - 生成的字幕保存在视频文件同目录下，与手动准备的外挂字幕没有区别
 
+## 识别引擎
+
+设置中心提供两个本地识别引擎，可在服务凭据页面的「识别引擎」区域切换：
+
+- **whisper.cpp（默认）**：调用设备核显（Windows/Linux Vulkan、macOS Metal）推理，
+  识别速度比纯 CPU 方案快数倍，使用 Parakeet v3 GGUF 模型（约 640 MB）。
+  设备不支持核显时会显式报错，此时可切换回 sherpa-onnx。
+- **sherpa-onnx（回退）**：纯 CPU 推理，使用 Parakeet v3 INT8 模型（约 640 MB），
+  兼容性最好。
+
+两个引擎的模型互相独立，切换引擎后需确保对应模型已下载。
+
 ## 前置步骤：下载本地识别模型
 
 <procedure title="下载 Parakeet 本地模型" id="local-model-download">

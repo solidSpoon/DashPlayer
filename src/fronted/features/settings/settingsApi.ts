@@ -3,6 +3,7 @@ import { ProxySettingSaveVO } from '@/common/contracts/proxy-setting-vo';
 import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
 import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 import { ServiceCredentialSettingSaveVO } from '@/common/types/vo/service-credentials-setting-vo';
+import type { TranscriptionEngine } from '@/common/contracts/transcription-engine';
 import { ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 
@@ -137,6 +138,50 @@ export const settingsApi = {
      * @returns 删除完成后结束。
      */
     deleteParakeetModel: () => backendClient.call('parakeet/models/delete'),
+
+    /**
+     * 查询 whisper.cpp 模型状态。
+     *
+     * @returns 当前模型状态。
+     */
+    getWhisperCppModelStatus: () => backendClient.call('whisper-cpp/models/status'),
+
+    /**
+     * 下载 whisper.cpp 模型。
+     *
+     * @returns 下载任务结果。
+     */
+    downloadWhisperCppModel: () => backendClient.call('whisper-cpp/models/download'),
+
+    /**
+     * 取消 whisper.cpp 模型下载。
+     *
+     * @returns 取消结果。
+     */
+    cancelWhisperCppModelDownload: () => backendClient.call('whisper-cpp/models/cancel-download'),
+
+    /**
+     * 删除 whisper.cpp 模型。
+     *
+     * @returns 删除完成后结束。
+     */
+    deleteWhisperCppModel: () => backendClient.call('whisper-cpp/models/delete'),
+
+    /**
+     * 查询本地语音识别引擎设置。
+     *
+     * @returns 当前引擎。
+     */
+    getTranscriptionEngine: () => backendClient.call('settings/transcription-engine/detail'),
+
+    /**
+     * 保存本地语音识别引擎设置。
+     *
+     * @param engine 目标引擎。
+     * @returns 保存完成后结束。
+     */
+    saveTranscriptionEngine: (engine: TranscriptionEngine) =>
+        backendClient.call('settings/transcription-engine/save', engine),
 
     /**
      * 查询 Sherpa TTS 模型状态。

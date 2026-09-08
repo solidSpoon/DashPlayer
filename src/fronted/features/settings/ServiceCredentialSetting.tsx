@@ -32,9 +32,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
 import { SettingCard, SettingsLoadingSkeleton } from '@/fronted/features/settings/components/form';
 import { OpenAiModelUsageFeature, ServiceCredentialSettingDetailVO, ServiceCredentialSettingSaveVO } from '@/common/types/vo/service-credentials-setting-vo';
-import type { ModelInstallationStatusVO } from '@/common/types/vo/model-installation-vo';
 import type { ModelDownloadPhase } from '@/common/contracts/model-download-phase';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
+import { useModelInstallation, type ModelInstallationApi } from '@/fronted/features/settings/useModelInstallation';
+import type { TranscriptionEngine } from '@/common/contracts/transcription-engine';
 import toast from 'react-hot-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
@@ -44,6 +45,31 @@ import {
     ContextMenuItem,
     ContextMenuTrigger,
 } from '@/fronted/components/ui/context-menu';
+import { Tabs, TabsList, TabsTrigger } from '@/fronted/components/ui/tabs';
+
+/** Parakeet INT8 模型管理接口；模块级常量，保证 hook 依赖稳定。 */
+const PARAKEET_MODEL_API: ModelInstallationApi = {
+    getStatus: settingsApi.getParakeetModelStatus,
+    download: settingsApi.downloadParakeetModel,
+    cancelDownload: settingsApi.cancelParakeetModelDownload,
+    deleteModel: settingsApi.deleteParakeetModel,
+};
+
+/** Sherpa TTS 模型管理接口；模块级常量，保证 hook 依赖稳定。 */
+const SHERPA_TTS_MODEL_API: ModelInstallationApi = {
+    getStatus: settingsApi.getSherpaTtsModelStatus,
+    download: settingsApi.downloadSherpaTtsModel,
+    cancelDownload: settingsApi.cancelSherpaTtsModelDownload,
+    deleteModel: settingsApi.deleteSherpaTtsModel,
+};
+
+/** whisper.cpp GGUF 模型管理接口；模块级常量，保证 hook 依赖稳定。 */
+const WHISPER_CPP_MODEL_API: ModelInstallationApi = {
+    getStatus: settingsApi.getWhisperCppModelStatus,
+    download: settingsApi.downloadWhisperCppModel,
+    cancelDownload: settingsApi.cancelWhisperCppModelDownload,
+    deleteModel: settingsApi.deleteWhisperCppModel,
+};
 
 /**
  * 服务凭据设置页。
@@ -81,20 +107,54 @@ const ServiceCredentialSetting = () => {
     const [testingTencent, setTestingTencent] = React.useState(false);
     const [testingYoudao, setTestingYoudao] = React.useState(false);
     const [testResults, setTestResults] = React.useState<Record<string, { success: boolean; message: string } | null>>({});
-    const [parakeetModelStatus, setParakeetModelStatus] = React.useState<ModelInstallationStatusVO | null>(null);
-    const [downloadingParakeetModel, setDownloadingParakeetModel] = React.useState(false);
-    const [deletingParakeetModel, setDeletingParakeetModel] = React.useState(false);
-    const [parakeetDownloadProgress, setParakeetDownloadProgress] = React.useState(0);
-    const [parakeetDownloadPhase, setParakeetDownloadPhase] = React.useState<ModelDownloadPhase>('downloading');
-    const [sherpaTtsModelStatus, setSherpaTtsModelStatus] = React.useState<ModelInstallationStatusVO | null>(null);
-    const [downloadingSherpaTtsModel, setDownloadingSherpaTtsModel] = React.useState(false);
-    const [deletingSherpaTtsModel, setDeletingSherpaTtsModel] = React.useState(false);
-    const [sherpaTtsDownloadProgress, setSherpaTtsDownloadProgress] = React.useState(0);
-    const [sherpaTtsDownloadPhase, setSherpaTtsDownloadPhase] = React.useState<ModelDownloadPhase>('downloading');
+    // 三个本地模型卡共用同一套状态与动作逻辑；解构名保持与旧变量一致，卡片 JSX 无需改动。
+    const {
+        status: parakeetModelStatus,
+        downloading: downloadingParakeetModel,
+        deleting: deletingParakeetModel,
+        progress: parakeetDownloadProgress,
+        phase: parakeetDownloadPhase,
+        download: downloadParakeetModel,
+        cancelDownload: cancelParakeetDownload,
+        deleteModel: deleteParakeetModel,
+    } = useModelInstallation({
+        api: PARAKEET_MODEL_API,
+        progressEventName: 'parakeet-model-download-progress',
+        displayName: 'Parakeet v3',
+    });
 
-    /** 是否已由用户手动触发下载；用于丢弃过期的状态查询响应。 */
-    const downloadingRef = React.useRef(false);
-    const sherpaTtsDownloadingRef = React.useRef(false);
+    const {
+        status: sherpaTtsModelStatus,
+        downloading: downloadingSherpaTtsModel,
+        deleting: deletingSherpaTtsModel,
+        progress: sherpaTtsDownloadProgress,
+        phase: sherpaTtsDownloadPhase,
+        download: downloadSherpaTtsModel,
+        cancelDownload: cancelSherpaTtsDownload,
+        deleteModel: deleteSherpaTtsModel,
+    } = useModelInstallation({
+        api: SHERPA_TTS_MODEL_API,
+        progressEventName: 'sherpa-tts-model-download-progress',
+        displayName: 'Sherpa TTS',
+    });
+
+    const {
+        status: whisperCppModelStatus,
+        downloading: downloadingWhisperCppModel,
+        deleting: deletingWhisperCppModel,
+        progress: whisperCppDownloadProgress,
+        phase: whisperCppDownloadPhase,
+        download: downloadWhisperCppModel,
+        cancelDownload: cancelWhisperCppDownload,
+        deleteModel: deleteWhisperCppModel,
+    } = useModelInstallation({
+        api: WHISPER_CPP_MODEL_API,
+        progressEventName: 'whisper-cpp-model-download-progress',
+        displayName: 'whisper.cpp',
+    });
+
+    /** 本地语音识别引擎；whisper.cpp 为默认（核显加速），sherpa-onnx 为 CPU 回退。 */
+    const [transcriptionEngine, setTranscriptionEngine] = React.useState<TranscriptionEngine>('whisper-cpp');
 
     /** 将文本写入剪贴板；右键菜单操作失败时向用户明确反馈。 */
     const copyText = async (value: string) => {
@@ -146,23 +206,6 @@ const ServiceCredentialSetting = () => {
     const openAiModels = watch('openai.models');
     const [newOpenAiModel, setNewOpenAiModel] = React.useState('');
 
-    /**
-     * 刷新 Parakeet 模型状态；若期间用户已手动开始下载，丢弃过期响应，避免覆盖进行中的下载状态。
-     * 下载任务结束后由主进程广播 idle 终态事件触发本方法，复位 UI。
-     */
-    const refreshParakeetModelStatus = React.useCallback(async () => {
-        const status = await settingsApi.getParakeetModelStatus();
-        setParakeetModelStatus(status);
-        if (downloadingRef.current) {
-            return;
-        }
-        setDownloadingParakeetModel(status.downloading);
-        if (status.phase) {
-            setParakeetDownloadPhase(status.phase);
-        }
-        setParakeetDownloadProgress(status.percent);
-    }, []);
-
     React.useEffect(() => {
         if (!settings) {
             return;
@@ -170,70 +213,26 @@ const ServiceCredentialSetting = () => {
         initialize(settings);
     }, [initialize, settings]);
 
+    /** 加载本地语音识别引擎设置；失败时保持默认值并在控制台可见的错误中暴露。 */
     React.useEffect(() => {
-        refreshParakeetModelStatus().catch(() => null);
-    }, [refreshParakeetModelStatus]);
-
-    const refreshSherpaTtsModelStatus = React.useCallback(async () => {
-        const status = await settingsApi.getSherpaTtsModelStatus();
-        setSherpaTtsModelStatus(status);
-        if (sherpaTtsDownloadingRef.current) return;
-        setDownloadingSherpaTtsModel(status.downloading);
-        if (status.phase) setSherpaTtsDownloadPhase(status.phase);
-        setSherpaTtsDownloadProgress(status.percent);
+        settingsApi.getTranscriptionEngine()
+            .then(setTranscriptionEngine)
+            .catch(() => null);
     }, []);
 
-    React.useEffect(() => {
-        refreshSherpaTtsModelStatus().catch(() => null);
-    }, [refreshSherpaTtsModelStatus]);
-
-    React.useEffect(() => {
-        const handler = (evt: Event) => {
-            const detail = (evt as CustomEvent).detail as { percent: number; phase?: ModelDownloadPhase } | undefined;
-            if (!detail) return;
-            // 终态事件：下载任务已在主进程结束（成功/失败/取消），直接复位 UI 并重新查询状态。
-            if (detail.phase === 'idle') {
-                setDownloadingParakeetModel(false);
-                setParakeetDownloadProgress(0);
-                setParakeetDownloadPhase('downloading');
-                refreshParakeetModelStatus().catch(() => null);
-                return;
-            }
-            if (detail.phase) {
-                setParakeetDownloadPhase(detail.phase);
-            }
-            setParakeetDownloadProgress(detail.percent);
-
-            if (detail.percent >= 100 && detail.phase !== 'extracting' && detail.phase !== 'installing') {
-                setTimeout(() => {
-                    refreshParakeetModelStatus().catch(() => null);
-                }, 300);
-            }
-        };
-
-        window.addEventListener('parakeet-model-download-progress', handler as EventListener);
-        return () => {
-            window.removeEventListener('parakeet-model-download-progress', handler as EventListener);
-        };
-    }, [refreshParakeetModelStatus]);
-
-    React.useEffect(() => {
-        const handler = (evt: Event) => {
-            const detail = (evt as CustomEvent).detail as { percent: number; phase?: ModelDownloadPhase } | undefined;
-            if (!detail) return;
-            if (detail.phase === 'idle') {
-                setDownloadingSherpaTtsModel(false);
-                setSherpaTtsDownloadProgress(0);
-                setSherpaTtsDownloadPhase('downloading');
-                refreshSherpaTtsModelStatus().catch(() => null);
-                return;
-            }
-            if (detail.phase) setSherpaTtsDownloadPhase(detail.phase);
-            setSherpaTtsDownloadProgress(detail.percent);
-        };
-        window.addEventListener('sherpa-tts-model-download-progress', handler as EventListener);
-        return () => window.removeEventListener('sherpa-tts-model-download-progress', handler as EventListener);
-    }, [refreshSherpaTtsModelStatus]);
+    /**
+     * 切换本地语音识别引擎并持久化；保存失败时不更新本地状态，下次打开仍显示已保存值。
+     *
+     * @param engine 目标引擎。
+     */
+    const changeTranscriptionEngine = async (engine: TranscriptionEngine) => {
+        try {
+            await settingsApi.saveTranscriptionEngine(engine);
+            setTranscriptionEngine(engine);
+        } catch (error) {
+            toast.error(`${t('common.saveFailed')}\n${error instanceof Error ? error.message : String(error)}`);
+        }
+    };
 
     /**
      * 测试指定服务商连通性。
@@ -311,101 +310,6 @@ const ServiceCredentialSetting = () => {
         );
     };
 
-    /**
-     * 下载固定的 Parakeet v3 INT8 模型。
-     */
-    const downloadParakeetModel = async () => {
-        downloadingRef.current = true;
-        setDownloadingParakeetModel(true);
-        setParakeetDownloadProgress(0);
-        setParakeetDownloadPhase('downloading');
-        try {
-            await settingsApi.downloadParakeetModel();
-            setParakeetDownloadProgress(100);
-            setParakeetDownloadPhase('downloading');
-            toast.success(`${t('common.downloadDone')}\nParakeet v3 模型已下载`);
-            await refreshParakeetModelStatus();
-        } catch (error) {
-            toast.error(`${t('common.downloadFailed')}\n${error instanceof Error ? error.message : String(error)}`);
-        } finally {
-            downloadingRef.current = false;
-            setDownloadingParakeetModel(false);
-        }
-    };
-
-    /**
-     * 取消正在进行的 Parakeet v3 模型下载。
-     */
-    const cancelParakeetDownload = async () => {
-        try {
-            const result = await settingsApi.cancelParakeetModelDownload();
-            if (result.cancelled) {
-                setParakeetDownloadPhase('downloading');
-                toast.success(t('serviceCredentials.parakeet.downloadCancelled'));
-            }
-        } catch (error) {
-            toast.error(`${t('common.downloadFailed')}\n${error instanceof Error ? error.message : String(error)}`);
-        }
-    };
-
-    /**
-     * 删除已下载的 Parakeet v3 模型并刷新状态。
-     */
-    const deleteParakeetModel = async () => {
-        setDeletingParakeetModel(true);
-        try {
-            await settingsApi.deleteParakeetModel();
-            toast.success(t('serviceCredentials.parakeet.modelDeleted'));
-            await refreshParakeetModelStatus();
-        } catch (error) {
-            toast.error(`${t('serviceCredentials.parakeet.deleteFailed')}\n${error instanceof Error ? error.message : String(error)}`);
-        } finally {
-            setDeletingParakeetModel(false);
-        }
-    };
-
-    /**
-     * 下载固定的 Sherpa-ONNX Piper 英语 TTS 模型。
-     */
-    const downloadSherpaTtsModel = async () => {
-        sherpaTtsDownloadingRef.current = true;
-        setDownloadingSherpaTtsModel(true);
-        setSherpaTtsDownloadProgress(0);
-        setSherpaTtsDownloadPhase('downloading');
-        try {
-            await settingsApi.downloadSherpaTtsModel();
-            toast.success(`${t('common.downloadDone')}\nSherpa TTS 模型已下载`);
-            await refreshSherpaTtsModelStatus();
-        } catch (error) {
-            toast.error(`${t('common.downloadFailed')}\n${error instanceof Error ? error.message : String(error)}`);
-        } finally {
-            sherpaTtsDownloadingRef.current = false;
-            setDownloadingSherpaTtsModel(false);
-        }
-    };
-
-    /**
-     * 取消正在进行的 Sherpa TTS 模型下载。
-     */
-    const cancelSherpaTtsDownload = async () => {
-        const result = await settingsApi.cancelSherpaTtsModelDownload();
-        if (result.cancelled) toast.success('Sherpa TTS 模型下载已取消');
-    };
-
-    /**
-     * 删除已下载的 Sherpa TTS 模型。
-     */
-    const deleteSherpaTtsModel = async () => {
-        setDeletingSherpaTtsModel(true);
-        try {
-            await settingsApi.deleteSherpaTtsModel();
-            toast.success('Sherpa TTS 模型已删除');
-            await refreshSherpaTtsModelStatus();
-        } finally {
-            setDeletingSherpaTtsModel(false);
-        }
-    };
-
     const formatProgressPercent = (value: number) => `${Math.min(100, Math.max(0, Math.round(value)))}%`;
 
     const getPhaseLabel = (phase: ModelDownloadPhase) => {
@@ -419,6 +323,7 @@ const ServiceCredentialSetting = () => {
     };
 
     const [parakeetGuideOpen, setParakeetGuideOpen] = React.useState(false);
+    const [whisperCppGuideOpen, setWhisperCppGuideOpen] = React.useState(false);
     const [sherpaGuideOpen, setSherpaGuideOpen] = React.useState(false);
 
     if (!ready) {
@@ -608,7 +513,22 @@ const ServiceCredentialSetting = () => {
                     </div>
                 </SettingCard>
 
-                {/* 英语字幕识别模型卡片 */}
+                {/* 本地语音识别引擎切换 */}
+                <SettingCard
+                    title="识别引擎"
+                    description="whisper.cpp 默认使用核显加速，识别速度显著更快；sherpa-onnx 为纯 CPU 回退方案。切换后下次生成字幕生效。"
+                    icon={Bot}
+                >
+                    <Tabs value={transcriptionEngine} onValueChange={(value) => changeTranscriptionEngine(value as TranscriptionEngine)}>
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="whisper-cpp">whisper.cpp（核显加速，推荐）</TabsTrigger>
+                            <TabsTrigger value="sherpa-onnx">sherpa-onnx（CPU）</TabsTrigger>
+                        </TabsList>
+                    </Tabs>
+                </SettingCard>
+
+                {/* 英语字幕识别模型卡片（sherpa-onnx 引擎） */}
+                {transcriptionEngine === 'sherpa-onnx' && (
                 <SettingCard
                     title="英语字幕识别模型"
                     description="用于自动识别视频语音并生成双语字幕。"
@@ -766,6 +686,169 @@ const ServiceCredentialSetting = () => {
                         )}
                     </div>
                 </SettingCard>
+                )}
+
+                {/* 英语字幕识别模型卡片（whisper.cpp 引擎） */}
+                {transcriptionEngine === 'whisper-cpp' && (
+                <SettingCard
+                    title="英语字幕识别模型（whisper.cpp）"
+                    description="默认引擎，核显加速识别，比 CPU 方案快数倍；需下载 Parakeet v3 GGUF 模型。"
+                    icon={Cpu}
+                    headerAction={
+                        whisperCppModelStatus?.ready && (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openModelFolder(whisperCppModelStatus.archivePath)}
+                            >
+                                <FolderOpen className="w-3.5 h-3.5 mr-1.5" />
+                                打开存放目录
+                            </Button>
+                        )
+                    }
+                >
+                    <div className="p-4 space-y-4">
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-muted/20 p-3.5 rounded-xl border border-border/50">
+                            <div className="space-y-1 min-w-0">
+                                <div className="flex items-center gap-2.5 flex-wrap">
+                                    <span className="text-sm font-semibold text-foreground">Parakeet TDT 0.6B v3（GGUF q8_0）</span>
+                                    <span className="text-xs font-mono text-muted-foreground bg-muted px-1.5 py-0.5 rounded">~640 MB</span>
+                                    {whisperCppModelStatus?.ready ? (
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+                                            <CheckCircle2 className="w-3.5 h-3.5" />
+                                            {t('common.ready')}
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+                                            {t('common.notDownloaded')}
+                                        </span>
+                                    )}
+                                </div>
+                                <p className="text-xs text-muted-foreground">
+                                    与默认引擎同款模型，由 whisper.cpp 调用核显（Windows/Linux Vulkan、macOS Metal）推理；
+                                    设备不支持核显时会显式报错，可切换回 sherpa-onnx 引擎。
+                                </p>
+                            </div>
+
+                            <div className="flex items-center gap-2 shrink-0">
+                                {downloadingWhisperCppModel ? (
+                                    whisperCppDownloadPhase === 'downloading' ? (
+                                        <Button type="button" variant="outline" size="sm" onClick={() => cancelWhisperCppDownload().catch(() => null)}>
+                                            <Square className="w-3.5 h-3.5 mr-1.5 text-destructive" />
+                                            {t('serviceCredentials.parakeet.cancelDownload')}
+                                        </Button>
+                                    ) : (
+                                        <Button type="button" variant="outline" size="sm" disabled>
+                                            <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+                                            {t('serviceCredentials.parakeet.installing')}
+                                        </Button>
+                                    )
+                                ) : (
+                                    <>
+                                        {!whisperCppModelStatus?.ready && (
+                                            <Button type="button" size="sm" onClick={() => downloadWhisperCppModel().catch(() => null)}>
+                                                <Download className="w-3.5 h-3.5 mr-1.5" />
+                                                {t('common.download')}
+                                            </Button>
+                                        )}
+                                        {whisperCppModelStatus?.ready && (
+                                            <AlertDialog>
+                                                <AlertDialogTrigger asChild>
+                                                    <Button type="button" variant="ghost" size="sm" className="text-muted-foreground hover:text-destructive" disabled={deletingWhisperCppModel}>
+                                                        <Trash2 className="w-3.5 h-3.5 mr-1.5" />
+                                                        {t('serviceCredentials.parakeet.deleteModel')}
+                                                    </Button>
+                                                </AlertDialogTrigger>
+                                                <AlertDialogContent>
+                                                    <AlertDialogHeader>
+                                                        <AlertDialogTitle>{t('serviceCredentials.parakeet.deleteConfirmTitle')}</AlertDialogTitle>
+                                                        <AlertDialogDescription>{t('serviceCredentials.parakeet.deleteConfirmDescription')}</AlertDialogDescription>
+                                                    </AlertDialogHeader>
+                                                    <AlertDialogFooter>
+                                                        <AlertDialogCancel>{t('serviceCredentials.parakeet.cancelDelete')}</AlertDialogCancel>
+                                                        <AlertDialogAction onClick={() => deleteWhisperCppModel().catch(() => null)}>{t('serviceCredentials.parakeet.confirmDelete')}</AlertDialogAction>
+                                                    </AlertDialogFooter>
+                                                </AlertDialogContent>
+                                            </AlertDialog>
+                                        )}
+                                    </>
+                                )}
+                            </div>
+                        </div>
+
+                        {downloadingWhisperCppModel && (
+                            <div className="space-y-1.5 p-3 rounded-lg bg-muted/30 border border-border/40">
+                                <div className="flex justify-between text-xs text-muted-foreground font-medium">
+                                    <span>{getPhaseLabel(whisperCppDownloadPhase)}</span>
+                                    <span>{formatProgressPercent(whisperCppDownloadProgress)}</span>
+                                </div>
+                                <Progress value={whisperCppDownloadProgress} className="h-1.5" />
+                            </div>
+                        )}
+
+                        {/* 未就绪时提供可折叠的手动安装指引 */}
+                        {!whisperCppModelStatus?.ready && whisperCppModelStatus && (
+                            <div className="rounded-xl border border-border/60 bg-muted/10 overflow-hidden">
+                                <button
+                                    type="button"
+                                    onClick={() => setWhisperCppGuideOpen((open) => !open)}
+                                    className="w-full flex items-center justify-between px-3.5 py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                                >
+                                    <span className="flex items-center gap-1.5">
+                                        <HelpCircle className="w-3.5 h-3.5" />
+                                        网络不佳？查看手动下载与安装指南
+                                    </span>
+                                    {whisperCppGuideOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                                </button>
+
+                                {whisperCppGuideOpen && (
+                                    <div className="p-3.5 pt-2 space-y-3.5 text-xs border-t border-border/40 text-muted-foreground">
+                                        <div className="space-y-1.5">
+                                            <div className="font-semibold text-foreground">1. 下载模型文件：</div>
+                                            <div className="bg-background/80 rounded border border-border/60 p-2 space-y-1.5 font-mono text-[11px] break-all select-text">
+                                                <div className="text-muted-foreground/70">{whisperCppModelStatus.downloadUrl}</div>
+                                                <div className="flex items-center gap-2 pt-1 font-sans">
+                                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => copyText(whisperCppModelStatus.downloadUrl)}>
+                                                        <Copy className="w-3 h-3 mr-1" />
+                                                        复制下载链接
+                                                    </Button>
+                                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => openDownloadUrl(whisperCppModelStatus.downloadUrl)}>
+                                                        <ExternalLink className="w-3 h-3 mr-1" />
+                                                        在浏览器中打开
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-1.5">
+                                            <div className="font-semibold text-foreground">2. 将下载的文件保存到指定路径：</div>
+                                            <div className="bg-background/80 rounded border border-border/60 p-2 space-y-1.5 font-mono text-[11px] break-all select-text">
+                                                <div className="text-muted-foreground/70">{whisperCppModelStatus.archivePath}</div>
+                                                <div className="flex items-center gap-2 pt-1 font-sans">
+                                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => copyText(whisperCppModelStatus.archivePath)}>
+                                                        <Copy className="w-3 h-3 mr-1" />
+                                                        复制目标路径
+                                                    </Button>
+                                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => openModelFolder(whisperCppModelStatus.archivePath)}>
+                                                        <FolderOpen className="w-3 h-3 mr-1" />
+                                                        一键打开目标文件夹
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div className="space-y-0.5 text-muted-foreground/90 bg-muted/30 p-2 rounded">
+                                            <span className="font-semibold text-foreground">3. 完成安装：</span>
+                                            <span>文件放入上述目录后，点击上方的「下载」按钮，应用会自动识别并安装生效。</span>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </SettingCard>
+                )}
 
                 {/* 英语语音朗读模型卡片 */}
                 <SettingCard
