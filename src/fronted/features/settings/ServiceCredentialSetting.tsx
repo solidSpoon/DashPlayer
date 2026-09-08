@@ -583,6 +583,8 @@ const ServiceCredentialSetting: React.FC = () => {
                         onCancelDownload={cancelLocalMtDownload}
                         onDelete={deleteLocalMt}
                         onOpenFolder={openModelFolder}
+                        onCopy={copyText}
+                        onOpenUrl={openDownloadUrl}
                     />
 
                     {/* 单词与例句发音卡片 */}

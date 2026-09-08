@@ -1,6 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { CheckCircle2, Download, FolderOpen, Languages, Square, Trash2 } from 'lucide-react';
+import { CheckCircle2, Copy, Download, ExternalLink, FolderOpen, Languages, Square, Trash2 } from 'lucide-react';
 import { Button } from '@/fronted/components/ui/button';
 import { Progress } from '@/fronted/components/ui/progress';
 import {
@@ -15,6 +15,7 @@ import {
     AlertDialogTrigger,
 } from '@/fronted/components/ui/alert-dialog';
 import { SettingBlockHeader } from '@/fronted/features/settings/components/form';
+import { ManualDownloadGuide } from '@/fronted/components/shared/ManualDownloadGuide';
 import type { LocalMtStatus } from '@/common/contracts/local-mt';
 
 export interface LocalMtCardProps {
@@ -24,6 +25,8 @@ export interface LocalMtCardProps {
     onCancelDownload: () => void;
     onDelete: () => void;
     onOpenFolder: (path?: string) => void;
+    onCopy: (text: string) => void;
+    onOpenUrl: (url: string) => void;
 }
 
 /**
@@ -38,6 +41,8 @@ export const LocalMtCard: React.FC<LocalMtCardProps> = ({
     onCancelDownload,
     onDelete,
     onOpenFolder,
+    onCopy,
+    onOpenUrl,
 }) => {
     const { t } = useTranslation('settings');
 
@@ -155,6 +160,63 @@ export const LocalMtCard: React.FC<LocalMtCardProps> = ({
 
             {status?.error && (
                 <p className="text-xs text-destructive">{status.error}</p>
+            )}
+
+            {/* 未就绪时提供可折叠的手动下载教程：该模型是逐文件下载，需保持目录结构 */}
+            {status && !status.ready && (
+                <ManualDownloadGuide title={t('serviceCredentials.localModel.guideTitle')}>
+                    <div className="space-y-1.5">
+                        <div className="font-semibold text-foreground">{t('serviceCredentials.localModel.step1Title')}</div>
+                        <div className="text-muted-foreground/90">{t('serviceCredentials.localMt.filesToDownload')}</div>
+                        <div className="bg-background/80 rounded border border-border/60 p-2 space-y-2 font-mono text-[11px] break-all select-text">
+                            {/* 首个为官方地址，其余为备用镜像；网络受限时可改用镜像地址手动下载 */}
+                            {status.downloadUrls.map((url, index) => (
+                                <div key={url} className="space-y-1">
+                                    <div className="flex items-start gap-1.5">
+                                        {index > 0 && (
+                                            <span className="shrink-0 mt-0.5 rounded bg-amber-500/10 px-1.5 py-0.5 font-sans text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                                                {t('serviceCredentials.localModel.backupMirror')}
+                                            </span>
+                                        )}
+                                        <span className="text-muted-foreground/70 break-all">{url}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1 font-sans">
+                                        <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => onCopy(url)}>
+                                            <Copy className="w-3 h-3 mr-1" />
+                                            {t('serviceCredentials.localModel.copyDownloadUrl')}
+                                        </Button>
+                                        <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => onOpenUrl(url)}>
+                                            <ExternalLink className="w-3 h-3 mr-1" />
+                                            {t('serviceCredentials.localModel.openInBrowser')}
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                        <div className="font-semibold text-foreground">{t('serviceCredentials.localModel.step2Title')}</div>
+                        <div className="bg-background/80 rounded border border-border/60 p-2 space-y-1.5 font-mono text-[11px] break-all select-text">
+                            <div className="text-muted-foreground/70">{status.modelPath}</div>
+                            <div className="flex items-center gap-2 pt-1 font-sans">
+                                <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => onCopy(status.modelPath)}>
+                                    <Copy className="w-3 h-3 mr-1" />
+                                    {t('serviceCredentials.localModel.copyTargetPath')}
+                                </Button>
+                                <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => onOpenFolder(status.modelPath)}>
+                                    <FolderOpen className="w-3 h-3 mr-1" />
+                                    {t('serviceCredentials.localModel.openTargetFolder')}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="space-y-0.5 text-muted-foreground/90 bg-muted/30 p-2 rounded">
+                        <div className="font-semibold text-foreground">{t('serviceCredentials.localModel.step3Title')}</div>
+                        <div>{t('serviceCredentials.localMt.installHint')}</div>
+                    </div>
+                </ManualDownloadGuide>
             )}
         </div>
     );

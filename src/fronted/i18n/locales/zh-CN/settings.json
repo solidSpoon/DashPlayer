@@ -461,7 +461,9 @@
             "downloadDone": "本地快速翻译模型下载完成",
             "deleteDone": "本地快速翻译模型已删除",
             "deleteConfirmTitle": "删除本地快速翻译模型？",
-            "deleteConfirmDescription": "删除后需要重新下载才能使用，确定要删除吗？"
+            "deleteConfirmDescription": "删除后需要重新下载才能使用，确定要删除吗？",
+            "filesToDownload": "需要的文件：仓库里的全部文件（含 onnx 子目录），请保持原有目录结构。",
+            "installHint": "文件放好后，回到这里点击上方的「下载」，应用会校验并完成安装。"
         }
     }
 }

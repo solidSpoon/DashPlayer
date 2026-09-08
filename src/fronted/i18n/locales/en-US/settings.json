@@ -461,7 +461,9 @@
             "downloadDone": "Local quick translation model downloaded",
             "deleteDone": "Local quick translation model deleted",
             "deleteConfirmTitle": "Delete the local quick translation model?",
-            "deleteConfirmDescription": "You will need to download it again before using it."
+            "deleteConfirmDescription": "You will need to download it again before using it.",
+            "filesToDownload": "Files to download: everything in the repo (including the onnx folder), keeping the same folder structure.",
+            "installHint": "Once the files are in place, come back and click Download above; the app verifies them and finishes the installation."
         }
     }
 }
