@@ -4,11 +4,13 @@ import { isDevelopmentMode } from '@/backend/utils/runtimeEnv';
 import type { CustomMigration } from './types';
 import { isCustomMigrationCompleted, markCustomMigrationCompleted } from './sysConfMarker';
 import { storeSchemaProviderMigrationV1 } from './migrations/storeSchemaProviderMigrationV1';
+import { transcriptionEngineSherpaDefaultMigrationV1 } from './migrations/transcriptionEngineSherpaDefaultMigrationV1';
 
 const logger = getMainLogger('custom-migrations');
 
 const customMigrations: CustomMigration[] = [
     storeSchemaProviderMigrationV1,
+    transcriptionEngineSherpaDefaultMigrationV1,
 ];
 
 const runCustomMigrations = async (): Promise<void> => {

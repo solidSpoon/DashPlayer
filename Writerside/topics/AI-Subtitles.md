@@ -20,6 +20,10 @@ DashPlayer 使用内置的本地语音识别引擎为视频生成字幕，整个
 
 两个引擎的模型互相独立，切换引擎后需确保对应模型已下载。
 
+<note>升级平滑性：从未设置过引擎且已完整安装 sherpa CPU 模型的老用户，
+升级后沿用 sherpa-onnx 引擎，不受新默认值影响；其余用户（新安装）默认
+whisper.cpp。迁移仅在升级后首次启动时执行一次，之后可随时手动切换。</note>
+
 ## 前置步骤：下载本地识别模型
 
 <procedure title="下载 Parakeet 本地模型" id="local-model-download">
