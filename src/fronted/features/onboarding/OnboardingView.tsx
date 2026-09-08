@@ -927,30 +927,6 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                                 </p>
                             )}
 
-                            {/* 整句讲解是唯一必须云端的能力，单独开关 */}
-                            <Label
-                                htmlFor="onboarding-sentence-learning"
-                                className={cn(
-                                    'flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors',
-                                    sentenceLearning ? 'border-primary bg-primary/5' : 'border-border bg-card hover:bg-muted/40',
-                                )}
-                            >
-                                <Checkbox
-                                    id="onboarding-sentence-learning"
-                                    checked={sentenceLearning}
-                                    onCheckedChange={(checked) => setSentenceLearning(checked === true)}
-                                    className="mt-0.5"
-                                />
-                                <div className="min-w-0 flex-1 space-y-0.5">
-                                    <div className="text-sm font-medium text-foreground">
-                                        {t('steps.translation.sentenceLearningLabel')}
-                                    </div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {t('steps.translation.sentenceLearningHint')}
-                                    </div>
-                                </div>
-                            </Label>
-
                             {/* 当前档位需要的本地模型 */}
                             {translationTier === 'light' && (
                                 <ModelDownloadRow
@@ -989,6 +965,35 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                                     onOpenFolder={openFolder}
                                 />
                             )}
+
+                            {/* 附加功能：与档位无关的独立能力，单独成区，避免看着像和模型一起配的 */}
+                            <div className="space-y-2 pt-1">
+                                <div className="text-xs font-medium text-muted-foreground">
+                                    {t('steps.translation.extrasTitle')}
+                                </div>
+                            <Label
+                                htmlFor="onboarding-sentence-learning"
+                                className={cn(
+                                    'flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors',
+                                    sentenceLearning ? 'border-primary bg-primary/5' : 'border-border bg-card hover:bg-muted/40',
+                                )}
+                            >
+                                <Checkbox
+                                    id="onboarding-sentence-learning"
+                                    checked={sentenceLearning}
+                                    onCheckedChange={(checked) => setSentenceLearning(checked === true)}
+                                    className="mt-0.5"
+                                />
+                                <div className="min-w-0 flex-1 space-y-0.5">
+                                    <div className="text-sm font-medium text-foreground">
+                                        {t('steps.translation.sentenceLearningLabel')}
+                                    </div>
+                                    <div className="text-xs text-muted-foreground">
+                                        {t('steps.translation.sentenceLearningHint')}
+                                    </div>
+                                </div>
+                            </Label>
+                            </div>
 
                             {/* 云端配置：选云端档位或开启整句讲解时展开 */}
                             {needsCloud && (

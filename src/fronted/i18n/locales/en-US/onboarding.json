@@ -53,6 +53,7 @@
             "desc": "Pick one setup — you can fine-tune it later in Settings → Features.",
             "recommended": "Recommended",
             "hardwareHint": "Detected {{memory}} GB RAM and {{cores}} CPU cores; we suggest \"{{tier}}\".",
+            "extrasTitle": "Extras",
             "tier": {
                 "light": {
                     "title": "Lightweight",
