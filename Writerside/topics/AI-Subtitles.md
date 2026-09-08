@@ -14,7 +14,8 @@ DashPlayer 使用内置的本地语音识别引擎为视频生成字幕，整个
 
 - **whisper.cpp（默认）**：调用设备核显（Windows/Linux Vulkan、macOS Metal）推理，
   识别速度比纯 CPU 方案快数倍，使用 Parakeet v3 GGUF 模型（约 640 MB）。
-  设备不支持核显时会显式报错，此时可切换回 sherpa-onnx。
+  未检测到可用核显时自动回退 CPU 模式，识别结果不受影响但速度明显变慢，
+  建议在设置中切换到 sherpa-onnx 引擎。
 - **sherpa-onnx（回退）**：纯 CPU 推理，使用 Parakeet v3 INT8 模型（约 640 MB），
   兼容性最好。
 

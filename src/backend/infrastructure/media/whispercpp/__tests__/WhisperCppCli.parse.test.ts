@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { parseWhisperCppOutput } from '@/backend/infrastructure/media/whispercpp/WhisperCppCli';
+import { detectGpuFallback, parseWhisperCppOutput } from '@/backend/infrastructure/media/whispercpp/WhisperCppCli';
 
 // 日志与运行时路径是系统边界：模块加载期会触达 Electron app，测试中静音并替换。
 vi.mock('@/backend/infrastructure/logger', () => ({
@@ -77,5 +77,42 @@ describe('whisper.cpp 输出解析', () => {
         const result = parseWhisperCppOutput('hello', stderr);
 
         expect(result.tokens[0].text).toBe(' hello');
+    });
+});
+
+describe('核显回退检测', () => {
+    it('stderr 含 no GPU found 标记时判定为 CPU 回退', () => {
+        const stderr = [
+            'parakeet_init_with_params_no_state: use gpu    = 1',
+            'parakeet_backend_init_gpu: device 0: CPU (type: 0)',
+            'parakeet_backend_init_gpu: no GPU found',
+        ].join('\n');
+
+        expect(detectGpuFallback(stderr)).toBe(true);
+    });
+
+    it('stderr 含设备初始化失败标记时判定为 CPU 回退', () => {
+        const stderr = 'parakeet_backend_init_gpu: failed to initialize Vulkan0 backend';
+
+        expect(detectGpuFallback(stderr)).toBe(true);
+    });
+
+    it('正常核显运行的 stderr 不误判', () => {
+        // 摘自真实核显运行（Intel 核显 + Mesa Vulkan）的初始化日志
+        const stderr = [
+            'ggml_vulkan: Found 1 Vulkan devices:',
+            'ggml_vulkan: 0 = Intel(R) Graphics (LNL) (Intel open-source Mesa driver) | uma: 1 | fp16: 1',
+            'parakeet_init_with_params_no_state: devices    = 2',
+            'parakeet_backend_init_gpu: found GPU device 0: Vulkan0 (type: 2, cnt: 0)',
+            'parakeet_backend_init_gpu: using Vulkan0 backend',
+        ].join('\n');
+
+        expect(detectGpuFallback(stderr)).toBe(false);
+    });
+
+    it('其他模块的初始化失败日志不误判为核显回退', () => {
+        const stderr = 'parakeet_backend_init: failed to initialize ACCEL backend';
+
+        expect(detectGpuFallback(stderr)).toBe(false);
     });
 });

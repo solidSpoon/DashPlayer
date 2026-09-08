@@ -11,6 +11,28 @@ import type { SpeechRecognitionToken } from '@/backend/services/gateways/media/S
 /** token 调试行的时间单位为 10ms，除以该常数得到秒。 */
 const TOKEN_TIME_UNIT_MS = 100;
 
+/** stderr 中标记"无核显、静默回退 CPU"的行前缀（输出契约随二进制版本固定）。 */
+const GPU_FALLBACK_MARKERS = [
+    // 设备枚举不到任何 GPU：parakeet_backend_init_gpu 直接返回空
+    'parakeet_backend_init_gpu: no GPU found',
+    // 找到 GPU 设备但初始化失败：同样回退 CPU 继续
+    'parakeet_backend_init_gpu: failed to initialize',
+] as const;
+
+/**
+ * 检测本次识别是否发生了"无核显、静默回退 CPU"。
+ *
+ * whisper.cpp 在枚举不到 Vulkan 设备或设备初始化失败时不报错，
+ * 而是回退 CPU 继续识别（exit 0、结果正确、仅速度慢）。为保留
+ * "生成慢"类反馈的日志可归因性，在识别成功后按固定标记识别该场景。
+ *
+ * @param stderr CLI 标准错误全量文本。
+ * @returns true 表示本次实际运行在 CPU 模式。
+ */
+export function detectGpuFallback(stderr: string): boolean {
+    return GPU_FALLBACK_MARKERS.some((marker) => stderr.includes(marker));
+}
+
 /**
  * whisper.cpp CLI 单次执行请求。
  */
@@ -173,6 +195,15 @@ export class WhisperCppCli {
                         return;
                     }
                     try {
+                        if (detectGpuFallback(stderr)) {
+                            this.logger.warn('whisper.cpp ran on CPU fallback', {
+                                job: request.job,
+                                pid: child.pid,
+                                // 不中断识别：CPU 回退结果正确仅速度慢，
+                                // 日志用于归因"生成慢"类反馈
+                                hint: '未检测到可用 Vulkan 设备，已回退 CPU 模式；建议切换 sherpa-onnx 引擎',
+                            });
+                        }
                         resolve(parseWhisperCppOutput(stdout, stderr));
                     } catch (error) {
                         this.logger.error('whisper.cpp output rejected', {
