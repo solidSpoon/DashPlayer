@@ -77,3 +77,25 @@ Object.defineProperty(HTMLMediaElement.prototype, 'pause', {
   writable: true,
   value: vi.fn(),
 })
+// jsdom 未实现以下浏览器 API，Radix 系列组件（Select / Popover 等）依赖它们。
+globalThis.ResizeObserver = class ResizeObserver {
+  observe() {
+    // Mock observe method
+  }
+  unobserve() {
+    // Mock unobserve method
+  }
+  disconnect() {
+    // Mock disconnect method
+  }
+} as unknown as typeof ResizeObserver
+
+if (!Element.prototype.hasPointerCapture) {
+  Element.prototype.hasPointerCapture = () => false
+  Element.prototype.setPointerCapture = () => undefined
+  Element.prototype.releasePointerCapture = () => undefined
+}
+
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => undefined
+}

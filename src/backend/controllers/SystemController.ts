@@ -156,6 +156,14 @@ export default class SystemController implements Controller {
         return app.getVersion();
     }
 
+    public async getSystemConfig(key: string): Promise<string | null> {
+        return this.systemConfigService.getValue(key);
+    }
+
+    public async setSystemConfig(params: { key: string; value: string }): Promise<void> {
+        await this.systemConfigService.setValue(params.key, params.value);
+    }
+
     /**
      * 打开当前媒体库根目录。
      *
@@ -182,5 +190,7 @@ export default class SystemController implements Controller {
         registerRoute('system/check-update', (p) => this.checkUpdate(p));
         registerRoute('system/open-url', (p) => this.openUrl(p));
         registerRoute('system/app-version', () => this.appVersion());
+        registerRoute('system/config/get', (key) => this.getSystemConfig(key));
+        registerRoute('system/config/set', (p) => this.setSystemConfig(p));
     }
 }

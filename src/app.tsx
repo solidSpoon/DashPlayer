@@ -24,6 +24,8 @@ import ConvertPage from '@/fronted/features/convert/ConvertPage';
 import Eb from '@/fronted/components/shared/common/Eb';
 import FavouritePage from '@/fronted/features/favourite/FavouritePage';
 import VideoLearningPage from '@/fronted/features/video-learning/VideoLearningPage';
+import { OnboardingView } from '@/fronted/features/onboarding/OnboardingView';
+import { getOnboardingCompletedVersion } from '@/fronted/features/onboarding/onboardingApi';
 import { Button } from '@/fronted/components/ui/button';
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
@@ -35,6 +37,19 @@ const App = () => {
     const { t } = useI18nTranslation('toast');
     const theme = useSetting((s) => s.values.get('appearance.theme'));
     const languageSetting = useSetting((s) => s.values.get('i18n.language'));
+    const [needsOnboarding, setNeedsOnboarding] = React.useState<boolean | null>(null);
+
+    useEffect(() => {
+        (async () => {
+            try {
+                const completedVersion = await getOnboardingCompletedVersion();
+                setNeedsOnboarding(!completedVersion);
+            } catch {
+                setNeedsOnboarding(false);
+            }
+        })();
+    }, []);
+
     useEffect(() => {
         document.documentElement.classList.add(theme ?? 'dark');
         return () => {
@@ -86,82 +101,86 @@ const App = () => {
     return (
         <>
             <div className="w-full h-screen text-black overflow-hidden select-none font-sans">
-                <HashRouter>
-                    <Routes>
-                        <Route path="/" element={<HomePage />} />
-                        <Route path="home" element={<HomePage />} />
-                        <Route element={<TitleBarLayout />}>
-                            <Route
-                                path="player/:videoId"
-                                element={<PlayerPage />}
-                            />
-                            <Route path="*" element={<Layout />}>
+                {needsOnboarding ? (
+                    <OnboardingView onCompleted={() => setNeedsOnboarding(false)} />
+                ) : (
+                    <HashRouter>
+                        <Routes>
+                            <Route path="/" element={<HomePage />} />
+                            <Route path="home" element={<HomePage />} />
+                            <Route element={<TitleBarLayout />}>
                                 <Route
-                                    path="transcript"
-                                    element={<Eb key="transcript"><TranscriptPage /></Eb>}
+                                    path="player/:videoId"
+                                    element={<PlayerPage />}
                                 />
-                                <Route
-                                    path="favorite"
-                                    element={<Eb key="favorite"><FavouritePage /></Eb>}
-                                />
-                                <Route
-                                    path="split"
-                                    element={<Eb key="split"><SplitPage /></Eb>}
-                                />
-                                <Route
-                                    path="convert"
-                                    element={<Eb key="convert"><ConvertPage /></Eb>}
-                                />
-                                <Route
-                                    path="vocabulary"
-                                    element={<Eb key="vocabulary"><VideoLearningPage /></Eb>}
-                                />
-                                <Route path="about" element={<Navigate to="/settings/about" replace />} />
-                                <Route
-                                    path="settings"
-                                    element={<SettingLayout />}
-                                >
+                                <Route path="*" element={<Layout />}>
                                     <Route
-                                        path="*"
-                                        element={<Eb><ShortcutSetting /></Eb>}
+                                        path="transcript"
+                                        element={<Eb key="transcript"><TranscriptPage /></Eb>}
                                     />
                                     <Route
-                                        path="shortcut"
-                                        element={<Eb><ShortcutSetting /></Eb>}
+                                        path="favorite"
+                                        element={<Eb key="favorite"><FavouritePage /></Eb>}
                                     />
                                     <Route
-                                        path="service-credentials"
-                                        element={<Eb><ServiceCredentialSetting /></Eb>}
+                                        path="split"
+                                        element={<Eb key="split"><SplitPage /></Eb>}
                                     />
                                     <Route
-                                        path="engine-selection"
-                                        element={<Eb><EngineSelectionSetting /></Eb>}
+                                        path="convert"
+                                        element={<Eb key="convert"><ConvertPage /></Eb>}
                                     />
                                     <Route
-                                        path="storage"
-                                        element={<Eb><StorageSetting /></Eb>}
+                                        path="vocabulary"
+                                        element={<Eb key="vocabulary"><VideoLearningPage /></Eb>}
                                     />
+                                    <Route path="about" element={<Navigate to="/settings/about" replace />} />
                                     <Route
-                                        path="update"
-                                        element={<Navigate to="/settings/about" replace />}
-                                    />
-                                    <Route
-                                        path="about"
-                                        element={<Eb><AboutSetting /></Eb>}
-                                    />
-                                    <Route
-                                        path="appearance"
-                                        element={<Eb><AppearanceSetting /></Eb>}
-                                    />
-                                    <Route
-                                        path="proxy"
-                                        element={<Eb><ProxySetting /></Eb>}
-                                    />
+                                        path="settings"
+                                        element={<SettingLayout />}
+                                    >
+                                        <Route
+                                            path="*"
+                                            element={<Eb><ShortcutSetting /></Eb>}
+                                        />
+                                        <Route
+                                            path="shortcut"
+                                            element={<Eb><ShortcutSetting /></Eb>}
+                                        />
+                                        <Route
+                                            path="service-credentials"
+                                            element={<Eb><ServiceCredentialSetting /></Eb>}
+                                        />
+                                        <Route
+                                            path="engine-selection"
+                                            element={<Eb><EngineSelectionSetting /></Eb>}
+                                        />
+                                        <Route
+                                            path="storage"
+                                            element={<Eb><StorageSetting /></Eb>}
+                                        />
+                                        <Route
+                                            path="update"
+                                            element={<Navigate to="/settings/about" replace />}
+                                        />
+                                        <Route
+                                            path="about"
+                                            element={<Eb><AboutSetting /></Eb>}
+                                        />
+                                        <Route
+                                            path="appearance"
+                                            element={<Eb><AppearanceSetting /></Eb>}
+                                        />
+                                        <Route
+                                            path="proxy"
+                                            element={<Eb><ProxySetting /></Eb>}
+                                        />
+                                    </Route>
                                 </Route>
                             </Route>
-                        </Route>
-                    </Routes>
-                </HashRouter>
+                        </Routes>
+                    </HashRouter>
+                )}
             </div>
             <HotToaster
                 position="top-center"
