@@ -132,6 +132,8 @@ interface SystemDef {
     'system/open-url': { params: string, return: void };
     'system/app-version': { params: void, return: string };
     'system/test-renderer-api': { params: void, return: void };
+    'system/config/get': { params: string, return: string | null };
+    'system/config/set': { params: { key: string; value: string }, return: void };
 }
 
 interface AiTransDef {

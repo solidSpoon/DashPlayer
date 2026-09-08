@@ -1,0 +1,60 @@
+{
+  "dialogTitle": "Welcome to DashPlayer",
+  "dialogSubtitle": "Just a few quick steps to get everything ready for immersive language learning.",
+  "stepIndicator": "Step {{current}} of {{total}}",
+  "prevStep": "Previous",
+  "nextStep": "Next",
+  "skip": "Skip for now",
+  "finish": "Finish & Get Started",
+  "steps": {
+    "models": {
+      "title": "Offline Speech & Transcription Models",
+      "desc": "DashPlayer features built-in local offline models for natural pronunciation and speech recognition without an internet connection.",
+      "ttsTitle": "Word & Text Pronunciation (Sherpa-TTS)",
+      "ttsDesc": "Used for offline high-fidelity speech synthesis during word lookup and vocabulary study.",
+      "ttsStatusReady": "Ready (Installed)",
+      "ttsStatusNotReady": "Not Downloaded",
+      "ttsStatusDownloading": "Downloading model ({{percent}}%)...",
+      "ttsActionDownload": "Download Pronunciation Model",
+      "transcriptionTitle": "Subtitle Speech Recognition (Parakeet v3)",
+      "transcriptionDesc": "Used for one-click automatic transcription and bilingual alignment directly on your device.",
+      "transcriptionStatusReady": "Ready (Installed)",
+      "transcriptionStatusNotReady": "Not Downloaded",
+      "transcriptionStatusDownloading": "Downloading model ({{percent}}%)...",
+      "transcriptionActionDownload": "Download Transcription Model",
+      "downloadNote": "Tip: Downloads support resumption. If your network is slow, you can also download them later in Settings → Service Credentials."
+    },
+    "translation": {
+      "title": "Configure Translation & LLM",
+      "desc": "Select your AI engine and set up keys or download models directly:",
+      "optionLocalTitle": "Local Offline Model (Recommended)",
+      "optionLocalDesc": "Runs completely on your device without internet access or API keys, private and free.",
+      "optionOpenAiTitle": "Cloud LLM (OpenAI Compatible)",
+      "optionOpenAiDesc": "Connect to cloud LLMs for high-accuracy translation and deep linguistic analysis.",
+      "localModelLabel": "Local LLM (Qwen 3.5 2B)",
+      "localModelDesc": "Recommended for daily use, high quality offline subtitle translation and lookup (~1.28 GB).",
+      "localModelReady": "Ready",
+      "localModelDownloading": "Downloading model ({{percent}}%)...",
+      "localModelActionDownload": "Download Local LLM",
+      "openaiKeyLabel": "API Key",
+      "openaiKeyPlaceholder": "Enter API Key starting with sk-",
+      "openaiEndpointLabel": "API Endpoint",
+      "openaiEndpointPlaceholder": "https://api.openai.com",
+      "testConnection": "Test Connection",
+      "testing": "Testing...",
+      "testSuccess": "Connected successfully",
+      "testFailed": "Connection failed",
+      "cloudSetupTip": "Tip: You can change models or configure custom prompt styles in Settings anytime."
+    },
+    "tutorial": {
+      "title": "How to Open Videos & Subtitles",
+      "desc": "Master the two most convenient ways to import media and start learning:",
+      "method1Title": "Method 1: Open a Media Folder (Recommended)",
+      "method1Desc": "Click 'Open Folder' on the home page and select a directory containing your videos and subtitles. DashPlayer will automatically link them.",
+      "method1Tip": "💡 Tip: Keep video and subtitle files in the same folder with matching names, e.g. movie.mp4 and movie.srt.",
+      "method2Title": "Method 2: Multi-select Video and Subtitle Files",
+      "method2Desc": "Click 'Open File', and in the system file picker dialog, hold Ctrl / Command to select both the video file (.mp4/.mkv, etc.) and subtitle file (.srt/.vtt, etc.) together.",
+      "method2Tip": "💡 Tip: Selecting both files at once automatically binds the subtitles and loads the player."
+    }
+  }
+}

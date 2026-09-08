@@ -15,6 +15,8 @@ import zhPages from '@/fronted/i18n/locales/zh-CN/pages.json';
 import enPages from '@/fronted/i18n/locales/en-US/pages.json';
 import zhCommon from '@/fronted/i18n/locales/zh-CN/common.json';
 import enCommon from '@/fronted/i18n/locales/en-US/common.json';
+import zhOnboarding from '@/fronted/i18n/locales/zh-CN/onboarding.json';
+import enOnboarding from '@/fronted/i18n/locales/en-US/onboarding.json';
 
 export type AppLocale = 'zh-CN' | 'en-US';
 export type AppLanguageSetting = 'system' | AppLocale;
@@ -30,6 +32,7 @@ export const resources = {
         player: zhPlayer,
         pages: zhPages,
         common: zhCommon,
+        onboarding: zhOnboarding,
     },
     'en-US': {
         nav: enNav,
@@ -39,6 +42,7 @@ export const resources = {
         player: enPlayer,
         pages: enPages,
         common: enCommon,
+        onboarding: enOnboarding,
     },
 };
 
@@ -78,7 +82,7 @@ void i18nextUse(initReactI18next)
         interpolation: {
             escapeValue: false,
         },
-        ns: ['nav', 'settings', 'toast', 'errors', 'player', 'pages', 'common'],
+        ns: ['nav', 'settings', 'toast', 'errors', 'player', 'pages', 'common', 'onboarding'],
         defaultNS: 'settings',
         returnNull: false,
         debug: import.meta.env.DEV,
