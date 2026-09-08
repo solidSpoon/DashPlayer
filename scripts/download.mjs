@@ -547,6 +547,82 @@ async function download({url, dir, file, sha}) {
     }
 }
 
+/**
+ * 运行时基于固定版本的 whisper.cpp 构建；parakeet-cli 输出格式是
+ * 解析契约（见 WhisperCppCli.parseOutput），升级前需重新验证。
+ */
+const WHISPER_CPP_REF = '52a939a2a762224e255d366c1182b2af4dd1a032';
+
+/**
+ * 本地源码构建 whisper.cpp parakeet-cli（Release 资产未发布时的开发环境兑底）。
+ *
+ * 复刻 release.yml whisper-cpp-runtime 任务的构建参数：静态链接
+ * （BUILD_SHARED_LIBS=OFF），macOS Metal 内嵌 GGML 库
+ * （GGML_METAL_EMBED_LIBRARY=ON），产出单文件自包含二进制。
+ * 源码缓存在 node_modules/.cache/whisper.cpp（不随应用打包，也不进 git）。
+ *
+ * @param {{ basePath: string, exeName: string }} param 目标目录与可执行文件名。
+ * @returns {Promise<boolean>} 构建成功且二进制已就位时 true；环境不具备（缺 cmake/git）
+ *   或构建失败时 false，由调用方跳过（whisper 引擎在运行时会显式报错）。
+ */
+async function buildWhisperCppFromSource({ basePath, exeName }) {
+    const { execSync } = await import('node:child_process');
+    for (const tool of ['cmake', 'git']) {
+        try {
+            execSync(`${tool} --version`, { stdio: 'ignore' });
+        } catch {
+            console.info(chalk.yellow(`=> 本地构建 whisper.cpp 需要 ${tool}，未检测到；请安装后重试（macOS: brew install ${tool}）`));
+            return false;
+        }
+    }
+
+    const srcDir = path.join(process.cwd(), 'node_modules', '.cache', 'whisper.cpp');
+    mkdirp(srcDir);
+    try {
+        const head = execSync('git rev-parse HEAD', { cwd: srcDir, encoding: 'utf8' }).trim();
+        if (head !== WHISPER_CPP_REF) {
+            throw new Error('ref mismatch');
+        }
+    } catch {
+        console.info(chalk.blue(`=> Fetching whisper.cpp @ ${WHISPER_CPP_REF.slice(0, 8)}...`));
+        execSync(
+            `git init "${srcDir}" && git -C "${srcDir}" remote add origin https://github.com/ggml-org/whisper.cpp && git -C "${srcDir}" fetch --depth 1 origin ${WHISPER_CPP_REF} && git -C "${srcDir}" checkout FETCH_HEAD`,
+            { stdio: 'inherit' },
+        );
+    }
+
+    const isMac = platform === 'darwin';
+    const gpuFlags = isMac
+        ? ['-DGGML_METAL=ON', '-DGGML_METAL_USE_BF16=ON', '-DGGML_METAL_EMBED_LIBRARY=ON', `-DCMAKE_OSX_ARCHITECTURES=${arch === 'arm64' ? 'arm64' : 'x86_64'}`]
+        : ['-DGGML_VULKAN=ON'];
+    const buildDir = path.join(srcDir, 'build');
+    console.info(chalk.blue('=> Building whisper.cpp parakeet-cli (first build takes a few minutes)...'));
+    execSync(
+        [
+            'cmake -B build',
+            '-DCMAKE_BUILD_TYPE=Release',
+            '-DGGML_NATIVE=OFF',
+            '-DBUILD_SHARED_LIBS=OFF',
+            '-DWHISPER_BUILD_EXAMPLES=ON',
+            '-DWHISPER_BUILD_TESTS=OFF',
+            ...gpuFlags,
+        ].join(' '),
+        { cwd: srcDir, stdio: 'inherit' },
+    );
+    execSync(`cmake --build build --config Release --target parakeet-cli -j 4`, { cwd: srcDir, stdio: 'inherit' });
+
+    const builtPath = platform === 'win32'
+        ? path.join(buildDir, 'bin', 'Release', 'parakeet-cli.exe')
+        : path.join(buildDir, 'bin', 'parakeet-cli');
+    if (!fs.existsSync(builtPath)) {
+        console.info(chalk.yellow(`=> whisper.cpp 构建产物未找到：${builtPath}`));
+        return false;
+    }
+    fs.copyFileSync(builtPath, path.join(basePath, exeName));
+    console.info(chalk.green(`✅ whisper.cpp parakeet-cli built and installed to ${basePath}`));
+    return true;
+}
+
 {
     // whisper.cpp 离线识别 CLI（whisper.cpp 引擎的核显加速运行时）。
     // 资产随应用 Release 一起发布：release.yml 的 whisper-cpp-runtime 任务
@@ -580,7 +656,11 @@ async function download({url, dir, file, sha}) {
                 }
             }
             if (!assetExists) {
-                console.info(chalk.yellow(`=> whisper.cpp 运行时资产尚未随 v${version} 发布，已跳过；识别引擎可暂用 sherpa-onnx，或手动将二进制放置到 ${exePath}`));
+                // 资产未随版本发布（本地开发、历史版本）：回退到本地源码构建。
+                const built = await buildWhisperCppFromSource({ basePath, exeName });
+                if (!built) {
+                    console.info(chalk.yellow(`=> whisper.cpp 运行时暂缺且本地构建未完成，已跳过；识别引擎可暂用 sherpa-onnx，或手动将二进制放置到 ${exePath}`));
+                }
             } else {
                 console.info(chalk.blue(`=> whisper.cpp target: ${exePath}`));
                 await downloadAndExtractBinaryFromArchive({
