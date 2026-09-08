@@ -57,18 +57,18 @@
             "tier": {
                 "light": {
                     "title": "轻量",
-                    "desc": "字幕用轻量模型翻译，查词走内置词典",
-                    "meta": "下载约 300 MB · 速度最快 · 译文偏直白"
+                    "size": "约 300 MB",
+                    "desc": "速度快，译文偏直白"
                 },
                 "smart": {
                     "title": "本地智能",
-                    "desc": "字幕和查词都用本地智能模型",
-                    "meta": "下载约 1.28 GB · 内存占用约 2 GB · 译文更自然"
+                    "size": "约 1.28 GB",
+                    "desc": "译文更自然，内存约 2 GB"
                 },
                 "cloud": {
                     "title": "云端大模型",
-                    "desc": "字幕和查词都用云端模型",
-                    "meta": "不下载模型 · 需要 API Key · 效果最好"
+                    "size": "无需下载",
+                    "desc": "效果最好，需要 API Key"
                 }
             },
             "sentenceLearningLabel": "整句讲解",

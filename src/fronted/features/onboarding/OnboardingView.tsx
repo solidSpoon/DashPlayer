@@ -902,17 +902,17 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                                                 {t(`steps.translation.tier.${tierId}.title`)}
                                             </span>
                                             {recommendedTier === tierId && (
-                                                <span className="ml-auto rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                                                <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
                                                     {t('steps.translation.recommended')}
                                                 </span>
                                             )}
                                         </div>
-                                        <div className="text-xs text-muted-foreground leading-relaxed">
+                                        <span className="w-fit rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                            {t(`steps.translation.tier.${tierId}.size`)}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground leading-relaxed">
                                             {t(`steps.translation.tier.${tierId}.desc`)}
-                                        </div>
-                                        <div className="mt-auto text-[11px] text-muted-foreground/80 leading-relaxed">
-                                            {t(`steps.translation.tier.${tierId}.meta`)}
-                                        </div>
+                                        </span>
                                     </Label>
                                 ))}
                             </RadioGroup>

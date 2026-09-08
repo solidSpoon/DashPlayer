@@ -57,18 +57,18 @@
             "tier": {
                 "light": {
                     "title": "Lightweight",
-                    "desc": "Lightweight model for subtitles, built-in dictionary for lookups",
-                    "meta": "~300 MB download · fastest · more literal wording"
+                    "size": "~300 MB",
+                    "desc": "Fastest, more literal wording"
                 },
                 "smart": {
                     "title": "Local AI",
-                    "desc": "Local AI model for both subtitles and lookups",
-                    "meta": "~1.28 GB download · ~2 GB RAM · more natural wording"
+                    "size": "~1.28 GB",
+                    "desc": "More natural, ~2 GB RAM"
                 },
                 "cloud": {
                     "title": "Cloud model",
-                    "desc": "Cloud model for both subtitles and lookups",
-                    "meta": "no download · needs an API key · best quality"
+                    "size": "No download",
+                    "desc": "Best quality, needs an API key"
                 }
             },
             "sentenceLearningLabel": "Sentence learning",
