@@ -12,6 +12,11 @@ export interface LocalAiModelDefinition {
     sizeLabel: string;
     /** 固定版本的下载地址；自定义模型无下载源。 */
     url: string;
+    /**
+     * 国内备用镜像地址（hf-mirror.com 与 HuggingFace 逐字节同步，路径一致仅换域名）；
+     * 下载前会探测可达性并择优，未声明时只使用官方地址。自定义模型无下载源。
+     */
+    mirrorUrl?: string;
     /** 固定版本的 SHA256；自定义模型留空。 */
     sha256: string;
     /** 模型来源：catalog 由应用目录预置，custom 为用户手动放入模型目录的文件。 */
@@ -27,6 +32,7 @@ export const LOCAL_AI_MODELS: readonly LocalAiModelDefinition[] = [
         bytes: 1280835840,
         sizeLabel: '~1.28 GB',
         url: 'https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf',
+        mirrorUrl: 'https://hf-mirror.com/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf',
         sha256: 'aaf42c8b7c3cab2bf3d69c355048d4a0ee9973d48f16c731c0520ee914699223',
         source: 'catalog',
     },

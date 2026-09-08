@@ -13,6 +13,7 @@ import type LocalAiService from '@/backend/services/LocalAiService';
 import type { LocalGenerateTextOptions } from '@/backend/services/LocalAiService';
 import StorageDirectoryProvider, { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import { getRuntimeResourcePath } from '@/backend/utils/runtimeEnv';
+import { probeReachableDownloadUrl } from '@/backend/utils/probeDownloadUrl';
 import { concurrency } from '@/backend/utils/concurrency';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import type { SettingsStore } from '@/backend/services/gateways/SettingsStore';
@@ -373,8 +374,21 @@ export class LocalAiRuntime implements LocalAiService {
         }
     }
 
+    /**
+     * 选定本地模型下载地址：声明了镜像时先并行探测可达性（官方优先），
+     * 全部不可达时仍按官方地址发起请求，失败原因由真实下载给出并展示在模型卡上。
+     * 未声明镜像的模型直接使用官方地址，与既有行为一致。
+     */
+    private async resolveDownloadUrl(model: LocalAiModelDefinition, signal: AbortSignal): Promise<string> {
+        if (!model.mirrorUrl) return model.url;
+        const candidates = [model.url, model.mirrorUrl];
+        const reachable = await probeReachableDownloadUrl(candidates, signal);
+        this.logger.info('local model download url selected', { model: model.id, reachable: reachable ?? model.url });
+        return reachable ?? model.url;
+    }
+
     /** 下载固定版本，验证长度和 SHA256 后再原子重命名；损坏数据显式报错。 */
-    private async install(model: LocalAiModelDefinition, signal: AbortSignal): Promise<void> {
+    protected async install(model: LocalAiModelDefinition, signal: AbortSignal): Promise<void> {
         const modelPath = await this.modelPath(model);
         if (await this.fileSize(modelPath) === model.bytes) return;
         const partial = `${modelPath}.part`;
@@ -384,7 +398,10 @@ export class LocalAiRuntime implements LocalAiService {
         this.downloaded = existing;
         this.logger.info('local model download started', { model: model.id, downloaded: existing });
         if (existing < model.bytes) {
-            const response = await axios.get(model.url, {
+            // 多候选地址时先探测可达性择优（官方优先）；既有 .part 跨源续传安全：
+            // 镜像与官方是同一文件的逐字节镜像，续传范围校验 + 下载后 SHA256 兜底。
+            const downloadUrl = await this.resolveDownloadUrl(model, signal);
+            const response = await axios.get(downloadUrl, {
                 responseType: 'stream', signal, timeout: 60_000,
                 headers: existing > 0 ? { Range: `bytes=${existing}-` } : {},
             });
