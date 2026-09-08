@@ -183,7 +183,6 @@ container.bind<WindowPort>(TYPES.WindowPort).to(WindowPortImpl).inSingletonScope
 container.bind<AiFuncService>(TYPES.AiFuncService).to(AiFuncServiceImpl).inSingletonScope();
 container.bind<ParakeetModelService>(TYPES.ParakeetModelService).to(ParakeetModelServiceImpl).inSingletonScope();
 container.bind<SherpaOnnxCli>(TYPES.SherpaOnnxCli).to(SherpaOnnxCli).inSingletonScope();
-container.bind<SherpaOnnxCli>(TYPES.SherpaOnnxCli).to(SherpaOnnxCli).inSingletonScope();
 container.bind<WhisperCppCli>(TYPES.WhisperCppCli).to(WhisperCppCli).inSingletonScope();
 container.bind<SherpaOnnxGatewayImpl>(TYPES.SherpaOnnxGateway).to(SherpaOnnxGatewayImpl).inSingletonScope();
 container.bind<WhisperCppGatewayImpl>(TYPES.WhisperCppGateway).to(WhisperCppGatewayImpl).inSingletonScope();
