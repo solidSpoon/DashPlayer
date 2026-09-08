@@ -17,6 +17,10 @@ jobs:
   release-please:
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
+      # 透传发版 tag。steps 上下文只在 job outputs 处可用，下游 job 的
+      # with 里必须经 needs 引用本 output，直接写 steps.* 会导致整个
+      # workflow 文件解析失败（Unrecognized named-value）。
+      tag_name: ${{ steps.release.outputs.tag_name }}
     runs-on: ubuntu-latest
     steps:
       - name: Run release-please
@@ -32,5 +36,7 @@ jobs:
     needs: release-please
     if: needs.release-please.outputs.release_created == 'true'
     uses: ./.github/workflows/release.yml
+    with:
+      release_tag: ${{ needs.release-please.outputs.tag_name }}
     permissions:
       contents: write
