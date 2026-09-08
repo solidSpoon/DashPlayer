@@ -147,7 +147,7 @@ export class LocalAiRuntime implements LocalAiService {
             file,
             bytes,
             sizeLabel: `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`,
-            url: '',
+            urls: [],
             sha256: '',
             source: 'custom',
         };
@@ -277,7 +277,7 @@ export class LocalAiRuntime implements LocalAiService {
                 downloaded: downloading ? this.downloaded : await this.fileSize(`${modelPath}.part`),
                 total: model.bytes,
                 modelPath,
-                downloadUrls: model.mirrorUrl ? [model.url, model.mirrorUrl] : [model.url],
+                downloadUrls: [...model.urls],
                 error: this.modelErrors.get(model.id) ?? null,
                 custom: false,
             };
@@ -375,16 +375,15 @@ export class LocalAiRuntime implements LocalAiService {
     }
 
     /**
-     * 选定本地模型下载地址：声明了镜像时先并行探测可达性（官方优先），
-     * 全部不可达时仍按官方地址发起请求，失败原因由真实下载给出并展示在模型卡上。
-     * 未声明镜像的模型直接使用官方地址，与既有行为一致。
+     * 选定本地模型下载地址：多候选时先并行探测可达性，按声明顺序取第一个可达的
+     * （国内镜像在前）；全部不可达时仍按首个地址发起请求，失败原因由真实下载给出
+     * 并展示在模型卡上。单候选时直接使用，不探测。
      */
     private async resolveDownloadUrl(model: LocalAiModelDefinition, signal: AbortSignal): Promise<string> {
-        if (!model.mirrorUrl) return model.url;
-        const candidates = [model.url, model.mirrorUrl];
-        const reachable = await probeReachableDownloadUrl(candidates, signal);
-        this.logger.info('local model download url selected', { model: model.id, reachable: reachable ?? model.url });
-        return reachable ?? model.url;
+        if (model.urls.length === 1) return model.urls[0];
+        const reachable = await probeReachableDownloadUrl([...model.urls], signal);
+        this.logger.info('local model download url selected', { model: model.id, reachable: reachable ?? model.urls[0] });
+        return reachable ?? model.urls[0];
     }
 
     /** 下载固定版本，验证长度和 SHA256 后再原子重命名；损坏数据显式报错。 */

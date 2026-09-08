@@ -18,9 +18,9 @@ vi.mock('electron', () => ({
 }));
 
 // 字符串常量供 mock 工厂与测试断言共用；vi.mock 工厂会被提升，无法引用普通顶层变量。
-const { OFFICIAL_URL, MIRROR_URL, MODEL_BODY } = vi.hoisted(() => ({
-    OFFICIAL_URL: 'https://official.example.com/test.gguf',
-    MIRROR_URL: 'https://hf-mirror.example.com/test.gguf',
+const { PRIMARY_URL, BACKUP_URL, MODEL_BODY } = vi.hoisted(() => ({
+    PRIMARY_URL: 'https://modelscope.example.com/test.gguf',
+    BACKUP_URL: 'https://official.example.com/test.gguf',
     MODEL_BODY: 'gguf-model-content',
 }));
 
@@ -35,8 +35,7 @@ vi.mock('@/common/contracts/local-ai', async (importOriginal) => {
         file: 'test.gguf',
         bytes: Buffer.byteLength(MODEL_BODY),
         sizeLabel: '~9 B',
-        url: OFFICIAL_URL,
-        mirrorUrl: MIRROR_URL,
+        urls: [PRIMARY_URL, BACKUP_URL],
         sha256: createHash('sha256').update(MODEL_BODY).digest('hex'),
         source: 'catalog',
     };
@@ -100,7 +99,6 @@ function mockDownloadBody(): ReturnType<typeof vi.spyOn> {
     return vi.spyOn(axios, 'get').mockImplementation(async () => {
         const stream = new PassThrough();
         // 宏任务时序：install 在 await 后同步挂载 data 监听与 pipeline，数据必须在此之后写入
-        // 宏任务时序：install 在 await 后同步挂载 data 监听与 pipeline，数据必须在此之后写入
         setTimeout(() => {
             stream.write(MODEL_BODY);
             stream.end();
@@ -132,23 +130,23 @@ describe('本地模型下载的镜像回退', () => {
         return path.join(tmpRoot, TEST_MODEL.id, TEST_MODEL.file);
     }
 
-    it('官方与镜像都可达时优先从官方地址下载并安装', async () => {
-        mockHead([OFFICIAL_URL, MIRROR_URL]);
+    it('两个下载源都可达时优先使用声明的第一个源', async () => {
+        mockHead([PRIMARY_URL, BACKUP_URL]);
         const getSpy = mockDownloadBody();
 
         await runtime.installForTest(TEST_MODEL, new AbortController().signal);
 
-        expect(getSpy.mock.calls[0][0]).toBe(OFFICIAL_URL);
+        expect(getSpy.mock.calls[0][0]).toBe(PRIMARY_URL);
         expect(fs.readFileSync(installedModelPath(), 'utf-8')).toBe(MODEL_BODY);
     });
 
-    it('官方不可达时自动改用镜像地址下载且通过 SHA256 校验', async () => {
-        mockHead([MIRROR_URL]);
+    it('第一个源不可达时自动改用备用源下载且通过 SHA256 校验', async () => {
+        mockHead([BACKUP_URL]);
         const getSpy = mockDownloadBody();
 
         await runtime.installForTest(TEST_MODEL, new AbortController().signal);
 
-        expect(getSpy.mock.calls[0][0]).toBe(MIRROR_URL);
+        expect(getSpy.mock.calls[0][0]).toBe(BACKUP_URL);
         expect(fs.readFileSync(installedModelPath(), 'utf-8')).toBe(MODEL_BODY);
     });
 
@@ -161,15 +159,15 @@ describe('本地模型下载的镜像回退', () => {
         expect(fs.existsSync(installedModelPath())).toBe(false);
     });
 
-    it('未声明镜像的模型只使用官方地址且不发起探测', async () => {
-        const headSpy = vi.spyOn(axios, 'head').mockRejectedValue(new Error('未声明镜像不应发起探测'));
+    it('只有一个下载源时不发起探测，直接使用该地址', async () => {
+        const headSpy = vi.spyOn(axios, 'head').mockRejectedValue(new Error('单候选不应发起探测'));
         const getSpy = mockDownloadBody();
-        const modelWithoutMirror: LocalAiModelDefinition = { ...TEST_MODEL, mirrorUrl: undefined };
+        const singleSourceModel: LocalAiModelDefinition = { ...TEST_MODEL, urls: [BACKUP_URL] };
 
-        await runtime.installForTest(modelWithoutMirror, new AbortController().signal);
+        await runtime.installForTest(singleSourceModel, new AbortController().signal);
 
         expect(headSpy).not.toHaveBeenCalled();
-        expect(getSpy.mock.calls[0][0]).toBe(OFFICIAL_URL);
+        expect(getSpy.mock.calls[0][0]).toBe(BACKUP_URL);
         expect(fs.readFileSync(installedModelPath(), 'utf-8')).toBe(MODEL_BODY);
     });
 });

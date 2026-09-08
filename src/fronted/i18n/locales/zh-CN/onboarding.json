@@ -39,7 +39,7 @@
             "manualGuideTitle": "下载不下来？查看手动下载教程",
             "manualStep1": "1. 在浏览器中打开下面的地址下载：",
             "copyLink": "复制链接",
-            "backupMirror": "备用镜像",
+            "backupSource": "备用下载源",
             "openInBrowser": "在浏览器中打开",
             "manualStep2": "2. 将下载的文件保存到：",
             "copyPath": "复制路径",

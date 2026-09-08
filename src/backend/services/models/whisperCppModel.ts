@@ -4,13 +4,20 @@ export const WHISPER_CPP_MODEL_DIRECTORY = 'parakeet-tdt-0.6b-v3-q8_0-gguf';
 export const WHISPER_CPP_MODEL_DOWNLOAD_URL = 'https://huggingface.co/ggml-org/parakeet-GGUF/resolve/main/ggml-parakeet-tdt-0.6b-v3-q8_0.bin';
 
 /**
- * whisper.cpp 模型的国内备用镜像地址（hf-mirror.com 是 HuggingFace 的逐字节镜像，
- * 路径结构与官方一致，仅替换域名），供官方直链不可达（如大陆网络）时自动回退。
+ * 国内优先镜像（ModelScope 的 ggml-org/parakeet-GGUF 仓库，与官方逐字节一致），
+ * 大陆可直连，作为第一候选。
+ */
+export const WHISPER_CPP_MODEL_MODELSCOPE_URL = 'https://www.modelscope.cn/models/ggml-org/parakeet-GGUF/resolve/master/ggml-parakeet-tdt-0.6b-v3-q8_0.bin';
+
+/**
+ * HuggingFace 的国内备用镜像（hf-mirror.com 按地区分流：大陆 IP 自行服务，其余转官方），
+ * 作为官方直链不可达时的第三候选。
  */
 export const WHISPER_CPP_MODEL_MIRROR_URL = 'https://hf-mirror.com/ggml-org/parakeet-GGUF/resolve/main/ggml-parakeet-tdt-0.6b-v3-q8_0.bin';
 
-/** whisper.cpp 模型的有序候选下载地址：官方优先，镜像兜底。 */
+/** whisper.cpp 模型的有序候选下载地址：ModelScope 优先，官方其次，hf-mirror 兜底。 */
 export const WHISPER_CPP_MODEL_DOWNLOAD_URLS = [
+    WHISPER_CPP_MODEL_MODELSCOPE_URL,
     WHISPER_CPP_MODEL_DOWNLOAD_URL,
     WHISPER_CPP_MODEL_MIRROR_URL,
 ] as const;

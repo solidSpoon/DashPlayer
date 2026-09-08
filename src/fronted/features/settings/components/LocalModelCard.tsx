@@ -79,6 +79,7 @@ export default function LocalModelCard({
 
     /** 下载进度条的阶段文案。 */
     const phaseLabel = (phase: ModelDownloadPhase): string => {
+        if (phase === 'verifying') return t('serviceCredentials.localModel.verifying');
         if (phase === 'extracting') return t('serviceCredentials.localModel.extracting');
         if (phase === 'installing') return t('serviceCredentials.localModel.installing');
         return t('serviceCredentials.localModel.downloading');
@@ -178,7 +179,7 @@ export default function LocalModelCard({
                                     <div className="flex items-start gap-1.5">
                                         {index > 0 && (
                                             <span className="shrink-0 mt-0.5 rounded bg-amber-500/10 px-1.5 py-0.5 font-sans text-[10px] font-medium text-amber-600 dark:text-amber-400">
-                                                {t('serviceCredentials.localModel.backupMirror')}
+                                                {t('serviceCredentials.localModel.backupSource')}
                                             </span>
                                         )}
                                         <span className="text-muted-foreground/70 break-all">{url}</span>

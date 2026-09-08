@@ -16,17 +16,31 @@ export interface LocalMtModelFile {
  */
 export const LOCAL_MT_MODEL_ID = 'opus-mt-en-zh';
 
-/** 轻量翻译模型的 Hugging Face 仓库页面；网络不佳时从这里手动下载全部文件。 */
-export const LOCAL_MT_REPO_URL = 'https://huggingface.co/Xenova/opus-mt-en-zh';
+/**
+ * 轻量翻译模型的一个下载源：仓库页面用于手动下载，resolve 基址用于程序化下载
+ * （不同源的默认分支名不同：ModelScope 为 master，HuggingFace 为 main）。
+ */
+export interface LocalMtRepoSource {
+    /** 仓库页面地址，手动下载时展示。 */
+    pageUrl: string;
+    /** 文件下载基址（不含文件名）。 */
+    resolveBase: string;
+}
 
 /**
- * 国内备用镜像仓库页面；hf-mirror.com 与 HuggingFace 逐字节同步，
- * 仓库路径一致仅换域名，文件内容与官方相同（逐个文件仍经 SHA256 校验）。
+ * 有序候选下载源：ModelScope 国内镜像优先，HuggingFace 官方兜底。
+ * 两处文件与官方逐字节一致，下载后仍逐个文件经 SHA256 校验。
  */
-export const LOCAL_MT_MIRROR_REPO_URL = 'https://hf-mirror.com/Xenova/opus-mt-en-zh';
-
-/** 有序候选仓库地址：官方优先，镜像兜底；下载前探测可达性择优。 */
-export const LOCAL_MT_REPO_URLS = [LOCAL_MT_REPO_URL, LOCAL_MT_MIRROR_REPO_URL] as const;
+export const LOCAL_MT_REPO_SOURCES: readonly LocalMtRepoSource[] = [
+    {
+        pageUrl: 'https://www.modelscope.cn/models/Xenova/opus-mt-en-zh',
+        resolveBase: 'https://www.modelscope.cn/models/Xenova/opus-mt-en-zh/resolve/master',
+    },
+    {
+        pageUrl: 'https://huggingface.co/Xenova/opus-mt-en-zh',
+        resolveBase: 'https://huggingface.co/Xenova/opus-mt-en-zh/resolve/main',
+    },
+];
 
 /** 模型全部依赖文件；下载与完整性校验以此清单为准。 */
 export const LOCAL_MT_MODEL_FILES: readonly LocalMtModelFile[] = [

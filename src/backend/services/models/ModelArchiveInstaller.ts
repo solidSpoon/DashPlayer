@@ -1,4 +1,5 @@
 import axios, { isAxiosError } from 'axios';
+import { createHash } from 'crypto';
 import fs from 'fs';
 import * as path from 'path';
 import { pipeline } from 'stream/promises';
@@ -17,10 +18,16 @@ import type { ModelInstallationStatusVO } from '@/common/types/vo/model-installa
  */
 export interface ModelArchiveInstallerOptions {
     /**
-     * 有序候选下载地址：声明顺序即优先级，首个为官方地址，其余为备用镜像。
+     * 有序候选下载地址：声明顺序即优先级，首个为优先源（国内镜像），其余为备用源。
      * 多于一个地址时，下载前会探测可达性并择优；单个地址时直接使用不探测。
      */
     downloadUrls: string[];
+    /**
+     * 归档文件的 SHA256；声明后下载完成（含用户手动放置的归档）会校验，
+     * 不一致时删除归档并显式报错。raw 形态校验的就是模型文件本身。
+     * 未声明时仅靠解压与必需文件检查兜底。
+     */
+    archiveSha256?: string;
     /** 下载工作目录名（位于 models 根目录下；断点续传依赖固定路径）。 */
     workDirectoryName: string;
     /** 归档文件名。 */
@@ -164,9 +171,10 @@ export class ModelArchiveInstaller {
         await this.fileSystemGateway.ensureDirectory(workDir);
         let installed = false;
         try {
-            // 多候选地址时先探测可达性择优（官方优先），再对选定地址断点续传下载。
+            // 多候选地址时先探测可达性择优（按声明顺序），再对选定地址断点续传下载。
             const downloadUrl = await this.resolveDownloadUrl(controller.signal, archivePath);
             await this.downloadArchive(downloadUrl, archivePath, controller.signal);
+            await this.verifyArchive(archivePath, controller.signal);
             // raw 归档即模型文件本身，无需解压，直接在工作目录校验必需文件；
             // tar.bz2 归档先解压到 extract 目录再定位模型目录。
             let sourceDir: string;
@@ -237,8 +245,8 @@ export class ModelArchiveInstaller {
     /**
      * 选定本次下载使用的地址。
      *
-     * 多候选地址时先并行探测可达性（官方优先）。全部不可达时：
-     * - 本地已有归档（半成品或用户手动放置的完整文件）仍按官方地址发起请求：
+     * 多候选地址时先并行探测可达性，按声明顺序取第一个可达的地址。全部不可达时：
+     * - 本地已有归档（半成品或用户手动放置的完整文件）仍按首个地址发起请求：
      *   手动放置的完整文件会命中 416 分支直接进入安装校验，手动路径不被网络探测阻塞；
      * - 否则抛出明确错误，由 UI 的手动下载指引引导用户用浏览器下载后放入指定目录。
      *
@@ -270,11 +278,12 @@ export class ModelArchiveInstaller {
 
     /**
      * 断点续传下载模型归档。
-     * 完整性不依赖服务器 ETag（GitHub 返回的 Azure ETag 不是内容摘要），
-     * 由随后的解压与必需文件检查兜底：下载损坏必然导致解压失败或文件缺失。
+     * 完整性不依赖服务器 ETag（GitHub 返回的 Azure ETag 不是内容摘要）：
+     * 声明了 `archiveSha256` 的归档在下载后逐字节校验，未声明的由随后的
+     * 解压与必需文件检查兜底。
      *
      * 既有半成品跨源续传是安全的：镜像与官方是同一文件的逐字节镜像，
-     * Range 续传拼接后内容一致；异常拼接最终会被安装校验或引擎加载 GGUF 头部时拒绝。
+     * Range 续传拼接后内容一致；异常拼接会被 SHA256 校验或安装校验拒绝。
      *
      * @param downloadUrl 下载地址（多候选时为探测选定的可达地址）。
      * @param archivePath 归档文件路径（已存在的部分内容会被续传）。
@@ -334,6 +343,36 @@ export class ModelArchiveInstaller {
                 reject(error);
             });
         });
+    }
+
+    /**
+     * 校验归档文件的 SHA256。
+     *
+     * 下载与用户手动放置共用同一条校验路径：镜像/代理被篡改或放错文件都在这里显式失败。
+     * 不一致时删除归档，避免损坏文件在下次重试时被断点续传直接复用。
+     *
+     * @param archivePath 归档文件路径。
+     * @param signal 取消信号。
+     */
+    private async verifyArchive(archivePath: string, signal: AbortSignal): Promise<void> {
+        const expected = this.options.archiveSha256;
+        if (!expected) return;
+        this.emitPhase('verifying');
+        const hash = createHash('sha256');
+        try {
+            const stream = fs.createReadStream(archivePath, { signal });
+            for await (const chunk of stream) {
+                hash.update(chunk as Buffer);
+            }
+        } catch (error) {
+            if (signal.aborted) throw new Error(this.options.cancelledMessage);
+            throw error;
+        }
+        if (hash.digest('hex') === expected) return;
+        await this.fileSystemGateway.removeFileIfExists(archivePath);
+        throw new Error(
+            `${this.options.modelDisplayName} 模型归档校验失败（SHA256 不一致），已删除损坏文件，请重新下载。`,
+        );
     }
 
     /**

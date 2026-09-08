@@ -175,7 +175,7 @@ export const LocalMtCard: React.FC<LocalMtCardProps> = ({
                                     <div className="flex items-start gap-1.5">
                                         {index > 0 && (
                                             <span className="shrink-0 mt-0.5 rounded bg-amber-500/10 px-1.5 py-0.5 font-sans text-[10px] font-medium text-amber-600 dark:text-amber-400">
-                                                {t('serviceCredentials.localModel.backupMirror')}
+                                                {t('serviceCredentials.localModel.backupSource')}
                                             </span>
                                         )}
                                         <span className="text-muted-foreground/70 break-all">{url}</span>

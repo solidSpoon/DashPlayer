@@ -2,6 +2,7 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
+import { createHash } from 'crypto';
 import { PassThrough } from 'stream';
 import axios, { AxiosError, AxiosResponse } from 'axios';
 import { ModelArchiveInstaller, ModelArchiveInstallerOptions } from '@/backend/services/models/ModelArchiveInstaller';
@@ -269,6 +270,37 @@ describe('模型归档安装器', () => {
 
             expect(result.success).toBe(true);
             expect(fs.readFileSync(installedModelPath(), 'utf-8')).toBe(RAW_BODY);
+        });
+
+        describe('归档 SHA256 校验', () => {
+            /** 与 RAW_BODY 对应的正确摘要，模拟模型定义里固定的哈希。 */
+            const RAW_SHA256 = createHash('sha256').update(RAW_BODY).digest('hex');
+
+            it('声明的摘要一致时安装成功并广播校验阶段', async () => {
+                mockHead([OFFICIAL_URL]);
+                mockDownloadBody();
+
+                const result = await createRawInstaller({ ...rawOptions, archiveSha256: RAW_SHA256 }).download();
+
+                expect(result.success).toBe(true);
+                expect(rendererGateway.events).toContainEqual({
+                    path: 'settings/parakeet-model-download-progress',
+                    params: { percent: 100, downloaded: 0, total: 0, phase: 'verifying' },
+                });
+                expect(fs.readFileSync(installedModelPath(), 'utf-8')).toBe(RAW_BODY);
+            });
+
+            it('摘要不一致时删除归档并报错，避免下次续传复用损坏文件', async () => {
+                mockHead([OFFICIAL_URL]);
+                mockDownloadBody();
+
+                await expect(
+                    createRawInstaller({ ...rawOptions, archiveSha256: 'f'.repeat(64) }).download(),
+                ).rejects.toThrow('SHA256 不一致');
+
+                expect(fs.existsSync(workArchivePath())).toBe(false);
+                expect(fs.existsSync(installedModelPath())).toBe(false);
+            });
         });
 
         it('只有单个候选地址时无需探测直接下载', async () => {

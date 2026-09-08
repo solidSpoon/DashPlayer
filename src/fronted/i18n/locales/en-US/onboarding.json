@@ -39,7 +39,7 @@
             "manualGuideTitle": "Download not working? Manual install guide",
             "manualStep1": "1. Open the link below in your browser and download:",
             "copyLink": "Copy link",
-            "backupMirror": "Backup mirror",
+            "backupSource": "Backup source",
             "openInBrowser": "Open in browser",
             "manualStep2": "2. Save the downloaded file to:",
             "copyPath": "Copy path",
