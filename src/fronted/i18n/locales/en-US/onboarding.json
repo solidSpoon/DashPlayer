@@ -22,7 +22,7 @@
         },
         "models": {
             "title": "Offline Speech & Subtitles",
-            "desc": "Pronunciation and subtitle recognition run on your device. Download once, then they work offline.",
+            "desc": "Pronunciation and speech recognition work offline after a one-time download; lookups use the built-in dictionary out of the box.",
             "ttsTitle": "Word & Sentence Pronunciation",
             "ttsDesc": "Reads words and example sentences aloud, synthesized offline.",
             "ttsSize": "~18 MB",
@@ -30,6 +30,9 @@
             "transcriptionTitle": "Speech-to-Subtitle",
             "transcriptionDesc": "Turns speech in your videos into subtitles, entirely on your device.",
             "transcriptionSize": "~640 MB",
+            "dictionaryTitle": "Built-in dictionary",
+            "dictionaryDesc": "38,000 common words — lookups work out of the box, no download needed",
+            "statusBuiltIn": "Built in",
             "transcriptionDownloadFailed": "Failed to download the recognition model",
             "statusReady": "Downloaded",
             "actionDownload": "Download",

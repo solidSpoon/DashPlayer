@@ -22,7 +22,7 @@
         },
         "models": {
             "title": "离线语音与字幕",
-            "desc": "DashPlayer 的发音和字幕识别都在本地完成，下载一次，之后离线也能用。",
+            "desc": "发音和字幕识别下载一次即可离线使用；查词用内置词典，开箱即用。",
             "ttsTitle": "单词与例句发音",
             "ttsDesc": "查词、例句朗读时使用，离线合成，无需联网。",
             "ttsSize": "约 18 MB",
@@ -30,6 +30,9 @@
             "transcriptionTitle": "字幕语音识别",
             "transcriptionDesc": "把视频里的语音自动转成字幕，全程本地完成。",
             "transcriptionSize": "约 640 MB",
+            "dictionaryTitle": "内置词典",
+            "dictionaryDesc": "3.8 万常见词，查词开箱即用，无需下载",
+            "statusBuiltIn": "内置",
             "transcriptionDownloadFailed": "识别模型下载失败",
             "statusReady": "已下载",
             "actionDownload": "下载",

@@ -9,6 +9,7 @@ import { Input } from '@/fronted/components/ui/input';
 import TitleBar from '@/fronted/components/layout/TitleBar/TitleBar';
 import { ManualDownloadGuide } from '@/fronted/components/shared/ManualDownloadGuide';
 import {
+    BookOpen,
     CheckCircle2,
     Copy,
     Download,
@@ -143,6 +144,8 @@ interface ModelDownloadRowProps {
     description: string;
     /** 体积标签，与描述分开展示，如“约 300 MB”。 */
     sizeLabel?: string;
+    /** 就绪状态的文案；缺省为「已下载」，内置能力可传「内置」。 */
+    readyLabel?: string;
     ready: boolean;
     downloading: boolean;
     progress: number;
@@ -165,6 +168,7 @@ const ModelDownloadRow: React.FC<ModelDownloadRowProps> = ({
     title,
     description,
     sizeLabel,
+    readyLabel,
     ready,
     downloading,
     progress,
@@ -202,7 +206,7 @@ const ModelDownloadRow: React.FC<ModelDownloadRowProps> = ({
                     {ready ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-secondary text-secondary-foreground">
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                            {t('steps.models.statusReady')}
+                            {readyLabel ?? t('steps.models.statusReady')}
                         </span>
                     ) : downloading ? (
                         <Button
@@ -874,6 +878,22 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                                     onOpenUrl={openUrl}
                                     onOpenFolder={openFolder}
                                 />
+
+                                <ModelDownloadRow
+                                    icon={BookOpen}
+                                    title={t('steps.models.dictionaryTitle')}
+                                    description={t('steps.models.dictionaryDesc')}
+                                    readyLabel={t('steps.models.statusBuiltIn')}
+                                    ready
+                                    downloading={false}
+                                    progress={0}
+                                    onDownload={() => undefined}
+                                    onCancel={() => undefined}
+                                    onCopy={copyText}
+                                    onOpenUrl={openUrl}
+                                    onOpenFolder={openFolder}
+                                />
+
                             </div>
 
                             <p className="text-xs text-muted-foreground leading-relaxed pt-1">
