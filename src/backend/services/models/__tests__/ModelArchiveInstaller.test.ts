@@ -1,8 +1,13 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import path from 'path';
+import fs from 'fs';
+import os from 'os';
+import { PassThrough } from 'stream';
+import axios, { AxiosError, AxiosResponse } from 'axios';
 import { ModelArchiveInstaller, ModelArchiveInstallerOptions } from '@/backend/services/models/ModelArchiveInstaller';
 import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
 import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import FileSystemGatewayImpl from '@/backend/infrastructure/storage/FileSystemGatewayImpl';
 import { MemoryFileSystemGateway } from '@/test/memory-file-system-gateway';
 
 // 日志模块是系统边界：测试里静音，避免真实落盘和对 Electron app 的依赖。
@@ -32,11 +37,13 @@ class RecordingRendererGateway implements RendererGateway {
 }
 
 /**
- * 目录提供器测试替身：固定返回 models 根目录。
+ * 目录提供器测试替身：固定返回构造时指定的 models 根目录。
  */
 class FixedStorageDirectoryProvider implements StorageDirectoryProvider {
+    constructor(private readonly rootPath: string = path.join('/', 'models')) {}
+
     public async provideDirectory(): Promise<string> {
-        return path.join('/', 'models');
+        return this.rootPath;
     }
 
     public async ensurePathAccessPermissionIfExists(): Promise<void> {
@@ -61,7 +68,7 @@ class ExposedModelArchiveInstaller extends ModelArchiveInstaller {
 
 /** 测试用安装配置。 */
 const INSTALLER_OPTIONS: ModelArchiveInstallerOptions = {
-    downloadUrl: 'https://example.com/model.tar.bz2',
+    downloadUrls: ['https://example.com/model.tar.bz2'],
     workDirectoryName: '.test-download',
     archiveFileName: 'model.tar.bz2',
     modelDirectoryName: 'test-model',
@@ -137,6 +144,143 @@ describe('模型归档安装器', () => {
 
         it('无下载任务时取消返回未取消', async () => {
             expect(await installer.cancelDownload()).toEqual({ cancelled: false });
+        });
+    });
+
+    describe('多地址下载与镜像回退', () => {
+        const OFFICIAL_URL = 'https://official.example.com/ggml.bin';
+        const MIRROR_URL = 'https://mirror.example.com/ggml.bin';
+        const RAW_BODY = 'ggml-model-content';
+
+        /** raw 形态多地址配置：归档即模型文件本身，与 whisper.cpp GGUF 模型一致。 */
+        const rawOptions: ModelArchiveInstallerOptions = {
+            downloadUrls: [OFFICIAL_URL, MIRROR_URL],
+            workDirectoryName: '.test-download',
+            archiveFileName: 'model.bin',
+            archiveKind: 'raw',
+            modelDirectoryName: 'test-raw-model',
+            requiredFiles: ['model.bin'],
+            progressEventName: 'settings/parakeet-model-download-progress',
+            cancelledMessage: '测试模型下载已取消',
+            modelDisplayName: '测试模型',
+        };
+
+        let tmpRoot: string;
+
+        beforeEach(() => {
+            // 下载链路直接用 Node 流写盘，必须用真实文件系统与网关保持同一视图
+            tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dashplayer-model-installer-'));
+        });
+
+        afterEach(() => {
+            vi.restoreAllMocks();
+            fs.rmSync(tmpRoot, { recursive: true, force: true });
+        });
+
+        /** 用真实文件系统构建 raw 形态安装器。 */
+        function createRawInstaller(options: ModelArchiveInstallerOptions = rawOptions): ExposedModelArchiveInstaller {
+            return new ExposedModelArchiveInstaller(
+                options,
+                rendererGateway,
+                new FixedStorageDirectoryProvider(tmpRoot),
+                new FileSystemGatewayImpl(),
+            );
+        }
+
+        /** 已安装模型文件的真实路径（models 根目录即 tmpRoot）。 */
+        function installedModelPath(): string {
+            return path.join(tmpRoot, rawOptions.modelDirectoryName, rawOptions.archiveFileName);
+        }
+
+        /** 工作目录中归档文件的真实路径。 */
+        function workArchivePath(): string {
+            return path.join(tmpRoot, rawOptions.workDirectoryName, rawOptions.archiveFileName);
+        }
+
+        /** 将 axios.head 打桩为按清单决定地址可达性。 */
+        function mockHead(reachableUrls: string[]): void {
+            vi.spyOn(axios, 'head').mockImplementation(async (url: string) => {
+                if (!reachableUrls.includes(url)) throw new Error('connection refused');
+                return { status: 200, statusText: 'OK', headers: {}, data: undefined, config: {} } as unknown as AxiosResponse;
+            });
+        }
+
+        /** 将 axios.get 打桩为返回一次性写完的流式响应。 */
+        function mockDownloadBody(): ReturnType<typeof vi.spyOn> {
+            return vi.spyOn(axios, 'get').mockImplementation(async () => {
+                const stream = new PassThrough();
+                process.nextTick(() => {
+                    stream.write(RAW_BODY);
+                    stream.end();
+                });
+                return {
+                    status: 200,
+                    statusText: 'OK',
+                    headers: { 'content-length': String(RAW_BODY.length) },
+                    data: stream,
+                    config: {},
+                } as unknown as AxiosResponse;
+            });
+        }
+
+        it('官方与镜像都可达时优先从官方地址下载并安装', async () => {
+            mockHead([OFFICIAL_URL, MIRROR_URL]);
+            const getSpy = mockDownloadBody();
+
+            const result = await createRawInstaller().download();
+
+            expect(result.success).toBe(true);
+            expect(getSpy.mock.calls[0][0]).toBe(OFFICIAL_URL);
+            expect(fs.readFileSync(installedModelPath(), 'utf-8')).toBe(RAW_BODY);
+        });
+
+        it('官方地址不可达时自动改用镜像地址下载', async () => {
+            mockHead([MIRROR_URL]);
+            const getSpy = mockDownloadBody();
+
+            const result = await createRawInstaller().download();
+
+            expect(result.success).toBe(true);
+            expect(getSpy.mock.calls[0][0]).toBe(MIRROR_URL);
+            expect(fs.readFileSync(installedModelPath(), 'utf-8')).toBe(RAW_BODY);
+        });
+
+        it('全部地址不可达且本地无归档时报错引导手动下载', async () => {
+            mockHead([]);
+            const getSpy = mockDownloadBody();
+
+            await expect(createRawInstaller().download()).rejects.toThrow('所有下载地址均无法访问');
+            // 报错发生在探测阶段，不应发起任何真实下载请求
+            expect(getSpy).not.toHaveBeenCalled();
+        });
+
+        it('全部地址不可达但已手动放置完整文件时直接安装成功', async () => {
+            mockHead([]);
+            vi.spyOn(axios, 'get').mockImplementation(async () => {
+                // 手动放置的完整文件发起 Range 请求会被判 416，应直接进入安装校验
+                const error = new AxiosError('Range Not Satisfiable', 'ERR_BAD_REQUEST');
+                (error as unknown as { response: { status: number } }).response = { status: 416 };
+                throw error;
+            });
+            fs.mkdirSync(path.dirname(workArchivePath()), { recursive: true });
+            fs.writeFileSync(workArchivePath(), RAW_BODY);
+
+            const result = await createRawInstaller().download();
+
+            expect(result.success).toBe(true);
+            expect(fs.readFileSync(installedModelPath(), 'utf-8')).toBe(RAW_BODY);
+        });
+
+        it('只有单个候选地址时无需探测直接下载', async () => {
+            const headSpy = vi.spyOn(axios, 'head').mockRejectedValue(new Error('单地址不应发起探测'));
+            mockDownloadBody();
+            const singleOptions: ModelArchiveInstallerOptions = { ...rawOptions, downloadUrls: [OFFICIAL_URL] };
+
+            const result = await createRawInstaller(singleOptions).download();
+
+            expect(result.success).toBe(true);
+            expect(headSpy).not.toHaveBeenCalled();
+            expect(fs.readFileSync(installedModelPath(), 'utf-8')).toBe(RAW_BODY);
         });
     });
 

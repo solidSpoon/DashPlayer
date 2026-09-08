@@ -7,7 +7,7 @@ import { ModelArchiveInstaller } from '@/backend/services/models/ModelArchiveIns
 import {
     WHISPER_CPP_MODEL_ARCHIVE_NAME,
     WHISPER_CPP_MODEL_DIRECTORY,
-    WHISPER_CPP_MODEL_DOWNLOAD_URL,
+    WHISPER_CPP_MODEL_DOWNLOAD_URLS,
     WHISPER_CPP_REQUIRED_FILES,
 } from '@/backend/services/models/whisperCppModel';
 import type { ModelInstallationStatusVO } from '@/common/types/vo/model-installation-vo';
@@ -64,7 +64,7 @@ export class WhisperCppModelServiceImpl implements WhisperCppModelService {
     ) {
         this.installer = new ModelArchiveInstaller(
             {
-                downloadUrl: WHISPER_CPP_MODEL_DOWNLOAD_URL,
+                downloadUrls: [...WHISPER_CPP_MODEL_DOWNLOAD_URLS],
                 workDirectoryName: DOWNLOAD_WORK_DIR,
                 archiveFileName: WHISPER_CPP_MODEL_ARCHIVE_NAME,
                 archiveKind: 'raw',

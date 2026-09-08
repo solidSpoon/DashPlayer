@@ -64,7 +64,7 @@ export class ParakeetModelServiceImpl implements ParakeetModelService {
     ) {
         this.installer = new ModelArchiveInstaller(
             {
-                downloadUrl: PARAKEET_MODEL_DOWNLOAD_URL,
+                downloadUrls: [PARAKEET_MODEL_DOWNLOAD_URL],
                 workDirectoryName: DOWNLOAD_WORK_DIR,
                 archiveFileName: PARAKEET_MODEL_ARCHIVE_NAME,
                 modelDirectoryName: PARAKEET_MODEL_DIRECTORY,

@@ -64,7 +64,7 @@ export class SherpaTtsModelServiceImpl implements SherpaTtsModelService {
     ) {
         this.installer = new ModelArchiveInstaller(
             {
-                downloadUrl: SHERPA_TTS_MODEL_DOWNLOAD_URL,
+                downloadUrls: [SHERPA_TTS_MODEL_DOWNLOAD_URL],
                 workDirectoryName: DOWNLOAD_WORK_DIR,
                 archiveFileName: SHERPA_TTS_MODEL_ARCHIVE_NAME,
                 modelDirectoryName: SHERPA_TTS_MODEL_DIRECTORY,

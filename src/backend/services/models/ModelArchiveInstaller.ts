@@ -5,6 +5,7 @@ import { pipeline } from 'stream/promises';
 import * as tarFs from 'tar-fs';
 import unbzip2Stream from 'unbzip2-stream';
 import { getMainLogger } from '@/backend/infrastructure/logger';
+import { probeReachableDownloadUrl } from '@/backend/utils/probeDownloadUrl';
 import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
 import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
 import StorageDirectoryProvider, { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
@@ -15,8 +16,11 @@ import type { ModelInstallationStatusVO } from '@/common/types/vo/model-installa
  * 模型安装器的差异配置，由各模型服务提供。
  */
 export interface ModelArchiveInstallerOptions {
-    /** 官方模型归档下载地址。 */
-    downloadUrl: string;
+    /**
+     * 有序候选下载地址：声明顺序即优先级，首个为官方地址，其余为备用镜像。
+     * 多于一个地址时，下载前会探测可达性并择优；单个地址时直接使用不探测。
+     */
+    downloadUrls: string[];
     /** 下载工作目录名（位于 models 根目录下；断点续传依赖固定路径）。 */
     workDirectoryName: string;
     /** 归档文件名。 */
@@ -81,7 +85,7 @@ export class ModelArchiveInstaller {
             downloading: this.activeDownload !== null,
             phase: this.currentPhase,
             percent: this.currentPercent,
-            downloadUrl: this.options.downloadUrl,
+            downloadUrls: [...this.options.downloadUrls],
             archivePath,
         };
     }
@@ -160,7 +164,9 @@ export class ModelArchiveInstaller {
         await this.fileSystemGateway.ensureDirectory(workDir);
         let installed = false;
         try {
-            await this.downloadArchive(archivePath, controller.signal);
+            // 多候选地址时先探测可达性择优（官方优先），再对选定地址断点续传下载。
+            const downloadUrl = await this.resolveDownloadUrl(controller.signal, archivePath);
+            await this.downloadArchive(downloadUrl, archivePath, controller.signal);
             // raw 归档即模型文件本身，无需解压，直接在工作目录校验必需文件；
             // tar.bz2 归档先解压到 extract 目录再定位模型目录。
             let sourceDir: string;
@@ -229,19 +235,58 @@ export class ModelArchiveInstaller {
     }
 
     /**
+     * 选定本次下载使用的地址。
+     *
+     * 多候选地址时先并行探测可达性（官方优先）。全部不可达时：
+     * - 本地已有归档（半成品或用户手动放置的完整文件）仍按官方地址发起请求：
+     *   手动放置的完整文件会命中 416 分支直接进入安装校验，手动路径不被网络探测阻塞；
+     * - 否则抛出明确错误，由 UI 的手动下载指引引导用户用浏览器下载后放入指定目录。
+     *
+     * 单候选地址不探测，失败原因由真实下载请求给出（与无镜像时的行为一致）。
+     *
+     * @param signal 取消信号。
+     * @param archivePath 归档文件路径，用于检查本地是否已有可续传/手动放置的文件。
+     * @returns 选定的下载地址。
+     */
+    private async resolveDownloadUrl(signal: AbortSignal, archivePath: string): Promise<string> {
+        const urls = this.options.downloadUrls;
+        if (urls.length === 1) return urls[0];
+        const startedAt = Date.now();
+        const reachable = await probeReachableDownloadUrl(urls, signal);
+        this.logger.info('download url probe finished', { model: this.options.modelDisplayName, reachable, elapsedMs: Date.now() - startedAt });
+        if (reachable) return reachable;
+        if (signal.aborted) {
+            throw new Error(this.options.cancelledMessage);
+        }
+        if (await this.getExistingArchiveSize(archivePath) > 0) {
+            this.logger.warn('all download urls unreachable, retry with local archive', { model: this.options.modelDisplayName });
+            return urls[0];
+        }
+        throw new Error(
+            `${this.options.modelDisplayName} 模型下载失败：所有下载地址均无法访问。`
+            + '请检查网络连接后重试，或在模型卡片中展开手动下载指引，用浏览器下载后放入指定目录。',
+        );
+    }
+
+    /**
      * 断点续传下载模型归档。
      * 完整性不依赖服务器 ETag（GitHub 返回的 Azure ETag 不是内容摘要），
      * 由随后的解压与必需文件检查兜底：下载损坏必然导致解压失败或文件缺失。
+     *
+     * 既有半成品跨源续传是安全的：镜像与官方是同一文件的逐字节镜像，
+     * Range 续传拼接后内容一致；异常拼接最终会被安装校验或引擎加载 GGUF 头部时拒绝。
+     *
+     * @param downloadUrl 下载地址（多候选时为探测选定的可达地址）。
      * @param archivePath 归档文件路径（已存在的部分内容会被续传）。
      * @param signal 取消信号。
      */
-    private async downloadArchive(archivePath: string, signal: AbortSignal): Promise<void> {
+    private async downloadArchive(downloadUrl: string, archivePath: string, signal: AbortSignal): Promise<void> {
         const existingSize = await this.getExistingArchiveSize(archivePath);
         // 续传：从已下载的字节数开始请求剩余部分。
         const headers = existingSize > 0 ? { Range: `bytes=${existingSize}-` } : {};
         let response;
         try {
-            response = await axios.get(this.options.downloadUrl, { responseType: 'stream', signal, headers });
+            response = await axios.get(downloadUrl, { responseType: 'stream', signal, headers });
         } catch (error) {
             // 完整归档手动放置后，Range 请求可能得到 416；保留现有文件并交给解压校验。
             if (existingSize > 0 && isAxiosError(error) && error.response?.status === 416) return;

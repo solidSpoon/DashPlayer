@@ -429,6 +429,7 @@
             "step3Title": "3. Finish installation:",
             "step3HintArchive": "After placing the file in the folder above, click \"Download\" — the app will detect and extract it.",
             "step3HintRaw": "After placing the file in the folder above, click \"Download\" — the app will detect and install it.",
+            "backupMirror": "Backup mirror",
             "copyDownloadUrl": "Copy download URL",
             "openInBrowser": "Open in browser",
             "copyTargetPath": "Copy target path",

@@ -429,6 +429,7 @@
             "step3Title": "3. 完成安装：",
             "step3HintArchive": "文件放入上述目录后，点击上方的「下载」按钮，应用会自动识别并解压生效。",
             "step3HintRaw": "文件放入上述目录后，点击上方的「下载」按钮，应用会自动识别并安装生效。",
+            "backupMirror": "备用镜像",
             "copyDownloadUrl": "复制下载链接",
             "openInBrowser": "在浏览器中打开",
             "copyTargetPath": "复制目标路径",

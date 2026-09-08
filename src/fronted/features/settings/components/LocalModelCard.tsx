@@ -191,18 +191,30 @@ export default function LocalModelCard({
                         <div className="p-3.5 pt-2 space-y-3.5 text-xs border-t border-border/40 text-muted-foreground">
                             <div className="space-y-1.5">
                                 <div className="font-semibold text-foreground">{step1Title}</div>
-                                <div className="bg-background/80 rounded border border-border/60 p-2 space-y-1.5 font-mono text-[11px] break-all select-text">
-                                    <div className="text-muted-foreground/70">{status.downloadUrl}</div>
-                                    <div className="flex items-center gap-2 pt-1 font-sans">
-                                        <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => onCopy(status.downloadUrl)}>
-                                            <Copy className="w-3 h-3 mr-1" />
-                                            {t('serviceCredentials.localModel.copyDownloadUrl')}
-                                        </Button>
-                                        <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => onOpenUrl(status.downloadUrl)}>
-                                            <ExternalLink className="w-3 h-3 mr-1" />
-                                            {t('serviceCredentials.localModel.openInBrowser')}
-                                        </Button>
-                                    </div>
+                                <div className="bg-background/80 rounded border border-border/60 p-2 space-y-2 font-mono text-[11px] break-all select-text">
+                                    {/* 首个为官方地址，其余为备用镜像；网络受限时可改用镜像地址手动下载 */}
+                                    {status.downloadUrls.map((url, index) => (
+                                        <div key={url} className="space-y-1">
+                                            <div className="flex items-start gap-1.5">
+                                                {index > 0 && (
+                                                    <span className="shrink-0 mt-0.5 rounded bg-amber-500/10 px-1.5 py-0.5 font-sans text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                                                        {t('serviceCredentials.localModel.backupMirror')}
+                                                    </span>
+                                                )}
+                                                <span className="text-muted-foreground/70 break-all">{url}</span>
+                                            </div>
+                                            <div className="flex items-center gap-1 font-sans">
+                                                <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => onCopy(url)}>
+                                                    <Copy className="w-3 h-3 mr-1" />
+                                                    {t('serviceCredentials.localModel.copyDownloadUrl')}
+                                                </Button>
+                                                <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => onOpenUrl(url)}>
+                                                    <ExternalLink className="w-3 h-3 mr-1" />
+                                                    {t('serviceCredentials.localModel.openInBrowser')}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
 
