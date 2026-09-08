@@ -1,3 +1,5 @@
+import { LOCAL_AI_DEFAULT_MODEL_ID } from '@/common/contracts/local-ai';
+
 export const SettingKeyObj = {
     'shortcut.previousSentence': 'left,a',
     'shortcut.nextSentence': 'right,d',
@@ -20,8 +22,6 @@ export const SettingKeyObj = {
     'shortcut.addClip': 'shift+l',
     'shortcut.openControlPanel': 'shift+p',
     'userSelect.playbackRateStack':'',
-    'apiKeys.youdao.secretId': '',
-    'apiKeys.youdao.secretKey': '',
     'apiKeys.tencent.secretId': '',
     'apiKeys.tencent.secretKey': '',
     'apiKeys.openAi.key': '',
@@ -39,6 +39,7 @@ export const SettingKeyObj = {
     'models.openai.sentenceLearning': 'gpt-5.4-nano',
     'models.openai.subtitleTranslation': 'gpt-5.4-nano',
     'models.openai.dictionary': 'gpt-5.4-nano',
+    'models.local.active': LOCAL_AI_DEFAULT_MODEL_ID,
     'subtitleTranslation.engine': 'openai',
     'dictionary.engine': 'openai',
     // Service function enablement

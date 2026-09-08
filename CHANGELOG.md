@@ -2,6 +2,29 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.10.0](https://github.com/solidSpoon/DashPlayer/compare/v6.9.1...v6.10.0) (2026-09-07)
+
+
+### Features
+
+* **settings:** 重构本地模型卡片交互与文案 ([efbcf5e](https://github.com/solidSpoon/DashPlayer/commit/efbcf5e4850ac826b181422fcc6efe7b48b31f5e))
+* 为 Linux 新增 AppImage 安装包 ([edf5544](https://github.com/solidSpoon/DashPlayer/commit/edf55444e299e181a6c75df31280cbaa6bf844b1))
+* 为 Linux 新增 AppImage 安装包 ([957f2df](https://github.com/solidSpoon/DashPlayer/commit/957f2df4ae11608f628029a1e774e6abb9d3ec9d))
+* 内置离线词典数据，未配置密钥也能查词 ([2fab004](https://github.com/solidSpoon/DashPlayer/commit/2fab00452f2d39add8d863891eced1347d6480a9))
+* 内置离线词典数据，未配置密钥也能查词 ([cf7c916](https://github.com/solidSpoon/DashPlayer/commit/cf7c9164d65da74ec10e363dd9a11e108ed433f3))
+* 本地引擎启用时后台预加载模型并常驻内存 ([63207ff](https://github.com/solidSpoon/DashPlayer/commit/63207ffda1c38e9f8b4506db282f8d4ecdc4c279))
+* 本地模型字幕翻译与词典查询（仅 Mac） ([93efada](https://github.com/solidSpoon/DashPlayer/commit/93efadaef218bf3ac9c5ac4e3b4a6c2fbce1800f))
+* 本地模型字幕翻译与词典查询（仅 Mac） ([d7d817c](https://github.com/solidSpoon/DashPlayer/commit/d7d817c52661e3e298359aa26bf6676c5b7c10a2))
+* 本地模型测速改为稳态测试，不再冷加载 ([fd91d14](https://github.com/solidSpoon/DashPlayer/commit/fd91d14eb2efe43acc825f1f8074eb5c3bc67933))
+
+
+### Bug Fixes
+
+* **preload:** 补充 SimpleEvent 类型导入，修复存量 tsc 报错 ([a6c754a](https://github.com/solidSpoon/DashPlayer/commit/a6c754a4ade63c37902f90c9e304e63c8ea52d11))
+* 修复 TagSelector autoFocus 与 SpeedSlider 可变声明两处 lint error ([4aefef7](https://github.com/solidSpoon/DashPlayer/commit/4aefef73701741b2b02ed08b8629f7d6142d1bf8))
+* 统一自绘红绿灯到窗口右上角 ([e8e0f5f](https://github.com/solidSpoon/DashPlayer/commit/e8e0f5f597de957551553a9fbe3dd0bde5f47f79))
+* 设置读取容错非法枚举值并显式引导用户重新选择 ([71b844f](https://github.com/solidSpoon/DashPlayer/commit/71b844fadd4152a11c20c0f649859610301d5129))
+
 ## [6.9.1](https://github.com/solidSpoon/DashPlayer/compare/v6.9.0...v6.9.1) (2026-09-05)
 
 

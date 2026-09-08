@@ -2,29 +2,41 @@ import React from 'react';
 import { useForm } from 'react-hook-form';
 import useSWR from 'swr';
 import {
-    Book,
     Bot,
     CheckCircle2,
+    ChevronDown,
+    ChevronRight,
+    Copy,
     Cpu,
-    Trash2,
+    Download,
     FolderOpen,
+    Gauge,
+    HelpCircle,
     Languages,
+    Loader2,
     Plus,
+    RefreshCw,
+    Square,
     TestTube,
+    Trash2,
     XCircle,
 } from 'lucide-react';
+import { cn } from '@/fronted/lib/utils';
 import { Button } from '@/fronted/components/ui/button';
 import { Input } from '@/fronted/components/ui/input';
 import { Label } from '@/fronted/components/ui/label';
 import { Switch } from '@/fronted/components/ui/switch';
+import { Progress } from '@/fronted/components/ui/progress';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/fronted/components/ui/alert-dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/fronted/components/ui/table';
 import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
 import { SettingCard, SettingsLoadingSkeleton } from '@/fronted/features/settings/components/form';
 import LocalModelCard from '@/fronted/features/settings/components/LocalModelCard';
 import { OpenAiModelUsageFeature, ServiceCredentialSettingDetailVO, ServiceCredentialSettingSaveVO } from '@/common/types/vo/service-credentials-setting-vo';
-import type { ModelDownloadPhase } from '@/common/contracts/model-download-phase';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
+import type { LocalAiModelStatus, LocalAiStatus } from '@/common/contracts/local-ai';
+import type { LocalMtStatus } from '@/common/contracts/local-mt';
+import { isUserCancellation } from '@/common/utils/cancellation';
 import { useModelInstallation, type ModelInstallationApi } from '@/fronted/features/settings/useModelInstallation';
 import type { TranscriptionEngine } from '@/common/contracts/transcription-engine';
 import toast from 'react-hot-toast';
@@ -96,8 +108,20 @@ const ServiceCredentialSetting = () => {
 
     const [testingOpenAi, setTestingOpenAi] = React.useState(false);
     const [testingTencent, setTestingTencent] = React.useState(false);
-    const [testingYoudao, setTestingYoudao] = React.useState(false);
     const [testResults, setTestResults] = React.useState<Record<string, { success: boolean; message: string } | null>>({});
+    const [localAiStatus, setLocalAiStatus] = React.useState<LocalAiStatus | null>(null);
+    const [localMtStatus, setLocalMtStatus] = React.useState<LocalMtStatus | null>(null);
+    const [localMtBusy, setLocalMtBusy] = React.useState(false);
+    const [localAiBusy, setLocalAiBusy] = React.useState(false);
+    const [localAiRescanning, setLocalAiRescanning] = React.useState(false);
+    const [testingModelId, setTestingModelId] = React.useState<string | null>(null);
+    const [testResultsMap, setTestResultsMap] = React.useState<Record<string, {
+        success: boolean;
+        warmSec: string;
+        tps: string;
+        errorMessage?: string;
+    } | null>>({});
+    const [localAiGuideOpen, setLocalAiGuideOpen] = React.useState(false);
     // 三个本地模型卡共用同一套状态与动作逻辑；解构名保持与旧变量一致，卡片 JSX 无需改动。
     const {
         status: parakeetModelStatus,
@@ -214,10 +238,210 @@ const ServiceCredentialSetting = () => {
         }
     };
 
+    /** 拉取本地模型最新状态。 */
+    const refreshLocalAiStatus = React.useCallback(async () => {
+        try {
+            const status = await settingsApi.getLocalAiStatus();
+            setLocalAiStatus(status);
+        } catch {
+            // ignore
+        }
+    }, []);
+
+    /** 手动点击刷新模型列表。 */
+    const handleRescanLocalAi = async () => {
+        setLocalAiRescanning(true);
+        try {
+            const status = await settingsApi.getLocalAiStatus();
+            setLocalAiStatus(status);
+            toast.success(t('common.refreshed', { defaultValue: '已刷新' }));
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : String(error));
+        } finally {
+            setLocalAiRescanning(false);
+        }
+    };
+
+    /** 对指定模型执行测试（测速 + 连通性），结果直接记录在对应模型下展示。 */
+    const testLocalAiModel = async (modelId: string) => {
+        setTestingModelId(modelId);
+        try {
+            const result = await settingsApi.speedTestLocalAi(modelId);
+            setTestResultsMap((prev) => ({
+                ...prev,
+                [modelId]: {
+                    success: true,
+                    warmSec: (result.warmMs / 1000).toFixed(1),
+                    tps: result.tokensPerSecond === null ? '—' : result.tokensPerSecond.toFixed(1),
+                },
+            }));
+        } catch (error) {
+            setTestResultsMap((prev) => ({
+                ...prev,
+                [modelId]: {
+                    success: false,
+                    warmSec: '—',
+                    tps: '—',
+                    errorMessage: error instanceof Error ? error.message : String(error),
+                },
+            }));
+        } finally {
+            setTestingModelId(null);
+            refreshLocalAiStatus();
+        }
+    };
+
+    React.useEffect(() => { refreshLocalAiStatus(); }, [refreshLocalAiStatus]);
+
+    React.useEffect(() => {
+        const handler = (event: Event) => {
+            const progress = (event as CustomEvent<{
+                modelId: string;
+                downloaded: number;
+                total: number;
+                phase: LocalAiModelStatus['phase'];
+            }>).detail;
+            setLocalAiStatus((current) => current ? {
+                ...current,
+                models: current.models.map((model) =>
+                    model.modelId === progress.modelId
+                        ? { ...model, downloaded: progress.downloaded, total: progress.total, phase: progress.phase }
+                        : model
+                ),
+            } : current);
+            if (progress.phase === 'idle') {
+                refreshLocalAiStatus();
+            }
+        };
+        window.addEventListener('local-ai-model-download-progress', handler);
+        return () => window.removeEventListener('local-ai-model-download-progress', handler);
+    }, [refreshLocalAiStatus]);
+
+    /**
+     * 对指定本地模型执行短操作（检查/删除/取消），完成后刷新整页状态。
+     *
+     * @param modelId 目标模型标识。
+     * @param name 模型展示名，用于提示文案。
+     * @param action 要执行的 API 调用。
+     * @param successMessage 成功提示文案。
+     */
+    const runLocalAiAction = async (modelId: string, name: string, action: () => Promise<unknown>, successMessage: string) => {
+        setLocalAiBusy(true);
+        try { await action(); toast.success(`${name}：${successMessage}`); }
+        catch (error) { toast.error(`${name}：${error instanceof Error ? error.message : String(error)}`); }
+        finally {
+            setLocalAiBusy(false);
+            refreshLocalAiStatus();
+        }
+    };
+
+    /** 下载指定模型；进度由事件持续更新页面，后端同一时间只允许一个下载任务。 */
+    const downloadLocalAi = async (modelId: string, name: string) => {
+        setLocalAiStatus((current) => current ? {
+            ...current,
+            models: current.models.map((model) =>
+                model.modelId === modelId ? { ...model, phase: 'downloading' } : model
+            ),
+        } : current);
+        try {
+            await settingsApi.downloadLocalAi(modelId);
+            toast.success(`${name} 下载完成`);
+        } catch (error) {
+            if ((error instanceof Error ? error.name : '') !== 'AbortError') {
+                toast.error(`${name}：${error instanceof Error ? error.message : String(error)}`);
+            }
+        } finally {
+            refreshLocalAiStatus();
+        }
+    };
+
+    /** 取消当前下载并保留已完成部分，以便下次续传。 */
+    const cancelLocalAiDownload = async () => {
+        setLocalAiBusy(true);
+        try { await settingsApi.cancelLocalAiDownload(); }
+        catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
+        finally {
+            setLocalAiBusy(false);
+            refreshLocalAiStatus();
+        }
+    };
+
+    /** 拉取轻量翻译模型最新状态。 */
+    const refreshLocalMtStatus = React.useCallback(async () => {
+        try {
+            const status = await settingsApi.getLocalMtStatus();
+            setLocalMtStatus(status);
+        } catch {
+            // ignore
+        }
+    }, []);
+
+    React.useEffect(() => { refreshLocalMtStatus(); }, [refreshLocalMtStatus]);
+
+    React.useEffect(() => {
+        const handler = (event: Event) => {
+            const progress = (event as CustomEvent<{
+                downloaded: number;
+                total: number;
+                phase: LocalMtStatus['phase'];
+            }>).detail;
+            setLocalMtStatus((current) => current ? {
+                ...current,
+                downloaded: progress.downloaded,
+                total: progress.total,
+                phase: progress.phase,
+            } : current);
+            if (progress.phase === 'idle') {
+                refreshLocalMtStatus();
+            }
+        };
+        window.addEventListener('local-mt-download-progress', handler);
+        return () => window.removeEventListener('local-mt-download-progress', handler);
+    }, [refreshLocalMtStatus]);
+
+    /** 下载轻量翻译模型；进度由事件持续更新页面。 */
+    const downloadLocalMt = async () => {
+        setLocalMtStatus((current) => current ? { ...current, phase: 'downloading' } : current);
+        try {
+            await settingsApi.downloadLocalMt();
+            toast.success(t('serviceCredentials.localMt.downloadDone'));
+        } catch (error) {
+            // 取消是预期行为（axios 产生的可能是 CanceledError），不弹错误提示。
+            if (!isUserCancellation(error)) {
+                toast.error(error instanceof Error ? error.message : String(error));
+            }
+        } finally {
+            refreshLocalMtStatus();
+        }
+    };
+
+    /** 取消轻量翻译模型下载并保留已完成部分，以便下次续传。 */
+    const cancelLocalMtDownload = async () => {
+        setLocalMtBusy(true);
+        try { await settingsApi.cancelLocalMtDownload(); }
+        catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
+        finally {
+            setLocalMtBusy(false);
+            refreshLocalMtStatus();
+        }
+    };
+
+    /** 删除轻量翻译模型。 */
+    const deleteLocalMt = async () => {
+        setLocalMtBusy(true);
+        try {
+            await settingsApi.deleteLocalMt();
+            toast.success(t('serviceCredentials.localMt.deleteDone'));
+        } catch (error) { toast.error(error instanceof Error ? error.message : String(error)); }
+        finally {
+            setLocalMtBusy(false);
+            refreshLocalMtStatus();
+        }
+    };
     /**
      * 测试指定服务商连通性。
      */
-    const testProvider = async (provider: 'openai' | 'tencent' | 'youdao') => {
+    const testProvider = async (provider: 'openai' | 'tencent') => {
         try {
             await flush();
         } catch (flushError) {
@@ -228,7 +452,6 @@ const ServiceCredentialSetting = () => {
         const setTesting = {
             openai: setTestingOpenAi,
             tencent: setTestingTencent,
-            youdao: setTestingYoudao,
         }[provider];
 
         setTesting(true);
@@ -446,38 +669,6 @@ const ServiceCredentialSetting = () => {
                     </div>
                 </SettingCard>
 
-                {/* 有道词典凭据卡片 */}
-                <SettingCard
-                    title={t('serviceCredentials.youdao.title')}
-                    description={t('serviceCredentials.youdao.description')}
-                    icon={Book}
-                    headerAction={
-                        <div className="flex items-center gap-2">
-                            {testResults.youdao && (
-                                <span className={`flex items-center gap-1 text-xs ${testResults.youdao.success ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}>
-                                    {testResults.youdao.success ? <CheckCircle2 className="w-3.5 h-3.5" /> : <XCircle className="w-3.5 h-3.5" />}
-                                    {testResults.youdao.success ? t('common.testSuccess') : testResults.youdao.message}
-                                </span>
-                            )}
-                            <Button type="button" variant="outline" size="sm" onClick={() => testProvider('youdao').catch(() => null)} disabled={testingYoudao || autoSaveStatus === 'saving'}>
-                                <TestTube className="w-3.5 h-3.5 mr-1.5" />
-                                {testingYoudao ? t('common.testing') : t('common.testConnection')}
-                            </Button>
-                        </div>
-                    }
-                >
-                    <div className="p-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                            <Label>{t('serviceCredentials.youdao.appId')}</Label>
-                            <Input {...register('youdao.secretId')} />
-                        </div>
-                        <div className="space-y-2">
-                            <Label>{t('serviceCredentials.youdao.appKey')}</Label>
-                            <Input type="password" {...register('youdao.secretKey')} />
-                        </div>
-                    </div>
-                </SettingCard>
-
                 {/* 本地语音识别引擎切换 */}
                 <SettingCard
                     title="识别引擎"
@@ -573,6 +764,428 @@ const ServiceCredentialSetting = () => {
                     />
                 </SettingCard>
                 )}
+
+                <SettingCard
+                    title={t('serviceCredentials.localAi.cardTitle')}
+                    description={t('serviceCredentials.localAi.cardDescription')}
+                    icon={Bot}
+                    headerAction={
+                        <div className="flex items-center gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={localAiRescanning || !localAiStatus}
+                                onClick={handleRescanLocalAi}
+                            >
+                                <RefreshCw className={cn("w-3.5 h-3.5 mr-1.5", localAiRescanning && "animate-spin")} />
+                                {t('serviceCredentials.localAi.rescan')}
+                            </Button>
+                            {localAiStatus?.modelsDirectory && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => openModelFolder(localAiStatus.modelsDirectory)}
+                                >
+                                    <FolderOpen className="w-3.5 h-3.5 mr-1.5" />
+                                    {t('serviceCredentials.localAi.openFolder')}
+                                </Button>
+                            )}
+                        </div>
+                    }
+                >
+                    <div className="p-4 space-y-4">
+                        {/* 模型列表 */}
+                        <div className="space-y-3">
+                            {localAiStatus?.models.map((model) => {
+                                const anyDownloading = localAiStatus?.models.some((item) => item.phase !== 'idle') ?? false;
+                                const isActive = model.ready && model.modelId === localAiStatus.activeModelId;
+                                const isTestingThisModel = testingModelId === model.modelId;
+                                const testResult = testResultsMap[model.modelId];
+
+                                return (
+                                    <div
+                                        key={model.modelId}
+                                        className={cn(
+                                            "relative rounded-xl border p-3.5 transition-colors",
+                                            isActive
+                                                ? "border-primary/40 bg-primary/[0.03]"
+                                                : "border-border/60 bg-muted/20"
+                                        )}
+                                    >
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                            <div className="space-y-1 min-w-0">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="text-sm font-semibold text-foreground tracking-tight">{model.name}</span>
+                                                    <span className="rounded bg-muted/80 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">{model.sizeLabel}</span>
+                                                    <span className="rounded bg-muted/80 px-1.5 py-0.5 text-[11px] text-muted-foreground">{t('serviceCredentials.localAi.memoryEstimate', { gb: model.memoryEstimateGb })}</span>
+                                                    {model.custom && (
+                                                        <span className="rounded bg-amber-500/10 px-1.5 py-0.5 text-[11px] font-medium text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                                                            {t('serviceCredentials.localAi.custom')}
+                                                        </span>
+                                                    )}
+                                                    {isActive ? (
+                                                        <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+                                                            <CheckCircle2 className="h-3 w-3" />
+                                                            {t('serviceCredentials.localAi.inUse')}
+                                                        </span>
+                                                    ) : model.ready ? (
+                                                        <span className="inline-flex items-center gap-1 rounded-full bg-muted/80 px-2 py-0.5 text-xs text-muted-foreground">
+                                                            {t('serviceCredentials.localAi.readyNotInUse')}
+                                                        </span>
+                                                    ) : model.phase !== 'idle' ? (
+                                                        <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
+                                                            <Loader2 className="h-3 w-3 animate-spin" />
+                                                            {model.phase === 'verifying'
+                                                                ? t('serviceCredentials.localAi.phaseVerifying')
+                                                                : t('serviceCredentials.localAi.phaseDownloading')}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="inline-flex items-center gap-1 rounded-full bg-muted/80 px-2 py-0.5 text-xs text-muted-foreground">
+                                                            {t('common.notDownloaded')}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <p className="text-xs text-muted-foreground line-clamp-1">
+                                                    {model.custom
+                                                        ? model.modelPath
+                                                        : t('serviceCredentials.localAi.defaultModelDescription')}
+                                                </p>
+                                            </div>
+
+                                            <div className="flex items-center gap-1.5 shrink-0 flex-wrap sm:flex-nowrap">
+                                                {!model.ready && model.phase === 'idle' && (
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        disabled={localAiBusy || anyDownloading}
+                                                        onClick={() => downloadLocalAi(model.modelId, model.name)}
+                                                    >
+                                                        <Download className="mr-1.5 h-3.5 w-3.5" />
+                                                        {t('common.download')}
+                                                    </Button>
+                                                )}
+                                                {!model.ready && model.phase !== 'idle' && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        disabled={localAiBusy}
+                                                        onClick={() => cancelLocalAiDownload()}
+                                                    >
+                                                        <Square className="mr-1.5 h-3.5 w-3.5 text-destructive" />
+                                                        {t('serviceCredentials.localAi.cancelDownload')}
+                                                    </Button>
+                                                )}
+                                                {model.ready && !isActive && (
+                                                    <Button
+                                                        type="button"
+                                                        size="sm"
+                                                        disabled={localAiBusy || testingModelId !== null}
+                                                        onClick={() => runLocalAiAction(model.modelId, model.name, () => settingsApi.useLocalAiModel(model.modelId), t('serviceCredentials.localAi.useSuccess'))}
+                                                    >
+                                                        <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
+                                                        {t('serviceCredentials.localAi.use')}
+                                                    </Button>
+                                                )}
+                                                {model.ready && (
+                                                    <Button
+                                                        type="button"
+                                                        variant="outline"
+                                                        size="sm"
+                                                        disabled={localAiBusy || testingModelId !== null}
+                                                        onClick={() => testLocalAiModel(model.modelId)}
+                                                    >
+                                                        {isTestingThisModel ? (
+                                                            <>
+                                                                <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin text-primary" />
+                                                                {t('serviceCredentials.localAi.testing')}
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Gauge className="mr-1.5 h-3.5 w-3.5" />
+                                                                {t('serviceCredentials.localAi.test')}
+                                                            </>
+                                                        )}
+                                                    </Button>
+                                                )}
+                                                {model.ready && (
+                                                    <AlertDialog>
+                                                        <AlertDialogTrigger asChild>
+                                                            <Button
+                                                                type="button"
+                                                                variant="ghost"
+                                                                size="sm"
+                                                                className="text-muted-foreground hover:text-destructive"
+                                                                disabled={localAiBusy || testingModelId !== null}
+                                                            >
+                                                                <Trash2 className="h-3.5 w-3.5" />
+                                                            </Button>
+                                                        </AlertDialogTrigger>
+                                                        <AlertDialogContent>
+                                                            <AlertDialogHeader>
+                                                                <AlertDialogTitle>{t('serviceCredentials.localAi.deleteConfirmTitle')}</AlertDialogTitle>
+                                                                <AlertDialogDescription>{t('serviceCredentials.localAi.deleteConfirmDescription')}</AlertDialogDescription>
+                                                            </AlertDialogHeader>
+                                                            <AlertDialogFooter>
+                                                                <AlertDialogCancel>{t('serviceCredentials.localAi.cancelDelete')}</AlertDialogCancel>
+                                                                <AlertDialogAction onClick={() => runLocalAiAction(model.modelId, model.name, () => settingsApi.deleteLocalAi(model.modelId), t('serviceCredentials.localAi.deleteSuccess'))}>
+                                                                    {t('serviceCredentials.localAi.confirmDelete')}
+                                                                </AlertDialogAction>
+                                                            </AlertDialogFooter>
+                                                        </AlertDialogContent>
+                                                    </AlertDialog>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        {/* 下载/校验进度条 */}
+                                        {!model.ready && model.phase !== 'idle' && (
+                                            <div className="mt-3 space-y-1.5 rounded-lg border border-border/40 bg-muted/30 p-2.5">
+                                                <div className="flex justify-between text-xs font-medium text-muted-foreground">
+                                                    <span>{model.phase === 'verifying' ? t('serviceCredentials.localAi.phaseVerifying') : t('serviceCredentials.localAi.phaseDownloading')}</span>
+                                                    <span>{Math.min(100, Math.floor(model.downloaded / (model.total || 1) * 100))}%</span>
+                                                </div>
+                                                <Progress value={(model.downloaded / (model.total || 1)) * 100} className="h-1.5" />
+                                            </div>
+                                        )}
+
+                                        {/* 内嵌测试结果展示 */}
+                                        {testResult && (
+                                            <div className="mt-2.5 pt-2.5 border-t border-border/40">
+                                                {testResult.success ? (
+                                                    <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 rounded-lg bg-muted/40 px-3 py-2 border border-border/30 text-xs">
+                                                        <div className="flex items-center gap-1.5">
+                                                            <CheckCircle2 className="h-3.5 w-3.5 text-green-600 dark:text-green-400" />
+                                                            <span className="text-muted-foreground">{t('serviceCredentials.localAi.speedWarm')}</span>
+                                                            <span className="font-mono font-medium text-foreground">{testResult.warmSec}s</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5">
+                                                            <span className="text-muted-foreground">{t('serviceCredentials.localAi.speedTps')}</span>
+                                                            <span className="font-mono font-semibold text-primary">{testResult.tps} {t('serviceCredentials.localAi.speedTpsUnit')}</span>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex items-center gap-1.5 rounded-lg bg-destructive/10 p-2.5 border border-destructive/20 text-xs text-destructive">
+                                                        <XCircle className="h-3.5 w-3.5 shrink-0" />
+                                                        <span>{testResult.errorMessage || '测试失败'}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+
+                                        {model.error && (
+                                            <div className="mt-2 text-xs text-destructive">{model.error}</div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* 自定义模型与使用指南 */}
+                        <div className="rounded-xl border border-border/60 bg-muted/10 overflow-hidden">
+                            <button
+                                type="button"
+                                onClick={() => setLocalAiGuideOpen((open) => !open)}
+                                className="w-full flex items-center justify-between px-3.5 py-2.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                                <span className="flex items-center gap-1.5">
+                                    <HelpCircle className="w-3.5 h-3.5" />
+                                    {t('serviceCredentials.localAi.customGuideTitle')}
+                                </span>
+                                {localAiGuideOpen ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                            </button>
+
+                            {localAiGuideOpen && (
+                                <div className="p-3.5 pt-2 space-y-3 text-xs border-t border-border/40 text-muted-foreground">
+                                    <div className="space-y-1">
+                                        <div className="font-semibold text-foreground">1. 准备模型文件：</div>
+                                        <p className="leading-relaxed">
+                                            从 Hugging Face 等平台下载 Instruct 指令对话版的 GGUF 格式模型（推荐 Qwen 系列，量化版本优先选 <code className="font-mono bg-muted px-1 py-0.5 rounded text-[11px] text-foreground">Q4_K_M</code>，体积与效果平衡最佳）。
+                                        </p>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <div className="font-semibold text-foreground">2. 放入模型目录：</div>
+                                        <div className="bg-background/80 rounded border border-border/60 p-2.5 space-y-2 font-mono text-[11px] break-all select-text">
+                                            <div className="text-muted-foreground/70">{localAiStatus?.modelsDirectory ?? ''}</div>
+                                            <div className="flex items-center gap-2 pt-1 font-sans">
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-7 text-xs"
+                                                    disabled={!localAiStatus}
+                                                    onClick={() => localAiStatus && copyText(localAiStatus.modelsDirectory)}
+                                                >
+                                                    <Copy className="w-3 h-3 mr-1" />
+                                                    {t('serviceCredentials.localAi.copyPath')}
+                                                </Button>
+                                                <Button
+                                                    type="button"
+                                                    variant="outline"
+                                                    size="sm"
+                                                    className="h-7 text-xs"
+                                                    disabled={!localAiStatus}
+                                                    onClick={() => localAiStatus && openModelFolder(localAiStatus.modelsDirectory)}
+                                                >
+                                                    <FolderOpen className="w-3 h-3 mr-1" />
+                                                    {t('serviceCredentials.localAi.openFolder')}
+                                                </Button>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1">
+                                        <div className="font-semibold text-foreground">3. 刷新并启用：</div>
+                                        <p className="leading-relaxed">
+                                            模型放入目录后，点击右上角的「刷新模型列表」，新模型会自动出现在上方并带有「自定义模型」标签。点击「设为使用」后，即可通过「测试」验证运行状态与推理速度。
+                                        </p>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* 运行时状态底栏 */}
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground/80 px-0.5">
+                            <span className={cn("inline-block w-2 h-2 rounded-full", localAiStatus?.runtimeReady ? "bg-green-500" : "bg-amber-500")} />
+                            <span>
+                                {localAiStatus?.runtimeReady
+                                    ? t('serviceCredentials.localAi.runtimeReady')
+                                    : t('serviceCredentials.localAi.runtimeMissing')}
+                            </span>
+                        </div>
+                    </div>
+                </SettingCard>
+
+                {/* 轻量翻译模型卡片 */}
+                <SettingCard
+                    title={t('serviceCredentials.localMt.cardTitle')}
+                    description={t('serviceCredentials.localMt.cardDescription')}
+                    icon={Languages}
+                    headerAction={
+                        localMtStatus?.modelPath ? (
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={() => openModelFolder(localMtStatus.modelPath)}
+                            >
+                                <FolderOpen className="w-3.5 h-3.5 mr-1.5" />
+                                {t('serviceCredentials.localAi.openFolder')}
+                            </Button>
+                        ) : null
+                    }
+                >
+                    <div className="p-4 space-y-4">
+                        <div className={cn(
+                            "relative rounded-xl border p-3.5 transition-colors",
+                            localMtStatus?.ready
+                                ? "border-primary/40 bg-primary/[0.03]"
+                                : "border-border/60 bg-muted/20"
+                        )}>
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                <div className="space-y-1 min-w-0">
+                                    <div className="flex items-center gap-2 flex-wrap">
+                                        <span className="text-sm font-semibold text-foreground tracking-tight">OPUS-MT en→zh</span>
+                                        <span className="rounded bg-muted/80 px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">~0.3 GB</span>
+                                        {localMtStatus?.ready ? (
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
+                                                <CheckCircle2 className="h-3 w-3" />
+                                                {t('serviceCredentials.localAi.readyNotInUse')}
+                                            </span>
+                                        ) : localMtStatus?.phase !== 'idle' && localMtStatus ? (
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 px-2 py-0.5 text-xs font-medium text-blue-600 dark:text-blue-400">
+                                                <Loader2 className="h-3 w-3 animate-spin" />
+                                                {localMtStatus.phase === 'verifying'
+                                                    ? t('serviceCredentials.localAi.phaseVerifying')
+                                                    : t('serviceCredentials.localAi.phaseDownloading')}
+                                            </span>
+                                        ) : (
+                                            <span className="inline-flex items-center gap-1 rounded-full bg-muted/80 px-2 py-0.5 text-xs text-muted-foreground">
+                                                {t('common.notDownloaded')}
+                                            </span>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-muted-foreground line-clamp-1">{t('serviceCredentials.localMt.modelNote')}</p>
+                                    {localMtStatus?.error && (
+                                        <p className="text-xs text-destructive">{localMtStatus.error}</p>
+                                    )}
+                                </div>
+                                <div className="flex items-center gap-1.5 shrink-0 flex-wrap sm:flex-nowrap">
+                                    {localMtStatus?.ready ? (
+                                        <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                                <Button
+                                                    type="button"
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    className="text-muted-foreground hover:text-destructive"
+                                                    disabled={localMtBusy}
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                                <AlertDialogHeader>
+                                                    <AlertDialogTitle>{t('serviceCredentials.localMt.deleteConfirmTitle')}</AlertDialogTitle>
+                                                    <AlertDialogDescription>
+                                                        {t('serviceCredentials.localMt.deleteConfirmDescription')}
+                                                    </AlertDialogDescription>
+                                                </AlertDialogHeader>
+                                                <AlertDialogFooter>
+                                                    <AlertDialogCancel>{t('serviceCredentials.localAi.cancelDelete')}</AlertDialogCancel>
+                                                    <AlertDialogAction onClick={deleteLocalMt}>
+                                                        {t('serviceCredentials.localAi.confirmDelete')}
+                                                    </AlertDialogAction>
+                                                </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                        </AlertDialog>
+                                    ) : localMtStatus && localMtStatus.phase !== 'idle' ? (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={localMtBusy}
+                                            onClick={cancelLocalMtDownload}
+                                        >
+                                            <Square className="mr-1.5 h-3.5 w-3.5 text-destructive" />
+                                            {t('serviceCredentials.localAi.cancelDownload')}
+                                        </Button>
+                                    ) : (
+                                        <Button
+                                            type="button"
+                                            size="sm"
+                                            disabled={localMtBusy}
+                                            onClick={downloadLocalMt}
+                                        >
+                                            <Download className="mr-1.5 h-3.5 w-3.5" />
+                                            {t('common.download')}
+                                        </Button>
+                                    )}
+                                </div>
+                            </div>
+                            {localMtStatus && localMtStatus.phase !== 'idle' && (
+                                <div className="mt-3 space-y-1.5 rounded-lg border border-border/40 bg-muted/30 p-2.5">
+                                    <div className="flex justify-between text-xs font-medium text-muted-foreground">
+                                        <span>
+                                            {localMtStatus.phase === 'verifying'
+                                                ? t('serviceCredentials.localAi.phaseVerifying')
+                                                : t('serviceCredentials.localAi.phaseDownloading')}
+                                        </span>
+                                        <span>{Math.min(100, Math.floor(localMtStatus.downloaded / (localMtStatus.total || 1) * 100))}%</span>
+                                    </div>
+                                    <Progress
+                                        value={(localMtStatus.downloaded / (localMtStatus.total || 1)) * 100}
+                                        className="h-1.5"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </SettingCard>
+
 
                 {/* 英语语音朗读模型卡片 */}
                 <SettingCard

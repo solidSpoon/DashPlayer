@@ -100,3 +100,4 @@ out/
 
 # 本地开发工具状态
 .local/
+worktrees/

@@ -20,12 +20,12 @@
         "manualDownloadTitle": "If the network is unstable, download the model manually:",
         "manualDownloadUrlLabel": "Download address",
         "manualDownloadSaveTo": "Save the downloaded file to:",
-        "manualDownloadNextStep": "Then return here and click Download to finish installing the model."
-        ,"openFolder": "Open folder"
-        ,"openFolderFailed": "Failed to open folder"
-        ,"openInBrowser": "Open in browser"
-        ,"openUrlFailed": "Failed to open link"
-        ,"copyFailed": "Copy failed"
+        "manualDownloadNextStep": "Then return here and click Download to finish installing the model.",
+        "openFolder": "Open folder",
+        "openFolderFailed": "Failed to open folder",
+        "openInBrowser": "Open in browser",
+        "openUrlFailed": "Failed to open link",
+        "copyFailed": "Copy failed"
     },
     "sections": {
         "shortcut": "Shortcuts",
@@ -122,26 +122,86 @@
             "keys": "Shortcuts"
         },
         "items": {
-            "previousSentence": { "title": "Previous Subtitle", "description": "Jump to the previous subtitle line." },
-            "nextSentence": { "title": "Next Subtitle", "description": "Jump to the next subtitle line." },
-            "repeatSentence": { "title": "Loop Current Line", "description": "Replay the current sentence repeatedly." },
-            "playPause": { "title": "Play / Pause", "description": "Toggle playback between play and pause." },
-            "repeatSingleSentence": { "title": "Replay Current Line", "description": "Replay the current sentence once." },
-            "autoPause": { "title": "Auto-pause", "description": "Pause automatically after each subtitle line." },
-            "toggleEnglishDisplay": { "title": "Toggle English Subtitles", "description": "Show or hide English subtitles." },
-            "toggleChineseDisplay": { "title": "Toggle Chinese Subtitles", "description": "Show or hide Chinese subtitles." },
-            "toggleBilingualDisplay": { "title": "Toggle Bilingual Subtitles", "description": "Switch bilingual subtitle display on or off." },
-            "toggleWordLevelDisplay": { "title": "Toggle Word-Level Subtitles", "description": "Switch word-level highlighted subtitles on or off." },
-            "nextTheme": { "title": "Switch Theme", "description": "Cycle through available visual themes." },
-            "adjustBeginMinus": { "title": "Advance Subtitle Start", "description": "Shift subtitle start timing 0.2s earlier." },
-            "adjustBeginPlus": { "title": "Delay Subtitle Start", "description": "Shift subtitle start timing 0.2s later." },
-            "adjustEndMinus": { "title": "Advance Subtitle End", "description": "Shift subtitle end timing 0.2s earlier." },
-            "adjustEndPlus": { "title": "Delay Subtitle End", "description": "Shift subtitle end timing 0.2s later." },
-            "clearAdjust": { "title": "Reset Subtitle Timing", "description": "Restore subtitle timing offsets to default." },
-            "nextPlaybackRate": { "title": "Cycle Playback Speed", "description": "Cycle among your preset playback speeds." },
-            "aiChat": { "title": "Open AI Chat", "description": "Open the AI chat assistant panel." },
-            "addClip": { "title": "Add Favorite Clip", "description": "Bookmark current sentence segment to Saved Clips." },
-            "openControlPanel": { "title": "Open Control Panel", "description": "Open the playback control panel." }
+            "previousSentence": {
+                "title": "Previous Subtitle",
+                "description": "Jump to the previous subtitle line."
+            },
+            "nextSentence": {
+                "title": "Next Subtitle",
+                "description": "Jump to the next subtitle line."
+            },
+            "repeatSentence": {
+                "title": "Loop Current Line",
+                "description": "Replay the current sentence repeatedly."
+            },
+            "playPause": {
+                "title": "Play / Pause",
+                "description": "Toggle playback between play and pause."
+            },
+            "repeatSingleSentence": {
+                "title": "Replay Current Line",
+                "description": "Replay the current sentence once."
+            },
+            "autoPause": {
+                "title": "Auto-pause",
+                "description": "Pause automatically after each subtitle line."
+            },
+            "toggleEnglishDisplay": {
+                "title": "Toggle English Subtitles",
+                "description": "Show or hide English subtitles."
+            },
+            "toggleChineseDisplay": {
+                "title": "Toggle Chinese Subtitles",
+                "description": "Show or hide Chinese subtitles."
+            },
+            "toggleBilingualDisplay": {
+                "title": "Toggle Bilingual Subtitles",
+                "description": "Switch bilingual subtitle display on or off."
+            },
+            "toggleWordLevelDisplay": {
+                "title": "Toggle Word-Level Subtitles",
+                "description": "Switch word-level highlighted subtitles on or off."
+            },
+            "nextTheme": {
+                "title": "Switch Theme",
+                "description": "Cycle through available visual themes."
+            },
+            "adjustBeginMinus": {
+                "title": "Advance Subtitle Start",
+                "description": "Shift subtitle start timing 0.2s earlier."
+            },
+            "adjustBeginPlus": {
+                "title": "Delay Subtitle Start",
+                "description": "Shift subtitle start timing 0.2s later."
+            },
+            "adjustEndMinus": {
+                "title": "Advance Subtitle End",
+                "description": "Shift subtitle end timing 0.2s earlier."
+            },
+            "adjustEndPlus": {
+                "title": "Delay Subtitle End",
+                "description": "Shift subtitle end timing 0.2s later."
+            },
+            "clearAdjust": {
+                "title": "Reset Subtitle Timing",
+                "description": "Restore subtitle timing offsets to default."
+            },
+            "nextPlaybackRate": {
+                "title": "Cycle Playback Speed",
+                "description": "Cycle among your preset playback speeds."
+            },
+            "aiChat": {
+                "title": "Open AI Chat",
+                "description": "Open the AI chat assistant panel."
+            },
+            "addClip": {
+                "title": "Add Favorite Clip",
+                "description": "Bookmark current sentence segment to Saved Clips."
+            },
+            "openControlPanel": {
+                "title": "Open Control Panel",
+                "description": "Open the playback control panel."
+            }
         }
     },
     "about": {
@@ -248,29 +308,50 @@
         "intro": "Each feature can use a different provider. If set to \"Disabled\", that feature is skipped during playback.",
         "featureSwitches": "Feature Switches",
         "engineTencent": "Tencent Translation",
-        "engineYoudao": "Youdao Dictionary",
         "engineNone": "Disabled",
+        "cloudModelGroup": "Cloud Models",
+        "localEngine": "Local Model",
+        "notDownloadedHint": "No local model is downloaded yet. Download one on the Service Credentials page first.",
+        "clearCache": "Clear cache",
+        "clearCacheCancel": "Cancel",
+        "clearCacheSuccess": "Cleared {{count}} cached entries",
         "subtitleTranslation": {
             "title": "Subtitle Translation",
             "description": "Control which provider powers subtitle translation.",
-            "modelLabel": "Subtitle Translation Model",
-            "styleLabel": "OpenAI Subtitle Output Style",
+            "styleLabel": "AI Subtitle Output Style",
+            "clearCacheLabel": "Translation Cache",
+            "clearCacheDesc": "Only clear translation cache matching the current engine and configuration",
+            "clearCacheConfirmTitle": "Clear subtitle translation cache",
+            "clearCacheConfirmDescription": "This deletes translations produced by the current subtitle translation config (same engine, model and style); they will be re-translated on next playback. This cannot be undone.",
             "styleZh": "Direct Chinese translation",
             "styleSimpleEn": "Simplified English",
             "styleCustom": "Custom",
             "hiddenHint": "OpenAI subtitle translation is currently not selected, so style options are hidden."
         },
+        "invalidStorage": {
+            "warning": "The stored value of these settings is invalid: {{items}}. Please choose again above and save; affected features stay unavailable until then.",
+            "subtitleEngine": "Subtitle translation engine",
+            "dictionaryEngine": "Dictionary engine",
+            "subtitleMode": "OpenAI subtitle output style",
+            "reselect": "Invalid value, choose again"
+        },
         "dictionary": {
             "title": "Dictionary Lookup",
             "description": "Used for word definitions and example sentences.",
-            "modelLabel": "Dictionary Model"
+            "clearCacheLabel": "Dictionary Cache",
+            "clearCacheDesc": "Only clear lookup cache matching the current dictionary engine",
+            "clearCacheConfirmTitle": "Clear dictionary cache",
+            "clearCacheConfirmDescription": "This deletes query results produced by the current dictionary config (same engine); they will be re-fetched on next lookup. This cannot be undone."
         },
         "sentenceLearning": {
             "title": "Sentence Learning",
             "description": "Powers AI sentence breakdowns and contextual learning guidance.",
             "enable": "Enable OpenAI Sentence Learning",
             "modelLabel": "Sentence Learning Model"
-        }
+        },
+        "localMtEngine": "Local lightweight MT",
+        "localMtNotDownloadedHint": "The lightweight translation model is not downloaded yet. Download it on the Service Credentials page first.",
+        "localMtZhOnlyHint": "The lightweight translation model only supports Chinese output. Choose another engine for simplified English or custom styles."
     },
     "serviceCredentials": {
         "title": "Service Credentials",
@@ -338,11 +419,48 @@
         "sherpaTts": {
             "manualDownload": "If the download is blocked, open {{url}}, download model.tar.bz2, and save it to {{path}}. Then click Download here to resume or install it."
         },
-        "youdao": {
-            "title": "Youdao Dictionary",
-            "description": "Used for dictionary lookups.",
-            "appId": "App ID",
-            "appKey": "App Key"
+        "localAi": {
+            "cardTitle": "Local Large Language Model (LLM)",
+            "cardDescription": "Runs continuously in the background for instant response. Provides completely offline subtitle translation and dictionary lookup without network dependency or API costs.",
+            "inUse": "Active",
+            "readyNotInUse": "Ready",
+            "use": "Set as Active",
+            "useSuccess": "Switched to active model; shared across all local AI features",
+            "defaultModelDescription": "Recommended for daily use with smooth subtitle translation, lookup, and low resource footprint.",
+            "custom": "Custom",
+            "phaseDownloading": "Downloading",
+            "phaseVerifying": "Verifying",
+            "cancelDownload": "Cancel",
+            "test": "Test",
+            "testing": "Testing…",
+            "delete": "Delete",
+            "deleteConfirmTitle": "Delete local model?",
+            "deleteConfirmDescription": "Deleting will free up local disk space. You can redownload or import it again anytime.",
+            "cancelDelete": "Cancel",
+            "confirmDelete": "Delete",
+            "deleteSuccess": "Model deleted",
+            "memoryEstimate": "~{{gb}} GB RAM required",
+            "rescan": "Refresh Models",
+            "openFolder": "Open Folder",
+            "copyPath": "Copy Path",
+            "speedWarm": "Typical Response",
+            "speedTps": "Speed",
+            "speedTpsUnit": "words/s",
+            "runtimeReady": "Local engine is ready and running in the background for instant response",
+            "runtimeMissing": "Inference engine not installed. Run `yarn run download` or reinstall the app.",
+            "customGuideTitle": "How to import custom GGUF models?",
+            "customGuideStep1": "Download model: Download an Instruct-tuned GGUF model (Qwen series recommended, Q4_K_M quantization for best balance).",
+            "customGuideStep2": "Place into directory: Click the button below to open the directory and drop your .gguf file there.",
+            "customGuideStep3": "Refresh & Enable: Click \"Refresh Models\", then choose the model and click \"Set as Active\"."
+        },
+        "localMt": {
+            "cardTitle": "Local Lightweight MT Model",
+            "cardDescription": "Dedicated ultra-lightweight English-to-Chinese subtitle translation model. Extremely fast with minimal footprint; Chinese translation only, no dictionary lookup.",
+            "modelNote": "Specialized for rapid subtitle translation without complex reasoning, ideal for basic translations.",
+            "downloadDone": "Lightweight translation model downloaded",
+            "deleteDone": "Lightweight translation model deleted",
+            "deleteConfirmTitle": "Delete lightweight translation model?",
+            "deleteConfirmDescription": "This will delete the downloaded model files (~296MB). You can download them again anytime."
         }
     }
 }

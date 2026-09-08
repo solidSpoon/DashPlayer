@@ -38,121 +38,6 @@ function hashFile(path, options) {
     });
 }
 
-/**
- * Verify the existence of the file
- * @param dir {string}
- * @param file {string}
- * @param sha {string | undefined}
- * @returns {Promise<'need_download' | 'pass'>}
- */
-async function verifyExistence({
-                                   dir,
-                                   file,
-                                   sha,
-                               }) {
-    try {
-        if (fs.statSync(path.join(dir, file)).isFile()) {
-            console.info(chalk.green(`✅ File ${file} already exists`));
-            const hash = await hashFile(path.join(dir, file), {algo: "sha1"});
-            if (sha === undefined || hash === sha) {
-                console.info(chalk.green(`✅ File ${file} valid`));
-                return 'pass';
-            } else {
-                console.error(
-                    chalk.red(`❌ File ${file} not valid, start to redownload`)
-                );
-                fs.unlinkSync(path.join(dir, file));
-                return 'need_download';
-            }
-        }
-    } catch (err) {
-        if (err && err.code !== "ENOENT") {
-            console.error(chalk.red(`❌ Error: ${err}`));
-            process.exit(1);
-        } else {
-            console.info(chalk.blue(`=> Start to download File ${file}`));
-            return 'need_download';
-        }
-    }
-}
-
-/**
- * Set proxy
- */
-function setProxy() {
-    const proxyUrl =
-        process.env.HTTPS_PROXY ||
-        process.env.https_proxy ||
-        process.env.HTTP_PROXY ||
-        process.env.http_proxy;
-
-    if (proxyUrl) {
-        const {hostname, port, protocol} = new URL(proxyUrl);
-        axios.defaults.proxy = {
-            host: hostname,
-            port: port,
-            protocol: protocol,
-        };
-    }
-}
-
-/**
- * Download file from url
- * @param url {string}
- * @param dir {string}
- * @param file {string}
- * @param sha {string | undefined}
- * @returns {Promise<void>}
- */
-const download = async ({url, dir, file, sha}) => {
-    const dest = path.join(dir, file);
-    console.info(chalk.blue(`=> Start to download from ${url} to ${dest}`));
-    try {
-        const response = await axios.get(url, {
-            responseType: "stream",
-            headers: getGithubAuthHeaders(url),
-        });
-        const totalLength = response.headers["content-length"];
-
-        const progressBar = new progress(`-> downloading [:bar] :percent :etas`, {
-            width: 40,
-            complete: "=",
-            incomplete: " ",
-            renderThrottle: 1,
-            total: parseInt(totalLength),
-        });
-
-        response.data.on("data", (chunk) => {
-            progressBar.tick(chunk.length);
-        });
-        await new Promise((resolve, reject) => {
-            response.data.pipe(fs.createWriteStream(dest)).on("close", async () => {
-                console.info(chalk.green(`✅ File ${file} downloaded successfully`));
-                const hash = await hashFile(path.join(dir, file), {algo: "sha1"});
-                if (sha === undefined || hash === sha) {
-                    console.info(chalk.green(`✅ File ${file} valid`));
-                    resolve();
-                } else {
-                    console.error(
-                        chalk.red(
-                            `❌ File ${file} not valid, please try again using command \`yarn download\``
-                        )
-                    );
-                    reject();
-                }
-            });
-        });
-    } catch (err) {
-        console.error(
-            chalk.red(
-                `❌ Failed to download ${url}: ${err}.\nPlease try again using command \`yarn download\``
-            )
-        );
-        process.exit(1);
-    }
-};
-
-
 /////////////////////
 
 const mkdirp = (dir) => {
@@ -334,7 +219,7 @@ const downloadAndExtractBinaryFromArchive = async ({
                 const entries = fs.readdirSync(dir, {withFileTypes: true});
                 for (const ent of entries) {
                     const p = path.join(dir, ent.name);
-                    if (ent.isFile() && pattern.test(ent.name)) {
+                    if ((ent.isFile() || ent.isSymbolicLink()) && pattern.test(ent.name)) {
                         matches.push(p);
                     }
                 }
@@ -352,6 +237,20 @@ const downloadAndExtractBinaryFromArchive = async ({
             }
         }
     }
+};
+
+/**
+ * 判断 llama.cpp 官方运行包是否已完整安装。
+ * @param {string} runtimeDir 运行时目录。
+ * @param {string} executableName 可执行文件名。
+ * @param {string[]} dependencyPrefixes 平台依赖库文件名前缀清单。
+ * @returns {boolean} 可执行文件和平台动态库均存在时返回 true。
+ */
+const isLlamaRuntimeReady = (runtimeDir, executableName, dependencyPrefixes) => {
+    const entries = fs.existsSync(runtimeDir) ? fs.readdirSync(runtimeDir) : [];
+    return fs.existsSync(path.join(runtimeDir, '.complete'))
+        && fs.existsSync(path.join(runtimeDir, executableName))
+        && dependencyPrefixes.every((prefix) => entries.some((entry) => entry.startsWith(prefix)));
 };
 
 const ffmpegUrls = {
@@ -392,6 +291,14 @@ mkdirp(dir);
 
 const platform = process.env.npm_config_platform || os.platform()
 const arch = process.env.npm_config_arch || os.arch()
+
+/**
+ * llama.cpp 官方包的动态库命名：unix 系带 lib 前缀，Windows 不带。
+ * isLlamaRuntimeReady 与安装后校验共用同一份按平台计算的清单。
+ */
+const llamaDependencyPrefixesFor = (platform) => platform === 'win32'
+    ? ['mtmd', 'llama-common', 'llama-server-impl']
+    : ['libmtmd', 'libllama-common', 'libllama-server-impl'];
 
 {
     // ffmpeg
@@ -484,5 +391,156 @@ const arch = process.env.npm_config_arch || os.arch()
             outputPath: ttsExePath,
             binaryNameCandidates: [ttsExeName],
         });
+    }
+}
+
+// llama.cpp 本地推理运行时：按平台下载官方二进制包。
+// - macOS：Metal 包（arm64 走 GPU，Intel Mac 纯 CPU）
+// - linux / win32-x64：Vulkan 包（核显/独显推理；llama.cpp 官方未提供 win-arm64 Vulkan 包）
+// - win32-arm64：CPU 包
+{
+    const llamaVersion = 'b10819';
+    const llamaDir = path.join(dir, 'llama', llamaVersion, `${platform}-${arch}`);
+    mkdirp(llamaDir);
+    const exeName = platform === 'win32' ? 'llama-server.exe' : 'llama-server';
+    const assetNames = {
+        darwin: { arm64: `llama-${llamaVersion}-bin-macos-arm64.tar.gz`, x64: `llama-${llamaVersion}-bin-macos-x64.tar.gz` },
+        linux: { arm64: `llama-${llamaVersion}-bin-ubuntu-vulkan-arm64.tar.gz`, x64: `llama-${llamaVersion}-bin-ubuntu-vulkan-x64.tar.gz` },
+        win32: { arm64: `llama-${llamaVersion}-bin-win-cpu-arm64.zip`, x64: `llama-${llamaVersion}-bin-win-vulkan-x64.zip` },
+    };
+    const assetName = assetNames[platform]?.[arch];
+    if (!assetName) throw new Error(`本地推理不支持平台：${platform}/${arch}`);
+    const dependencyPrefixes = llamaDependencyPrefixesFor(platform);
+    // 可执行文件之外还需落地的运行包内容：unix 的动态库（含 .so.0 版本别名，
+    // 动态链接器按 SONAME 查找）；Windows 的 DLL；macOS 另有 Metal 着色器。
+    const extraCopyPatterns = platform === 'win32' ? [/\.dll$/] : [/\.dylib$/, /\.metal$/, /\.so(\.|$)/];
+    const exePath = path.join(llamaDir, exeName);
+    if (!isLlamaRuntimeReady(llamaDir, exeName, dependencyPrefixes)) {
+        await downloadAndExtractBinaryFromArchive({
+            url: `https://github.com/ggml-org/llama.cpp/releases/download/${llamaVersion}/${assetName}`,
+            outputPath: exePath,
+            binaryNameCandidates: [exeName],
+            extraCopyPatterns,
+        });
+        if (!dependencyPrefixes.every((prefix) => fs.readdirSync(llamaDir).some((entry) => entry.startsWith(prefix)))) {
+            throw new Error(`llama.cpp 运行时包不完整，缺少依赖库（${dependencyPrefixes.join(', ')}），请重试 yarn run download`);
+        }
+        // .complete 标记是“安装侧完成校验”的唯一凭据，LocalAiRuntime 只检查该标记，
+        // 不在运行时侧复刻依赖库清单，避免两份清单漂移。
+        fs.writeFileSync(path.join(llamaDir, '.complete'), `${llamaVersion}\n`);
+    }
+}
+
+/**
+ * 校验文件是否存在以及可选的 SHA1 摘要。
+ * @param dir {string} 文件目录。
+ * @param file {string} 文件名。
+ * @param sha {string | undefined} 可选 SHA1 摘要。
+ * @returns {Promise<'need_download' | 'pass'>} 是否需要下载。
+ */
+async function verifyExistence({
+                                   dir,
+                                   file,
+                                   sha,
+                               }) {
+    try {
+        if (fs.statSync(path.join(dir, file)).isFile()) {
+            console.info(chalk.green(`✅ File ${file} already exists`));
+            const hash = await hashFile(path.join(dir, file), {algo: "sha1"});
+            if (sha === undefined || hash === sha) {
+                console.info(chalk.green(`✅ File ${file} valid`));
+                return 'pass';
+            } else {
+                console.error(
+                    chalk.red(`❌ File ${file} not valid, start to redownload`)
+                );
+                fs.unlinkSync(path.join(dir, file));
+                return 'need_download';
+            }
+        }
+    } catch (err) {
+        if (err && err.code !== "ENOENT") {
+            console.error(chalk.red(`❌ Error: ${err}`));
+            process.exit(1);
+        } else {
+            console.info(chalk.blue(`=> Start to download File ${file}`));
+            return 'need_download';
+        }
+    }
+}
+
+/**
+ * 将系统代理环境变量应用到下载客户端。
+ */
+function setProxy() {
+    const proxyUrl =
+        process.env.HTTPS_PROXY ||
+        process.env.https_proxy ||
+        process.env.HTTP_PROXY ||
+        process.env.http_proxy;
+
+    if (proxyUrl) {
+        const {hostname, port, protocol} = new URL(proxyUrl);
+        axios.defaults.proxy = {
+            host: hostname,
+            port: port,
+            protocol: protocol,
+        };
+    }
+}
+
+/**
+ * 下载文件并校验可选的 SHA1 摘要。
+ * @param url {string} 下载地址。
+ * @param dir {string} 保存目录。
+ * @param file {string} 保存文件名。
+ * @param sha {string | undefined} 可选 SHA1 摘要。
+ * @returns {Promise<void>} 下载完成后结束。
+ */
+async function download({url, dir, file, sha}) {
+    const dest = path.join(dir, file);
+    console.info(chalk.blue(`=> Start to download from ${url} to ${dest}`));
+    try {
+        const response = await axios.get(url, {
+            responseType: "stream",
+            headers: getGithubAuthHeaders(url),
+        });
+        const totalLength = response.headers["content-length"];
+
+        const progressBar = new progress(`-> downloading [:bar] :percent :etas`, {
+            width: 40,
+            complete: "=",
+            incomplete: " ",
+            renderThrottle: 1,
+            total: parseInt(totalLength),
+        });
+
+        response.data.on("data", (chunk) => {
+            progressBar.tick(chunk.length);
+        });
+        await new Promise((resolve, reject) => {
+            response.data.pipe(fs.createWriteStream(dest)).on("close", async () => {
+                console.info(chalk.green(`✅ File ${file} downloaded successfully`));
+                const hash = await hashFile(path.join(dir, file), {algo: "sha1"});
+                if (sha === undefined || hash === sha) {
+                    console.info(chalk.green(`✅ File ${file} valid`));
+                    resolve();
+                } else {
+                    console.error(
+                        chalk.red(
+                            `❌ File ${file} not valid, please try again using command \`yarn download\``
+                        )
+                    );
+                    reject();
+                }
+            });
+        });
+    } catch (err) {
+        console.error(
+            chalk.red(
+                `❌ Failed to download ${url}: ${err}.\nPlease try again using command \`yarn download\``
+            )
+        );
+        process.exit(1);
     }
 }

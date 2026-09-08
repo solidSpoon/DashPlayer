@@ -1,4 +1,4 @@
-import { OpenAIDictionaryResult } from '@/common/types/YdRes';
+import { OpenAIDictionaryResult } from '@/common/types/DictionaryResult';
 import { RendererTranslationItem } from '@/common/types/TranslationResult';
 import { ChatStreamEvent } from '@/common/types/chat';
 import { AnalysisStreamEvent } from '@/common/types/analysis';
@@ -33,6 +33,14 @@ interface UIRendererDef {
     'settings/parakeet-model-download-progress': { params: { percent: number; downloaded: number; total: number; phase: ModelDownloadPhase }, return: void };
     'settings/sherpa-tts-model-download-progress': { params: { percent: number; downloaded: number; total: number; phase: ModelDownloadPhase }, return: void };
     'settings/whisper-cpp-model-download-progress': { params: { percent: number; downloaded: number; total: number; phase: ModelDownloadPhase }, return: void };
+    'settings/local-ai-model-download-progress': {
+        params: { modelId: string; percent: number; downloaded: number; total: number; phase: 'idle' | 'downloading' | 'verifying' },
+        return: void
+    };
+    'settings/local-mt-download-progress': {
+        params: { downloaded: number; total: number; phase: 'idle' | 'downloading' | 'verifying' },
+        return: void
+    };
 }
 
 // 翻译相关的前端API定义

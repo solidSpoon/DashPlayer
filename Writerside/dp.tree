@@ -12,7 +12,6 @@
     <toc-element topic="Usage.md"/>
     <toc-element topic="Config-Translate.md">
         <toc-element topic="Config-OpenAI-API.md"/>
-        <toc-element topic="Config-YouDao-API.md"/>
         <toc-element topic="Config-Tencent-API.md"/>
     </toc-element>
     <toc-element topic="Vocabulary-Studio.md"/>

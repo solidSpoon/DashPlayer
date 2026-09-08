@@ -5,12 +5,14 @@ import type { CustomMigration } from './types';
 import { isCustomMigrationCompleted, markCustomMigrationCompleted } from './sysConfMarker';
 import { storeSchemaProviderMigrationV1 } from './migrations/storeSchemaProviderMigrationV1';
 import { transcriptionEngineSherpaDefaultMigrationV1 } from './migrations/transcriptionEngineSherpaDefaultMigrationV1';
+import { storeSchemaDictionaryYoudaoMigrationV2 } from './migrations/storeSchemaDictionaryYoudaoMigrationV2';
 
 const logger = getMainLogger('custom-migrations');
 
 const customMigrations: CustomMigration[] = [
     storeSchemaProviderMigrationV1,
     transcriptionEngineSherpaDefaultMigrationV1,
+    storeSchemaDictionaryYoudaoMigrationV2,
 ];
 
 const runCustomMigrations = async (): Promise<void> => {

@@ -14,18 +14,18 @@
         "downloading": "下载中...",
         "download": "下载",
         "ready": "就绪",
-        "notDownloaded": "未下载"
-        ,"copy": "复制"
-        ,"copied": "已复制下载地址"
-        ,"manualDownloadTitle": "网络不稳定时，也可以手动下载模型："
-        ,"manualDownloadUrlLabel": "下载地址"
-        ,"manualDownloadSaveTo": "下载完成后，将文件保存到："
-        ,"manualDownloadNextStep": "保存后，回到这里点击“下载”，完成模型安装。"
-        ,"openFolder": "打开文件夹"
-        ,"openFolderFailed": "打开文件夹失败"
-        ,"openInBrowser": "在浏览器中打开"
-        ,"openUrlFailed": "打开链接失败"
-        ,"copyFailed": "复制失败"
+        "notDownloaded": "未下载",
+        "copy": "复制",
+        "copied": "已复制下载地址",
+        "manualDownloadTitle": "网络不稳定时，也可以手动下载模型：",
+        "manualDownloadUrlLabel": "下载地址",
+        "manualDownloadSaveTo": "下载完成后，将文件保存到：",
+        "manualDownloadNextStep": "保存后，回到这里点击“下载”，完成模型安装。",
+        "openFolder": "打开文件夹",
+        "openFolderFailed": "打开文件夹失败",
+        "openInBrowser": "在浏览器中打开",
+        "openUrlFailed": "打开链接失败",
+        "copyFailed": "复制失败"
     },
     "sections": {
         "shortcut": "快捷键",
@@ -122,26 +122,86 @@
             "keys": "快捷键"
         },
         "items": {
-            "previousSentence": { "title": "上一句", "description": "跳转到上一句字幕" },
-            "nextSentence": { "title": "下一句", "description": "跳转到下一句字幕" },
-            "repeatSentence": { "title": "单句循环播放", "description": "循环重复播放当前句子" },
-            "playPause": { "title": "播放 / 暂停", "description": "切换播放或暂停状态" },
-            "repeatSingleSentence": { "title": "单句重播", "description": "重复播放当前句子 1 次" },
-            "autoPause": { "title": "自动暂停", "description": "播放完一句后自动暂停" },
-            "toggleEnglishDisplay": { "title": "显示 / 隐藏英文字幕", "description": "切换是否显示英文字幕" },
-            "toggleChineseDisplay": { "title": "显示 / 隐藏中文字幕", "description": "切换是否显示中文字幕" },
-            "toggleBilingualDisplay": { "title": "显示 / 隐藏双语字幕", "description": "切换是否显示双语字幕" },
-            "toggleWordLevelDisplay": { "title": "显示 / 隐藏逐词字幕", "description": "切换逐词高亮字幕" },
-            "nextTheme": { "title": "切换主题", "description": "在可用视觉主题间轮换" },
-            "adjustBeginMinus": { "title": "字幕开始时间提前", "description": "将字幕开始时间提前 0.2 秒" },
-            "adjustBeginPlus": { "title": "字幕开始时间延后", "description": "将字幕开始时间延后 0.2 秒" },
-            "adjustEndMinus": { "title": "字幕结束时间提前", "description": "将字幕结束时间提前 0.2 秒" },
-            "adjustEndPlus": { "title": "字幕结束时间延后", "description": "将字幕结束时间延后 0.2 秒" },
-            "clearAdjust": { "title": "重置字幕微调", "description": "恢复字幕时间轴到默认值" },
-            "nextPlaybackRate": { "title": "切换播放速度", "description": "在常用播放速度之间循环切换" },
-            "aiChat": { "title": "打开 AI 对话", "description": "唤起 AI 对话面板" },
-            "addClip": { "title": "添加收藏片段", "description": "将当前句子片段保存至收藏片段列表" },
-            "openControlPanel": { "title": "打开控制面板", "description": "打开播放器控制面板" }
+            "previousSentence": {
+                "title": "上一句",
+                "description": "跳转到上一句字幕"
+            },
+            "nextSentence": {
+                "title": "下一句",
+                "description": "跳转到下一句字幕"
+            },
+            "repeatSentence": {
+                "title": "单句循环播放",
+                "description": "循环重复播放当前句子"
+            },
+            "playPause": {
+                "title": "播放 / 暂停",
+                "description": "切换播放或暂停状态"
+            },
+            "repeatSingleSentence": {
+                "title": "单句重播",
+                "description": "重复播放当前句子 1 次"
+            },
+            "autoPause": {
+                "title": "自动暂停",
+                "description": "播放完一句后自动暂停"
+            },
+            "toggleEnglishDisplay": {
+                "title": "显示 / 隐藏英文字幕",
+                "description": "切换是否显示英文字幕"
+            },
+            "toggleChineseDisplay": {
+                "title": "显示 / 隐藏中文字幕",
+                "description": "切换是否显示中文字幕"
+            },
+            "toggleBilingualDisplay": {
+                "title": "显示 / 隐藏双语字幕",
+                "description": "切换是否显示双语字幕"
+            },
+            "toggleWordLevelDisplay": {
+                "title": "显示 / 隐藏逐词字幕",
+                "description": "切换逐词高亮字幕"
+            },
+            "nextTheme": {
+                "title": "切换主题",
+                "description": "在可用视觉主题间轮换"
+            },
+            "adjustBeginMinus": {
+                "title": "字幕开始时间提前",
+                "description": "将字幕开始时间提前 0.2 秒"
+            },
+            "adjustBeginPlus": {
+                "title": "字幕开始时间延后",
+                "description": "将字幕开始时间延后 0.2 秒"
+            },
+            "adjustEndMinus": {
+                "title": "字幕结束时间提前",
+                "description": "将字幕结束时间提前 0.2 秒"
+            },
+            "adjustEndPlus": {
+                "title": "字幕结束时间延后",
+                "description": "将字幕结束时间延后 0.2 秒"
+            },
+            "clearAdjust": {
+                "title": "重置字幕微调",
+                "description": "恢复字幕时间轴到默认值"
+            },
+            "nextPlaybackRate": {
+                "title": "切换播放速度",
+                "description": "在常用播放速度之间循环切换"
+            },
+            "aiChat": {
+                "title": "打开 AI 对话",
+                "description": "唤起 AI 对话面板"
+            },
+            "addClip": {
+                "title": "添加收藏片段",
+                "description": "将当前句子片段保存至收藏片段列表"
+            },
+            "openControlPanel": {
+                "title": "打开控制面板",
+                "description": "打开播放器控制面板"
+            }
         }
     },
     "about": {
@@ -248,29 +308,50 @@
         "intro": "不同功能可以独立选择服务来源。选择“关闭”后，该功能在播放器侧将不再执行。",
         "featureSwitches": "功能开关",
         "engineTencent": "腾讯翻译",
-        "engineYoudao": "有道词典",
         "engineNone": "关闭",
+        "cloudModelGroup": "云端模型",
+        "localEngine": "本地模型",
+        "notDownloadedHint": "尚未下载任何本地模型，请前往「服务凭据」页下载后再使用。",
+        "clearCache": "清除缓存",
+        "clearCacheCancel": "暂不清除",
+        "clearCacheSuccess": "已清除 {{count}} 条缓存",
         "subtitleTranslation": {
             "title": "字幕翻译",
             "description": "控制字幕翻译服务来源。",
-            "modelLabel": "字幕翻译模型",
-            "styleLabel": "OpenAI 字幕输出风格",
+            "styleLabel": "AI 字幕输出风格",
+            "clearCacheLabel": "翻译缓存",
+            "clearCacheDesc": "仅清除当前引擎与配置下已生成的字幕翻译缓存",
+            "clearCacheConfirmTitle": "清除字幕翻译缓存",
+            "clearCacheConfirmDescription": "将删除当前字幕翻译配置（引擎、模型、风格完全一致）已产生的翻译缓存，下次播放时会重新翻译。此操作不可撤销。",
             "styleZh": "中文直译",
             "styleSimpleEn": "简化英文",
             "styleCustom": "自定义",
             "hiddenHint": "当前未使用 OpenAI 字幕翻译，风格设置已自动隐藏。"
         },
+        "invalidStorage": {
+            "warning": "以下设置的存储值无效：{{items}}。请在上方重新选择并保存，保存前对应功能不可用。",
+            "subtitleEngine": "字幕翻译引擎",
+            "dictionaryEngine": "词典引擎",
+            "subtitleMode": "OpenAI 字幕输出风格",
+            "reselect": "当前值无效，请重新选择"
+        },
         "dictionary": {
             "title": "词典查询",
             "description": "用于单词释义与例句查询。",
-            "modelLabel": "词典查询模型"
+            "clearCacheLabel": "词典缓存",
+            "clearCacheDesc": "仅清除当前词典引擎已保存的查询缓存",
+            "clearCacheConfirmTitle": "清除词典缓存",
+            "clearCacheConfirmDescription": "将删除当前词典配置（引擎一致）已产生的查询缓存，下次查询时会重新请求。此操作不可撤销。"
         },
         "sentenceLearning": {
             "title": "整句学习",
             "description": "用于句子解析、学习提示等增强功能。",
             "enable": "启用 OpenAI 整句学习",
             "modelLabel": "整句学习模型"
-        }
+        },
+        "localMtEngine": "本地轻量翻译",
+        "localMtNotDownloadedHint": "轻量翻译模型尚未下载，请先在「服务凭据」页下载。",
+        "localMtZhOnlyHint": "轻量翻译模型仅支持翻译为中文；如需简化英文或自定义风格，请选择其他引擎。"
     },
     "serviceCredentials": {
         "title": "服务凭据",
@@ -306,8 +387,8 @@
             "cancelDelete": "暂不删除",
             "confirmDelete": "确认删除",
             "modelDeleted": "模型已删除",
-            "deleteFailed": "删除失败"
-            ,"manualDownload": "网络不稳定时，可打开 {{url}} 下载 model.tar.bz2，并保存到：{{path}}。然后回到这里点击“下载”，应用会继续断点续传或直接安装。"
+            "deleteFailed": "删除失败",
+            "manualDownload": "网络不稳定时，可打开 {{url}} 下载 model.tar.bz2，并保存到：{{path}}。然后回到这里点击“下载”，应用会继续断点续传或直接安装。"
         },
         "localModel": {
             "cancelDownload": "取消下载",
@@ -338,11 +419,48 @@
         "sherpaTts": {
             "manualDownload": "网络不稳定时，可打开 {{url}} 下载 model.tar.bz2，并保存到：{{path}}。然后回到这里点击“下载”，应用会继续断点续传或直接安装。"
         },
-        "youdao": {
-            "title": "有道词典",
-            "description": "用于词典查询能力。",
-            "appId": "应用 ID",
-            "appKey": "应用密钥"
+        "localAi": {
+            "cardTitle": "本地大语言模型 (LLM)",
+            "cardDescription": "模型在本地后台常驻运行，响应迅速即开即用；完全离线提供字幕翻译与词典解析，保护隐私且无需任何网络与 API 费用。",
+            "inUse": "当前使用",
+            "readyNotInUse": "已就绪",
+            "use": "设为使用",
+            "useSuccess": "已切换为当前模型，所有本地 AI 功能将共用此模型",
+            "defaultModelDescription": "推荐日常使用，翻译与词典查询体验流畅，运行资源占用低。",
+            "custom": "自定义模型",
+            "phaseDownloading": "下载中",
+            "phaseVerifying": "校验中",
+            "cancelDownload": "取消下载",
+            "test": "测试",
+            "testing": "测试中…",
+            "delete": "删除",
+            "deleteConfirmTitle": "删除此本地模型？",
+            "deleteConfirmDescription": "删除后将释放本地磁盘空间，随时可以重新下载或手动导入。",
+            "cancelDelete": "取消",
+            "confirmDelete": "确认删除",
+            "deleteSuccess": "模型已删除",
+            "memoryEstimate": "运行约需 {{gb}} GB 内存",
+            "rescan": "刷新模型列表",
+            "openFolder": "打开模型目录",
+            "copyPath": "复制路径",
+            "speedWarm": "日常响应",
+            "speedTps": "翻译速度",
+            "speedTpsUnit": "字/秒",
+            "runtimeReady": "本地引擎已就绪并在后台常驻，随时快速响应",
+            "runtimeMissing": "推理引擎未安装，请重新安装应用或执行 yarn run download",
+            "customGuideTitle": "如何导入自定义 GGUF 模型？",
+            "customGuideStep1": "准备模型文件：下载指令对话版（Instruct）GGUF 格式模型（推荐 Qwen 系列，量化版本建议 Q4_K_M 平衡最佳）。",
+            "customGuideStep2": "放入模型目录：点击下方按钮打开模型目录，将 .gguf 文件放入该文件夹中。",
+            "customGuideStep3": "刷新并启用：放置后点击「刷新模型列表」，新模型将出现在上方列表，点击「设为使用」即可生效。"
+        },
+        "localMt": {
+            "cardTitle": "本地轻量翻译模型",
+            "cardDescription": "超轻量中英字幕专用翻译模型，极速出词且占用极低；仅支持翻译为中文，不支持词典查询。",
+            "modelNote": "专注中英字幕极速翻译，速度飞快；无需复杂推理，适合基础翻译需求。",
+            "downloadDone": "轻量翻译模型下载完成",
+            "deleteDone": "轻量翻译模型已删除",
+            "deleteConfirmTitle": "删除轻量翻译模型？",
+            "deleteConfirmDescription": "将删除已下载的模型文件（约 296MB），下次使用需重新下载。"
         }
     }
 }

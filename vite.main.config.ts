@@ -11,6 +11,10 @@ export default defineConfig({
             external: [
                 // Native / non-bundle-friendly deps (ship via `node_modules` in the packaged app)
                 'better-sqlite3',
+                // 轻量翻译引擎：transformers.js 内部动态 require onnxruntime 平台二进制，
+                // 不能被打包器处理，必须整体 external 由 node_modules 运行时加载。
+                '@huggingface/transformers',
+                'onnxruntime-node',
                 // Proxy stack: loaded at runtime from `node_modules` (shipped via forge ignore list)
                 'undici',
                 'fetch-socks',

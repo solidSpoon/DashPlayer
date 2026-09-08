@@ -57,6 +57,14 @@ export function initRendererApis(): () => void {
         window.dispatchEvent(new CustomEvent('whisper-cpp-model-download-progress', { detail: params }));
     });
 
+    register('settings/local-ai-model-download-progress', async (params) => {
+        window.dispatchEvent(new CustomEvent('local-ai-model-download-progress', { detail: params }));
+    });
+
+    register('settings/local-mt-download-progress', async (params) => {
+        window.dispatchEvent(new CustomEvent('local-mt-download-progress', { detail: params }));
+    });
+
     register('translation/batch-result', async (params) => {
         useTranslation.getState().updateTranslations(params.translations);
     });

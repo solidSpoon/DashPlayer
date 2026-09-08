@@ -1,5 +1,6 @@
 import 'dotenv/config';
 import 'reflect-metadata';
+import type LocalAiService from '@/backend/services/LocalAiService';
 import { app, BrowserWindow, type Session } from 'electron';
 import squirrelStartup from 'electron-squirrel-startup';
 import fs from 'fs';
@@ -232,6 +233,8 @@ app.on('ready', async () => {
     await runResyncAfterResetDbIfNeeded();
     await initProxyFeature();
     logStartupPhase('proxy');
+    // 本地引擎启用时后台预加载模型常驻内存；失败只记日志，不阻塞也不影响启动流程。
+    container.get<LocalAiService>(TYPES.LocalAiService).syncEngineResidency();
     // 生命周期标记：会话何时开始、以什么配置运行，便于回溯“有活动却无日志”的问题。
     logger.info('app ready', {
         version: app.getVersion(),
@@ -257,8 +260,22 @@ app.on('window-all-closed', () => {
         app.quit();
     }
 });
-app.on('before-quit', () => {
+let localAiStopped = false;
+/** 退出前释放本地模型进程，避免后台遗留进程和占用模型文件。 */
+app.on('before-quit', (event) => {
     logger.info('app before quit');
+    if (localAiStopped) return;
+    event.preventDefault();
+    try {
+        void container.get<LocalAiService>(TYPES.LocalAiService).shutdown().catch((error) => {
+            logger.error('local AI shutdown failed', { error });
+        }).finally(() => { localAiStopped = true; app.quit(); });
+    } catch (error) {
+        // 容器未初始化等同步异常也必须继续退出，否则应用会卡在“退不出”状态。
+        logger.error('local AI shutdown failed', { error });
+        localAiStopped = true;
+        app.quit();
+    }
 });
 app.on('activate', () => {
     // On OS X it's common to re-create a window in the app when the

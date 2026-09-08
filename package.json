@@ -1,11 +1,12 @@
 {
   "name": "dash-player",
   "productName": "DashPlayer",
-  "version": "6.9.1",
+  "version": "6.10.0",
   "description": "A video player designed for English learning",
   "main": ".vite/build/main.js",
   "scripts": {
     "download": "zx ./scripts/download.mjs",
+    "build:dictionary": "node scripts/build-dictionary.mjs",
     "start": "yarn run download && electron-forge start",
     "package": "yarn run download && electron-forge package",
     "make": "yarn run download && electron-forge make",
@@ -130,6 +131,7 @@
     "ai": "^7.0.58",
     "ansi-to-react": "^6.2.6",
     "axios": "^1.6.8",
+    "@huggingface/transformers": "^3.8.1",
     "better-sqlite3": "^12.5.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.0",

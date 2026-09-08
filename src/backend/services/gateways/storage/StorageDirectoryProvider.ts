@@ -16,6 +16,8 @@ export enum StorageDirectoryTarget {
     TEMP = 'temp',
     TEMP_OSS = 'temp_oss',
     MODELS = 'models',
+    /** 本地 LLM 推理模型（GGUF）；与语音模型的 models 目录分开，避免用户手动放置时混淆。 */
+    LOCAL_AI = 'local_ai',
 }
 
 /**

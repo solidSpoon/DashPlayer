@@ -189,6 +189,30 @@ export const settingsApi = {
      * @returns 当前模型状态。
      */
     getSherpaTtsModelStatus: () => backendClient.call('sherpa-tts/models/status'),
+    /** 查询本地 Qwen 模型目录与 llama.cpp 运行时状态。 */
+    getLocalAiStatus: () => backendClient.call('local-ai/status'),
+    /** 将全部本地功能切换到指定模型。 */
+    useLocalAiModel: (modelId: string) => backendClient.call('local-ai/use', { modelId }),
+    /** 清除当前字幕翻译配置（引擎、模型、风格一致）的翻译缓存，返回删除条数。 */
+    clearSubtitleTranslationCache: () => backendClient.call('ai-trans/clear-subtitle-translation-cache'),
+    /** 清除当前词典配置的查询缓存，返回删除条数。 */
+    clearDictionaryCache: () => backendClient.call('ai-trans/clear-dictionary-cache'),
+    /** 下载指定本地 Qwen 模型。 */
+    downloadLocalAi: (modelId: string) => backendClient.call('local-ai/download', { modelId }),
+    /** 取消本地 Qwen 模型下载。 */
+    cancelLocalAiDownload: () => backendClient.call('local-ai/cancel-download'),
+    /** 删除指定本地 Qwen 模型。 */
+    deleteLocalAi: (modelId: string) => backendClient.call('local-ai/delete', { modelId }),
+    /** 对指定本地模型执行稳态速度测试（两轮固定批量生成，取热身轮吞吐）。 */
+    speedTestLocalAi: (modelId: string) => backendClient.call('local-ai/speed-test', { modelId }),
+    /** 查询轻量翻译模型（opus-mt）安装状态。 */
+    getLocalMtStatus: () => backendClient.call('local-mt/status'),
+    /** 下载轻量翻译模型（可续传）。 */
+    downloadLocalMt: () => backendClient.call('local-mt/download'),
+    /** 取消轻量翻译模型下载。 */
+    cancelLocalMtDownload: () => backendClient.call('local-mt/cancel-download'),
+    /** 删除轻量翻译模型。 */
+    deleteLocalMt: () => backendClient.call('local-mt/delete'),
 
     /**
      * 下载 Sherpa TTS 模型。
@@ -217,11 +241,10 @@ export const settingsApi = {
      * @param provider 待测试的服务提供方。
      * @returns 凭据测试结果。
      */
-    testServiceCredential: (provider: 'openai' | 'tencent' | 'youdao') => {
+    testServiceCredential: (provider: 'openai' | 'tencent') => {
         const routeMap = {
             openai: 'settings/service-credentials/test-openai',
             tencent: 'settings/service-credentials/test-tencent',
-            youdao: 'settings/service-credentials/test-youdao',
         } as const;
         return backendClient.call(routeMap[provider]);
     },

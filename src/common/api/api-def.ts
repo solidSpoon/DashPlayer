@@ -1,5 +1,7 @@
 import {DpTask} from '@/common/contracts/dp-task';
-import {YdRes, OpenAIDictionaryResult} from '@/common/types/YdRes';
+import type { LocalAiSpeedTestResult, LocalAiStatus } from '@/common/contracts/local-ai';
+import type { LocalMtStatus } from '@/common/contracts/local-mt';
+import {OpenAIDictionaryResult} from '@/common/types/DictionaryResult';
 import {ChapterParseResult} from '@/common/types/chapter-result';
 import {SrtSentence, Sentence} from '@/common/types/SentenceC';
 import {SentenceStruct} from '@/common/types/SentenceStruct';
@@ -44,7 +46,18 @@ import { VideoInfo } from '@/common/types/video-info';
 import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
 import { TranscriptTask } from '@/common/contracts/transcript/transcript-task';
 
+/** 跨进程请求与返回值契约。 */
 interface ApiDefinition {
+    'local-ai/status': { params: void, return: LocalAiStatus };
+    'local-ai/use': { params: { modelId: string }, return: void };
+    'local-ai/download': { params: { modelId: string }, return: void };
+    'local-ai/cancel-download': { params: void, return: void };
+    'local-ai/delete': { params: { modelId: string }, return: void };
+    'local-ai/speed-test': { params: { modelId: string }, return: LocalAiSpeedTestResult };
+    'local-mt/status': { params: void, return: LocalMtStatus };
+    'local-mt/download': { params: void, return: void };
+    'local-mt/cancel-download': { params: void, return: void };
+    'local-mt/delete': { params: void, return: void };
     'eg': { params: string, return: number },
 }
 
@@ -125,7 +138,7 @@ interface SystemDef {
 interface AiTransDef {
     'ai-trans/word': {
         params: { word: string; forceRefresh?: boolean; requestId?: string },
-        return: YdRes | OpenAIDictionaryResult | null
+        return: OpenAIDictionaryResult | null
     };
     /** 更新当前字幕播放位置，后端异步处理当前批次与预取批次。 */
     'ai-trans/update-subtitle-demand': {
@@ -145,6 +158,10 @@ interface AiTransDef {
         },
         return: void
     };
+    /** 清除当前字幕翻译配置（引擎、模型、风格一致）的翻译缓存。 */
+    'ai-trans/clear-subtitle-translation-cache': { params: void, return: { deleted: number } };
+    /** 清除当前词典配置的查询缓存。 */
+    'ai-trans/clear-dictionary-cache': { params: void, return: { deleted: number } };
     // 测试腾讯翻译API
     'ai-trans/test-tencent': { params: void, return: void };
     // 测试新的翻译流程
@@ -233,7 +250,6 @@ interface SettingsDef {
     'settings/service-credentials/save': { params: ServiceCredentialSettingSaveVO, return: void };
     'settings/service-credentials/test-openai': { params: void, return: { success: boolean, message: string } };
     'settings/service-credentials/test-tencent': { params: void, return: { success: boolean, message: string } };
-    'settings/service-credentials/test-youdao': { params: void, return: { success: boolean, message: string } };
     'settings/engine-selection/detail': { params: void, return: EngineSelectionSettingVO };
     'settings/engine-selection/save': { params: EngineSelectionSettingVO, return: void };
     'settings/transcription-engine/detail': { params: void, return: TranscriptionEngine };

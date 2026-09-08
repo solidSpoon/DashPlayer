@@ -43,5 +43,12 @@ export default class SentenceTranslatesRepositoryImpl implements SentenceTransla
     public async upsertMany(params: SentenceTranslatesUpsertParams[]): Promise<void> {
         await Promise.all(params.map((item) => this.upsert(item)));
     }
+
+    public async deleteByMode(mode: string): Promise<number> {
+        const result = await db
+            .delete(sentenceTranslates)
+            .where(eq(sentenceTranslates.mode, mode));
+        return result.changes ?? 0;
+    }
 }
 

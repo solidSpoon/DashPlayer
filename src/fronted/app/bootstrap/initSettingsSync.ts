@@ -3,10 +3,25 @@ import { rendererEvents } from '@/fronted/infrastructure/electron/rendererEvents
 import useSetting from '@/fronted/features/settings/settingsStore';
 import useTranslation from '@/fronted/features/player/translationStore';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
+import toast from 'react-hot-toast';
 import {
     RuntimeSettingKey,
     RuntimeSettingsSnapshot,
 } from '@/common/contracts/runtime-settings';
+
+/** 字幕翻译引擎的合法取值，需与后端 `providers.subtitleTranslation` 枚举保持一致。 */
+const SUBTITLE_ENGINE_VALUES = ['openai', 'local', 'local-mt', 'tencent', 'none'] as const;
+type SubtitleEngine = (typeof SUBTITLE_ENGINE_VALUES)[number];
+
+/**
+ * 判断设置值是否为合法的字幕翻译引擎。
+ *
+ * @param value 待检查的设置值。
+ * @returns 属于合法引擎枚举时返回 `true`。
+ */
+function isSubtitleEngine(value: string): value is SubtitleEngine {
+    return (SUBTITLE_ENGINE_VALUES as readonly string[]).includes(value);
+}
 
 let cleanupFn: (() => void) | null = null;
 
@@ -26,12 +41,18 @@ export function initSettingsSync(): () => void {
     backendClient.call('settings/runtime/detail').then((snapshot: RuntimeSettingsSnapshot) => {
         useSetting.getState().initialize(snapshot);
         const subtitleProvider = snapshot['providers.subtitleTranslation'];
-        if (subtitleProvider !== 'openai' && subtitleProvider !== 'tencent' && subtitleProvider !== 'none') {
-            throw new Error(`运行时字幕翻译引擎无效: ${subtitleProvider}`);
-        }
         const subtitleMode = snapshot['features.openai.subtitleTranslationMode'];
+        // 存储值非法（常见于多分支开发后枚举残留）时不抛错中断：
+        // 其余设置已初始化完成，这里显式提示用户去设置页重新选择并保存。
+        if (!isSubtitleEngine(subtitleProvider)) {
+            toast.error(`字幕翻译引擎设置值无效（${subtitleProvider}），请到“功能设置”重新选择并保存`);
+            logger.error('invalid subtitle translation provider', { value: subtitleProvider });
+            return;
+        }
         if (subtitleMode !== 'zh' && subtitleMode !== 'simple_en' && subtitleMode !== 'custom') {
-            throw new Error(`运行时字幕翻译模式无效: ${subtitleMode}`);
+            toast.error(`字幕翻译风格设置值无效（${subtitleMode}），请到“功能设置”重新选择并保存`);
+            logger.error('invalid OpenAI subtitle translation mode', { value: subtitleMode });
+            return;
         }
         useTranslation.getState().initializeRuntimeSettings(subtitleProvider, subtitleMode);
     }).catch((error) => {
@@ -45,7 +66,7 @@ export function initSettingsSync(): () => void {
         }
 
         if (key === 'providers.subtitleTranslation') {
-            if (value !== 'openai' && value !== 'tencent' && value !== 'none') {
+            if (!isSubtitleEngine(value)) {
                 logger.error('invalid subtitle translation provider', {value});
                 return;
             }

@@ -98,10 +98,13 @@ export default class SystemController implements Controller {
 
     /**
      * 打开指定路径所在的文件夹；仅在显式允许时创建不存在的目录。
-     * @param request 文件路径或目录路径，以及是否在打开前创建父目录。
+     *
+     * @param request 文件路径或目录路径，以及是否在打开前创建目录。
+     *                路径本身是目录时直接打开该目录；是文件或尚不存在时打开其父目录。
      */
     public async openFolder(request: { path: string; createDirectory?: boolean }): Promise<void> {
-        const folder = path.dirname(request.path);
+        const targetIsDirectory = await this.fileSystemGateway.directoryExists(request.path);
+        const folder = targetIsDirectory ? request.path : path.dirname(request.path);
         if (request.createDirectory === true) {
             await this.fileSystemGateway.ensureDirectory(folder);
         }

@@ -1,4 +1,12 @@
 import { Container } from 'inversify';
+import { LocalAiController } from '@/backend/controllers/LocalAiController';
+import { LocalAiRuntime } from '@/backend/infrastructure/ai/LocalAiRuntime';
+import type LocalAiService from '@/backend/services/LocalAiService';
+import { LocalMtController } from '@/backend/controllers/LocalMtController';
+import { LocalMtRuntime } from '@/backend/infrastructure/ai/LocalMtRuntime';
+import type LocalMtService from '@/backend/services/LocalMtService';
+import LocalMtSubtitleBatchTranslator from '@/backend/services/gateways/translate/LocalMtSubtitleBatchTranslator';
+import LocalMtSubtitleBatchTranslatorImpl from '@/backend/infrastructure/translate/LocalMtSubtitleBatchTranslatorImpl';
 import TYPES from './types';
 import FavoriteClipsController from '@/backend/controllers/FavoriteClipsController';
 import Controller from '@/backend/controllers/Controller';
@@ -43,16 +51,16 @@ import ConvertService, { ConvertServiceImpl } from '@/backend/services/ConvertSe
 import SplitVideoService, { SplitVideoServiceImpl } from '@/backend/services/SplitVideoService';
 import MediaService, { MediaServiceImpl } from '@/backend/services/MediaService';
 import ClientProviderService from '@/backend/services/ClientProviderService';
-import YouDaoProvider from '@/backend/infrastructure/translate/providers/YouDaoProvider';
 import TencentProvider from '@/backend/infrastructure/translate/providers/TencentProvider';
 import TranslateService, { TranslateServiceImpl } from '@/backend/services/TranslateService';
 import SubtitleTranslationService, {
     SubtitleTranslationServiceImpl,
 } from '@/backend/services/subtitle-translation/SubtitleTranslationService';
-import { YouDaoDictionaryClient } from '@/backend/services/gateways/translate/YouDaoDictionaryClient';
 import { TencentTranslateClient } from '@/backend/services/gateways/translate/TencentTranslateClient';
-import OpenAiSubtitleTranslationGateway from '@/backend/services/gateways/translate/OpenAiSubtitleTranslationGateway';
-import OpenAiSubtitleTranslationGatewayImpl from '@/backend/infrastructure/translate/OpenAiSubtitleTranslationGatewayImpl';
+import OpenAiSubtitleBatchTranslator from '@/backend/services/gateways/translate/OpenAiSubtitleBatchTranslator';
+import LocalSubtitleBatchTranslator from '@/backend/services/gateways/translate/LocalSubtitleBatchTranslator';
+import OpenAiSubtitleBatchTranslatorImpl from '@/backend/infrastructure/translate/OpenAiSubtitleBatchTranslatorImpl';
+import LocalSubtitleBatchTranslatorImpl from '@/backend/infrastructure/translate/LocalSubtitleBatchTranslatorImpl';
 import ConfigStoreFactoryImpl from '@/backend/infrastructure/config/ConfigStoreFactoryImpl';
 import { ConfigStoreFactory } from '@/backend/services/gateways/ConfigStore';
 import { SettingsStore } from '@/backend/services/gateways/SettingsStore';
@@ -116,20 +124,32 @@ import FileSystemGatewayImpl from '@/backend/infrastructure/storage/FileSystemGa
 import AccessRecoveringFileSystemGateway from '@/backend/infrastructure/storage/AccessRecoveringFileSystemGateway';
 import db from '@/backend/infrastructure/db';
 import type { Db } from '@/backend/infrastructure/db/createDb';
+import BuiltinDictionaryStore from '@/backend/services/gateways/translate/BuiltinDictionaryStore';
+import { BuiltinDictionaryStoreImpl } from '@/backend/infrastructure/translate/BuiltinDictionaryStoreImpl';
+import { getRuntimeResourcePath } from '@/backend/utils/runtimeEnv';
 
 
 const container = new Container();
 // 数据库单例：仓储层统一从这里注入，测试可用内存库替换。
 container.bind<Db>(TYPES.Database).toConstantValue(db);
 // Clients
-container.bind<ClientProviderService<YouDaoDictionaryClient>>(TYPES.YouDaoClientProvider).to(YouDaoProvider).inSingletonScope();
 container.bind<ClientProviderService<TencentTranslateClient>>(TYPES.TencentClientProvider).to(TencentProvider).inSingletonScope();
 container.bind<ConfigStoreFactory>(TYPES.ConfigStoreFactory).to(ConfigStoreFactoryImpl).inSingletonScope();
 container.bind<SettingsStore>(TYPES.SettingsStore).to(SettingsStoreImpl).inSingletonScope();
 container.bind<ModelRoutingService>(TYPES.ModelRoutingService).to(ModelRoutingServiceImpl).inSingletonScope();
 container.bind<AiProviderService>(TYPES.AiProviderService).to(AiProviderServiceImpl).inSingletonScope();
-container.bind<OpenAiSubtitleTranslationGateway>(TYPES.OpenAiSubtitleTranslationGateway)
-    .to(OpenAiSubtitleTranslationGatewayImpl)
+container.bind<OpenAiSubtitleBatchTranslator>(TYPES.OpenAiSubtitleBatchTranslator)
+    .to(OpenAiSubtitleBatchTranslatorImpl)
+    .inSingletonScope();
+container.bind<LocalSubtitleBatchTranslator>(TYPES.LocalSubtitleBatchTranslator)
+    .to(LocalSubtitleBatchTranslatorImpl)
+    .inSingletonScope();
+// 预置词典：随应用打包的只读 SQLite，不依赖任何密钥配置。
+container.bind<BuiltinDictionaryStore>(TYPES.BuiltinDictionaryStore).to(BuiltinDictionaryStoreImpl).inSingletonScope();
+container.bind<string>(TYPES.BuiltinDictionaryPath)
+    .toConstantValue(getRuntimeResourcePath('resources', 'dictionary.sqlite'));
+container.bind<LocalMtSubtitleBatchTranslator>(TYPES.LocalMtSubtitleBatchTranslator)
+    .to(LocalMtSubtitleBatchTranslatorImpl)
     .inSingletonScope();
 // Controllers
 container.bind<Controller>(TYPES.Controller).to(FavoriteClipsController).inSingletonScope();
@@ -148,6 +168,10 @@ container.bind<Controller>(TYPES.Controller).to(WatchHistoryController).inSingle
 container.bind<Controller>(TYPES.Controller).to(SettingsController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(ParakeetModelController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(WhisperCppModelController).inSingletonScope();
+container.bind<Controller>(TYPES.Controller).to(LocalAiController).inSingletonScope();
+container.bind<LocalAiService>(TYPES.LocalAiService).to(LocalAiRuntime).inSingletonScope();
+container.bind<Controller>(TYPES.Controller).to(LocalMtController).inSingletonScope();
+container.bind<LocalMtService>(TYPES.LocalMtService).to(LocalMtRuntime).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(SherpaTtsModelController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VocabularyController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VideoLearningApiController).inSingletonScope();

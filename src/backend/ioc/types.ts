@@ -37,6 +37,7 @@ const TYPES = {
     RendererEvents: Symbol('RendererEvents'),
     AiFuncService: Symbol('AiFuncService'),
     ParakeetModelService: Symbol('ParakeetModelService'),
+    LocalAiService: Symbol('LocalAiService'),
     SherpaOnnxCli: Symbol('SherpaOnnxCli'),
     WhisperCppCli: Symbol('WhisperCppCli'),
     SherpaOnnxGateway: Symbol('SherpaOnnxGateway'),
@@ -59,13 +60,17 @@ const TYPES = {
     SysConfRepository: Symbol('SysConfRepository'),
     SubtitleTimestampAdjustmentsRepository: Symbol('SubtitleTimestampAdjustmentsRepository'),
     // Clients
-    YouDaoClientProvider: Symbol('YouDaoClientProvider'),
     TencentClientProvider: Symbol('TencentClientProvider'),
     AiProviderService: Symbol('AiProviderService'),
-    OpenAiSubtitleTranslationGateway: Symbol('OpenAiSubtitleTranslationGateway'),
+    OpenAiSubtitleBatchTranslator: Symbol('OpenAiSubtitleBatchTranslator'),
+    LocalSubtitleBatchTranslator: Symbol('LocalSubtitleBatchTranslator'),
+    LocalMtService: Symbol('LocalMtService'),
+    LocalMtSubtitleBatchTranslator: Symbol('LocalMtSubtitleBatchTranslator'),
     ModelRoutingService: Symbol('ModelRoutingService'),
     ConfigStoreFactory: Symbol('ConfigStoreFactory'),
     SettingsStore: Symbol('SettingsStore'),
+    BuiltinDictionaryStore: Symbol('BuiltinDictionaryStore'),
+    BuiltinDictionaryPath: Symbol('BuiltinDictionaryPath'),
 };
 
 export default TYPES;

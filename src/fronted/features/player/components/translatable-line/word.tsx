@@ -11,19 +11,18 @@ import {
 import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import WordPop from './word-pop';
-import { playUrl, playWord, getTtsUrl, playAudioUrl } from '@/fronted/infrastructure/audio/AudioPlayer';
-import { YdRes, OpenAIDictionaryResult } from '@/common/types/YdRes';
+import { playWord, getTtsUrl, playAudioUrl } from '@/fronted/infrastructure/audio/AudioPlayer';
+import { OpenAIDictionaryResult } from '@/common/types/DictionaryResult';
 import useSWR from 'swr';
 import Style from '@/fronted/styles/style';
 import { cn } from '@/fronted/lib/utils';
-import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import Eb from '@/fronted/components/shared/common/Eb';
 import useVocabulary from '@/fronted/features/player/vocabularyStore';
 import { useTransLineTheme } from './translatable-theme';
+import useSetting from '@/fronted/features/settings/settingsStore';
 import { usePlayer } from '@/fronted/features/player/playerStore';
 import useDictionaryStream, { createDictionaryRequestId } from '@/fronted/features/player/dictionaryStore';
-import useSetting from '@/fronted/features/settings/settingsStore';
 import { playerApi } from '@/fronted/features/player/playerApi';
 import { videoLearningApi } from '@/fronted/features/video-learning/videoLearningApi';
 
@@ -46,35 +45,25 @@ const isOpenAIDictionaryResult = (data: unknown): data is OpenAIDictionaryResult
     return typeof data === 'object' && data !== null && 'definitions' in data;
 };
 
-const isYoudaoResult = (data: unknown): data is YdRes => {
-    return typeof data === 'object' && data !== null && 'speakUrl' in data;
-};
-
 /**
  * 从弹窗词典结果中提取简明中文释义。
  *
  * 收藏时把已查到的释义一并传给后端入库，避免后端再调一次词典 AI。
  *
- * @param data 弹窗当前的词典结果；可能还在加载中或已失败。
+ * @param data 弹窗当前的词典结果（预置词典或 AI 生成）；可能还在加载中或已失败。
  * @returns 可入库的释义文本；提取不到时返回空字符串，由后端自行生成。
  */
-const buildFavoriteTranslate = (data: YdRes | OpenAIDictionaryResult | null | undefined): string => {
-    if (!data || typeof data !== 'object') {
+const buildFavoriteTranslate = (data: OpenAIDictionaryResult | null | undefined): string => {
+    if (!isOpenAIDictionaryResult(data)) {
         return '';
     }
-    if (isOpenAIDictionaryResult(data)) {
-        return data.definitions
-            .map((definition) => {
-                const abbr = PART_OF_SPEECH_ABBR[definition.partOfSpeech] ?? definition.partOfSpeech;
-                return `${abbr} ${definition.meaning}`.trim();
-            })
-            .filter((entry) => entry.length > 0)
-            .join('；');
-    }
-    if (isYoudaoResult(data)) {
-        return data.basic?.explains?.join('；') || data.translation?.join('；') || '';
-    }
-    return '';
+    return data.definitions
+        .map((definition) => {
+            const abbr = PART_OF_SPEECH_ABBR[definition.partOfSpeech] ?? definition.partOfSpeech;
+            return `${abbr} ${definition.meaning}`.trim();
+        })
+        .filter((entry) => entry.length > 0)
+        .join('；');
 };
 
 export interface WordParam {
@@ -137,12 +126,12 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
     const setting = useSetting((state) => state.setting);
     const dictionaryEngineRaw = setting('providers.dictionary');
     const dictionaryEngine =
-        dictionaryEngineRaw === 'youdao' || dictionaryEngineRaw === 'openai'
+        dictionaryEngineRaw === 'openai' || dictionaryEngineRaw === 'local'
             ? dictionaryEngineRaw
             : 'openai';
-    const openaiDictionaryEnabled = dictionaryEngine === 'openai';
+    // 本地词典与 OpenAI 返回同一结构，复用 AI 词典卡片与最终结果同步路径
+    const openaiDictionaryEnabled = dictionaryEngine === 'openai' || dictionaryEngine === 'local';
     const dictionaryMode = dictionaryEngine;
-
     const dictionaryEntry = useDictionaryStream((state) => state.getActiveEntry(original));
 
     const shouldFetch = hovered;
@@ -152,36 +141,29 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
         isLoading: isWordLoading,
         mutate
     } = useSWR(
-        shouldFetch ? ['ai-trans/word', original, dictionaryMode] : null,
+        shouldFetch ? ['ai-trans/word', original] : null,
         async ([_apiName, wordParam]) => {
             const targetWord = wordParam as string;
-            const requestId = openaiDictionaryEnabled ? createDictionaryRequestId(targetWord) : '';
-
-            if (openaiDictionaryEnabled) {
-                useDictionaryStream.getState().startRequest(targetWord, requestId);
-            }
+            const requestId = createDictionaryRequestId(targetWord);
+            useDictionaryStream.getState().startRequest(targetWord, requestId);
 
             try {
                 const result = await playerApi.translateWord({
                     word: targetWord,
                     forceRefresh: false,
-                    requestId: openaiDictionaryEnabled ? requestId : undefined
+                    requestId
                 });
 
-                if (openaiDictionaryEnabled) {
-                    const isOpenAIDictionary = !!result && typeof result === 'object' && 'definitions' in result;
-                    useDictionaryStream.getState().setFinalResult(
-                        targetWord,
-                        requestId,
-                        isOpenAIDictionary ? result as OpenAIDictionaryResult : null
-                    );
-                }
+                const isOpenAIDictionary = !!result && typeof result === 'object' && 'definitions' in result;
+                useDictionaryStream.getState().setFinalResult(
+                    targetWord,
+                    requestId,
+                    isOpenAIDictionary ? result as OpenAIDictionaryResult : null
+                );
 
                 return result;
             } catch (error) {
-                if (openaiDictionaryEnabled) {
-                    useDictionaryStream.getState().setFinalResult(targetWord, requestId, null);
-                }
+                useDictionaryStream.getState().setFinalResult(targetWord, requestId, null);
                 throw error;
             }
         }
@@ -189,34 +171,27 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
 
     const handleRefresh = async () => {
         setIsRefreshing(true);
-        const requestId = openaiDictionaryEnabled ? createDictionaryRequestId(original) : '';
-
-        if (openaiDictionaryEnabled) {
-            useDictionaryStream.getState().startRequest(original, requestId);
-        }
+        const requestId = createDictionaryRequestId(original);
+        useDictionaryStream.getState().startRequest(original, requestId);
 
         try {
             const newData = await playerApi.translateWord({
                 word: original,
                 forceRefresh: true,
-                requestId: openaiDictionaryEnabled ? requestId : undefined
+                requestId
             });
 
-            if (openaiDictionaryEnabled) {
-                const isOpenAIDictionary = !!newData && typeof newData === 'object' && 'definitions' in newData;
-                useDictionaryStream.getState().setFinalResult(
-                    original,
-                    requestId,
-                    isOpenAIDictionary ? newData as OpenAIDictionaryResult : null
-                );
-            }
+            const isOpenAIDictionary = !!newData && typeof newData === 'object' && 'definitions' in newData;
+            useDictionaryStream.getState().setFinalResult(
+                original,
+                requestId,
+                isOpenAIDictionary ? newData as OpenAIDictionaryResult : null
+            );
 
             mutate(newData, { revalidate: false });
         } catch (error) {
             logger.error('failed to refresh dictionary result', { error: error instanceof Error ? error.message : error });
-            if (openaiDictionaryEnabled) {
-                useDictionaryStream.getState().setFinalResult(original, requestId, null);
-            }
+            useDictionaryStream.getState().setFinalResult(original, requestId, null);
         } finally {
             setIsRefreshing(false);
         }
@@ -331,31 +306,19 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
 
     /**
      * 单击单词时播放发音；若用户刚通过拖拽产生选区，则跳过播放。
+     *
+     * 发音链路：本地 sherpa TTS 优先，不可用时回退浏览器语音。
      */
     const playWordAudio = async () => {
         if (playLoading) return;
 
         setPlayLoading(true);
         try {
-            const isYoudaoFormat = (data: unknown): data is YdRes => {
-                return typeof data === 'object' && data !== null && 'speakUrl' in data;
-            };
-
-            let url = '';
-            if (isYoudaoFormat(dictionaryResponse)) {
-                url = dictionaryResponse?.speakUrl || '';
-            }
-
-            logger.debug('TTS URL generated', { url });
-            if (StrUtil.isNotBlank(url)) {
-                await playUrl(url);
+            const ttsUrl = await getTtsUrl(word);
+            if (ttsUrl) {
+                await playAudioUrl(ttsUrl);
             } else {
-                const ttsUrl = await getTtsUrl(word);
-                if (ttsUrl) {
-                    await playAudioUrl(ttsUrl);
-                } else {
-                    await playWord(word);
-                }
+                await playWord(word);
             }
         } catch (error) {
             logger.error('failed to play pronunciation', { error: error instanceof Error ? error.message : error });
@@ -433,8 +396,8 @@ const Word = ({word, original, lemma, pop, requestPop, show, alwaysDark, classNa
                         referenceElement={referenceElement}
                         ref={popperRef}
                         isLoading={isWordLoading || isRefreshing}
-                        openaiStreamingData={openaiDictionaryEnabled ? dictionaryEntry?.data : null}
-                        isStreaming={openaiDictionaryEnabled && !!dictionaryEntry && !dictionaryEntry.isComplete}
+                        openaiStreamingData={dictionaryEntry?.data ?? null}
+                        isStreaming={!!dictionaryEntry && !dictionaryEntry.isComplete}
                         onRefresh={handleRefresh}
                         onFavorite={handleFavorite}
                         isFavorited={isVocabularyWord || favoriteState === 'saved'}
