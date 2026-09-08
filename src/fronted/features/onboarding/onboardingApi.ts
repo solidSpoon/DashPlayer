@@ -11,6 +11,8 @@ export interface SystemInfo {
     totalMemoryGb: number;
     /** 逻辑 CPU 核数。 */
     cpuCount: number;
+    /** 可用的 GPU 推理后端；none 表示会走 CPU 推理。 */
+    gpuAcceleration: 'metal' | 'vulkan' | 'none';
 }
 
 /** 读取本机平台与硬件信息，用于按电脑配置推荐本地模型档位。 */

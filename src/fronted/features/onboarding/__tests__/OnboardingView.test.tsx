@@ -65,6 +65,7 @@ describe('OnboardingView Component', () => {
             pathSeparator: '/',
             totalMemoryGb: 16,
             cpuCount: 10,
+            gpuAcceleration: 'metal',
         });
         vi.mocked(settingsApi.getTranscriptionEngine).mockResolvedValue('whisper-cpp');
         vi.mocked(settingsApi.getStorageStatus).mockResolvedValue({
@@ -238,6 +239,28 @@ describe('OnboardingView Component', () => {
         await waitFor(() => {
             expect(onCompleted).toHaveBeenCalled();
         });
+    });
+
+    it('没有 GPU 加速且核数不足时默认选中轻量档', async () => {
+        vi.mocked(getSystemInfo).mockResolvedValue({
+            isWindows: true,
+            isMac: false,
+            isLinux: false,
+            pathSeparator: '\\',
+            totalMemoryGb: 8,
+            cpuCount: 2,
+            gpuAcceleration: 'none',
+        });
+        render(<OnboardingView />);
+
+        fireEvent.click(screen.getByText('nextStep'));
+        fireEvent.click(screen.getByText('nextStep'));
+
+        await waitFor(() => {
+            expect(screen.getByRole('radio', { name: /tier\.light\.title/ })).toHaveAttribute('aria-checked', 'true');
+        });
+        fireEvent.click(screen.getByText('steps.models.actionDownload'));
+        expect(settingsApi.downloadLocalMt).toHaveBeenCalled();
     });
 
     it('整句讲解可以单独开启，翻译档位保持本地智能', async () => {

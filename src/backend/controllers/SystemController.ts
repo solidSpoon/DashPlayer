@@ -5,6 +5,7 @@ import path from 'path';
 import { clearDB } from '@/backend/infrastructure/db/db';
 import { WindowState } from '@/common/types/Types';
 import { checkUpdate } from '@/backend/services/CheckUpdate';
+import { detectGpuAcceleration } from '@/backend/utils/gpuAcceleration';
 import { inject, injectable } from 'inversify';
 import Controller from '@/backend/controllers/Controller';
 import StrUtil from '@/common/utils/str-util';
@@ -53,6 +54,7 @@ export default class SystemController implements Controller {
             // 引导页据此推荐本地模型档位：内存不足或核数太少时默认轻量档
             totalMemoryGb: Math.round(os.totalmem() / 1024 / 1024 / 1024 * 10) / 10,
             cpuCount: os.cpus().length,
+            gpuAcceleration: await detectGpuAcceleration(),
         };
     }
 

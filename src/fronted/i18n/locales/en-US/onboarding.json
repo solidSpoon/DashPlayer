@@ -52,7 +52,8 @@
             "title": "Translation & Lookups",
             "desc": "Pick one setup — you can fine-tune it later in Settings → Features.",
             "recommended": "Recommended",
-            "hardwareHint": "Detected {{memory}} GB RAM and {{cores}} CPU cores; we suggest \"{{tier}}\".",
+            "hardwareHintGpu": "Detected {{memory}} GB RAM, {{cores}} CPU cores and {{gpu}} acceleration; we suggest \"{{tier}}\".",
+            "hardwareHintNoGpu": "Detected {{memory}} GB RAM and {{cores}} CPU cores, but no GPU acceleration (CPU inference); we suggest \"{{tier}}\".",
             "extrasTitle": "Extras",
             "tier": {
                 "light": {

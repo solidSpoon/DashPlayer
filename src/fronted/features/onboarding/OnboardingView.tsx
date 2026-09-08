@@ -64,9 +64,28 @@ const TIER_ENGINES: Record<TranslationTier, {
     cloud: { subtitleTranslationEngine: 'openai', dictionaryEngine: 'openai' },
 };
 
-/** 内存低于该值（GB）或核数低于阈值时，默认选轻量档。 */
+/** GPU 后端在提示文案里的显示名（专有名词，不翻译）。 */
+const GPU_ACCELERATION_LABELS: Record<'metal' | 'vulkan', string> = {
+    metal: 'Metal',
+    vulkan: 'Vulkan',
+};
+
+/** 内存低于该值（GB）时推荐轻量档。 */
 const LIGHT_TIER_MEMORY_GB = 8;
+/** 没有 GPU 加速时，核数低于该值也推荐轻量档。 */
 const LIGHT_TIER_CPU_COUNT = 4;
+
+/**
+ * 依据硬件信息推荐档位：内存不足，或没有 GPU 加速且核数偏少时推荐轻量档。
+ *
+ * @param hardware 本机硬件信息。
+ * @returns 推荐档位；也用作引导页的默认选中档。
+ */
+function recommendTier(hardware: SystemInfo): TranslationTier {
+    if (hardware.totalMemoryGb < LIGHT_TIER_MEMORY_GB) return 'light';
+    if (hardware.gpuAcceleration === 'none' && hardware.cpuCount < LIGHT_TIER_CPU_COUNT) return 'light';
+    return 'smart';
+}
 
 /** 撒花颜色；固定亮色，保证深浅色主题下都醒目。 */
 const CONFETTI_COLORS = ['#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#ec4899', '#f97316', '#14b8a6'];
@@ -369,9 +388,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
     useEffect(() => {
         void getSystemInfo().then((info) => {
             setHardware(info);
-            if (info.totalMemoryGb < LIGHT_TIER_MEMORY_GB || info.cpuCount < LIGHT_TIER_CPU_COUNT) {
-                setTranslationTier('light');
-            }
+            setTranslationTier(recommendTier(info));
         });
     }, []);
 
@@ -644,10 +661,8 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
 
     const defaultLocalAiModel = localAiStatus?.models.find((m) => m.modelId === LOCAL_AI_DEFAULT_MODEL_ID);
     const isLocalAiReady = defaultLocalAiModel?.ready ?? false;
-    /** 依据内存与核数给出的推荐档位；硬件信息未就绪时为 null。 */
-    const recommendedTier: TranslationTier | null = hardware
-        ? (hardware.totalMemoryGb < LIGHT_TIER_MEMORY_GB || hardware.cpuCount < LIGHT_TIER_CPU_COUNT ? 'light' : 'smart')
-        : null;
+    /** 依据内存、核数与 GPU 给出的推荐档位；硬件信息未就绪时为 null。 */
+    const recommendedTier: TranslationTier | null = hardware ? recommendTier(hardware) : null;
     /** 选云端档位或开启整句讲解时需要填写云端凭据。 */
     const needsCloud = translationTier === 'cloud' || sentenceLearning;
     /** 选本地智能档位时需要下载智能模型。 */
@@ -919,11 +934,18 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
 
                             {hardware && recommendedTier && (
                                 <p className="text-xs text-muted-foreground leading-relaxed">
-                                    {t('steps.translation.hardwareHint', {
-                                        memory: hardware.totalMemoryGb,
-                                        cores: hardware.cpuCount,
-                                        tier: t(`steps.translation.tier.${recommendedTier}.title`),
-                                    })}
+                                    {hardware.gpuAcceleration === 'none'
+                                        ? t('steps.translation.hardwareHintNoGpu', {
+                                            memory: hardware.totalMemoryGb,
+                                            cores: hardware.cpuCount,
+                                            tier: t(`steps.translation.tier.${recommendedTier}.title`),
+                                        })
+                                        : t('steps.translation.hardwareHintGpu', {
+                                            memory: hardware.totalMemoryGb,
+                                            cores: hardware.cpuCount,
+                                            gpu: GPU_ACCELERATION_LABELS[hardware.gpuAcceleration],
+                                            tier: t(`steps.translation.tier.${recommendedTier}.title`),
+                                        })}
                                 </p>
                             )}
 
