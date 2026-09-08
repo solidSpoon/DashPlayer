@@ -248,7 +248,7 @@ interface SettingsDef {
     'settings/runtime/save': { params: RuntimeSettingSaveRequest, return: void };
     'settings/service-credentials/detail': { params: void, return: ServiceCredentialSettingDetailVO };
     'settings/service-credentials/save': { params: ServiceCredentialSettingSaveVO, return: void };
-    'settings/service-credentials/test-openai': { params: void, return: { success: boolean, message: string } };
+    'settings/service-credentials/test-openai': { params: { model: string }, return: { success: boolean, message: string } };
     'settings/service-credentials/test-tencent': { params: void, return: { success: boolean, message: string } };
     'settings/engine-selection/detail': { params: void, return: EngineSelectionSettingVO };
     'settings/engine-selection/save': { params: EngineSelectionSettingVO, return: void };

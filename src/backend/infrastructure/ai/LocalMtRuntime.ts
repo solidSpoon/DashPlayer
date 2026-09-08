@@ -14,6 +14,7 @@ import type LocalMtService from '@/backend/services/LocalMtService';
 import {
     LOCAL_MT_MODEL_FILES,
     LOCAL_MT_MODEL_ID,
+    LOCAL_MT_REPO_URL,
     LOCAL_MT_TOTAL_BYTES,
     LocalMtStatus,
 } from '@/common/contracts/local-mt';
@@ -123,6 +124,7 @@ export class LocalMtRuntime implements LocalMtService {
             downloaded: downloading ? this.downloaded : await this.settledBytes(modelPath),
             total: LOCAL_MT_TOTAL_BYTES,
             modelPath,
+            downloadUrl: LOCAL_MT_REPO_URL,
             error: this.downloadError,
         };
     }

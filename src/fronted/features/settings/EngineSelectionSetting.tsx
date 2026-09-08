@@ -75,6 +75,11 @@ const EngineSelectionSetting = () => {
         return credentialSettings.openai.models.map((item) => item.model);
     }, [credentialSettings]);
 
+    /** 是否已配置腾讯翻译凭据；未配置时不再暴露腾讯引擎选项。 */
+    const tencentConfigured = Boolean(
+        credentialSettings?.tencent.secretId && credentialSettings?.tencent.secretKey,
+    );
+
     // 存储值非法的设置项列表（常见于多分支开发后旧枚举值残留），
     // 用于在页面顶部显式提示用户重新选择。
     const invalidItems = React.useMemo(() => {
@@ -259,7 +264,13 @@ const EngineSelectionSetting = () => {
                                             {t('engineSelection.invalidStorage.reselect')}
                                         </SelectItem>
                                     )}
-                                    <SelectItem value="tencent">{t('engineSelection.engineTencent')}</SelectItem>
+                                    {tencentConfigured ? (
+                                        <SelectItem value="tencent">{t('engineSelection.engineTencent')}</SelectItem>
+                                    ) : watchedValues.providers?.subtitleTranslationEngine === 'tencent' ? (
+                                        <SelectItem value="tencent" disabled>
+                                            {t('engineSelection.engineTencentUnavailable')}
+                                        </SelectItem>
+                                    ) : null}
                                     <SelectGroup>
                                         <SelectLabel>{t('engineSelection.cloudModelGroup')}</SelectLabel>
                                         {availableModels.map((model) => (

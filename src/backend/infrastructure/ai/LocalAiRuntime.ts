@@ -277,7 +277,7 @@ export class LocalAiRuntime implements LocalAiService {
                 downloaded: downloading ? this.downloaded : await this.fileSize(`${modelPath}.part`),
                 total: model.bytes,
                 modelPath,
-                downloadUrl: model.url,
+                downloadUrls: model.mirrorUrl ? [model.url, model.mirrorUrl] : [model.url],
                 error: this.modelErrors.get(model.id) ?? null,
                 custom: false,
             };
@@ -294,7 +294,7 @@ export class LocalAiRuntime implements LocalAiService {
             downloaded: model.bytes,
             total: model.bytes,
             modelPath: await this.modelPath(model),
-            downloadUrl: null,
+            downloadUrls: [],
             error: null,
             custom: true,
         })));

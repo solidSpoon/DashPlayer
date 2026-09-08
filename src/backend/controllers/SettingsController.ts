@@ -145,9 +145,14 @@ export default class SettingsController implements Controller {
         await this.settingService.saveProxySettings(settings);
     }
 
-    public async testOpenAi(): Promise<{ success: boolean, message: string }> {
-        this.logger.info('testing openai connection');
-        return this.settingService.testOpenAi();
+    /**
+     * 测试指定 OpenAI 模型的连通性。
+     *
+     * @param request 待测试的模型标识。
+     */
+    public async testOpenAi(request: { model: string }): Promise<{ success: boolean, message: string }> {
+        this.logger.info('testing openai connection', { model: request.model });
+        return this.settingService.testOpenAi(request.model);
     }
 
     public async testTencent(): Promise<{ success: boolean, message: string }> {
@@ -160,7 +165,7 @@ export default class SettingsController implements Controller {
         registerRoute('settings/runtime/save', (p) => this.saveRuntimeSetting(p));
         registerRoute('settings/service-credentials/detail', () => this.getServiceCredentialsDetail());
         registerRoute('settings/service-credentials/save', (p) => this.saveServiceCredentials(p));
-        registerRoute('settings/service-credentials/test-openai', () => this.testOpenAi());
+        registerRoute('settings/service-credentials/test-openai', (p) => this.testOpenAi(p));
         registerRoute('settings/service-credentials/test-tencent', () => this.testTencent());
         registerRoute('settings/engine-selection/detail', () => this.getEngineSelectionDetail());
         registerRoute('settings/engine-selection/save', (p) => this.saveEngineSelection(p));

@@ -87,8 +87,8 @@ export interface LocalAiModelStatus {
     total: number;
     /** 固定版本的模型安装路径。 */
     modelPath: string;
-    /** 固定版本的下载地址；自定义模型为 null。 */
-    downloadUrl: string | null;
+    /** 有序候选下载地址（首个为官方地址，其余为备用镜像）；自定义模型为空数组。 */
+    downloadUrls: string[];
     /** 最近一次下载失败原因；成功或无记录时为 null。 */
     error: string | null;
     /** 是否为用户手动放入模型目录的自定义模型。 */

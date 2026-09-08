@@ -236,18 +236,13 @@ export const settingsApi = {
     deleteSherpaTtsModel: () => backendClient.call('sherpa-tts/models/delete'),
 
     /**
-     * 测试服务凭据是否可用。
+     * 测试指定 OpenAI 模型的连通性。
      *
-     * @param provider 待测试的服务提供方。
-     * @returns 凭据测试结果。
+     * @param model 待测试的模型标识，必须是当前可用模型列表中的一项。
+     * @returns 测试结果。
      */
-    testServiceCredential: (provider: 'openai' | 'tencent') => {
-        const routeMap = {
-            openai: 'settings/service-credentials/test-openai',
-            tencent: 'settings/service-credentials/test-tencent',
-        } as const;
-        return backendClient.call(routeMap[provider]);
-    },
+    testOpenAi: (model: string) =>
+        backendClient.call('settings/service-credentials/test-openai', { model }),
 
     /**
      * 查询快捷键设置。

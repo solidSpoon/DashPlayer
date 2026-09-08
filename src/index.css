@@ -211,3 +211,28 @@
 }
 
 
+
+
+@layer base {
+  /*
+   * Radix Select 会额外渲染一个隐藏的原生 <select>（内联 position: absolute）用于表单值同步。
+   * 它没有定位祖先时会以视口为包含块，把文档撑高，导致整页出现滚动条、滚动时整屏位移。
+   * 固定定位后不再参与文档滚动区域计算。
+   */
+  select[aria-hidden='true'] {
+    position: fixed !important;
+  }
+}
+
+
+/* 引导页完成页的全屏撒花动效（纯 CSS，不引入额外依赖）。 */
+@keyframes confetti-fall {
+  0% {
+    transform: translate3d(0, -12vh, 0) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate3d(var(--confetti-drift, 0px), 108vh, 0) rotate(var(--confetti-spin, 540deg));
+    opacity: 0;
+  }
+}

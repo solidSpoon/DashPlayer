@@ -18,7 +18,10 @@ export interface LocalMtModelFile {
  */
 export const LOCAL_MT_MODEL_ID = 'opus-mt-en-zh';
 
-const HF_BASE = 'https://huggingface.co/Xenova/opus-mt-en-zh/resolve/main';
+/** 轻量翻译模型的 Hugging Face 仓库页面；网络不佳时从这里手动下载全部文件。 */
+export const LOCAL_MT_REPO_URL = 'https://huggingface.co/Xenova/opus-mt-en-zh';
+
+const HF_BASE = `${LOCAL_MT_REPO_URL}/resolve/main`;
 
 /** 模型全部依赖文件；下载与完整性校验以此清单为准。 */
 export const LOCAL_MT_MODEL_FILES: readonly LocalMtModelFile[] = [
@@ -100,6 +103,8 @@ export interface LocalMtStatus {
     total: number;
     /** 模型安装目录的绝对路径。 */
     modelPath: string;
+    /** 模型仓库页面地址，用于网络不佳时手动下载。 */
+    downloadUrl: string;
     /** 最近一次下载失败原因；成功或无记录时为 null。 */
     error: string | null;
 }
