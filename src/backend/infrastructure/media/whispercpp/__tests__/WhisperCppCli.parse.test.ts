@@ -78,6 +78,21 @@ describe('whisper.cpp 输出解析', () => {
 
         expect(result.tokens[0].text).toBe(' hello');
     });
+
+    it('单独成 token 的空格标记被跳过，不影响整段解析', () => {
+        const stderr = [
+            '  [357] id= 1234 frame=670 dur_idx= 1 dur_val= 1 p=0.9900 plog=-1.0000 t0=5368 t1=5376 word_start=true "▁He"',
+            '  [358] id= 7863 frame=672 dur_idx= 1 dur_val= 1 p=0.9934 plog=-10.2057 t0=5376 t1=5384 word_start=true "▁"',
+            '  [359] id=  547 frame=674 dur_idx= 1 dur_val= 1 p=0.9800 plog=-0.2000 t0=5384 t1=5400 word_start=true "▁said"',
+        ].join('\n');
+
+        const result = parseWhisperCppOutput('He said', stderr);
+
+        expect(result.tokens).toEqual([
+            { text: ' He', start: 53.68 },
+            { text: ' said', start: 53.84 },
+        ]);
+    });
 });
 
 describe('核显回退检测', () => {

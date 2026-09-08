@@ -91,7 +91,9 @@ export function parseWhisperCppOutput(stdout: string, stderr: string): WhisperCp
         }
         const tokenText = match[3].replace(/▁/g, ' ');
         if (!tokenText.trim()) {
-            throw new Error(`whisper.cpp 返回了空 token 文本：${line.trim()}`);
+            // 模型会把句间/词间的空格单独输出为只含 "▁" 的 token（TDT 模型正常现象），
+            // 它不携带词文本，只占位时间轴；直接跳过，不能视为数据损坏。
+            continue;
         }
         tokens.push({ text: tokenText, start: startMs / TOKEN_TIME_UNIT_MS });
     }
