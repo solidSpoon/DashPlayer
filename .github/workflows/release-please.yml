@@ -32,5 +32,7 @@ jobs:
     needs: release-please
     if: needs.release-please.outputs.release_created == 'true'
     uses: ./.github/workflows/release.yml
+    with:
+      release_tag: ${{ steps.release.outputs.tag_name }}
     permissions:
       contents: write

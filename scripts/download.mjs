@@ -388,6 +388,8 @@ const ffmpegUrls = {
 ////////////////////
 setProxy();
 const dir = path.join(process.cwd(), 'lib');
+// 当前源码版本号：whisper.cpp 运行时资产按发版 tag 发布，与该版本一一对应
+const packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'));
 mkdirp(dir);
 
 const platform = process.env.npm_config_platform || os.platform()
@@ -484,5 +486,51 @@ const arch = process.env.npm_config_arch || os.arch()
             outputPath: ttsExePath,
             binaryNameCandidates: [ttsExeName],
         });
+    }
+}
+
+{
+    // whisper.cpp 离线识别 CLI（whisper.cpp 引擎的核显加速运行时）。
+    // 资产随应用 Release 一起发布：release.yml 的 whisper-cpp-runtime 任务
+    // 在发版时构建四个目标并上传；本段从当前版本对应的 Release 下载。
+    const platformDir = platform === 'darwin' ? 'darwin' : platform === 'win32' ? 'win32' : 'linux';
+    const archDir = arch === 'arm64' ? 'arm64' : 'x64';
+    const basePath = path.join(dir, 'whisper-cpp', archDir, platformDir);
+    mkdirp(basePath);
+
+    const exeName = platform === 'win32' ? 'parakeet-cli.exe' : 'parakeet-cli';
+    const exePath = path.join(basePath, exeName);
+    const res = await verifyExistence({ dir: basePath, file: exeName });
+
+    // 核显运行时仅覆盖主流桌面平台；其余平台由 sherpa-onnx 引擎兜底
+    const supportedArchs = { linux: ['x64'], win32: ['x64'], darwin: ['arm64', 'x64'] };
+    if (res === 'need_download') {
+        if (!supportedArchs[platform]?.includes(arch)) {
+            console.info(chalk.yellow(`=> whisper.cpp 暂不提供 ${platform}/${arch} 运行时，已跳过；whisper.cpp 引擎在该平台不可用，请使用 sherpa-onnx 引擎`));
+        } else {
+            const version = packageJson.version;
+            const assetName = `whisper-cpp-${platform}-${arch}.tar.gz`;
+            const assetUrl = `https://github.com/solidSpoon/DashPlayer/releases/download/v${version}/${assetName}`;
+            // 预检资产是否存在：download() 对任何失败都会终止整个脚本，
+            // 而资产缺失（本地开发、历史版本）是可跳过的合法状态，只对 404 放行跳过
+            let assetExists = true;
+            try {
+                await axios.head(assetUrl, { headers: getGithubAuthHeaders(assetUrl) });
+            } catch (error) {
+                if (error?.response?.status === 404) {
+                    assetExists = false;
+                }
+            }
+            if (!assetExists) {
+                console.info(chalk.yellow(`=> whisper.cpp 运行时资产尚未随 v${version} 发布，已跳过；识别引擎可暂用 sherpa-onnx，或手动将二进制放置到 ${exePath}`));
+            } else {
+                console.info(chalk.blue(`=> whisper.cpp target: ${exePath}`));
+                await downloadAndExtractBinaryFromArchive({
+                    url: assetUrl,
+                    outputPath: exePath,
+                    binaryNameCandidates: ['parakeet-cli', 'parakeet-cli.exe'],
+                });
+            }
+        }
     }
 }
