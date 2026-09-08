@@ -879,41 +879,39 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                                 </p>
                             </div>
 
-                            {/* 三档方案：一次决定字幕翻译与查词用哪套引擎，查词跟随翻译，避免无意义组合 */}
+                            {/* 三档方案：横向三列，一次决定字幕翻译与查词用哪套引擎 */}
                             <RadioGroup
                                 value={translationTier}
                                 onValueChange={(value) => setTranslationTier(value as TranslationTier)}
-                                className="space-y-2.5"
+                                className="grid grid-cols-1 gap-3 sm:grid-cols-3"
                             >
                                 {TRANSLATION_TIERS.map((tierId) => (
                                     <Label
                                         key={tierId}
                                         htmlFor={`translation-tier-${tierId}`}
                                         className={cn(
-                                            'flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors',
+                                            'flex cursor-pointer flex-col gap-2 rounded-xl border p-3.5 transition-colors',
                                             translationTier === tierId
                                                 ? 'border-primary bg-primary/5'
                                                 : 'border-border bg-card hover:bg-muted/40',
                                         )}
                                     >
-                                        <RadioGroupItem value={tierId} id={`translation-tier-${tierId}`} className="mt-0.5" />
-                                        <div className="min-w-0 flex-1 space-y-0.5">
-                                            <div className="flex items-center gap-2">
-                                                <span className="text-sm font-medium text-foreground">
-                                                    {t(`steps.translation.tier.${tierId}.title`)}
+                                        <div className="flex items-center gap-2">
+                                            <RadioGroupItem value={tierId} id={`translation-tier-${tierId}`} />
+                                            <span className="text-sm font-medium text-foreground">
+                                                {t(`steps.translation.tier.${tierId}.title`)}
+                                            </span>
+                                            {recommendedTier === tierId && (
+                                                <span className="ml-auto rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
+                                                    {t('steps.translation.recommended')}
                                                 </span>
-                                                {recommendedTier === tierId && (
-                                                    <span className="rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
-                                                        {t('steps.translation.recommended')}
-                                                    </span>
-                                                )}
-                                            </div>
-                                            <div className="text-xs text-muted-foreground">
-                                                {t(`steps.translation.tier.${tierId}.desc`)}
-                                            </div>
-                                            <div className="text-[11px] text-muted-foreground/80">
-                                                {t(`steps.translation.tier.${tierId}.meta`)}
-                                            </div>
+                                            )}
+                                        </div>
+                                        <div className="text-xs text-muted-foreground leading-relaxed">
+                                            {t(`steps.translation.tier.${tierId}.desc`)}
+                                        </div>
+                                        <div className="mt-auto text-[11px] text-muted-foreground/80 leading-relaxed">
+                                            {t(`steps.translation.tier.${tierId}.meta`)}
                                         </div>
                                     </Label>
                                 ))}
