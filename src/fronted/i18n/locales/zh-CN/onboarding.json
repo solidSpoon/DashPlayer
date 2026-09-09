@@ -11,9 +11,14 @@
     "openFolderFailed": "打开文件夹失败",
     "steps": {
         "storage": {
+            "heroTitle": "选择保存位置",
+            "heroDesc": "视频、字幕和离线模型都会存在同一个文件夹里。",
+            "pathLabel": "当前保存位置",
             "pathLoading": "正在读取…",
-            "saved": "存储位置已更新",
-            "unavailable": "这个文件夹当前不可用，请重新选择一个。"
+            "chooseFolder": "选择文件夹",
+            "saved": "保存位置已更新",
+            "unavailable": "这个文件夹当前不可用，请重新选择一个。",
+            "note": "离线模型约 1 GB，建议选一个空间充足的位置；之后也能在「设置中心 → 存储」里修改。"
         },
         "models": {
             "ttsTitle": "单词与例句发音",
@@ -42,7 +47,6 @@
             "finish": "完成",
             "retry": "重试",
             "skip": "跳过",
-            "changeLocation": "更改",
             "itemMt": "字幕翻译",
             "etaSeconds": "剩余约 {{seconds}} 秒",
             "etaMinutes": "剩余约 {{minutes}} 分 {{seconds}} 秒"

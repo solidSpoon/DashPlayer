@@ -180,8 +180,8 @@ interface BundleEntry {
 export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) => {
     const { t } = useI18nTranslation('onboarding');
 
-    /** 是否已进入完成页（撒花 + 上手技巧）。 */
-    const [done, setDone] = useState(false);
+    /** 当前屏幕：选择保存位置 → 下载运行环境 → 完成页（撒花 + 上手技巧）。 */
+    const [screen, setScreen] = useState<'storage' | 'download' | 'done'>('storage');
     const [finishing, setFinishing] = useState(false);
 
     // 存储位置（页面左下角的小元素，默认值可直接用）
@@ -435,7 +435,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
                 },
             });
             await markOnboardingCompleted(CURRENT_ONBOARDING_VERSION);
-            setDone(true);
+            setScreen('done');
         } catch (error) {
             toast.error(error instanceof Error ? error.message : String(error));
         } finally {
@@ -495,9 +495,68 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
                 <TitleBar maximizable={false} className="top-0 left-0 w-full h-9 z-50" />
             </header>
 
-            {!done && <DotRippleBackground active={downloadingBundle} />}
+            {screen !== 'done' && <DotRippleBackground active={downloadingBundle} />}
 
-            {!done && (
+            {screen === 'storage' && (
+                <main className="relative z-10 flex flex-1 items-center justify-center px-8 pb-10">
+                    <div className="flex w-full max-w-md flex-col items-center gap-7 text-center">
+                        <span className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/12 text-primary">
+                            <span className="absolute inset-0 rounded-full bg-primary/20 blur-2xl" aria-hidden="true" />
+                            <Folder className="relative h-7 w-7" />
+                        </span>
+
+                        <div className="space-y-2">
+                            <h1 className="text-3xl font-bold tracking-tight">{t('steps.storage.heroTitle')}</h1>
+                            <p className="text-sm text-muted-foreground">{t('steps.storage.heroDesc')}</p>
+                        </div>
+
+                        <div className="w-full space-y-3 rounded-2xl border border-border/70 bg-card/80 p-5 text-left shadow-sm">
+                            <div className="flex items-start gap-3">
+                                <Folder className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+                                <div className="min-w-0">
+                                    <div className="text-xs text-muted-foreground">{t('steps.storage.pathLabel')}</div>
+                                    <div className="font-mono text-xs break-all text-foreground">
+                                        {storagePath || t('steps.storage.pathLoading')}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <Button
+                                variant="secondary"
+                                size="sm"
+                                className="h-8 gap-1.5 text-xs"
+                                disabled={choosingStorage}
+                                onClick={() => { void handleChooseStorage(); }}
+                            >
+                                {choosingStorage
+                                    ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                    : <FolderOpen className="h-3.5 w-3.5" />}
+                                {t('steps.storage.chooseFolder')}
+                            </Button>
+
+                            {!storageAvailable && (
+                                <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                                    <XCircle className="h-3.5 w-3.5 shrink-0" />
+                                    <span>{t('steps.storage.unavailable')}</span>
+                                </div>
+                            )}
+                        </div>
+
+                        <Button
+                            size="lg"
+                            className="h-12 gap-2 rounded-full px-10 text-sm shadow-lg shadow-primary/20"
+                            onClick={() => setScreen('download')}
+                        >
+                            {t('nextStep')}
+                            <ArrowRight className="h-4 w-4" />
+                        </Button>
+
+                        <p className="text-xs text-muted-foreground leading-relaxed">{t('steps.storage.note')}</p>
+                    </div>
+                </main>
+            )}
+
+            {screen === 'download' && (
                 <>
                     {/* 跳过：右上角小元素 */}
                     <div className="absolute top-11 right-6 z-20">
@@ -652,25 +711,10 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
                         </div>
                     </main>
 
-                    {/* 保存位置：左下角小元素 */}
-                    <div className="absolute bottom-5 left-6 z-20 flex items-center gap-2 text-[11px] text-muted-foreground">
-                        <Folder className="h-3.5 w-3.5 shrink-0" />
-                        <span className="max-w-[46vw] truncate font-mono">{storagePath || t('steps.storage.pathLoading')}</span>
-                        <Button
-                            variant="link"
-                            size="sm"
-                            className="h-auto p-0 text-[11px]"
-                            disabled={choosingStorage}
-                            onClick={() => { void handleChooseStorage(); }}
-                        >
-                            {t('steps.download.changeLocation')}
-                        </Button>
-                        {!storageAvailable && <span className="text-destructive">{t('steps.storage.unavailable')}</span>}
-                    </div>
                 </>
             )}
 
-            {done && (
+            {screen === 'done' && (
                 <main className="relative z-10 flex flex-1 flex-col items-center overflow-y-auto scrollbar-none px-8 py-10">
                     <Confetti />
                     <div className="w-full max-w-2xl space-y-6">

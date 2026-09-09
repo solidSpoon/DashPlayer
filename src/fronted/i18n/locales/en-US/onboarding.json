@@ -11,9 +11,14 @@
     "openFolderFailed": "Failed to open the folder",
     "steps": {
         "storage": {
+            "heroTitle": "Choose where to save",
+            "heroDesc": "Videos, subtitles and offline models all live in the same folder.",
+            "pathLabel": "Current location",
             "pathLoading": "Loading…",
-            "saved": "Storage location updated",
-            "unavailable": "This folder is not usable right now. Please pick another one."
+            "chooseFolder": "Choose folder",
+            "saved": "Location updated",
+            "unavailable": "This folder is not available right now — please pick another one.",
+            "note": "Offline models take about 1 GB, so pick a location with enough space. You can change this later in Settings → Storage."
         },
         "models": {
             "ttsTitle": "Word & Sentence Pronunciation",
@@ -42,7 +47,6 @@
             "finish": "Finish",
             "retry": "Retry",
             "skip": "Skip",
-            "changeLocation": "Change",
             "itemMt": "Subtitle translation",
             "etaSeconds": "about {{seconds}}s left",
             "etaMinutes": "about {{minutes}}m {{seconds}}s left"

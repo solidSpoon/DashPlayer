@@ -109,9 +109,11 @@ describe('OnboardingView Component', () => {
         });
     });
 
-    it('首屏就是一个下载入口，并加载各项资源状态', async () => {
+    it('第一页选择保存位置，继续后进入下载页并加载各项资源状态', async () => {
         render(<OnboardingView />);
 
+        expect(screen.getByText('steps.storage.heroTitle')).toBeDefined();
+        fireEvent.click(screen.getByText('nextStep'));
         expect(screen.getByText('steps.download.heroTitle')).toBeDefined();
         expect(screen.getByText('steps.download.action')).toBeDefined();
         await waitFor(() => {
@@ -129,6 +131,7 @@ describe('OnboardingView Component', () => {
 
         render(<OnboardingView />);
 
+        fireEvent.click(screen.getByText('nextStep'));
         fireEvent.click(screen.getByText('steps.download.action'));
 
         await waitFor(() => {
@@ -153,6 +156,7 @@ describe('OnboardingView Component', () => {
         vi.mocked(settingsApi.downloadWhisperCppModel).mockRejectedValue(new Error('网络中断'));
 
         render(<OnboardingView />);
+        fireEvent.click(screen.getByText('nextStep'));
         fireEvent.click(screen.getByText('steps.download.action'));
 
         await waitFor(() => {
@@ -165,6 +169,7 @@ describe('OnboardingView Component', () => {
 
     it('跳过下载时仍然保存保守配置并进入完成页', async () => {
         render(<OnboardingView />);
+        fireEvent.click(screen.getByText('nextStep'));
         fireEvent.click(screen.getByText('steps.download.skip'));
 
         await waitFor(() => {
@@ -189,6 +194,7 @@ describe('OnboardingView Component', () => {
         const onCompleted = vi.fn();
         render(<OnboardingView onCompleted={onCompleted} />);
 
+        fireEvent.click(screen.getByText('nextStep'));
         // 等状态加载完，按钮才会从「下载」变成「完成」
         fireEvent.click(await screen.findByText('steps.download.finish'));
 
