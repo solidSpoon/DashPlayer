@@ -546,7 +546,7 @@
         },
         "cloud": {
             "title": "Cloud Services",
-            "description": "Connect cloud models; a provider key is required. When the cloud is unavailable it falls back to the local base resource pack."
+            "description": "Builds on the local base resource pack, using cloud models for the best translation and lookup quality; a provider key is required."
         },
         "enhance": {
             "title": "Local enhancement resource pack",
