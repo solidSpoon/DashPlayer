@@ -3,12 +3,13 @@ import { useForm, useWatch } from 'react-hook-form';
 import useSWR from 'swr';
 import toast from 'react-hot-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { Cloud, HardDrive, Languages, Settings2, Sparkles } from 'lucide-react';
+import { Cloud, HardDrive, Languages, Layers, Settings2, Sparkles } from 'lucide-react';
 import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
 import { SettingCard, SettingRow, SettingsLoadingSkeleton } from '@/fronted/features/settings/components/form';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import { Textarea } from '@/fronted/components/ui/textarea';
 import { ResourcePackCard } from '@/fronted/features/settings/components/ResourcePackCard';
+import { ResourceUsageCard } from '@/fronted/features/settings/components/ResourceUsageCard';
 import { LocalLlmCard } from '@/fronted/features/settings/components/LocalLlmCard';
 import { OpenAiCredentialCard } from '@/fronted/features/settings/components/OpenAiCredentialCard';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
@@ -46,6 +47,8 @@ const ServiceResourceSetting: React.FC = () => {
     const { data: settings } = useSWR('settings/service-credentials/detail', () => settingsApi.getServiceCredentials());
     const { data: engineSettings } = useSWR('settings/engine-selection/detail', () => settingsApi.getEngineSelection());
     const { data: hardware } = useSWR('system/info', () => settingsApi.getSystemInfo());
+    const { data: fallbackState } = useSWR('settings/resource-fallback/detail', () => settingsApi.getResourceFallback());
+    const { data: transcriptionEngineSetting } = useSWR('settings/transcription-engine/detail', () => settingsApi.getTranscriptionEngine());
 
     const credentialForm = useForm<ServiceCredentialSettingDetailVO>();
     const preferenceForm = useForm<EngineSelectionSettingVO>();
@@ -316,14 +319,16 @@ const ServiceResourceSetting: React.FC = () => {
         }
     };
 
-    /** 渲染云端模型分组；两个引擎下拉共用。 */
+    /** 渲染云端档位的模型选项；各下拉共用。 */
     const renderCloudModels = (prefix: string) => (
-        <SelectGroup>
-            <SelectLabel>{t('resources.preference.cloudModelLabel')}</SelectLabel>
-            {availableModels.map((model) => (
-                <SelectItem key={`${prefix}-${model}`} value={`openai:${model}`}>{model}</SelectItem>
-            ))}
-        </SelectGroup>
+        availableModels.length > 0 ? (
+            <SelectGroup>
+                <SelectLabel>{t('resources.usage.groupCloud')}</SelectLabel>
+                {availableModels.map((model) => (
+                    <SelectItem key={`${prefix}-${model}`} value={`openai:${model}`}>{model}</SelectItem>
+                ))}
+            </SelectGroup>
+        ) : null
     );
 
     /** 本地增强模型的硬件条件提示；硬件信息未就绪时为 undefined。 */
@@ -375,7 +380,25 @@ const ServiceResourceSetting: React.FC = () => {
                     </div>
                 )}
 
-                {/* ① 运行资源包：发音 + 字幕识别 + 轻量翻译 */}
+                {/* ① 当前使用：各功能此刻实际调用的资源 */}
+                <SettingCard
+                    title={t('resources.usage.title')}
+                    description={t('resources.usage.description')}
+                    icon={Layers}
+                >
+                    <ResourceUsageCard
+                        subtitleEngine={watched.providers?.subtitleTranslationEngine ?? 'none'}
+                        subtitleModel={watched.openai?.featureModels?.subtitleTranslation ?? ''}
+                        dictionaryEngine={watched.providers?.dictionaryEngine ?? 'none'}
+                        dictionaryModel={watched.openai?.featureModels?.dictionary ?? ''}
+                        sentenceLearningEnabled={watched.openai?.enableSentenceLearning ?? false}
+                        sentenceModel={watched.openai?.featureModels?.sentenceLearning ?? ''}
+                        transcriptionEngine={transcriptionEngineSetting ?? 'whisper-cpp'}
+                        fallback={fallbackState ?? null}
+                    />
+                </SettingCard>
+
+                {/* ② 运行资源包：发音 + 字幕识别 + 轻量翻译 */}
                 <SettingCard
                     title={t('resources.pack.title')}
                     description={t('resources.pack.description')}
@@ -384,7 +407,7 @@ const ServiceResourceSetting: React.FC = () => {
                     <ResourcePackCard />
                 </SettingCard>
 
-                {/* ② 本地增强：可选的本地大模型，文案强调“在资源包基础上再提升” */}
+                {/* ③ 本地增强：可选的本地大模型，文案强调“在资源包基础上再提升” */}
                 <SettingCard
                     title={t('resources.enhance.title')}
                     description={t('resources.enhance.description')}
@@ -432,7 +455,7 @@ const ServiceResourceSetting: React.FC = () => {
                     />
                 </SettingCard>
 
-                {/* ③ 云端服务：可选的云端模型与密钥 */}
+                {/* ④ 云端服务：可选的云端模型与密钥 */}
                 <SettingCard
                     title={t('resources.cloud.title')}
                     description={t('resources.cloud.description')}
@@ -453,7 +476,7 @@ const ServiceResourceSetting: React.FC = () => {
                     />
                 </SettingCard>
 
-                {/* ④ 翻译与查词偏好 */}
+                {/* ⑤ 翻译与查词偏好 */}
                 <SettingCard
                     title={t('resources.preference.title')}
                     description={t('resources.preference.description')}
@@ -475,6 +498,14 @@ const ServiceResourceSetting: React.FC = () => {
                             >
                                 <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
                                 <SelectContent>
+                                    <SelectGroup>
+                                        <SelectLabel>{t('resources.usage.groupBase')}</SelectLabel>
+                                        <SelectItem value="local-mt">{t('resources.pack.itemMt')}</SelectItem>
+                                    </SelectGroup>
+                                    <SelectGroup>
+                                        <SelectLabel>{t('resources.usage.groupEnhance')}</SelectLabel>
+                                        <SelectItem value="local">{t('resources.preference.engineLocalAi')}</SelectItem>
+                                    </SelectGroup>
                                     {renderCloudModels('subtitle')}
                                     {/* 存储里指向的云端模型已不在可用列表时补一个禁用项，避免下拉显示为空 */}
                                     {subtitleEngine === 'openai'
@@ -484,8 +515,6 @@ const ServiceResourceSetting: React.FC = () => {
                                             {watched.openai.featureModels.subtitleTranslation}
                                         </SelectItem>
                                     )}
-                                    <SelectItem value="local-mt">{t('resources.preference.engineLocalMt')}</SelectItem>
-                                    <SelectItem value="local">{t('resources.preference.engineLocalAi')}</SelectItem>
                                     <SelectItem value="none">{t('resources.preference.engineNone')}</SelectItem>
                                 </SelectContent>
                             </Select>
@@ -547,6 +576,14 @@ const ServiceResourceSetting: React.FC = () => {
                             >
                                 <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
                                 <SelectContent>
+                                    <SelectGroup>
+                                        <SelectLabel>{t('resources.usage.groupBase')}</SelectLabel>
+                                        <SelectItem value="none">{t('resources.preference.engineNoSupplement')}</SelectItem>
+                                    </SelectGroup>
+                                    <SelectGroup>
+                                        <SelectLabel>{t('resources.usage.groupEnhance')}</SelectLabel>
+                                        <SelectItem value="local">{t('resources.preference.engineLocalAi')}</SelectItem>
+                                    </SelectGroup>
                                     {renderCloudModels('dictionary')}
                                     {/* 存储里指向的云端模型已不在可用列表时补一个禁用项，避免下拉显示为空 */}
                                     {watched.providers?.dictionaryEngine === 'openai'
@@ -556,8 +593,6 @@ const ServiceResourceSetting: React.FC = () => {
                                             {watched.openai.featureModels.dictionary}
                                         </SelectItem>
                                     )}
-                                    <SelectItem value="local">{t('resources.preference.engineLocalAi')}</SelectItem>
-                                    <SelectItem value="none">{t('resources.preference.engineNoSupplement')}</SelectItem>
                                 </SelectContent>
                             </Select>
                             {watched.providers?.dictionaryEngine === 'local'
@@ -576,14 +611,7 @@ const ServiceResourceSetting: React.FC = () => {
                             <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="none">{t('resources.preference.engineDisabled')}</SelectItem>
-                                {availableModels.length > 0 && (
-                                    <SelectGroup>
-                                        <SelectLabel>{t('resources.preference.cloudModelLabel')}</SelectLabel>
-                                        {availableModels.map((model) => (
-                                            <SelectItem key={`learn-${model}`} value={`openai:${model}`}>{model}</SelectItem>
-                                        ))}
-                                    </SelectGroup>
-                                )}
+                                {renderCloudModels('learn')}
                             </SelectContent>
                         </Select>
                     </SettingRow>

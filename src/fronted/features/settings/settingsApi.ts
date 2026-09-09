@@ -110,6 +110,13 @@ export const settingsApi = {
     getSystemInfo: () => backendClient.call('system/info'),
 
     /**
+     * 查询各功能当前的回退状态（云端/增强不可用时落到基础资源）。
+     *
+     * @returns 按功能索引的回退状态。
+     */
+    getResourceFallback: () => backendClient.call('settings/resource-fallback/detail'),
+
+    /**
      * 保存服务凭据设置。
      *
      * @param settings 待保存的服务凭据。

@@ -529,10 +529,8 @@
             "subtitleDesc": "Which resource translates video subtitles.",
             "dictionaryLabel": "Dictionary lookup",
             "dictionaryDesc": "The built-in dictionary covers 38,000 common words, so lookups work without any setup. This setting only decides what to use for words it does not cover.",
-            "engineLocalMt": "Local (lightweight translation)",
-            "engineLocalAi": "Local (enhanced model)",
+            "engineLocalAi": "Local enhancement model",
             "engineNone": "Off",
-            "cloudModelLabel": "Cloud model",
             "styleLabel": "Translation style",
             "styleZh": "Translate into Chinese",
             "styleSimpleEn": "Simplified English",
@@ -555,6 +553,28 @@
             "hardwareHintGpu": "This machine has {{memory}} GB RAM, {{cores}} CPU cores and {{gpu}} acceleration, so it runs smoothly.",
             "hardwareHintNoGpu": "This machine has {{memory}} GB RAM and {{cores}} CPU cores; the model runs on CPU, which is slower.",
             "hardwareHintLowSpec": "This machine has {{memory}} GB RAM and {{cores}} CPU cores, so the local enhancement model runs noticeably slower."
+        },
+        "usage": {
+            "title": "In use now",
+            "description": "What each feature is actually calling right now; it falls back automatically when cloud or enhancement is unavailable.",
+            "tierCloud": "Cloud",
+            "tierEnhance": "Enhancement",
+            "tierBase": "Base",
+            "tierOff": "Off",
+            "subtitle": "Subtitle translation",
+            "dictionary": "Dictionary lookup",
+            "sentence": "Sentence explanation",
+            "transcription": "Subtitle recognition",
+            "tts": "Pronunciation",
+            "builtinDictionary": "Built-in dictionary",
+            "supplement": "{{resource}} supplement",
+            "noSupplement": "Built-in dictionary only",
+            "fallback": "{{from}} is unavailable; fell back to {{to}}",
+            "transcriptionHardware": "Hardware accelerated",
+            "transcriptionCompat": "Compatibility mode",
+            "groupBase": "Base (offline)",
+            "groupEnhance": "Enhancement (local)",
+            "groupCloud": "Cloud"
         }
     }
 }
