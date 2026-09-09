@@ -200,6 +200,8 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
     const [downloadingBundle, setDownloadingBundle] = useState(false);
     const [activeItem, setActiveItem] = useState<BundleItemKey | null>(null);
     const [activePhase, setActivePhase] = useState<ModelDownloadPhase | null>(null);
+    /** 整体进度按项数均分：已完成项数 + 当前项的完成比例。 */
+    const [packProgress, setPackProgress] = useState({ completed: 0, count: 0 });
     const [progress, setProgress] = useState({ percent: 0, downloaded: 0, total: 0 });
     const [speed, setSpeed] = useState(0);
     const [bundleError, setBundleError] = useState<string | null>(null);
@@ -394,7 +396,11 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
     ];
     const pendingEntries = bundleEntries.filter((entry) => !entry.ready);
     const allReady = pendingEntries.length === 0;
-    /** 按当前网速估算的剩余时间文案；网速未知时为 null。 */
+    /** 整体进度百分比：已完成项按整项计入，当前项按其自身进度折算。 */
+    const overallPercent = packProgress.count > 0
+        ? Math.min(100, Math.floor(((packProgress.completed + progress.percent / 100) / packProgress.count) * 100))
+        : 0;
+    /** 当前这一项的剩余时间文案；网速未知时为 null。 */
     const remainingLabel = (() => {
         if (speed <= 0 || progress.total <= progress.downloaded) return null;
         const seconds = (progress.total - progress.downloaded) / speed;
@@ -450,6 +456,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
         cancelRequestedRef.current = false;
         setBundleError(null);
         setDownloadingBundle(true);
+        setPackProgress({ completed: 0, count: pendingEntries.length });
         try {
             for (const entry of pendingEntries) {
                 setActiveItem(entry.key);
@@ -459,6 +466,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
                 speedSampleRef.current = null;
                 await entry.run();
                 if (cancelRequestedRef.current) break;
+                setPackProgress((previous) => ({ ...previous, completed: previous.completed + 1 }));
             }
             if (!cancelRequestedRef.current) {
                 await finishOnboarding();
@@ -612,10 +620,10 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
                             {downloadingBundle ? (
                                 <div className="flex w-full max-w-sm flex-col items-center gap-3">
                                     <div className="flex items-baseline gap-1">
-                                        <span className="text-4xl font-semibold tabular-nums tracking-tight">{progress.percent}</span>
+                                        <span className="text-4xl font-semibold tabular-nums tracking-tight">{overallPercent}</span>
                                         <span className="text-lg text-muted-foreground">%</span>
                                     </div>
-                                    <Progress value={progress.percent} className="h-1.5" />
+                                    <Progress value={overallPercent} className="h-1.5" />
                                     <p className="text-xs text-muted-foreground">
                                         {progressLabel}
                                         {speed > 0 ? ` · ${formatSpeed(speed)}` : ''}
