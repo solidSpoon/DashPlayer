@@ -43,7 +43,8 @@
             "skip": "Skip",
             "itemMt": "Subtitle translation",
             "etaSeconds": "about {{seconds}}s left",
-            "etaMinutes": "about {{minutes}}m {{seconds}}s left"
+            "etaMinutes": "about {{minutes}}m {{seconds}}s left",
+            "etaLong": "over 1 hour left"
         },
         "manual": {
             "title": "Manual download",

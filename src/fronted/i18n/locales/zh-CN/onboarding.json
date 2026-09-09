@@ -43,7 +43,8 @@
             "skip": "跳过",
             "itemMt": "字幕翻译",
             "etaSeconds": "剩余约 {{seconds}} 秒",
-            "etaMinutes": "剩余约 {{minutes}} 分 {{seconds}} 秒"
+            "etaMinutes": "剩余约 {{minutes}} 分 {{seconds}} 秒",
+            "etaLong": "剩余超过 1 小时"
         },
         "manual": {
             "title": "手动下载",

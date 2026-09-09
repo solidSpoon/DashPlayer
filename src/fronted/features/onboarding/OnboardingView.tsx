@@ -40,6 +40,13 @@ const RIPPLE_DURATION_IDLE = 3.6;
 const RIPPLE_DURATION_ACTIVE = 1.4;
 /** 网速的指数滑动平均系数，抑制进度事件抖动。 */
 const SPEED_SMOOTHING = 0.3;
+/**
+ * 进度与网速刷新到 UI 的最小间隔（毫秒）。
+ *
+ * 主进程的进度事件每 100~200 毫秒就来一次，直接写进 state 会让百分比与网速
+ * 疯狂跳动；这里先累积到 ref，按固定节奏刷新，数字看起来稳定得多。
+ */
+const PROGRESS_RENDER_INTERVAL_MS = 500;
 
 /** 下载完成后的收尾阶段文案；未收录的阶段回落到通用下载提示。 */
 const PHASE_LABEL_KEYS: Partial<Record<ModelDownloadPhase, string>> = {
@@ -52,7 +59,7 @@ const PHASE_LABEL_KEYS: Partial<Record<ModelDownloadPhase, string>> = {
 function formatSpeed(bytesPerSecond: number): string {
     const megabytes = bytesPerSecond / 1024 / 1024;
     return megabytes >= 1
-        ? `${megabytes.toFixed(1)} MB/s`
+        ? `${Math.round(megabytes)} MB/s`
         : `${Math.max(1, Math.round(bytesPerSecond / 1024))} KB/s`;
 }
 
@@ -202,8 +209,10 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
     const [activePhase, setActivePhase] = useState<ModelDownloadPhase | null>(null);
     /** 整体进度按项数均分：已完成项数 + 当前项的完成比例。 */
     const [packProgress, setPackProgress] = useState({ completed: 0, count: 0 });
-    const [progress, setProgress] = useState({ percent: 0, downloaded: 0, total: 0 });
-    const [speed, setSpeed] = useState(0);
+    /** 展示用的进度与网速；由 liveRef 按固定间隔刷新，避免数字频繁跳动。 */
+    const [live, setLive] = useState({ percent: 0, downloaded: 0, total: 0, speed: 0 });
+    /** 进度事件写入的原始快照。 */
+    const liveRef = React.useRef({ percent: 0, downloaded: 0, total: 0, speed: 0 });
     const [bundleError, setBundleError] = useState<string | null>(null);
     /** 用户是否点了取消：用于中断串行队列，并区分"取消"与"失败"。 */
     const cancelRequestedRef = React.useRef(false);
@@ -249,23 +258,32 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
         };
     }, [refreshAllStatuses]);
 
-    /** 记录一次进度采样：更新进度条，并用指数滑动平均估算网速。 */
+    /** 记录一次进度采样：写入原始快照，并用指数滑动平均估算网速。 */
     const trackProgress = React.useCallback((downloaded: number, total: number) => {
-        setProgress({
+        const now = Date.now();
+        const last = speedSampleRef.current;
+        let speed = liveRef.current.speed;
+        if (last && now > last.at && downloaded >= last.downloaded) {
+            const instant = ((downloaded - last.downloaded) * 1000) / (now - last.at);
+            speed = speed === 0 ? instant : speed * (1 - SPEED_SMOOTHING) + instant * SPEED_SMOOTHING;
+        }
+        speedSampleRef.current = { at: now, downloaded };
+        liveRef.current = {
             percent: total > 0 ? Math.min(100, Math.floor((downloaded / total) * 100)) : 0,
             downloaded,
             total,
-        });
-        const now = Date.now();
-        const last = speedSampleRef.current;
-        if (last && now > last.at && downloaded >= last.downloaded) {
-            const instant = ((downloaded - last.downloaded) * 1000) / (now - last.at);
-            setSpeed((previous) => (
-                previous === 0 ? instant : previous * (1 - SPEED_SMOOTHING) + instant * SPEED_SMOOTHING
-            ));
-        }
-        speedSampleRef.current = { at: now, downloaded };
+            speed,
+        };
     }, []);
+
+    // 按固定节奏把原始进度刷到界面上
+    useEffect(() => {
+        if (!downloadingBundle) return undefined;
+        const timer = window.setInterval(() => {
+            setLive({ ...liveRef.current });
+        }, PROGRESS_RENDER_INTERVAL_MS);
+        return () => window.clearInterval(timer);
+    }, [downloadingBundle]);
 
     // 订阅主进程推送的下载进度（initRendererApis 会把 IPC 事件转成不带前缀的 window 事件）
     useEffect(() => {
@@ -398,12 +416,14 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
     const allReady = pendingEntries.length === 0;
     /** 整体进度百分比：已完成项按整项计入，当前项按其自身进度折算。 */
     const overallPercent = packProgress.count > 0
-        ? Math.min(100, Math.floor(((packProgress.completed + progress.percent / 100) / packProgress.count) * 100))
+        ? Math.min(100, Math.floor(((packProgress.completed + live.percent / 100) / packProgress.count) * 100))
         : 0;
     /** 当前这一项的剩余时间文案；网速未知时为 null。 */
     const remainingLabel = (() => {
-        if (speed <= 0 || progress.total <= progress.downloaded) return null;
-        const seconds = (progress.total - progress.downloaded) / speed;
+        if (live.speed <= 0 || live.total <= live.downloaded) return null;
+        const seconds = (live.total - live.downloaded) / live.speed;
+        // 低速下按秒数推算会得到毫无意义的大数，超过一小时只给个模糊说法
+        if (seconds >= 3600) return t('steps.download.etaLong');
         return seconds >= 60
             ? t('steps.download.etaMinutes', {
                 minutes: Math.floor(seconds / 60),
@@ -461,8 +481,8 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
             for (const entry of pendingEntries) {
                 setActiveItem(entry.key);
                 setActivePhase(null);
-                setProgress({ percent: 0, downloaded: 0, total: 0 });
-                setSpeed(0);
+                liveRef.current = { percent: 0, downloaded: 0, total: 0, speed: 0 };
+                setLive({ percent: 0, downloaded: 0, total: 0, speed: 0 });
                 speedSampleRef.current = null;
                 await entry.run();
                 if (cancelRequestedRef.current) break;
@@ -626,7 +646,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
                                     <Progress value={overallPercent} className="h-1.5" />
                                     <p className="text-xs text-muted-foreground">
                                         {progressLabel}
-                                        {speed > 0 ? ` · ${formatSpeed(speed)}` : ''}
+                                        {live.speed > 0 ? ` · ${formatSpeed(live.speed)}` : ''}
                                         {remainingLabel ? ` · ${remainingLabel}` : ''}
                                     </p>
                                     <Button
