@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import React, { useMemo } from 'react';
-import { Bot, Boxes, Command, Compass, Database, Globe, Palette, ToggleLeft } from 'lucide-react';
+import { Boxes, Command, Compass, Database, Globe, Palette } from 'lucide-react';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import {
     Breadcrumb,
@@ -14,8 +14,6 @@ import { Separator } from '@/fronted/components/ui/separator';
 import { cn } from '@/fronted/lib/utils';
 
 export type SettingType =
-    | 'service-credentials'
-    | 'engine-selection'
     | 'resources'
     | 'shortcut'
     | 'storage'
@@ -32,8 +30,6 @@ interface SettingNavDef {
 const SETTING_ITEMS: SettingNavDef[] = [
     { key: 'shortcut', icon: Command, labelKey: 'sections.shortcut' },
     { key: 'appearance', icon: Palette, labelKey: 'sections.appearance' },
-    { key: 'service-credentials', icon: Bot, labelKey: 'sections.serviceCredentials' },
-    { key: 'engine-selection', icon: ToggleLeft, labelKey: 'sections.engineSelection' },
     { key: 'resources', icon: Boxes, labelKey: 'sections.resources' },
     { key: 'storage', icon: Database, labelKey: 'sections.storage' },
     { key: 'proxy', icon: Globe, labelKey: 'sections.proxy' },

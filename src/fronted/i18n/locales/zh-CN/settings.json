@@ -30,12 +30,10 @@
     "sections": {
         "shortcut": "快捷键",
         "appearance": "外观",
-        "serviceCredentials": "服务与模型",
-        "engineSelection": "功能设置",
+        "resources": "服务与资源",
         "storage": "存储",
         "proxy": "网络代理",
-        "about": "关于与更新",
-        "resources": "服务与资源（预览）"
+        "about": "关于与更新"
     },
     "appearance": {
         "title": "外观",
@@ -305,61 +303,7 @@
             }
         }
     },
-    "engineSelection": {
-        "title": "功能设置",
-        "description": "按功能选择服务来源，可独立关闭。",
-        "intro": "不同功能可以独立选择服务来源。选择“关闭”后，该功能在播放器侧将不再执行。",
-        "featureSwitches": "功能开关",
-        "engineTencent": "腾讯翻译",
-        "engineTencentUnavailable": "腾讯翻译（未配置）",
-        "engineNone": "关闭",
-        "cloudModelGroup": "云端模型",
-        "localEngine": "本地模型",
-        "notDownloadedHint": "尚未下载任何本地模型，请前往「服务凭据」页下载后再使用。",
-        "clearCache": "清除缓存",
-        "clearCacheCancel": "暂不清除",
-        "clearCacheSuccess": "已清除 {{count}} 条缓存",
-        "subtitleTranslation": {
-            "title": "字幕翻译",
-            "description": "控制字幕翻译服务来源。",
-            "styleLabel": "AI 字幕输出风格",
-            "clearCacheLabel": "翻译缓存",
-            "clearCacheDesc": "仅清除当前引擎与配置下已生成的字幕翻译缓存",
-            "clearCacheConfirmTitle": "清除字幕翻译缓存",
-            "clearCacheConfirmDescription": "将删除当前字幕翻译配置（引擎、模型、风格完全一致）已产生的翻译缓存，下次播放时会重新翻译。此操作不可撤销。",
-            "styleZh": "中文直译",
-            "styleSimpleEn": "简化英文",
-            "styleCustom": "自定义",
-            "hiddenHint": "当前未使用 OpenAI 字幕翻译，风格设置已自动隐藏。"
-        },
-        "invalidStorage": {
-            "warning": "以下设置的存储值无效：{{items}}。请在上方重新选择并保存，保存前对应功能不可用。",
-            "subtitleEngine": "字幕翻译引擎",
-            "dictionaryEngine": "词典引擎",
-            "subtitleMode": "OpenAI 字幕输出风格",
-            "reselect": "当前值无效，请重新选择"
-        },
-        "dictionary": {
-            "title": "词典查询",
-            "description": "内置词典已覆盖 3.8 万常见词，无需配置即可查词；这里选择的是超出词库时的补充方式。",
-            "clearCacheLabel": "词典缓存",
-            "clearCacheDesc": "仅清除当前词典引擎已保存的查询缓存",
-            "clearCacheConfirmTitle": "清除词典缓存",
-            "clearCacheConfirmDescription": "将删除当前词典配置（引擎一致）已产生的查询缓存，下次查询时会重新请求。此操作不可撤销。"
-        },
-        "sentenceLearning": {
-            "title": "整句学习",
-            "description": "用于句子解析、学习提示等增强功能。",
-            "enable": "启用 OpenAI 整句学习",
-            "modelLabel": "整句学习模型"
-        },
-        "localMtEngine": "本地轻量翻译",
-        "localMtNotDownloadedHint": "轻量翻译模型尚未下载，请先在「服务凭据」页下载。",
-        "localMtZhOnlyHint": "轻量翻译模型仅支持翻译为中文；如需简化英文或自定义风格，请选择其他引擎。"
-    },
     "serviceCredentials": {
-        "title": "服务与模型",
-        "description": "配置云端服务密钥，管理本地离线模型。",
         "sections": {
             "cloud": {
                 "title": "云端服务",
@@ -386,7 +330,10 @@
             "addPlaceholder": "输入模型标识，如 gpt-4o-mini",
             "addButton": "添加",
             "usedByHint": "已被功能占用的模型不可删除。",
-            "duplicateModel": "模型已存在：{{model}}"
+            "duplicateModel": "模型已存在：{{model}}",
+            "usageSentenceLearning": "整句讲解",
+            "usageSubtitleTranslation": "字幕翻译",
+            "usageDictionary": "词典查询"
         },
         "transcription": {
             "cardTitle": "字幕语音识别",
@@ -542,7 +489,11 @@
             "sentenceDesc": "按快捷键为当前句打开讲解面板，讲解语法与用法。",
             "engineDisabled": "禁用",
             "engineNoSupplement": "不补充",
-            "engineLocalBase": "本地基础资源包"
+            "engineLocalBase": "本地基础资源包",
+            "cacheLabel": "翻译缓存",
+            "cacheDesc": "清除当前配置产生的字幕翻译与查词缓存，下次会重新请求。",
+            "clearCache": "清除缓存",
+            "clearCacheDone": "已清除 {{count}} 条缓存"
         },
         "cloud": {
             "title": "云端服务",

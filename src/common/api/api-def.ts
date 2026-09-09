@@ -2,6 +2,8 @@ import {DpTask} from '@/common/contracts/dp-task';
 import type { LocalAiSpeedTestResult, LocalAiStatus } from '@/common/contracts/local-ai';
 import type { LocalMtStatus } from '@/common/contracts/local-mt';
 import type { ResourceFallbackSnapshot } from '@/common/contracts/resource-fallback';
+import type { ResourceStatusSnapshot } from '@/common/contracts/resource-status';
+import type { GpuAcceleration } from '@/common/contracts/system-info';
 import {OpenAIDictionaryResult} from '@/common/types/DictionaryResult';
 import {ChapterParseResult} from '@/common/types/chapter-result';
 import {SrtSentence, Sentence} from '@/common/types/SentenceC';
@@ -103,7 +105,7 @@ interface SystemDef {
             /** 逻辑 CPU 核数。 */
             cpuCount: number,
             /** 可用的 GPU 推理后端；none 表示会走 CPU 推理。 */
-            gpuAcceleration: 'metal' | 'vulkan' | 'none',
+            gpuAcceleration: GpuAcceleration,
         }
     };
     'system/select-file': {
@@ -261,6 +263,7 @@ interface SettingsDef {
     'settings/service-credentials/test-tencent': { params: void, return: { success: boolean, message: string } };
     'settings/engine-selection/detail': { params: void, return: EngineSelectionSettingVO };
     'settings/resource-fallback/detail': { params: void, return: ResourceFallbackSnapshot };
+    'settings/resource-status/detail': { params: void, return: ResourceStatusSnapshot };
     'settings/engine-selection/save': { params: EngineSelectionSettingVO, return: void };
     'settings/transcription-engine/detail': { params: void, return: TranscriptionEngine };
     'settings/transcription-engine/save': { params: TranscriptionEngine, return: void };

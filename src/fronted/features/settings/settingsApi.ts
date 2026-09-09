@@ -103,18 +103,11 @@ export const settingsApi = {
     getServiceCredentials: () => backendClient.call('settings/service-credentials/detail'),
 
     /**
-     * 查询本机硬件信息（内存、核数、GPU 加速后端）。
+     * 查询资源状态聚合快照（资源包三项、本地增强、硬件与回退状态）。
      *
-     * @returns 当前机器的硬件概要，用于提示本地模型的运行条件。
+     * @returns 设置页所需的全部运行时状态。
      */
-    getSystemInfo: () => backendClient.call('system/info'),
-
-    /**
-     * 查询各功能当前的回退状态（云端/增强不可用时落到基础资源）。
-     *
-     * @returns 按功能索引的回退状态。
-     */
-    getResourceFallback: () => backendClient.call('settings/resource-fallback/detail'),
+    getResourceStatus: () => backendClient.call('settings/resource-status/detail'),
 
     /**
      * 保存服务凭据设置。
@@ -203,8 +196,6 @@ export const settingsApi = {
      * @returns 当前模型状态。
      */
     getSherpaTtsModelStatus: () => backendClient.call('sherpa-tts/models/status'),
-    /** 查询本地 Qwen 模型目录与 llama.cpp 运行时状态。 */
-    getLocalAiStatus: () => backendClient.call('local-ai/status'),
     /** 将全部本地功能切换到指定模型。 */
     useLocalAiModel: (modelId: string) => backendClient.call('local-ai/use', { modelId }),
     /** 清除当前字幕翻译配置（引擎、模型、风格一致）的翻译缓存，返回删除条数。 */

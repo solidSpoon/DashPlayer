@@ -30,12 +30,10 @@
     "sections": {
         "shortcut": "Shortcuts",
         "appearance": "Appearance",
-        "serviceCredentials": "Services & Models",
-        "engineSelection": "Feature Controls",
+        "resources": "Services & Resources",
         "storage": "Storage",
         "proxy": "Network Proxy",
-        "about": "About & Updates",
-        "resources": "Services & Resources (preview)"
+        "about": "About & Updates"
     },
     "appearance": {
         "title": "Appearance",
@@ -305,61 +303,7 @@
             }
         }
     },
-    "engineSelection": {
-        "title": "Feature Controls",
-        "description": "Choose a provider per feature and disable features independently.",
-        "intro": "Each feature can use a different provider. If set to \"Disabled\", that feature is skipped during playback.",
-        "featureSwitches": "Feature Switches",
-        "engineTencent": "Tencent Translation",
-        "engineTencentUnavailable": "Tencent Translation (not configured)",
-        "engineNone": "Disabled",
-        "cloudModelGroup": "Cloud Models",
-        "localEngine": "Local Model",
-        "notDownloadedHint": "No local model is downloaded yet. Download one on the Service Credentials page first.",
-        "clearCache": "Clear cache",
-        "clearCacheCancel": "Cancel",
-        "clearCacheSuccess": "Cleared {{count}} cached entries",
-        "subtitleTranslation": {
-            "title": "Subtitle Translation",
-            "description": "Control which provider powers subtitle translation.",
-            "styleLabel": "AI Subtitle Output Style",
-            "clearCacheLabel": "Translation Cache",
-            "clearCacheDesc": "Only clear translation cache matching the current engine and configuration",
-            "clearCacheConfirmTitle": "Clear subtitle translation cache",
-            "clearCacheConfirmDescription": "This deletes translations produced by the current subtitle translation config (same engine, model and style); they will be re-translated on next playback. This cannot be undone.",
-            "styleZh": "Direct Chinese translation",
-            "styleSimpleEn": "Simplified English",
-            "styleCustom": "Custom",
-            "hiddenHint": "OpenAI subtitle translation is currently not selected, so style options are hidden."
-        },
-        "invalidStorage": {
-            "warning": "The stored value of these settings is invalid: {{items}}. Please choose again above and save; affected features stay unavailable until then.",
-            "subtitleEngine": "Subtitle translation engine",
-            "dictionaryEngine": "Dictionary engine",
-            "subtitleMode": "OpenAI subtitle output style",
-            "reselect": "Invalid value, choose again"
-        },
-        "dictionary": {
-            "title": "Dictionary Lookup",
-            "description": "The built-in dictionary already covers 38,000 common words. Choose how to look up words beyond that list.",
-            "clearCacheLabel": "Dictionary Cache",
-            "clearCacheDesc": "Only clear lookup cache matching the current dictionary engine",
-            "clearCacheConfirmTitle": "Clear dictionary cache",
-            "clearCacheConfirmDescription": "This deletes query results produced by the current dictionary config (same engine); they will be re-fetched on next lookup. This cannot be undone."
-        },
-        "sentenceLearning": {
-            "title": "Sentence Learning",
-            "description": "Powers AI sentence breakdowns and contextual learning guidance.",
-            "enable": "Enable OpenAI Sentence Learning",
-            "modelLabel": "Sentence Learning Model"
-        },
-        "localMtEngine": "Local lightweight MT",
-        "localMtNotDownloadedHint": "The lightweight translation model is not downloaded yet. Download it on the Service Credentials page first.",
-        "localMtZhOnlyHint": "The lightweight translation model only supports Chinese output. Choose another engine for simplified English or custom styles."
-    },
     "serviceCredentials": {
-        "title": "Services & Models",
-        "description": "Configure cloud service keys and manage local offline models.",
         "sections": {
             "cloud": {
                 "title": "Cloud Services",
@@ -386,7 +330,10 @@
             "addPlaceholder": "Enter model id, e.g. gpt-4o-mini",
             "addButton": "Add",
             "usedByHint": "Models currently in use by features cannot be deleted.",
-            "duplicateModel": "Model already exists: {{model}}"
+            "duplicateModel": "Model already exists: {{model}}",
+            "usageSentenceLearning": "Sentence explanation",
+            "usageSubtitleTranslation": "Subtitle translation",
+            "usageDictionary": "Dictionary"
         },
         "transcription": {
             "cardTitle": "Speech-to-Subtitle",
@@ -542,7 +489,11 @@
             "sentenceDesc": "Press the shortcut to open an explanation panel for the current sentence, covering grammar and usage.",
             "engineDisabled": "Disabled",
             "engineNoSupplement": "No supplement",
-            "engineLocalBase": "Local base resource pack"
+            "engineLocalBase": "Local base resource pack",
+            "cacheLabel": "Translation cache",
+            "cacheDesc": "Clears cached subtitle translations and lookups produced by the current configuration; they will be requested again next time.",
+            "clearCache": "Clear cache",
+            "clearCacheDone": "Cleared {{count}} cached entries"
         },
         "cloud": {
             "title": "Cloud Services",

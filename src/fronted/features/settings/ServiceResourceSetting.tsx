@@ -3,9 +3,10 @@ import { useForm, useWatch } from 'react-hook-form';
 import useSWR from 'swr';
 import toast from 'react-hot-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { AlertTriangle, BookA, Captions, Cloud, HardDrive, Languages, Settings2, Sparkles, Volume2 } from 'lucide-react';
+import { AlertTriangle, BookA, Captions, Cloud, Eraser, HardDrive, Languages, Loader2, Settings2, Sparkles, Volume2 } from 'lucide-react';
 import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
 import { SettingCard, SettingRow, SettingsLoadingSkeleton } from '@/fronted/features/settings/components/form';
+import { Button } from '@/fronted/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { cn } from '@/fronted/lib/utils';
@@ -16,7 +17,8 @@ import { OpenAiCredentialCard } from '@/fronted/features/settings/components/Ope
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
 import { OPENAI_SUBTITLE_DEFAULT_STYLES } from '@/common/constants/openaiSubtitlePrompts';
-import type { LocalAiModelStatus, LocalAiStatus } from '@/common/contracts/local-ai';
+import type { LocalAiModelStatus } from '@/common/contracts/local-ai';
+import type { TranscriptionEngine } from '@/common/contracts/transcription-engine';
 import type { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 import type { ServiceCredentialSettingDetailVO, ServiceCredentialSettingSaveVO } from '@/common/types/vo/service-credentials-setting-vo';
 
@@ -64,8 +66,14 @@ const ServiceResourceSetting: React.FC = () => {
 
     const { data: settings } = useSWR('settings/service-credentials/detail', () => settingsApi.getServiceCredentials());
     const { data: engineSettings } = useSWR('settings/engine-selection/detail', () => settingsApi.getEngineSelection());
-    const { data: hardware } = useSWR('system/info', () => settingsApi.getSystemInfo());
-    const { data: fallbackState } = useSWR('settings/resource-fallback/detail', () => settingsApi.getResourceFallback());
+    /** 资源状态聚合：三项资源包、本地增强、硬件与回退状态都在这一份里。 */
+    const { data: resourceStatus, mutate: refreshResourceStatus } = useSWR(
+        'settings/resource-status/detail',
+        () => settingsApi.getResourceStatus(),
+    );
+    const hardware = resourceStatus?.hardware;
+    const fallbackState = resourceStatus?.fallback ?? null;
+    const localAiStatus = resourceStatus?.localAi ?? null;
 
     const credentialForm = useForm<ServiceCredentialSettingDetailVO>();
     const preferenceForm = useForm<EngineSelectionSettingVO>();
@@ -117,8 +125,8 @@ const ServiceResourceSetting: React.FC = () => {
     const [openAiTestResults, setOpenAiTestResults] = React.useState<Record<string, { success: boolean; message: string } | null>>({});
 
     // 本地增强模型
-    const [localAiStatus, setLocalAiStatus] = React.useState<LocalAiStatus | null>(null);
     const [localAiBusy, setLocalAiBusy] = React.useState(false);
+    const [clearingCache, setClearingCache] = React.useState(false);
     const [testingModelId, setTestingModelId] = React.useState<string | null>(null);
     const [testResultsMap, setTestResultsMap] = React.useState<Record<string, {
         success: boolean;
@@ -151,32 +159,54 @@ const ServiceResourceSetting: React.FC = () => {
         [settings],
     );
 
-    /** 拉取本地增强模型的最新状态。 */
-    const refreshLocalAiStatus = React.useCallback(async () => {
-        try {
-            setLocalAiStatus(await settingsApi.getLocalAiStatus());
-        } catch {
-            // 状态拉取失败不阻断页面，模型保持"未就绪"
-        }
-    }, []);
-
-    React.useEffect(() => { void refreshLocalAiStatus(); }, [refreshLocalAiStatus]);
-
-    // 本地增强模型的下载进度：只更新对应那一行，结束后重新拉取完整状态
+    /**
+     * 本地增强模型的下载进度：只改动聚合快照里对应那一行，结束后重新拉取完整状态。
+     */
     React.useEffect(() => {
         const handler = (event: Event) => {
             const progress = (event as CustomEvent<LocalAiDownloadProgress>).detail;
-            setLocalAiStatus((current) => current ? {
+            void refreshResourceStatus((current) => current ? {
                 ...current,
-                models: current.models.map((model) => model.modelId === progress.modelId
-                    ? { ...model, downloaded: progress.downloaded, total: progress.total, phase: progress.phase }
-                    : model),
-            } : current);
-            if (progress.phase === 'idle') void refreshLocalAiStatus();
+                localAi: {
+                    ...current.localAi,
+                    models: current.localAi.models.map((model) => model.modelId === progress.modelId
+                        ? { ...model, downloaded: progress.downloaded, total: progress.total, phase: progress.phase }
+                        : model),
+                },
+            } : current, { revalidate: false });
+            if (progress.phase === 'idle') void refreshResourceStatus();
         };
         window.addEventListener('local-ai-model-download-progress', handler);
         return () => window.removeEventListener('local-ai-model-download-progress', handler);
-    }, [refreshLocalAiStatus]);
+    }, [refreshResourceStatus]);
+
+    /** 切换字幕识别方式并刷新聚合状态。 */
+    const changeTranscriptionEngine = async (engine: TranscriptionEngine) => {
+        try {
+            await settingsApi.saveTranscriptionEngine(engine);
+            await refreshResourceStatus();
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : String(error));
+        }
+    };
+
+    /** 清除当前配置产生的字幕翻译与查词缓存。 */
+    const clearCaches = async () => {
+        setClearingCache(true);
+        try {
+            const [subtitle, dictionary] = await Promise.all([
+                settingsApi.clearSubtitleTranslationCache(),
+                settingsApi.clearDictionaryCache(),
+            ]);
+            toast.success(t('resources.preference.clearCacheDone', {
+                count: subtitle.deleted + dictionary.deleted,
+            }));
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : String(error));
+        } finally {
+            setClearingCache(false);
+        }
+    };
 
     /** 内置模型在提示里统一显示为「内置模型」，自定义模型显示用户自己的文件名。 */
     const localAiDisplayName = (model: LocalAiModelStatus): string =>
@@ -192,17 +222,20 @@ const ServiceResourceSetting: React.FC = () => {
             toast.error(`${localAiDisplayName(model)}: ${error instanceof Error ? error.message : String(error)}`);
         } finally {
             setLocalAiBusy(false);
-            await refreshLocalAiStatus();
+            await refreshResourceStatus();
         }
     };
 
     /** 下载指定本地增强模型。 */
     const downloadLocalAi = async (modelId: string) => {
         const model = localAiStatus?.models.find((item) => item.modelId === modelId);
-        setLocalAiStatus((current) => current ? {
+        void refreshResourceStatus((current) => current ? {
             ...current,
-            models: current.models.map((item) => item.modelId === modelId ? { ...item, phase: 'downloading' } : item),
-        } : current);
+            localAi: {
+                ...current.localAi,
+                models: current.localAi.models.map((item) => item.modelId === modelId ? { ...item, phase: 'downloading' } : item),
+            },
+        } : current, { revalidate: false });
         try {
             await settingsApi.downloadLocalAi(modelId);
             toast.success(t('common.downloadDone'));
@@ -211,7 +244,7 @@ const ServiceResourceSetting: React.FC = () => {
                 toast.error(`${localAiDisplayName(model)}: ${error instanceof Error ? error.message : String(error)}`);
             }
         } finally {
-            await refreshLocalAiStatus();
+            await refreshResourceStatus();
         }
     };
 
@@ -240,7 +273,7 @@ const ServiceResourceSetting: React.FC = () => {
             }));
         } finally {
             setTestingModelId(null);
-            await refreshLocalAiStatus();
+            await refreshResourceStatus();
         }
     };
 
@@ -468,7 +501,14 @@ const ServiceResourceSetting: React.FC = () => {
                         { cap: CAPABILITY_TRANSLATION, active: subtitleEngine === 'local-mt' },
                     ])}
                 >
-                    <ResourcePackCard />
+                    <ResourcePackCard
+                        transcriptionEngine={resourceStatus?.transcriptionEngine ?? 'whisper-cpp'}
+                        ttsStatus={resourceStatus?.tts ?? null}
+                        transcriptionStatus={resourceStatus?.transcription ?? null}
+                        localMtStatus={resourceStatus?.localMt ?? null}
+                        onRefresh={() => { void refreshResourceStatus(); }}
+                        onChangeEngine={(engine) => { void changeTranscriptionEngine(engine); }}
+                    />
                 </SettingCard>
 
                 {/* ② 本地增强资源包：可选的本地大模型，文案强调“在资源包基础上再提升” */}
@@ -482,7 +522,6 @@ const ServiceResourceSetting: React.FC = () => {
                     ])}
                 >
                     <LocalLlmCard
-                        headerless
                         status={localAiStatus}
                         busy={localAiBusy}
                         testingModelId={testingModelId}
@@ -507,7 +546,7 @@ const ServiceResourceSetting: React.FC = () => {
                                 .catch((error) => toast.error(error instanceof Error ? error.message : String(error)))
                                 .finally(() => {
                                     setLocalAiBusy(false);
-                                    void refreshLocalAiStatus();
+                                    void refreshResourceStatus();
                                 });
                         }}
                         onDeleteModel={(modelId) => {
@@ -537,7 +576,6 @@ const ServiceResourceSetting: React.FC = () => {
                     ], true)}
                 >
                     <OpenAiCredentialCard
-                        headerless
                         form={credentialForm}
                         testingModel={testingOpenAiModel}
                         testResults={openAiTestResults}
@@ -684,6 +722,25 @@ const ServiceResourceSetting: React.FC = () => {
                                 {renderCloudModels('learn')}
                             </SelectContent>
                         </Select>
+                    </SettingRow>
+
+                    <SettingRow
+                        title={t('resources.preference.cacheLabel')}
+                        description={t('resources.preference.cacheDesc')}
+                        icon={Eraser}
+                    >
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={clearingCache}
+                            onClick={() => { void clearCaches(); }}
+                        >
+                            {clearingCache
+                                ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                                : <Eraser className="mr-1.5 h-3.5 w-3.5" />}
+                            {t('resources.preference.clearCache')}
+                        </Button>
                     </SettingRow>
                 </SettingCard>
             </SettingsPageShell>

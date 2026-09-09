@@ -1,6 +1,14 @@
 import registerRoute from '@/backend/controllers/ipc/registerRoute';
 import type ResourceFallbackService from '@/backend/services/ResourceFallbackService';
 import type { ResourceFallbackSnapshot } from '@/common/contracts/resource-fallback';
+import type { ResourceStatusSnapshot } from '@/common/contracts/resource-status';
+import type SherpaTtsModelService from '@/backend/services/SherpaTtsModelService';
+import type WhisperCppModelService from '@/backend/services/WhisperCppModelService';
+import type ParakeetModelService from '@/backend/services/ParakeetModelService';
+import type LocalMtService from '@/backend/services/LocalMtService';
+import type LocalAiService from '@/backend/services/LocalAiService';
+import type TranscriptionEngineSelector from '@/backend/services/TranscriptionEngineSelector';
+import { readSystemInfo } from '@/backend/utils/systemInfo';
 import Controller from '@/backend/controllers/Controller';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
@@ -28,6 +36,12 @@ import {
 export default class SettingsController implements Controller {
     @inject(TYPES.SettingService) private settingService!: SettingService;
     @inject(TYPES.ResourceFallbackService) private resourceFallback!: ResourceFallbackService;
+    @inject(TYPES.SherpaTtsModelService) private sherpaTtsModelService!: SherpaTtsModelService;
+    @inject(TYPES.WhisperCppModelService) private whisperCppModelService!: WhisperCppModelService;
+    @inject(TYPES.ParakeetModelService) private parakeetModelService!: ParakeetModelService;
+    @inject(TYPES.LocalMtService) private localMtService!: LocalMtService;
+    @inject(TYPES.LocalAiService) private localAiService!: LocalAiService;
+    @inject(TYPES.TranscriptionEngineSelector) private transcriptionEngineSelector!: TranscriptionEngineSelector;
     private logger = getMainLogger('SettingsController');
 
     /**
@@ -75,6 +89,34 @@ export default class SettingsController implements Controller {
      */
     public async getResourceFallbackDetail(): Promise<ResourceFallbackSnapshot> {
         return this.resourceFallback.getSnapshot();
+    }
+
+    /**
+     * 获取资源状态聚合快照：三项资源包、本地增强、硬件与回退状态一次拿齐。
+     *
+     * 识别方式与字幕识别模型状态必须同源：先读引擎再取对应模型的状态，
+     * 避免两次请求之间用户切换了识别方式，出现"引擎说 whisper、状态却是 sherpa"。
+     */
+    public async getResourceStatusDetail(): Promise<ResourceStatusSnapshot> {
+        const transcriptionEngine = this.transcriptionEngineSelector.currentEngine();
+        const [tts, transcription, localMt, localAi, hardware] = await Promise.all([
+            this.sherpaTtsModelService.getStatus(),
+            transcriptionEngine === 'whisper-cpp'
+                ? this.whisperCppModelService.getStatus()
+                : this.parakeetModelService.getStatus(),
+            this.localMtService.getStatus(),
+            this.localAiService.getStatus(),
+            readSystemInfo(),
+        ]);
+        return {
+            transcriptionEngine,
+            tts,
+            transcription,
+            localMt,
+            localAi,
+            hardware,
+            fallback: this.resourceFallback.getSnapshot(),
+        };
     }
 
     /**
@@ -179,6 +221,7 @@ export default class SettingsController implements Controller {
         registerRoute('settings/service-credentials/test-tencent', () => this.testTencent());
         registerRoute('settings/engine-selection/detail', () => this.getEngineSelectionDetail());
         registerRoute('settings/resource-fallback/detail', () => this.getResourceFallbackDetail());
+        registerRoute('settings/resource-status/detail', () => this.getResourceStatusDetail());
         registerRoute('settings/engine-selection/save', (p) => this.saveEngineSelection(p));
         registerRoute('settings/transcription-engine/detail', () => this.getTranscriptionEngineDetail());
         registerRoute('settings/transcription-engine/save', (p) => this.saveTranscriptionEngineDetail(p));

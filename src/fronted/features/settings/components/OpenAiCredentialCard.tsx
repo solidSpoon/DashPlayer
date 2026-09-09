@@ -1,14 +1,13 @@
 import React from 'react';
 import { UseFormReturn } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
-import { Bot, CheckCircle2, Loader2, Plus, TestTube, Trash2, XCircle } from 'lucide-react';
+import { CheckCircle2, Loader2, Plus, TestTube, Trash2, XCircle } from 'lucide-react';
 import { cn } from '@/fronted/lib/utils';
 import { Button } from '@/fronted/components/ui/button';
 import { Input } from '@/fronted/components/ui/input';
 import { Label } from '@/fronted/components/ui/label';
 import { Switch } from '@/fronted/components/ui/switch';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/fronted/components/ui/table';
-import { SettingBlockHeader } from '@/fronted/features/settings/components/form';
 import {
     OpenAiModelUsageFeature,
     ServiceCredentialSettingDetailVO,
@@ -23,8 +22,6 @@ export interface OpenAiModelTestResult {
 
 interface OpenAiCredentialCardProps {
     form: UseFormReturn<ServiceCredentialSettingDetailVO>;
-    /** 为 true 时不渲染区块标题，由外层卡片提供标题栏。 */
-    headerless?: boolean;
     /** 正在测试的模型标识；非空时其余测试按钮一并禁用。 */
     testingModel: string | null;
     /** 按模型标识缓存的最近一次测试结果。 */
@@ -43,7 +40,6 @@ interface OpenAiCredentialCardProps {
  */
 export const OpenAiCredentialCard: React.FC<OpenAiCredentialCardProps> = ({
     form,
-    headerless = false,
     testingModel,
     testResults,
     onTestModel,
@@ -57,9 +53,9 @@ export const OpenAiCredentialCard: React.FC<OpenAiCredentialCardProps> = ({
     const openAiModels = watch('openai.models') ?? [];
 
     const usageLabelMap: Record<OpenAiModelUsageFeature, string> = React.useMemo(() => ({
-        sentenceLearning: t('engineSelection.sentenceLearning.title'),
-        subtitleTranslation: t('engineSelection.subtitleTranslation.title'),
-        dictionary: t('engineSelection.dictionary.title'),
+        sentenceLearning: t('serviceCredentials.openai.usageSentenceLearning'),
+        subtitleTranslation: t('serviceCredentials.openai.usageSubtitleTranslation'),
+        dictionary: t('serviceCredentials.openai.usageDictionary'),
     }), [t]);
 
     const handleAddModel = () => {
@@ -90,14 +86,6 @@ export const OpenAiCredentialCard: React.FC<OpenAiCredentialCardProps> = ({
 
     return (
         <div className="p-4 space-y-4">
-            {!headerless && (
-                <SettingBlockHeader
-                    title="OpenAI"
-                    description={t('serviceCredentials.openai.description')}
-                    icon={Bot}
-                />
-            )}
-
             <div className="space-y-2">
                 <Label>API Key</Label>
                 <Input type="password" {...register('openai.key')} placeholder="sk-..." />

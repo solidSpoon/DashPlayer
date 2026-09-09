@@ -80,13 +80,30 @@ interface PackItem {
  * 默认只显示"就绪状态 + 一个下载按钮"，下载时是一条整体进度（按项数均分），
  * 识别方式、手动下载教程等技术细节收在「查看详情」里。
  */
-export const ResourcePackCard: React.FC = () => {
-    const { t } = useTranslation('settings');
+export interface ResourcePackCardProps {
+    /** 当前字幕识别方式。 */
+    transcriptionEngine: TranscriptionEngine;
+    /** 发音模型状态。 */
+    ttsStatus: ModelInstallationStatusVO | null;
+    /** 字幕识别模型状态。 */
+    transcriptionStatus: ModelInstallationStatusVO | null;
+    /** 轻量翻译模型状态。 */
+    localMtStatus: LocalMtStatus | null;
+    /** 下载/删除结束后刷新外层聚合状态。 */
+    onRefresh: () => void;
+    /** 切换字幕识别方式。 */
+    onChangeEngine: (engine: TranscriptionEngine) => void;
+}
 
-    const [transcriptionEngine, setTranscriptionEngine] = React.useState<TranscriptionEngine>('whisper-cpp');
-    const [ttsStatus, setTtsStatus] = React.useState<ModelInstallationStatusVO | null>(null);
-    const [transcriptionStatus, setTranscriptionStatus] = React.useState<ModelInstallationStatusVO | null>(null);
-    const [localMtStatus, setLocalMtStatus] = React.useState<LocalMtStatus | null>(null);
+export const ResourcePackCard: React.FC<ResourcePackCardProps> = ({
+    transcriptionEngine,
+    ttsStatus,
+    transcriptionStatus,
+    localMtStatus,
+    onRefresh,
+    onChangeEngine,
+}) => {
+    const { t } = useTranslation('settings');
 
     const [expanded, setExpanded] = React.useState(false);
     const [downloading, setDownloading] = React.useState(false);
@@ -104,36 +121,6 @@ export const ResourcePackCard: React.FC = () => {
     const cancelRequestedRef = React.useRef(false);
     /** 最近一次进度采样，用于估算网速。 */
     const speedSampleRef = React.useRef<{ at: number; downloaded: number } | null>(null);
-
-    /** 拉取资源包内三项资源的状态。 */
-    const refreshStatuses = React.useCallback(async () => {
-        const engine = await settingsApi.getTranscriptionEngine().catch(() => 'whisper-cpp' as const);
-        setTranscriptionEngine(engine);
-        const [tts, transcription, localMt] = await Promise.all([
-            settingsApi.getSherpaTtsModelStatus().catch(() => null),
-            (engine === 'whisper-cpp'
-                ? settingsApi.getWhisperCppModelStatus()
-                : settingsApi.getParakeetModelStatus()
-            ).catch(() => null),
-            settingsApi.getLocalMtStatus().catch(() => null),
-        ]);
-        if (tts) setTtsStatus(tts);
-        if (transcription) setTranscriptionStatus(transcription);
-        if (localMt) setLocalMtStatus(localMt);
-    }, []);
-
-    React.useEffect(() => {
-        void refreshStatuses();
-        // 用户可能在文件管理器里删掉或移动模型目录，窗口重新获得焦点时重新检测
-        const refreshOnFocus = () => { void refreshStatuses(); };
-        const refreshOnVisible = () => { if (!document.hidden) void refreshStatuses(); };
-        window.addEventListener('focus', refreshOnFocus);
-        document.addEventListener('visibilitychange', refreshOnVisible);
-        return () => {
-            window.removeEventListener('focus', refreshOnFocus);
-            document.removeEventListener('visibilitychange', refreshOnVisible);
-        };
-    }, [refreshStatuses]);
 
     /** 记录一次进度采样：写入原始快照，并用指数滑动平均估算网速。 */
     const trackProgress = React.useCallback((downloaded: number, total: number) => {
@@ -174,7 +161,7 @@ export const ResourcePackCard: React.FC = () => {
             if (detail.phase === 'downloading' && detail.total > 0) {
                 trackProgress(detail.downloaded, detail.total);
             }
-            if (detail.phase === 'idle') void refreshStatuses();
+            if (detail.phase === 'idle') onRefresh();
         };
         const handleLocalMtProgress = (event: Event) => {
             const detail = (event as CustomEvent<{
@@ -186,7 +173,7 @@ export const ResourcePackCard: React.FC = () => {
             if (detail.phase === 'downloading' && detail.total > 0) {
                 trackProgress(detail.downloaded, detail.total);
             }
-            if (detail.phase === 'idle') void refreshStatuses();
+            if (detail.phase === 'idle') onRefresh();
         };
 
         window.addEventListener('sherpa-tts-model-download-progress', handleArchiveProgress);
@@ -199,18 +186,8 @@ export const ResourcePackCard: React.FC = () => {
             window.removeEventListener('parakeet-model-download-progress', handleArchiveProgress);
             window.removeEventListener('local-mt-download-progress', handleLocalMtProgress);
         };
-    }, [refreshStatuses, trackProgress]);
+    }, [onRefresh, trackProgress]);
 
-    /** 切换识别方式；只影响字幕识别这一项。 */
-    const changeTranscriptionEngine = async (engine: TranscriptionEngine) => {
-        try {
-            await settingsApi.saveTranscriptionEngine(engine);
-            setTranscriptionEngine(engine);
-            await refreshStatuses();
-        } catch (err) {
-            toast.error(err instanceof Error ? err.message : String(err));
-        }
-    };
 
     /** 复制文本到剪贴板。 */
     const copyText = async (value: string) => {
@@ -357,7 +334,7 @@ export const ResourcePackCard: React.FC = () => {
             setActiveItemKey(null);
             setActivePhase(null);
             setDownloading(false);
-            await refreshStatuses();
+            onRefresh();
         }
     };
 
@@ -371,7 +348,7 @@ export const ResourcePackCard: React.FC = () => {
         } catch (err) {
             toast.error(err instanceof Error ? err.message : String(err));
         } finally {
-            await refreshStatuses();
+            onRefresh();
         }
     };
 
@@ -389,7 +366,7 @@ export const ResourcePackCard: React.FC = () => {
             toast.error(err instanceof Error ? err.message : String(err));
         } finally {
             setDeleting(false);
-            await refreshStatuses();
+            onRefresh();
         }
     };
 
@@ -527,7 +504,7 @@ export const ResourcePackCard: React.FC = () => {
                                     <span className="text-xs text-muted-foreground">{t('resources.pack.engineLabel')}</span>
                                     <Select
                                         value={transcriptionEngine}
-                                        onValueChange={(value) => changeTranscriptionEngine(value as TranscriptionEngine).catch(() => null)}
+                                        onValueChange={(value) => onChangeEngine(value as TranscriptionEngine)}
                                     >
                                         <SelectTrigger className="h-8 w-48 text-xs"><SelectValue /></SelectTrigger>
                                         <SelectContent>

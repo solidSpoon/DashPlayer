@@ -1,7 +1,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import {
-    Bot,
     CheckCircle2,
     Copy,
     Cpu,
@@ -27,15 +26,12 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/fronted/components/ui/alert-dialog';
-import { SettingBlockHeader } from '@/fronted/features/settings/components/form';
 import { ManualDownloadGuide } from '@/fronted/components/shared/ManualDownloadGuide';
 import type { LocalAiStatus } from '@/common/contracts/local-ai';
 
 export interface LocalLlmCardProps {
     status: LocalAiStatus | null;
     busy: boolean;
-    /** 为 true 时不渲染区块标题，由外层卡片提供标题栏。 */
-    headerless?: boolean;
     testingModelId: string | null;
     /** 硬件条件提示；不传时不展示。 */
     hardwareHint?: React.ReactNode;
@@ -69,7 +65,6 @@ export interface LocalLlmCardProps {
 export const LocalLlmCard: React.FC<LocalLlmCardProps> = ({
     status,
     busy,
-    headerless = false,
     testingModelId,
     hardwareHint,
     deleteLabel,
@@ -91,14 +86,6 @@ export const LocalLlmCard: React.FC<LocalLlmCardProps> = ({
 
     return (
         <div className="p-4 space-y-4">
-            {!headerless && (
-                <SettingBlockHeader
-                    title={t('serviceCredentials.localAi.cardTitle')}
-                    description={t('serviceCredentials.localAi.cardDescription')}
-                    icon={Bot}
-                />
-            )}
-
             {/* 硬件条件提示：本地增强模型对内存与算力有一定要求 */}
             {hardwareHint && (
                 <div className="flex items-start gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
