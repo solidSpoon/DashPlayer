@@ -527,7 +527,7 @@
             "subtitleLabel": "Subtitle translation",
             "subtitleDesc": "Which resource translates video subtitles.",
             "dictionaryLabel": "Dictionary lookup",
-            "dictionaryDesc": "38,000 entries are built in locally. Switch to the enhancement model or cloud when you need more detailed definitions.",
+            "dictionaryDesc": "The built-in dictionary covers 38,000 common words, so lookups work without any setup. This setting only decides what to use for words it does not cover.",
             "engineLocalMt": "Local (lightweight translation)",
             "engineLocalAi": "Local (enhanced model)",
             "engineNone": "Off",
@@ -541,8 +541,8 @@
             "notReadyHint": "The selected resource is not downloaded yet. Download the runtime resource pack above first.",
             "sentenceLabel": "Sentence explanation",
             "sentenceDesc": "Press the shortcut to open an explanation panel for the current sentence, covering grammar and usage.",
-            "engineBuiltin": "Built-in",
-            "engineDisabled": "Disabled"
+            "engineDisabled": "Disabled",
+            "engineNoSupplement": "No supplement"
         },
         "cloud": {
             "title": "Cloud Services",

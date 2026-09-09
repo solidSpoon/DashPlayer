@@ -547,7 +547,7 @@ const ServiceResourceSetting: React.FC = () => {
                                         </SelectItem>
                                     )}
                                     <SelectItem value="local">{t('resources.preference.engineLocalAi')}</SelectItem>
-                                    <SelectItem value="none">{t('resources.preference.engineBuiltin')}</SelectItem>
+                                    <SelectItem value="none">{t('resources.preference.engineNoSupplement')}</SelectItem>
                                 </SelectContent>
                             </Select>
                             {watched.providers?.dictionaryEngine === 'local'
