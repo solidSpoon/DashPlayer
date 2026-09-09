@@ -618,14 +618,20 @@ const ServiceResourceSetting: React.FC = () => {
                                 </Select>
                             )}
                         </div>
-                        {subtitleEngine !== 'local-mt' && subtitleMode === 'custom' && (
+                        {subtitleEngine !== 'local-mt' && (
                             <Textarea
-                                value={watched.openai?.subtitleCustomStyle}
+                                value={subtitleMode === 'custom'
+                                    ? watched.openai?.subtitleCustomStyle
+                                    : OPENAI_SUBTITLE_DEFAULT_STYLES[subtitleMode === 'simple_en' ? 'simple_en' : 'zh']}
                                 onChange={(event) => {
                                     setValue('openai.subtitleCustomStyle', event.target.value, { shouldDirty: true });
                                 }}
+                                readOnly={subtitleMode !== 'custom'}
                                 placeholder={t('resources.preference.stylePlaceholder')}
-                                className="min-h-[100px] w-full resize-none text-xs"
+                                className={cn(
+                                    'min-h-[100px] w-full resize-none text-xs',
+                                    subtitleMode !== 'custom' && 'cursor-default bg-muted/40 text-muted-foreground',
+                                )}
                             />
                         )}
                     </div>
