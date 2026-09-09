@@ -12,13 +12,13 @@
     "steps": {
         "storage": {
             "heroTitle": "选择保存位置",
-            "heroDesc": "视频、字幕和离线模型都会存在同一个文件夹里。",
+            "heroDesc": "视频、字幕和运行所需的资源都会存在同一个文件夹里。",
             "pathLabel": "当前保存位置",
             "pathLoading": "正在读取…",
             "chooseFolder": "选择文件夹",
             "saved": "保存位置已更新",
             "unavailable": "这个文件夹当前不可用，请重新选择一个。",
-            "note": "离线模型约 1 GB，建议选一个空间充足的位置；之后也能在「设置中心 → 存储」里修改。"
+            "note": "运行所需的资源约 1 GB，建议选一个空间充足的位置；之后也能在「设置中心 → 存储」里修改。"
         },
         "models": {
             "ttsTitle": "单词与例句发音",
@@ -31,11 +31,11 @@
             "openFolder": "打开文件夹"
         },
         "download": {
-            "heroTitle": "准备离线运行环境",
-            "heroDesc": "下载一次，之后断网也能正常使用。",
+            "heroTitle": "下载运行所需资源",
+            "heroDesc": "应用需要这些资源才能正常工作，安装一次即可。",
             "action": "下载",
             "packSize": "约 1 GB",
-            "downloadingEnv": "正在下载运行环境…",
+            "downloadingEnv": "正在下载所需资源…",
             "cancel": "取消",
             "ready": "已就绪",
             "finish": "完成",

@@ -12,13 +12,13 @@
     "steps": {
         "storage": {
             "heroTitle": "Choose where to save",
-            "heroDesc": "Videos, subtitles and offline models all live in the same folder.",
+            "heroDesc": "Videos, subtitles and the resources the app needs all live in the same folder.",
             "pathLabel": "Current location",
             "pathLoading": "Loading…",
             "chooseFolder": "Choose folder",
             "saved": "Location updated",
             "unavailable": "This folder is not available right now — please pick another one.",
-            "note": "Offline models take about 1 GB, so pick a location with enough space. You can change this later in Settings → Storage."
+            "note": "These resources take about 1 GB, so pick a location with enough space. You can change this later in Settings → Storage."
         },
         "models": {
             "ttsTitle": "Word & Sentence Pronunciation",
@@ -31,11 +31,11 @@
             "openFolder": "Open folder"
         },
         "download": {
-            "heroTitle": "Preparing the offline runtime",
-            "heroDesc": "Download once — everything keeps working even when you are offline.",
+            "heroTitle": "Download required resources",
+            "heroDesc": "The app needs these resources to work — a one-time install.",
             "action": "Download",
             "packSize": "~1 GB",
-            "downloadingEnv": "Downloading runtime…",
+            "downloadingEnv": "Downloading resources…",
             "cancel": "Cancel",
             "ready": "Ready",
             "finish": "Finish",
