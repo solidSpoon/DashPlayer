@@ -63,7 +63,7 @@
             "extrasTitle": "附加功能",
             "tier": {
                 "light": {
-                    "title": "轻量",
+                    "title": "本地轻量",
                     "size": "约 300 MB",
                     "desc": "速度快，译文偏直白"
                 },

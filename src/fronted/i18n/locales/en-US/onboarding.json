@@ -63,7 +63,7 @@
             "extrasTitle": "Extras",
             "tier": {
                 "light": {
-                    "title": "Lightweight",
+                    "title": "Local lightweight",
                     "size": "~300 MB",
                     "desc": "Fastest, more literal wording"
                 },
