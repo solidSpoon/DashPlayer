@@ -119,6 +119,11 @@ const ServiceResourceSetting: React.FC = () => {
     const dictionaryEngine = watched.providers?.dictionaryEngine;
     /** 整句讲解是否启用。 */
     const sentenceLearningEnabled = watched.openai?.enableSentenceLearning === true;
+    /** 哪些引擎是开启的：决定缓存清理行是否展示、清理时跳过谁。 */
+    const cacheTargets = {
+        subtitle: subtitleEngine !== undefined && subtitleEngine !== 'none' && subtitleEngine !== 'invalid',
+        dictionary: dictionaryEngine !== undefined && dictionaryEngine !== 'none' && dictionaryEngine !== 'invalid',
+    };
 
     // 云端密钥的连通性测试
     const [testingOpenAiModel, setTestingOpenAiModel] = React.useState<string | null>(null);
@@ -190,13 +195,18 @@ const ServiceResourceSetting: React.FC = () => {
         }
     };
 
-    /** 清除当前配置产生的字幕翻译与查词缓存。 */
+    /**
+     * 清除当前配置产生的字幕翻译与查词缓存。
+     *
+     * 只清已启用的引擎：关闭的档位没有缓存，对应接口会直接报"未启用"，
+     * 与旧页面按引擎分别渲染按钮的行为一致。
+     */
     const clearCaches = async () => {
         setClearingCache(true);
         try {
             const [subtitle, dictionary] = await Promise.all([
-                settingsApi.clearSubtitleTranslationCache(),
-                settingsApi.clearDictionaryCache(),
+                cacheTargets.subtitle ? settingsApi.clearSubtitleTranslationCache() : { deleted: 0 },
+                cacheTargets.dictionary ? settingsApi.clearDictionaryCache() : { deleted: 0 },
             ]);
             toast.success(t('resources.preference.clearCacheDone', {
                 count: subtitle.deleted + dictionary.deleted,
@@ -724,24 +734,26 @@ const ServiceResourceSetting: React.FC = () => {
                         </Select>
                     </SettingRow>
 
-                    <SettingRow
-                        title={t('resources.preference.cacheLabel')}
-                        description={t('resources.preference.cacheDesc')}
-                        icon={Eraser}
-                    >
-                        <Button
-                            type="button"
-                            variant="outline"
-                            size="sm"
-                            disabled={clearingCache}
-                            onClick={() => { void clearCaches(); }}
+                    {(cacheTargets.subtitle || cacheTargets.dictionary) && (
+                        <SettingRow
+                            title={t('resources.preference.cacheLabel')}
+                            description={t('resources.preference.cacheDesc')}
+                            icon={Eraser}
                         >
-                            {clearingCache
-                                ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
-                                : <Eraser className="mr-1.5 h-3.5 w-3.5" />}
-                            {t('resources.preference.clearCache')}
-                        </Button>
-                    </SettingRow>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={clearingCache}
+                                onClick={() => { void clearCaches(); }}
+                            >
+                                {clearingCache
+                                    ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                                    : <Eraser className="mr-1.5 h-3.5 w-3.5" />}
+                                {t('resources.preference.clearCache')}
+                            </Button>
+                        </SettingRow>
+                    )}
                 </SettingCard>
             </SettingsPageShell>
         </form>
