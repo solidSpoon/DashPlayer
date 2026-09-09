@@ -3,13 +3,12 @@ import { useForm, useWatch } from 'react-hook-form';
 import useSWR from 'swr';
 import toast from 'react-hot-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { Cloud, HardDrive, Languages, Layers, Settings2, Sparkles } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, CircleDashed, Cloud, HardDrive, Languages, Settings2, Sparkles } from 'lucide-react';
 import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
 import { SettingCard, SettingRow, SettingsLoadingSkeleton } from '@/fronted/features/settings/components/form';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import { Textarea } from '@/fronted/components/ui/textarea';
 import { ResourcePackCard } from '@/fronted/features/settings/components/ResourcePackCard';
-import { ResourceUsageCard } from '@/fronted/features/settings/components/ResourceUsageCard';
 import { LocalLlmCard } from '@/fronted/features/settings/components/LocalLlmCard';
 import { OpenAiCredentialCard } from '@/fronted/features/settings/components/OpenAiCredentialCard';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
@@ -48,7 +47,6 @@ const ServiceResourceSetting: React.FC = () => {
     const { data: engineSettings } = useSWR('settings/engine-selection/detail', () => settingsApi.getEngineSelection());
     const { data: hardware } = useSWR('system/info', () => settingsApi.getSystemInfo());
     const { data: fallbackState } = useSWR('settings/resource-fallback/detail', () => settingsApi.getResourceFallback());
-    const { data: transcriptionEngineSetting } = useSWR('settings/transcription-engine/detail', () => settingsApi.getTranscriptionEngine());
 
     const credentialForm = useForm<ServiceCredentialSettingDetailVO>();
     const preferenceForm = useForm<EngineSelectionSettingVO>();
@@ -319,25 +317,15 @@ const ServiceResourceSetting: React.FC = () => {
         }
     };
 
-    /** 渲染云端档位的模型选项；各下拉共用。 */
-    const renderCloudModels = (prefix: string) => (
-        availableModels.length > 0 ? (
-            <SelectGroup>
-                <SelectLabel>{t('resources.usage.groupCloud')}</SelectLabel>
-                {availableModels.map((model) => (
-                    <SelectItem key={`${prefix}-${model}`} value={`openai:${model}`}>{model}</SelectItem>
-                ))}
-            </SelectGroup>
-        ) : null
-    );
+    /** 渲染云端模型选项；各下拉共用，展平不分组。 */
+    const renderCloudModels = (prefix: string) => availableModels.map((model) => (
+        <SelectItem key={`${prefix}-${model}`} value={`openai:${model}`}>{model}</SelectItem>
+    ));
 
-    /** 当前使用中的本地增强模型名；未安装时为本地增强模型，用于“当前使用”总览。 */
-    const activeEnhanceModelName = React.useMemo(() => {
-        const active = localAiStatus?.models.find((model) => model.modelId === localAiStatus.activeModelId);
-        return active?.name ?? '';
-    }, [localAiStatus]);
+    /** 运行资源包是否全部就绪；由资源包卡片回报，用于卡片头状态图标。 */
+    const [packReady, setPackReady] = React.useState(false);
 
-    /** 本地增强模型的硬件条件提示；硬件信息未就绪时为 undefined。 */
+    /** 本地智能模型的硬件条件提示；硬件信息未就绪时为 undefined。 */
     const enhanceHardwareHint = React.useMemo(() => {
         if (!hardware) return undefined;
         const params = { memory: hardware.totalMemoryGb, cores: hardware.cpuCount };
@@ -352,6 +340,38 @@ const ServiceResourceSetting: React.FC = () => {
             gpu: GPU_ACCELERATION_LABELS[hardware.gpuAcceleration],
         });
     }, [hardware, t]);
+
+    /** 云端是否已配置：密钥与模型列表都就位。 */
+    const cloudConfigured = Boolean(settings?.openai.key && settings.openai.models.length > 0);
+    /** 本地智能模型是否已安装。 */
+    const enhanceReady = localAiStatus?.models.some((model) => model.ready) ?? false;
+    /** 云端是否处于回退中（字幕翻译或词典已落到基础资源）。 */
+    const cloudFallback = Boolean(fallbackState?.subtitleTranslation || fallbackState?.dictionary);
+
+    /**
+     * 卡片头右侧的低调状态图标：已就绪打勾、未安装空心圆、回退中黄色感叹号。
+     *
+     * @param ready 该档资源是否可用。
+     * @param readyLabel 可用时的悬停说明。
+     * @param missingLabel 不可用时的悬停说明。
+     * @param warning 非空时优先显示警告图标（如云端已回退）。
+     */
+    const renderStatusIcon = (
+        ready: boolean,
+        readyLabel: string,
+        missingLabel: string,
+        warning?: string,
+    ) => (
+        <span title={warning ?? (ready ? readyLabel : missingLabel)} className="inline-flex items-center">
+            {warning ? (
+                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+            ) : ready ? (
+                <CheckCircle2 className="h-4 w-4 text-green-600/70 dark:text-green-400/70" />
+            ) : (
+                <CircleDashed className="h-4 w-4 text-muted-foreground/50" />
+            )}
+        </span>
+    );
 
     if (!credentialReady || !preferenceReady) {
         return (
@@ -386,39 +406,30 @@ const ServiceResourceSetting: React.FC = () => {
                     </div>
                 )}
 
-                {/* ① 当前使用：各功能此刻实际调用的资源 */}
-                <SettingCard
-                    title={t('resources.usage.title')}
-                    description={t('resources.usage.description')}
-                    icon={Layers}
-                >
-                    <ResourceUsageCard
-                        subtitleEngine={watched.providers?.subtitleTranslationEngine ?? 'none'}
-                        subtitleModel={watched.openai?.featureModels?.subtitleTranslation ?? ''}
-                        dictionaryEngine={watched.providers?.dictionaryEngine ?? 'none'}
-                        dictionaryModel={watched.openai?.featureModels?.dictionary ?? ''}
-                        sentenceLearningEnabled={watched.openai?.enableSentenceLearning ?? false}
-                        sentenceModel={watched.openai?.featureModels?.sentenceLearning ?? ''}
-                        transcriptionEngine={transcriptionEngineSetting ?? 'whisper-cpp'}
-                        enhanceModelName={activeEnhanceModelName}
-                        fallback={fallbackState ?? null}
-                    />
-                </SettingCard>
-
-                {/* ② 运行资源包：发音 + 字幕识别 + 轻量翻译 */}
+                {/* ① 运行资源包：发音 + 字幕识别 + 轻量翻译 */}
                 <SettingCard
                     title={t('resources.pack.title')}
                     description={t('resources.pack.description')}
                     icon={HardDrive}
+                    headerAction={renderStatusIcon(
+                        packReady,
+                        t('resources.pack.ready'),
+                        t('resources.pack.notReady'),
+                    )}
                 >
-                    <ResourcePackCard />
+                    <ResourcePackCard onReadyChange={setPackReady} />
                 </SettingCard>
 
-                {/* ③ 本地增强：可选的本地大模型，文案强调“在资源包基础上再提升” */}
+                {/* ② 本地智能模型：可选的本地大模型，文案强调“在资源包基础上再提升” */}
                 <SettingCard
                     title={t('resources.enhance.title')}
                     description={t('resources.enhance.description')}
                     icon={Sparkles}
+                    headerAction={renderStatusIcon(
+                        enhanceReady,
+                        t('resources.pack.ready'),
+                        t('resources.pack.notReady'),
+                    )}
                 >
                     <LocalLlmCard
                         headerless
@@ -462,11 +473,17 @@ const ServiceResourceSetting: React.FC = () => {
                     />
                 </SettingCard>
 
-                {/* ④ 云端服务：可选的云端模型与密钥 */}
+                {/* ③ 云端服务：可选的云端模型与密钥 */}
                 <SettingCard
                     title={t('resources.cloud.title')}
                     description={t('resources.cloud.description')}
                     icon={Cloud}
+                    headerAction={renderStatusIcon(
+                        cloudConfigured,
+                        t('resources.status.cloudReady'),
+                        t('resources.status.cloudMissing'),
+                        cloudFallback ? t('resources.status.cloudFallback') : undefined,
+                    )}
                 >
                     <OpenAiCredentialCard
                         headerless
@@ -483,7 +500,7 @@ const ServiceResourceSetting: React.FC = () => {
                     />
                 </SettingCard>
 
-                {/* ⑤ 翻译与查词偏好 */}
+                {/* ④ 翻译与查词偏好 */}
                 <SettingCard
                     title={t('resources.preference.title')}
                     description={t('resources.preference.description')}
@@ -505,14 +522,6 @@ const ServiceResourceSetting: React.FC = () => {
                             >
                                 <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectGroup>
-                                        <SelectLabel>{t('resources.usage.groupBase')}</SelectLabel>
-                                        <SelectItem value="local-mt">{t('resources.pack.itemMt')}</SelectItem>
-                                    </SelectGroup>
-                                    <SelectGroup>
-                                        <SelectLabel>{t('resources.usage.groupEnhance')}</SelectLabel>
-                                        <SelectItem value="local">{t('resources.preference.engineLocalAi')}</SelectItem>
-                                    </SelectGroup>
                                     {renderCloudModels('subtitle')}
                                     {/* 存储里指向的云端模型已不在可用列表时补一个禁用项，避免下拉显示为空 */}
                                     {subtitleEngine === 'openai'
@@ -522,6 +531,8 @@ const ServiceResourceSetting: React.FC = () => {
                                             {watched.openai.featureModels.subtitleTranslation}
                                         </SelectItem>
                                     )}
+                                    <SelectItem value="local-mt">{t('resources.preference.engineLocalBase')}</SelectItem>
+                                    <SelectItem value="local">{t('resources.preference.engineLocalAi')}</SelectItem>
                                     <SelectItem value="none">{t('resources.preference.engineNone')}</SelectItem>
                                 </SelectContent>
                             </Select>
@@ -583,14 +594,6 @@ const ServiceResourceSetting: React.FC = () => {
                             >
                                 <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectGroup>
-                                        <SelectLabel>{t('resources.usage.groupBase')}</SelectLabel>
-                                        <SelectItem value="none">{t('resources.preference.engineNoSupplement')}</SelectItem>
-                                    </SelectGroup>
-                                    <SelectGroup>
-                                        <SelectLabel>{t('resources.usage.groupEnhance')}</SelectLabel>
-                                        <SelectItem value="local">{t('resources.preference.engineLocalAi')}</SelectItem>
-                                    </SelectGroup>
                                     {renderCloudModels('dictionary')}
                                     {/* 存储里指向的云端模型已不在可用列表时补一个禁用项，避免下拉显示为空 */}
                                     {watched.providers?.dictionaryEngine === 'openai'
@@ -600,6 +603,8 @@ const ServiceResourceSetting: React.FC = () => {
                                             {watched.openai.featureModels.dictionary}
                                         </SelectItem>
                                     )}
+                                    <SelectItem value="local">{t('resources.preference.engineLocalAi')}</SelectItem>
+                                    <SelectItem value="none">{t('resources.preference.engineNoSupplement')}</SelectItem>
                                 </SelectContent>
                             </Select>
                             {watched.providers?.dictionaryEngine === 'local'

@@ -529,7 +529,7 @@
             "subtitleDesc": "Which resource translates video subtitles.",
             "dictionaryLabel": "Dictionary lookup",
             "dictionaryDesc": "The built-in dictionary covers 38,000 common words, so lookups work without any setup. This setting only decides what to use for words it does not cover.",
-            "engineLocalAi": "Local enhancement model",
+            "engineLocalAi": "Local smart model",
             "engineNone": "Off",
             "styleLabel": "Translation style",
             "styleZh": "Translate into Chinese",
@@ -541,40 +541,24 @@
             "sentenceLabel": "Sentence explanation",
             "sentenceDesc": "Press the shortcut to open an explanation panel for the current sentence, covering grammar and usage.",
             "engineDisabled": "Disabled",
-            "engineNoSupplement": "No supplement"
+            "engineNoSupplement": "No supplement",
+            "engineLocalBase": "Local base translation"
         },
         "cloud": {
             "title": "Cloud Services",
             "description": "Connect cloud models; a provider key is required."
         },
         "enhance": {
-            "title": "Local enhancement",
+            "title": "Local smart model",
             "description": "Builds on the runtime resource pack for more natural translation and lookups. A nice-to-have — install it when you want the extra polish.",
             "hardwareHintGpu": "This machine has {{memory}} GB RAM, {{cores}} CPU cores and {{gpu}} acceleration, so it runs smoothly.",
             "hardwareHintNoGpu": "This machine has {{memory}} GB RAM and {{cores}} CPU cores; the model runs on CPU, which is slower.",
             "hardwareHintLowSpec": "This machine has {{memory}} GB RAM and {{cores}} CPU cores, so the local enhancement model runs noticeably slower."
         },
-        "usage": {
-            "title": "In use now",
-            "description": "What each feature is actually calling right now; it falls back automatically when cloud or enhancement is unavailable.",
-            "tierCloud": "Cloud",
-            "tierEnhance": "Enhancement",
-            "tierBase": "Base",
-            "tierOff": "Off",
-            "subtitle": "Subtitle translation",
-            "dictionary": "Dictionary lookup",
-            "sentence": "Sentence explanation",
-            "transcription": "Subtitle recognition",
-            "tts": "Pronunciation",
-            "builtinDictionary": "Built-in dictionary",
-            "supplement": "{{resource}} supplement",
-            "noSupplement": "Built-in dictionary only",
-            "fallback": "{{from}} is unavailable; fell back to {{to}}",
-            "transcriptionHardware": "Hardware accelerated",
-            "transcriptionCompat": "Compatibility mode",
-            "groupBase": "Base (offline)",
-            "groupEnhance": "Enhancement (local)",
-            "groupCloud": "Cloud"
+        "status": {
+            "cloudReady": "Configured",
+            "cloudMissing": "Not configured",
+            "cloudFallback": "Cloud is unavailable right now; fell back to base resources"
         }
     }
 }

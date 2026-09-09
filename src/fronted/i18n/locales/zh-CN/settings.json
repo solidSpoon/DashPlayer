@@ -529,7 +529,7 @@
             "subtitleDesc": "翻译视频字幕时使用哪一档资源。",
             "dictionaryLabel": "词典查询",
             "dictionaryDesc": "内置词典已覆盖 3.8 万常见词，无需配置即可查词；这里选择的是超出词库时的补充方式。",
-            "engineLocalAi": "本地增强模型",
+            "engineLocalAi": "本地智能模型",
             "engineNone": "关闭",
             "styleLabel": "翻译风格",
             "styleZh": "翻译成中文",
@@ -541,40 +541,24 @@
             "sentenceLabel": "整句讲解",
             "sentenceDesc": "按快捷键为当前句打开讲解面板，讲解语法与用法。",
             "engineDisabled": "禁用",
-            "engineNoSupplement": "不补充"
+            "engineNoSupplement": "不补充",
+            "engineLocalBase": "本地基础翻译"
         },
         "cloud": {
             "title": "云端服务",
             "description": "连接云端模型，需要填写服务商密钥。"
         },
         "enhance": {
-            "title": "本地增强",
+            "title": "本地智能模型",
             "description": "在运行资源包的基础上，让翻译与查词更自然、更贴近原意。属于锦上添花的一项，可按需安装。",
             "hardwareHintGpu": "本机 {{memory}} GB 内存、{{cores}} 核 CPU，可用 {{gpu}} 加速，跑起来更流畅。",
             "hardwareHintNoGpu": "本机 {{memory}} GB 内存、{{cores}} 核 CPU，会以 CPU 运行，速度慢一些。",
             "hardwareHintLowSpec": "本机 {{memory}} GB 内存、{{cores}} 核 CPU，运行本地增强模型会明显慢一些。"
         },
-        "usage": {
-            "title": "当前使用",
-            "description": "各功能此刻实际调用的资源；云端或增强不可用时会自动回退。",
-            "tierCloud": "云端",
-            "tierEnhance": "增强",
-            "tierBase": "基础",
-            "tierOff": "关闭",
-            "subtitle": "字幕翻译",
-            "dictionary": "词典查询",
-            "sentence": "整句讲解",
-            "transcription": "字幕识别",
-            "tts": "发音",
-            "builtinDictionary": "内置词库",
-            "supplement": "{{resource}} 补充",
-            "noSupplement": "仅内置词库",
-            "fallback": "{{from}}暂时不可用，已回退到 {{to}}",
-            "transcriptionHardware": "硬件加速",
-            "transcriptionCompat": "兼容模式",
-            "groupBase": "基础（离线）",
-            "groupEnhance": "增强（本地）",
-            "groupCloud": "云端"
+        "status": {
+            "cloudReady": "已配置",
+            "cloudMissing": "未配置",
+            "cloudFallback": "云端暂时不可用，已回退到基础资源"
         }
     }
 }
