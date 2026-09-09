@@ -348,13 +348,15 @@ const ServiceResourceSetting: React.FC = () => {
                     <ResourcePackCard />
                 </SettingCard>
 
-                {/* ② 本地增强：可选的本地大模型 */}
+                {/* ② 本地增强：可选的本地大模型，文案强调“在资源包基础上再提升” */}
                 <SettingCard>
                     <LocalLlmCard
                         status={localAiStatus}
                         rescanning={localAiRescanning}
                         busy={localAiBusy}
                         testingModelId={testingModelId}
+                        title={t('resources.enhance.title')}
+                        description={t('resources.enhance.description')}
                         testResultsMap={testResultsMap}
                         onRescan={() => rescanLocalAi().catch(() => null)}
                         onUseModel={(modelId) => {
@@ -396,6 +398,8 @@ const ServiceResourceSetting: React.FC = () => {
                 <SettingCard>
                     <OpenAiCredentialCard
                         form={credentialForm}
+                        title={t('resources.cloud.title')}
+                        description={t('resources.cloud.description')}
                         testingModel={testingOpenAiModel}
                         testResults={openAiTestResults}
                         onTestModel={(model) => testOpenAiModel(model).catch(() => null)}
@@ -521,6 +525,7 @@ const ServiceResourceSetting: React.FC = () => {
                     {watched.openai?.enableSentenceLearning && (
                         <SettingRow
                             title={t('resources.preference.sentenceModelLabel')}
+                            description={t('resources.preference.sentenceModelDesc')}
                             icon={Settings2}
                         >
                             <Select

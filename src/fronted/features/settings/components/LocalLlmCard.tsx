@@ -37,6 +37,10 @@ export interface LocalLlmCardProps {
     rescanning: boolean;
     busy: boolean;
     testingModelId: string | null;
+    /** 卡片标题；不传时用设置页通用文案。 */
+    title?: string;
+    /** 卡片说明；不传时用设置页通用文案。 */
+    description?: string;
     testResultsMap: Record<string, {
         success: boolean;
         warmSec: string;
@@ -66,6 +70,8 @@ export const LocalLlmCard: React.FC<LocalLlmCardProps> = ({
     rescanning,
     busy,
     testingModelId,
+    title,
+    description,
     testResultsMap,
     onRescan,
     onUseModel,
@@ -85,8 +91,8 @@ export const LocalLlmCard: React.FC<LocalLlmCardProps> = ({
     return (
         <div className="p-4 space-y-4">
             <SettingBlockHeader
-                title={t('serviceCredentials.localAi.cardTitle')}
-                description={t('serviceCredentials.localAi.cardDescription')}
+                title={title ?? t('serviceCredentials.localAi.cardTitle')}
+                description={description ?? t('serviceCredentials.localAi.cardDescription')}
                 icon={Bot}
                 action={
                     status?.modelsDirectory ? (

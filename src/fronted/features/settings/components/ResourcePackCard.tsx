@@ -294,7 +294,7 @@ export const ResourcePackCard: React.FC = () => {
             title: t('resources.pack.itemMt'),
             description: t('resources.pack.itemMtDesc'),
             ready: localMtStatus?.ready ?? false,
-            modelLabel: t('serviceCredentials.localMt.filesToDownload'),
+            modelLabel: t('resources.pack.mtFiles'),
             urls: localMtStatus?.downloadUrls ?? [],
             targetPath: localMtStatus?.modelPath ?? '',
             download: async () => { await settingsApi.downloadLocalMt(); },
@@ -547,39 +547,63 @@ export const ResourcePackCard: React.FC = () => {
 
                             {!item.ready && (
                                 <ManualDownloadGuide variant="plain" title={t('resources.pack.manualTitle')}>
-                                    <div className="space-y-1">
-                                        <div>{t('resources.pack.manualModel', { model: item.modelLabel })}</div>
-                                        {item.urls.map((url, index) => (
-                                            <div key={url} className="break-all">
-                                                {index === 0 ? t('resources.pack.primarySource') : t('resources.pack.backupSource')}
-                                                {url}
+                                    {/* 第 1 步：要下什么 */}
+                                    <div className="space-y-1.5">
+                                        <div className="font-semibold text-foreground">{t('resources.pack.step1Title')}</div>
+                                        <div className="text-muted-foreground/90">
+                                            {t('resources.pack.manualModel', { model: item.modelLabel })}
+                                        </div>
+                                        {item.urls.length > 0 && (
+                                            <div className="space-y-2 rounded border border-border/60 bg-background/80 p-2 font-mono text-[11px] select-text">
+                                                {/* 首个为主源，其余为备用镜像；网络受限时可改用镜像地址手动下载 */}
+                                                {item.urls.map((url, index) => (
+                                                    <div key={url} className="space-y-1">
+                                                        <div className="flex items-start gap-1.5">
+                                                            {index > 0 && (
+                                                                <span className="mt-0.5 shrink-0 rounded bg-amber-500/10 px-1.5 py-0.5 font-sans text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                                                                    {t('resources.pack.backupSource')}
+                                                                </span>
+                                                            )}
+                                                            <span className="break-all text-muted-foreground/70">{url}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1 font-sans">
+                                                            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => copyText(url).catch(() => null)}>
+                                                                <Copy className="mr-1 h-3 w-3" />
+                                                                {t('resources.pack.copyUrl')}
+                                                            </Button>
+                                                            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => openUrl(url).catch(() => null)}>
+                                                                <ExternalLink className="mr-1 h-3 w-3" />
+                                                                {t('resources.pack.openInBrowser')}
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                ))}
                                             </div>
-                                        ))}
-                                        <div className="break-all">
-                                            {t('resources.pack.manualTarget')}{item.targetPath}
+                                        )}
+                                    </div>
+
+                                    {/* 第 2 步：放哪里 */}
+                                    <div className="space-y-1.5">
+                                        <div className="font-semibold text-foreground">{t('resources.pack.step2Title')}</div>
+                                        <div className="space-y-2 rounded border border-border/60 bg-background/80 p-2.5 font-mono text-[11px] select-text">
+                                            <div className="break-all text-muted-foreground/70">{item.targetPath}</div>
+                                            <div className="flex items-center gap-2 pt-1 font-sans">
+                                                <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => copyText(item.targetPath).catch(() => null)}>
+                                                    <Copy className="mr-1 h-3 w-3" />
+                                                    {t('resources.pack.copyPath')}
+                                                </Button>
+                                                <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => openFolder(item.targetPath).catch(() => null)}>
+                                                    <FolderOpen className="mr-1 h-3 w-3" />
+                                                    {t('common.openFolder')}
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {item.urls[0] && (
-                                            <>
-                                                <Button type="button" variant="outline" size="sm" onClick={() => copyText(item.urls[0]).catch(() => null)}>
-                                                    <Copy className="mr-1.5 h-3.5 w-3.5" />
-                                                    {t('resources.pack.copyUrl')}
-                                                </Button>
-                                                <Button type="button" variant="outline" size="sm" onClick={() => openUrl(item.urls[0]).catch(() => null)}>
-                                                    <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
-                                                    {t('resources.pack.openInBrowser')}
-                                                </Button>
-                                            </>
-                                        )}
-                                        <Button type="button" variant="outline" size="sm" onClick={() => copyText(item.targetPath).catch(() => null)}>
-                                            <Copy className="mr-1.5 h-3.5 w-3.5" />
-                                            {t('resources.pack.copyPath')}
-                                        </Button>
-                                        <Button type="button" variant="outline" size="sm" onClick={() => openFolder(item.targetPath).catch(() => null)}>
-                                            <FolderOpen className="mr-1.5 h-3.5 w-3.5" />
-                                            {t('resources.pack.openFolder')}
-                                        </Button>
+
+                                    {/* 第 3 步：装 */}
+                                    <div className="space-y-0.5 rounded bg-muted/30 p-2 text-muted-foreground/90">
+                                        <div className="font-semibold text-foreground">{t('resources.pack.step3Title')}</div>
+                                        <div>{t('resources.pack.step3Hint')}</div>
                                     </div>
                                 </ManualDownloadGuide>
                             )}

@@ -512,13 +512,15 @@
             "engineCompat": "Compatibility mode",
             "manualTitle": "Slow network? See the manual download guide",
             "manualModel": "File needed: {{model}}",
-            "manualTarget": "Save to: ",
-            "primarySource": "Primary: ",
+            "mtFiles": "All files in the repository (including the onnx subfolder), keeping the original folder structure",
+            "step1Title": "1. Download the file",
+            "step2Title": "2. Save it to",
             "backupSource": "Backup: ",
             "copyUrl": "Copy download link",
             "openInBrowser": "Open in browser",
             "copyPath": "Copy target path",
-            "openFolder": "Open folder"
+            "step3Title": "3. Finish installation",
+            "step3Hint": "Once the file is in place, come back and click \"Download all\" above — the app verifies and installs it for you."
         },
         "preference": {
             "title": "Translation & Lookup Preferences",
@@ -526,8 +528,7 @@
             "subtitleLabel": "Subtitle translation",
             "subtitleDesc": "Which resource translates video subtitles.",
             "dictionaryLabel": "Dictionary lookup",
-            "dictionaryDesc": "Which resource handles word lookups.",
-            "engineCloud": "Cloud service",
+            "dictionaryDesc": "A supplement to translation — lookups use the same resource you pick here.",
             "engineLocalMt": "Local (lightweight translation)",
             "engineLocalAi": "Local (enhanced model)",
             "engineNone": "Off",
@@ -541,11 +542,16 @@
             "notReadyHint": "The selected resource is not downloaded yet. Download the runtime resource pack above first.",
             "sentenceLabel": "Sentence explanation",
             "sentenceDesc": "Click a sentence in the subtitles to get grammar and usage explanations.",
-            "sentenceModelLabel": "Explanation model"
+            "sentenceModelLabel": "Sentence explanation model",
+            "sentenceModelDesc": "Which model explains the grammar and usage of a sentence."
         },
         "cloud": {
             "title": "Cloud Services",
             "description": "Connect cloud models; a provider key is required."
+        },
+        "enhance": {
+            "title": "Local enhancement",
+            "description": "Builds on the runtime resource pack for more natural translation and lookups. A nice-to-have — install it when you want the extra polish."
         }
     }
 }

@@ -23,6 +23,10 @@ export interface OpenAiModelTestResult {
 
 interface OpenAiCredentialCardProps {
     form: UseFormReturn<ServiceCredentialSettingDetailVO>;
+    /** 区块标题；不传时显示 OpenAI。 */
+    title?: string;
+    /** 区块说明；不传时用设置页通用文案。 */
+    description?: string;
     /** 正在测试的模型标识；非空时其余测试按钮一并禁用。 */
     testingModel: string | null;
     /** 按模型标识缓存的最近一次测试结果。 */
@@ -41,6 +45,8 @@ interface OpenAiCredentialCardProps {
  */
 export const OpenAiCredentialCard: React.FC<OpenAiCredentialCardProps> = ({
     form,
+    title = 'OpenAI',
+    description,
     testingModel,
     testResults,
     onTestModel,
@@ -88,8 +94,8 @@ export const OpenAiCredentialCard: React.FC<OpenAiCredentialCardProps> = ({
     return (
         <div className="p-4 space-y-4">
             <SettingBlockHeader
-                title="OpenAI"
-                description={t('serviceCredentials.openai.description')}
+                title={title}
+                description={description ?? t('serviceCredentials.openai.description')}
                 icon={Bot}
             />
 
