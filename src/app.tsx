@@ -13,6 +13,7 @@ import AboutSetting from '@/fronted/features/settings/AboutSetting';
 import AppearanceSetting from '@/fronted/features/settings/AppearanceSetting';
 import ProxySetting from '@/fronted/features/settings/ProxySetting';
 import ServiceCredentialSetting from '@/fronted/features/settings/ServiceCredentialSetting';
+import ServiceResourceSetting from '@/fronted/features/settings/ServiceResourceSetting';
 import EngineSelectionSetting from '@/fronted/features/settings/EngineSelectionSetting';
 import toast, { Toaster as HotToaster, Toast } from 'react-hot-toast';
 import RendererToastHost from '@/fronted/components/shared/toasts/RendererToastHost';
@@ -154,6 +155,10 @@ const App = () => {
                                         <Route
                                             path="engine-selection"
                                             element={<Eb><EngineSelectionSetting /></Eb>}
+                                        />
+                                        <Route
+                                            path="resources"
+                                            element={<Eb><ServiceResourceSetting /></Eb>}
                                         />
                                         <Route
                                             path="storage"
