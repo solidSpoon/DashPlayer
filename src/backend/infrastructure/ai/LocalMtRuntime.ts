@@ -21,6 +21,9 @@ import {
     LocalMtStatus,
 } from '@/common/contracts/local-mt';
 
+/** 本地翻译模型在媒体库 models 目录下的子目录，与语音模型分开放置。 */
+export const LOCAL_MT_MODEL_SUBDIRECTORY = 'local-mt';
+
 /** transformers.js 翻译 pipeline 的实例类型。 */
 type MtPipeline = Awaited<ReturnType<typeof pipeline<'translation'>>>;
 
@@ -51,10 +54,10 @@ export class LocalMtRuntime implements LocalMtService {
         @inject(TYPES.RendererGateway) private readonly rendererGateway: RendererGateway,
     ) {}
 
-    /** 模型安装目录：本地 AI 资源目录下的 mt/<模型 id>。 */
+    /** 模型安装目录：媒体库 models 目录下的 local-mt/<模型 id>。 */
     private async modelPath(): Promise<string> {
-        const directory = await this.directories.provideDirectory(StorageDirectoryTarget.LOCAL_AI);
-        return path.join(directory, 'mt', LOCAL_MT_MODEL_ID);
+        const modelsRoot = await this.directories.provideDirectory(StorageDirectoryTarget.MODELS);
+        return path.join(modelsRoot, LOCAL_MT_MODEL_SUBDIRECTORY, LOCAL_MT_MODEL_ID);
     }
 
     /** 推送节流后的下载快照；阶段变化和终态始终立即发出。 */

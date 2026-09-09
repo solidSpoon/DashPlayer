@@ -40,9 +40,8 @@ export default class StorageController implements Controller {
         const wordClipsBytes = await this.queryDirectoryUsage(libraryRoot, StorageDirectoryTarget.WORD_VIDEO);
         const tempBytes = (await this.queryDirectoryUsage(libraryRoot, StorageDirectoryTarget.TEMP))
             + (await this.queryDirectoryUsage(libraryRoot, StorageDirectoryTarget.TEMP_OSS));
-        // 语音模型与本地 LLM 模型分目录存放，用量统计合并到同一「模型」分类展示。
-        const modelsBytes = await this.queryDirectoryUsage(libraryRoot, StorageDirectoryTarget.MODELS)
-            + await this.queryDirectoryUsage(libraryRoot, StorageDirectoryTarget.LOCAL_AI);
+        // 语音模型与本地 AI 模型都存放在 models 目录下（按子目录区分），统一计入「模型」分类。
+        const modelsBytes = await this.queryDirectoryUsage(libraryRoot, StorageDirectoryTarget.MODELS);
 
         // word_video 位于 favorite_clips 内，收藏片段分类只保留其余部分；
         // 目录内容在两次遍历之间可能变化，差值为负时按 0 展示。

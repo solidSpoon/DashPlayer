@@ -4,7 +4,7 @@ import fs from 'fs';
 import os from 'os';
 import { PassThrough } from 'stream';
 import axios, { AxiosResponse } from 'axios';
-import { LocalAiRuntime } from '@/backend/infrastructure/ai/LocalAiRuntime';
+import { LOCAL_AI_MODEL_SUBDIRECTORY, LocalAiRuntime } from '@/backend/infrastructure/ai/LocalAiRuntime';
 import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
 import type { SettingsStore } from '@/backend/services/gateways/SettingsStore';
@@ -125,9 +125,9 @@ describe('本地模型下载的镜像回退', () => {
         fs.rmSync(tmpRoot, { recursive: true, force: true });
     });
 
-    /** 已安装模型文件的真实路径。 */
+    /** 已安装模型文件的真实路径：媒体库 models 目录下的 local-ai/<模型 id>/<文件>。 */
     function installedModelPath(): string {
-        return path.join(tmpRoot, TEST_MODEL.id, TEST_MODEL.file);
+        return path.join(tmpRoot, LOCAL_AI_MODEL_SUBDIRECTORY, TEST_MODEL.id, TEST_MODEL.file);
     }
 
     it('两个下载源都可达时优先使用声明的第一个源', async () => {

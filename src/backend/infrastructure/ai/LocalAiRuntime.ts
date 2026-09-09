@@ -29,6 +29,9 @@ import {
 } from '@/common/contracts/local-ai';
 import type RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
 
+/** 本地 LLM 模型在媒体库 models 目录下的子目录，与语音模型分开放置。 */
+export const LOCAL_AI_MODEL_SUBDIRECTORY = 'local-ai';
+
 /** 本地生成的 completion token 上限；与采样参数一同约束输出规模。 */
 const MAX_COMPLETION_TOKENS = 2048;
 
@@ -108,7 +111,7 @@ export class LocalAiRuntime implements LocalAiService {
 
     /** 解析模型在媒体库中的安装路径；目录模型在独立子目录，自定义模型直接位于模型根目录。 */
     private async modelPath(model: LocalAiModelDefinition): Promise<string> {
-        const directory = await this.directories.provideDirectory(StorageDirectoryTarget.LOCAL_AI);
+        const directory = await this.modelsDirectory();
         return model.source === 'custom'
             ? path.join(directory, model.file)
             : path.join(directory, model.id, model.file);
@@ -116,7 +119,8 @@ export class LocalAiRuntime implements LocalAiService {
 
     /** 返回模型根目录的绝对路径，供设置页展示手动安装教程。 */
     private async modelsDirectory(): Promise<string> {
-        return this.directories.provideDirectory(StorageDirectoryTarget.LOCAL_AI);
+        const modelsRoot = await this.directories.provideDirectory(StorageDirectoryTarget.MODELS);
+        return path.join(modelsRoot, LOCAL_AI_MODEL_SUBDIRECTORY);
     }
 
     /** 估算模型运行内存占用；约为文件体积的 1.5 倍，覆盖权重 + KV cache + 推理缓冲。 */
