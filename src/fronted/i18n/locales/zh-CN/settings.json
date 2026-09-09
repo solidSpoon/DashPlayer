@@ -535,7 +535,7 @@
             "styleZh": "翻译成中文",
             "styleSimpleEn": "简化英文",
             "styleCustom": "自定义",
-            "stylePlaceholder": "自定义 Prompt 样式…",
+            "stylePlaceholder": "留空时使用默认风格…",
             "localMtZhOnlyHint": "轻量翻译只支持翻译为中文。",
             "notReadyHint": "所选资源还没下载，请先在上方下载本地基础资源包。",
             "sentenceLabel": "整句讲解",

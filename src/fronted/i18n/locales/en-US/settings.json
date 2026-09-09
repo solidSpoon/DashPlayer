@@ -535,7 +535,7 @@
             "styleZh": "Translate into Chinese",
             "styleSimpleEn": "Simplified English",
             "styleCustom": "Custom",
-            "stylePlaceholder": "Custom prompt style…",
+            "stylePlaceholder": "Leave empty to use the default style…",
             "localMtZhOnlyHint": "Lightweight translation only supports translating into Chinese.",
             "notReadyHint": "The selected resource is not downloaded yet. Download the local base resource pack above first.",
             "sentenceLabel": "Sentence explanation",
