@@ -16,7 +16,7 @@ export const SHERPA_TTS_MODEL_DOWNLOAD_URLS = [
 /** 归档文件的 SHA256，下载完成后校验，防止镜像或代理被篡改。 */
 export const SHERPA_TTS_MODEL_ARCHIVE_SHA256 = 'c70f5284a09a7fd4ed203b39b2ff51cac1432b422b852eb647b481dade3cf639';
 
-export const SHERPA_TTS_MODEL_ARCHIVE_NAME = 'model.tar.bz2';
+export const SHERPA_TTS_MODEL_ARCHIVE_NAME = 'vits-piper-en_US-amy-low.tar.bz2';
 
 /** Sherpa-ONNX Piper TTS 模型运行所需的文件。 */
 export const SHERPA_TTS_REQUIRED_FILES = [

@@ -16,7 +16,7 @@ export const PARAKEET_MODEL_DOWNLOAD_URLS = [
 /** 归档文件的 SHA256，下载完成后校验，防止镜像或代理被篡改。 */
 export const PARAKEET_MODEL_ARCHIVE_SHA256 = '5793d0fd397c5778d2cf2126994d58e9d56b1be7c04d13c7a15bb1b4eafb16bf';
 
-export const PARAKEET_MODEL_ARCHIVE_NAME = 'model.tar.bz2';
+export const PARAKEET_MODEL_ARCHIVE_NAME = 'sherpa-onnx-nemo-parakeet-tdt-0.6b-v3-int8.tar.bz2';
 
 /** Parakeet v3 完整运行所需的模型文件。 */
 export const PARAKEET_REQUIRED_FILES = [
