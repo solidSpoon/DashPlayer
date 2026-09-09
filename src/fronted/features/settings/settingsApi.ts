@@ -103,6 +103,13 @@ export const settingsApi = {
     getServiceCredentials: () => backendClient.call('settings/service-credentials/detail'),
 
     /**
+     * 查询本机硬件信息（内存、核数、GPU 加速后端）。
+     *
+     * @returns 当前机器的硬件概要，用于提示本地模型的运行条件。
+     */
+    getSystemInfo: () => backendClient.call('system/info'),
+
+    /**
      * 保存服务凭据设置。
      *
      * @param settings 待保存的服务凭据。

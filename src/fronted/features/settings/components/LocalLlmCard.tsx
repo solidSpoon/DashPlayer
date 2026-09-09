@@ -4,6 +4,7 @@ import {
     Bot,
     CheckCircle2,
     Copy,
+    Cpu,
     Download,
     ExternalLink,
     FolderOpen,
@@ -41,6 +42,8 @@ export interface LocalLlmCardProps {
     title?: string;
     /** 卡片说明；不传时用设置页通用文案。 */
     description?: string;
+    /** 硬件条件提示；不传时不展示。 */
+    hardwareHint?: React.ReactNode;
     testResultsMap: Record<string, {
         success: boolean;
         warmSec: string;
@@ -72,6 +75,7 @@ export const LocalLlmCard: React.FC<LocalLlmCardProps> = ({
     testingModelId,
     title,
     description,
+    hardwareHint,
     testResultsMap,
     onRescan,
     onUseModel,
@@ -120,6 +124,15 @@ export const LocalLlmCard: React.FC<LocalLlmCardProps> = ({
                     ) : null
                 }
             />
+
+            {/* 硬件条件提示：本地增强模型对内存与算力有一定要求 */}
+            {hardwareHint && (
+                <div className="flex items-start gap-2 rounded-lg border border-border/60 bg-muted/30 px-3 py-2 text-xs text-muted-foreground">
+                    <Cpu className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                    <span>{hardwareHint}</span>
+                </div>
+            )}
+
             {/* 模型列表 */}
             <div className="space-y-3">
                 {status?.models.map((model) => {

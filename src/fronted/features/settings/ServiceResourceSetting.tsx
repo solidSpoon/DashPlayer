@@ -20,6 +20,15 @@ import type { LocalAiModelStatus, LocalAiStatus } from '@/common/contracts/local
 import type { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 import type { ServiceCredentialSettingDetailVO, ServiceCredentialSettingSaveVO } from '@/common/types/vo/service-credentials-setting-vo';
 
+/** 内存低于该值（GB）时，本地增强模型跑起来会比较吃力。 */
+const ENHANCE_MIN_MEMORY_GB = 8;
+
+/** GPU 后端在提示文案里的显示名（专有名词，不翻译）。 */
+const GPU_ACCELERATION_LABELS: Record<'metal' | 'vulkan', string> = {
+    metal: 'Metal',
+    vulkan: 'Vulkan',
+};
+
 /** 本地增强模型的下载进度事件携带的数据。 */
 interface LocalAiDownloadProgress {
     modelId: string;
@@ -39,6 +48,7 @@ const ServiceResourceSetting: React.FC = () => {
 
     const { data: settings } = useSWR('settings/service-credentials/detail', () => settingsApi.getServiceCredentials());
     const { data: engineSettings } = useSWR('settings/engine-selection/detail', () => settingsApi.getEngineSelection());
+    const { data: hardware } = useSWR('system/info', () => settingsApi.getSystemInfo());
 
     const credentialForm = useForm<ServiceCredentialSettingDetailVO>();
     const preferenceForm = useForm<EngineSelectionSettingVO>();
@@ -310,6 +320,22 @@ const ServiceResourceSetting: React.FC = () => {
         </SelectGroup>
     );
 
+    /** 本地增强模型的硬件条件提示；硬件信息未就绪时为 undefined。 */
+    const enhanceHardwareHint = React.useMemo(() => {
+        if (!hardware) return undefined;
+        const params = { memory: hardware.totalMemoryGb, cores: hardware.cpuCount };
+        if (hardware.totalMemoryGb < ENHANCE_MIN_MEMORY_GB) {
+            return t('resources.enhance.hardwareHintLowSpec', params);
+        }
+        if (hardware.gpuAcceleration === 'none') {
+            return t('resources.enhance.hardwareHintNoGpu', params);
+        }
+        return t('resources.enhance.hardwareHintGpu', {
+            ...params,
+            gpu: GPU_ACCELERATION_LABELS[hardware.gpuAcceleration],
+        });
+    }, [hardware, t]);
+
     if (!credentialReady || !preferenceReady) {
         return (
             <SettingsLoadingSkeleton
@@ -357,6 +383,7 @@ const ServiceResourceSetting: React.FC = () => {
                         testingModelId={testingModelId}
                         title={t('resources.enhance.title')}
                         description={t('resources.enhance.description')}
+                        hardwareHint={enhanceHardwareHint}
                         testResultsMap={testResultsMap}
                         onRescan={() => rescanLocalAi().catch(() => null)}
                         onUseModel={(modelId) => {
