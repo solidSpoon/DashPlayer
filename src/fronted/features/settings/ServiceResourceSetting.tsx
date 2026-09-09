@@ -3,7 +3,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import useSWR from 'swr';
 import toast from 'react-hot-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { Languages, Settings2 } from 'lucide-react';
+import { Cloud, HardDrive, Languages, Settings2, Sparkles } from 'lucide-react';
 import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
 import { SettingCard, SettingRow, SettingsLoadingSkeleton } from '@/fronted/features/settings/components/form';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
@@ -376,18 +376,25 @@ const ServiceResourceSetting: React.FC = () => {
                 )}
 
                 {/* ① 运行资源包：发音 + 字幕识别 + 轻量翻译 */}
-                <SettingCard>
+                <SettingCard
+                    title={t('resources.pack.title')}
+                    description={t('resources.pack.description')}
+                    icon={HardDrive}
+                >
                     <ResourcePackCard />
                 </SettingCard>
 
                 {/* ② 本地增强：可选的本地大模型，文案强调“在资源包基础上再提升” */}
-                <SettingCard>
+                <SettingCard
+                    title={t('resources.enhance.title')}
+                    description={t('resources.enhance.description')}
+                    icon={Sparkles}
+                >
                     <LocalLlmCard
+                        headerless
                         status={localAiStatus}
                         busy={localAiBusy}
                         testingModelId={testingModelId}
-                        title={t('resources.enhance.title')}
-                        description={t('resources.enhance.description')}
                         hardwareHint={enhanceHardwareHint}
                         testResultsMap={testResultsMap}
                         onUseModel={(modelId) => {
@@ -426,11 +433,14 @@ const ServiceResourceSetting: React.FC = () => {
                 </SettingCard>
 
                 {/* ③ 云端服务：可选的云端模型与密钥 */}
-                <SettingCard>
+                <SettingCard
+                    title={t('resources.cloud.title')}
+                    description={t('resources.cloud.description')}
+                    icon={Cloud}
+                >
                     <OpenAiCredentialCard
+                        headerless
                         form={credentialForm}
-                        title={t('resources.cloud.title')}
-                        description={t('resources.cloud.description')}
                         testingModel={testingOpenAiModel}
                         testResults={openAiTestResults}
                         onTestModel={(model) => testOpenAiModel(model).catch(() => null)}

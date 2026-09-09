@@ -8,14 +8,12 @@ import {
     Download,
     ExternalLink,
     FolderOpen,
-    HardDrive,
     Loader2,
     Square,
     Trash2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { Button } from '@/fronted/components/ui/button';
-import { Progress } from '@/fronted/components/ui/progress';
+import { Button } from '@/fronted/components/ui/button';import { Progress } from '@/fronted/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import {
     AlertDialog,
@@ -28,7 +26,6 @@ import {
     AlertDialogTitle,
     AlertDialogTrigger,
 } from '@/fronted/components/ui/alert-dialog';
-import { SettingBlockHeader } from '@/fronted/features/settings/components/form';
 import { ManualDownloadGuide } from '@/fronted/components/shared/ManualDownloadGuide';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import type { LocalMtStatus } from '@/common/contracts/local-mt';
@@ -398,37 +395,7 @@ export const ResourcePackCard: React.FC = () => {
 
     return (
         <div className="p-4 space-y-4">
-            <SettingBlockHeader
-                title={t('resources.pack.title')}
-                description={t('resources.pack.description')}
-                icon={HardDrive}
-                action={
-                    allReady ? (
-                        <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                                <Button type="button" variant="outline" size="sm" disabled={deleting}>
-                                    {deleting ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Trash2 className="mr-1.5 h-3.5 w-3.5" />}
-                                    {t('resources.pack.delete')}
-                                </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                                <AlertDialogHeader>
-                                    <AlertDialogTitle>{t('resources.pack.deleteConfirmTitle')}</AlertDialogTitle>
-                                    <AlertDialogDescription>{t('resources.pack.deleteConfirmDescription')}</AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                    <AlertDialogCancel>{t('resources.pack.cancelDelete')}</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => deletePack().catch(() => null)}>
-                                        {t('resources.pack.confirmDelete')}
-                                    </AlertDialogAction>
-                                </AlertDialogFooter>
-                            </AlertDialogContent>
-                        </AlertDialog>
-                    ) : null
-                }
-            />
-
-            {/* 状态行：一个徽标 + 一个主按钮 */}
+            {/* 状态行：一个徽标 + 一个主按钮（就绪后换成删除） */}
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-2 min-w-0">
                     {allReady ? (
@@ -452,20 +419,42 @@ export const ResourcePackCard: React.FC = () => {
                     </span>
                 </div>
 
-                {!allReady && (
-                    <Button
-                        type="button"
-                        size="sm"
-                        className="shrink-0"
-                        onClick={() => (downloading ? cancelDownload() : downloadPack()).catch(() => null)}
-                    >
-                        {downloading ? (
-                            <><Square className="mr-1.5 h-3.5 w-3.5" />{t('resources.pack.cancel')}</>
-                        ) : (
-                            <><Download className="mr-1.5 h-3.5 w-3.5" />{t('resources.pack.download')}</>
-                        )}
-                    </Button>
-                )}
+                <div className="flex shrink-0 items-center gap-2">
+                    {allReady ? (
+                        <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                                <Button type="button" variant="outline" size="sm" disabled={deleting}>
+                                    {deleting ? <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Trash2 className="mr-1.5 h-3.5 w-3.5" />}
+                                    {t('resources.pack.delete')}
+                                </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                                <AlertDialogHeader>
+                                    <AlertDialogTitle>{t('resources.pack.deleteConfirmTitle')}</AlertDialogTitle>
+                                    <AlertDialogDescription>{t('resources.pack.deleteConfirmDescription')}</AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                    <AlertDialogCancel>{t('resources.pack.cancelDelete')}</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => deletePack().catch(() => null)}>
+                                        {t('resources.pack.confirmDelete')}
+                                    </AlertDialogAction>
+                                </AlertDialogFooter>
+                            </AlertDialogContent>
+                        </AlertDialog>
+                    ) : (
+                        <Button
+                            type="button"
+                            size="sm"
+                            onClick={() => (downloading ? cancelDownload() : downloadPack()).catch(() => null)}
+                        >
+                            {downloading ? (
+                                <><Square className="mr-1.5 h-3.5 w-3.5" />{t('resources.pack.cancel')}</>
+                            ) : (
+                                <><Download className="mr-1.5 h-3.5 w-3.5" />{t('resources.pack.download')}</>
+                            )}
+                        </Button>
+                    )}
+                </div>
             </div>
 
             {downloading && (

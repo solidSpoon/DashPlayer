@@ -34,11 +34,9 @@ import type { LocalAiStatus } from '@/common/contracts/local-ai';
 export interface LocalLlmCardProps {
     status: LocalAiStatus | null;
     busy: boolean;
+    /** 为 true 时不渲染区块标题，由外层卡片提供标题栏。 */
+    headerless?: boolean;
     testingModelId: string | null;
-    /** 卡片标题；不传时用设置页通用文案。 */
-    title?: string;
-    /** 卡片说明；不传时用设置页通用文案。 */
-    description?: string;
     /** 硬件条件提示；不传时不展示。 */
     hardwareHint?: React.ReactNode;
     testResultsMap: Record<string, {
@@ -67,9 +65,8 @@ export interface LocalLlmCardProps {
 export const LocalLlmCard: React.FC<LocalLlmCardProps> = ({
     status,
     busy,
+    headerless = false,
     testingModelId,
-    title,
-    description,
     hardwareHint,
     testResultsMap,
     onUseModel,
@@ -88,11 +85,13 @@ export const LocalLlmCard: React.FC<LocalLlmCardProps> = ({
 
     return (
         <div className="p-4 space-y-4">
-            <SettingBlockHeader
-                title={title ?? t('serviceCredentials.localAi.cardTitle')}
-                description={description ?? t('serviceCredentials.localAi.cardDescription')}
-                icon={Bot}
-            />
+            {!headerless && (
+                <SettingBlockHeader
+                    title={t('serviceCredentials.localAi.cardTitle')}
+                    description={t('serviceCredentials.localAi.cardDescription')}
+                    icon={Bot}
+                />
+            )}
 
             {/* 硬件条件提示：本地增强模型对内存与算力有一定要求 */}
             {hardwareHint && (
