@@ -527,7 +527,7 @@
             "subtitleLabel": "字幕翻译",
             "subtitleDesc": "翻译视频字幕时使用哪一档资源。",
             "dictionaryLabel": "词典查询",
-            "dictionaryDesc": "作为翻译的补充，查词时同样使用所选资源。",
+            "dictionaryDesc": "本地已内置 3.8 万词条；需要更详细的释义时，可以换用增强模型或云端。",
             "engineLocalMt": "本地（轻量翻译）",
             "engineLocalAi": "本地（增强模型）",
             "engineNone": "关闭",
@@ -540,9 +540,9 @@
             "localMtZhOnlyHint": "轻量翻译只支持翻译为中文。",
             "notReadyHint": "所选资源还没下载，请先在上方下载运行资源包。",
             "sentenceLabel": "整句讲解",
-            "sentenceDesc": "在字幕里点选句子，生成语法与用法讲解。",
-            "sentenceModelLabel": "句子讲解模型",
-            "sentenceModelDesc": "用哪个模型讲解句子的语法与用法。"
+            "sentenceDesc": "按快捷键为当前句打开讲解面板，讲解语法与用法。",
+            "engineBuiltin": "本地内置",
+            "engineDisabled": "禁用"
         },
         "cloud": {
             "title": "云端服务",

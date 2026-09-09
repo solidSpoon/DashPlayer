@@ -6,7 +6,6 @@ import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { Languages, Settings2 } from 'lucide-react';
 import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
 import { SettingCard, SettingRow, SettingsLoadingSkeleton } from '@/fronted/features/settings/components/form';
-import { Checkbox } from '@/fronted/components/ui/checkbox';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import { Textarea } from '@/fronted/components/ui/textarea';
 import { ResourcePackCard } from '@/fronted/features/settings/components/ResourcePackCard';
@@ -270,8 +269,7 @@ const ServiceResourceSetting: React.FC = () => {
         }
     };
 
-    /**
-     * 把字幕翻译或词典的引擎值拆成"引擎 + 云端模型"两个字段。
+    /** 把字幕翻译或词典的引擎值拆成"引擎 + 云端模型"两个字段。
      *
      * 下拉项里云端选项形如 `openai:<model>`，本地与关闭选项就是枚举值本身。
      */
@@ -292,6 +290,30 @@ const ServiceResourceSetting: React.FC = () => {
     const composeEngineValue = (engine: string | undefined, model: string | undefined): string | undefined => {
         if (!engine) return undefined;
         return engine === 'openai' ? `openai:${model ?? ''}` : engine;
+    };
+
+    /** 整句讲解当前选中的云端模型；未启用或没配云端时为空。 */
+    const sentenceLearningModel = watched.openai?.featureModels?.sentenceLearning ?? '';
+    /**
+     * 整句讲解下拉的选中值。
+     *
+     * 只有云端能提供讲解，因此没配置云端模型时一律显示为禁用，不展示一个无法生效的选中项。
+     */
+    const sentenceLearningValue = availableModels.length > 0 && watched.openai?.enableSentenceLearning
+        ? `openai:${sentenceLearningModel}`
+        : 'none';
+
+    /**
+     * 写回整句讲解的选择：禁用时关掉开关，选中云端模型时同时开开关并记住模型。
+     *
+     * @param value 下拉项值，`none` 或 `openai:<model>`。
+     */
+    const applySentenceLearningValue = (value: string) => {
+        const separator = value.indexOf(':');
+        setValue('openai.enableSentenceLearning', separator !== -1, { shouldDirty: true });
+        if (separator !== -1) {
+            setValue('openai.featureModels.sentenceLearning', value.slice(separator + 1), { shouldDirty: true });
+        }
     };
 
     /** 渲染云端模型分组；两个引擎下拉共用。 */
@@ -444,6 +466,14 @@ const ServiceResourceSetting: React.FC = () => {
                                 <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     {renderCloudModels('subtitle')}
+                                    {/* 存储里指向的云端模型已不在可用列表时补一个禁用项，避免下拉显示为空 */}
+                                    {subtitleEngine === 'openai'
+                                        && !!watched.openai?.featureModels?.subtitleTranslation
+                                        && !availableModels.includes(watched.openai.featureModels.subtitleTranslation) && (
+                                        <SelectItem value={`openai:${watched.openai.featureModels.subtitleTranslation}`} disabled>
+                                            {watched.openai.featureModels.subtitleTranslation}
+                                        </SelectItem>
+                                    )}
                                     <SelectItem value="local-mt">{t('resources.preference.engineLocalMt')}</SelectItem>
                                     <SelectItem value="local">{t('resources.preference.engineLocalAi')}</SelectItem>
                                     <SelectItem value="none">{t('resources.preference.engineNone')}</SelectItem>
@@ -508,8 +538,16 @@ const ServiceResourceSetting: React.FC = () => {
                                 <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
                                 <SelectContent>
                                     {renderCloudModels('dictionary')}
+                                    {/* 存储里指向的云端模型已不在可用列表时补一个禁用项，避免下拉显示为空 */}
+                                    {watched.providers?.dictionaryEngine === 'openai'
+                                        && !!watched.openai?.featureModels?.dictionary
+                                        && !availableModels.includes(watched.openai.featureModels.dictionary) && (
+                                        <SelectItem value={`openai:${watched.openai.featureModels.dictionary}`} disabled>
+                                            {watched.openai.featureModels.dictionary}
+                                        </SelectItem>
+                                    )}
                                     <SelectItem value="local">{t('resources.preference.engineLocalAi')}</SelectItem>
-                                    <SelectItem value="none">{t('resources.preference.engineNone')}</SelectItem>
+                                    <SelectItem value="none">{t('resources.preference.engineBuiltin')}</SelectItem>
                                 </SelectContent>
                             </Select>
                             {watched.providers?.dictionaryEngine === 'local'
@@ -524,34 +562,21 @@ const ServiceResourceSetting: React.FC = () => {
                         description={t('resources.preference.sentenceDesc')}
                         icon={Settings2}
                     >
-                        <Checkbox
-                            id="resources-enable-sentence-learning"
-                            checked={watched.openai?.enableSentenceLearning}
-                            onCheckedChange={(checked) => setValue('openai.enableSentenceLearning', checked === true, { shouldDirty: true })}
-                        />
+                        <Select value={sentenceLearningValue} onValueChange={applySentenceLearningValue}>
+                            <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">{t('resources.preference.engineDisabled')}</SelectItem>
+                                {availableModels.length > 0 && (
+                                    <SelectGroup>
+                                        <SelectLabel>{t('resources.preference.cloudModelLabel')}</SelectLabel>
+                                        {availableModels.map((model) => (
+                                            <SelectItem key={`learn-${model}`} value={`openai:${model}`}>{model}</SelectItem>
+                                        ))}
+                                    </SelectGroup>
+                                )}
+                            </SelectContent>
+                        </Select>
                     </SettingRow>
-
-                    {watched.openai?.enableSentenceLearning && (
-                        <SettingRow
-                            title={t('resources.preference.sentenceModelLabel')}
-                            description={t('resources.preference.sentenceModelDesc')}
-                            icon={Settings2}
-                        >
-                            <Select
-                                value={watched.openai?.featureModels?.sentenceLearning}
-                                onValueChange={(value) => {
-                                    setValue('openai.featureModels.sentenceLearning', value, { shouldDirty: true });
-                                }}
-                            >
-                                <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
-                                <SelectContent>
-                                    {availableModels.map((model) => (
-                                        <SelectItem key={`learn-${model}`} value={model}>{model}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                        </SettingRow>
-                    )}
                 </SettingCard>
             </SettingsPageShell>
         </form>

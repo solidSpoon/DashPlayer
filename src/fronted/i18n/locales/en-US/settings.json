@@ -527,7 +527,7 @@
             "subtitleLabel": "Subtitle translation",
             "subtitleDesc": "Which resource translates video subtitles.",
             "dictionaryLabel": "Dictionary lookup",
-            "dictionaryDesc": "A supplement to translation — lookups use the same resource you pick here.",
+            "dictionaryDesc": "38,000 entries are built in locally. Switch to the enhancement model or cloud when you need more detailed definitions.",
             "engineLocalMt": "Local (lightweight translation)",
             "engineLocalAi": "Local (enhanced model)",
             "engineNone": "Off",
@@ -540,9 +540,9 @@
             "localMtZhOnlyHint": "Lightweight translation only supports translating into Chinese.",
             "notReadyHint": "The selected resource is not downloaded yet. Download the runtime resource pack above first.",
             "sentenceLabel": "Sentence explanation",
-            "sentenceDesc": "Click a sentence in the subtitles to get grammar and usage explanations.",
-            "sentenceModelLabel": "Sentence explanation model",
-            "sentenceModelDesc": "Which model explains the grammar and usage of a sentence."
+            "sentenceDesc": "Press the shortcut to open an explanation panel for the current sentence, covering grammar and usage.",
+            "engineBuiltin": "Built-in",
+            "engineDisabled": "Disabled"
         },
         "cloud": {
             "title": "Cloud Services",
