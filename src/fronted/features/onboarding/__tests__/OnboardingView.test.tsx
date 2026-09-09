@@ -183,25 +183,47 @@ describe('OnboardingView Component', () => {
         });
     });
 
-    it('配置步骤里可以下载当前档位需要的本地模型', async () => {
+    it('一键下载会依次下载当前档位需要的全部离线模型并完成配置', async () => {
+        vi.mocked(settingsApi.getSherpaTtsModelStatus).mockResolvedValue({
+            ready: false,
+            downloading: false,
+            phase: null,
+            percent: 0,
+            downloadUrls: ['https://example.com/tts.tar.bz2'],
+            archivePath: '/path/tts',
+            modelPath: '/path/tts/model',
+            missingFiles: [],
+        });
         render(<OnboardingView />);
 
-        // 存储位置 -> 离线模型 -> 翻译与查词
+        // 存储位置 -> 翻译与查词 -> 下载离线模型
         fireEvent.click(screen.getByText('nextStep'));
         fireEvent.click(screen.getByText('nextStep'));
 
-        // 硬件足够时默认选「本地智能」档，页面上只有一个下载按钮
-        fireEvent.click(screen.getByText('steps.models.actionDownload'));
+        // 硬件足够时默认选「本地智能」档，清单里是需要下载的三项
+        fireEvent.click(screen.getByText('steps.download.startAll'));
 
-        expect(settingsApi.downloadLocalAi).toHaveBeenCalled();
+        await waitFor(() => {
+            expect(settingsApi.downloadSherpaTtsModel).toHaveBeenCalled();
+            expect(settingsApi.downloadWhisperCppModel).toHaveBeenCalled();
+            expect(settingsApi.downloadLocalAi).toHaveBeenCalled();
+            expect(settingsApi.saveEngineSelection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    providers: expect.objectContaining({
+                        subtitleTranslationEngine: 'local',
+                        dictionaryEngine: 'local',
+                    }),
+                })
+            );
+            expect(markOnboardingCompleted).toHaveBeenCalledWith(CURRENT_ONBOARDING_VERSION);
+        });
     });
 
     it('allows entering cloud API key and saving credentials on finish', async () => {
         const onCompleted = vi.fn();
         render(<OnboardingView onCompleted={onCompleted} />);
 
-        // 存储位置 -> 离线模型 -> 翻译与词典
-        fireEvent.click(screen.getByText('nextStep'));
+        // 存储位置 -> 翻译与查词
         fireEvent.click(screen.getByText('nextStep'));
 
         // 选「云端大模型」档位后才会出现云端配置
@@ -210,8 +232,9 @@ describe('OnboardingView Component', () => {
         fireEvent.change(screen.getByPlaceholderText('steps.translation.openaiKeyPlaceholder'), { target: { value: 'sk-test-123456' } });
         fireEvent.change(screen.getByPlaceholderText('steps.translation.openaiModelPlaceholder'), { target: { value: 'gpt-4o-mini' } });
 
-        // 翻译与词典 -> 完成配置（保存并进入完成页）
-        fireEvent.click(screen.getByText('finishConfig'));
+        // 翻译与查词 -> 下载离线模型 -> 一键下载（保存并进入完成页）
+        fireEvent.click(screen.getByText('nextStep'));
+        fireEvent.click(screen.getByText('steps.download.startAll'));
 
         await waitFor(() => {
             expect(settingsApi.saveServiceCredentials).toHaveBeenCalledWith(
@@ -254,26 +277,30 @@ describe('OnboardingView Component', () => {
         render(<OnboardingView />);
 
         fireEvent.click(screen.getByText('nextStep'));
-        fireEvent.click(screen.getByText('nextStep'));
 
         await waitFor(() => {
             expect(screen.getByRole('radio', { name: /tier\.light\.title/ })).toHaveAttribute('aria-checked', 'true');
         });
-        fireEvent.click(screen.getByText('steps.models.actionDownload'));
-        expect(settingsApi.downloadLocalMt).toHaveBeenCalled();
+        fireEvent.click(screen.getByText('nextStep'));
+        fireEvent.click(screen.getByText('steps.download.startAll'));
+
+        // 批量下载按清单顺序串行执行，轻量翻译模型排在识别模型之后
+        await waitFor(() => {
+            expect(settingsApi.downloadLocalMt).toHaveBeenCalled();
+        });
     });
 
     it('整句讲解可以单独开启，翻译档位保持本地智能', async () => {
         render(<OnboardingView />);
 
         fireEvent.click(screen.getByText('nextStep'));
-        fireEvent.click(screen.getByText('nextStep'));
 
         // 开启整句讲解后需要云端凭据，但翻译档位不变
         fireEvent.click(screen.getByRole('checkbox'));
         fireEvent.change(screen.getByPlaceholderText('steps.translation.openaiKeyPlaceholder'), { target: { value: 'sk-test-123456' } });
         fireEvent.change(screen.getByPlaceholderText('steps.translation.openaiModelPlaceholder'), { target: { value: 'gpt-4o-mini' } });
-        fireEvent.click(screen.getByText('finishConfig'));
+        fireEvent.click(screen.getByText('nextStep'));
+        fireEvent.click(screen.getByText('steps.download.startAll'));
 
         await waitFor(() => {
             expect(settingsApi.saveEngineSelection).toHaveBeenCalledWith(
@@ -285,6 +312,27 @@ describe('OnboardingView Component', () => {
                     }),
                 })
             );
+        });
+    });
+
+    it('下载步骤选择暂不下载时仍会保存已选的翻译方案', async () => {
+        render(<OnboardingView />);
+
+        fireEvent.click(screen.getByText('nextStep'));
+        fireEvent.click(screen.getByText('nextStep'));
+        fireEvent.click(screen.getByText('steps.download.skip'));
+
+        await waitFor(() => {
+            expect(settingsApi.downloadLocalAi).not.toHaveBeenCalled();
+            expect(settingsApi.saveEngineSelection).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    providers: expect.objectContaining({
+                        subtitleTranslationEngine: 'local',
+                        dictionaryEngine: 'local',
+                    }),
+                })
+            );
+            expect(markOnboardingCompleted).toHaveBeenCalledWith(CURRENT_ONBOARDING_VERSION);
         });
     });
 

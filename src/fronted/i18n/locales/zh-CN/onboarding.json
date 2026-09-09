@@ -21,8 +21,6 @@
             "note": "离线模型比较大（几百 MB 到 1 GB 以上），建议选一个空间充足的位置；之后也可以在「设置中心 → 存储」里修改。"
         },
         "models": {
-            "title": "离线语音与字幕",
-            "desc": "发音和字幕识别下载一次即可离线使用；查词用内置词典，开箱即用。",
             "ttsTitle": "单词与例句发音",
             "ttsDesc": "查词、例句朗读时使用，离线合成，无需联网。",
             "ttsSize": "约 18 MB",
@@ -30,9 +28,6 @@
             "transcriptionTitle": "字幕语音识别",
             "transcriptionDesc": "把视频里的语音自动转成字幕，全程本地完成。",
             "transcriptionSize": "约 640 MB",
-            "dictionaryTitle": "内置词典",
-            "dictionaryDesc": "3.8 万常见词，查词开箱即用，无需下载",
-            "statusBuiltIn": "内置",
             "transcriptionDownloadFailed": "识别模型下载失败",
             "statusReady": "已下载",
             "actionDownload": "下载",
@@ -48,8 +43,16 @@
             "copyPath": "复制路径",
             "openFolder": "打开文件夹",
             "manualStep3": "3. 完成安装：",
-            "manualStep3Hint": "保存后回到这里点击「下载」，应用会自动完成安装。",
-            "downloadNote": "下载支持断点续传。网络较慢时，也可以稍后在「设置中心 → 服务与模型」里下载。"
+            "manualStep3Hint": "保存后回到这里点击「下载」，应用会自动完成安装。"
+        },
+        "download": {
+            "title": "下载离线模型",
+            "desc": "按你的选择，还需要下载 {{count}} 项（共约 {{size}}）；下载一次之后离线也能用。",
+            "descReady": "需要的内容都已下载，直接完成配置即可。",
+            "startAll": "一键下载",
+            "downloading": "正在下载…",
+            "skip": "暂不下载，稍后再说",
+            "note": "也可以只下载其中某一项；下载支持断点续传，网络慢时也可以稍后在「设置中心 → 服务与模型」里下载。"
         },
         "translation": {
             "title": "翻译与查词",
@@ -97,7 +100,8 @@
             "testNoModel": "请先填写模型名称",
             "cloudIncompleteHint": "填好密钥和模型名称后才能完成配置。",
             "localMtDownloadFailed": "轻量翻译模型下载失败",
-            "localModelDownloadFailed": "本地模型下载失败"
+            "localModelDownloadFailed": "本地模型下载失败",
+            "dictionaryHint": "查词用内置词典（3.8 万常见词），开箱即用，无需下载。"
         },
         "done": {
             "title": "一切就绪！",

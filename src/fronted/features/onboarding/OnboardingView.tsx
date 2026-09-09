@@ -162,8 +162,6 @@ interface ModelDownloadRowProps {
     description: string;
     /** 体积标签，与描述分开展示，如“约 300 MB”。 */
     sizeLabel?: string;
-    /** 就绪状态的文案；缺省为「已下载」，内置能力可传「内置」。 */
-    readyLabel?: string;
     ready: boolean;
     downloading: boolean;
     progress: number;
@@ -186,7 +184,6 @@ const ModelDownloadRow: React.FC<ModelDownloadRowProps> = ({
     title,
     description,
     sizeLabel,
-    readyLabel,
     ready,
     downloading,
     progress,
@@ -224,7 +221,7 @@ const ModelDownloadRow: React.FC<ModelDownloadRowProps> = ({
                     {ready ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-secondary text-secondary-foreground">
                             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                            {readyLabel ?? t('steps.models.statusReady')}
+                            {t('steps.models.statusReady')}
                         </span>
                     ) : downloading ? (
                         <Button
@@ -370,6 +367,9 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
     const [openAiModel, setOpenAiModel] = useState('');
     const [testingOpenAi, setTestingOpenAi] = useState(false);
     const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+
+    /** 正在按清单依次下载全部离线模型。 */
+    const [downloadingAll, setDownloadingAll] = useState(false);
 
     /** 拉取模型状态与凭据；识别方式变化后重新拉取对应模型状态。 */
     const refreshAllStatuses = React.useCallback(async () => {
@@ -551,6 +551,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
         }
     };
 
+    /** 下载发音模型；失败时提示并抛出，供批量下载中断。 */
     const handleDownloadTts = async () => {
         setDownloadingTts(true);
         setTtsProgress(0);
@@ -559,6 +560,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
         } catch (e) {
             setDownloadingTts(false);
             toast.error(e instanceof Error ? e.message : t('steps.models.ttsDownloadFailed'));
+            throw e;
         }
     };
 
@@ -570,6 +572,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
         }
     };
 
+    /** 下载字幕识别模型；失败时提示并抛出，供批量下载中断。 */
     const handleDownloadTranscription = async () => {
         setDownloadingTranscription(true);
         setTranscriptionProgress(0);
@@ -582,6 +585,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
         } catch (e) {
             setDownloadingTranscription(false);
             toast.error(e instanceof Error ? e.message : t('steps.models.transcriptionDownloadFailed'));
+            throw e;
         }
     };
 
@@ -597,6 +601,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
         }
     };
 
+    /** 下载本地智能模型；失败时提示并抛出，供批量下载中断。 */
     const handleDownloadLocalAi = async () => {
         setDownloadingLocalAi(true);
         setLocalAiProgress(0);
@@ -605,6 +610,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
         } catch (e) {
             setDownloadingLocalAi(false);
             toast.error(e instanceof Error ? e.message : t('steps.translation.localModelDownloadFailed'));
+            throw e;
         }
     };
 
@@ -616,6 +622,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
         }
     };
 
+    /** 下载轻量翻译模型；失败时提示并抛出，供批量下载中断。 */
     const handleDownloadLocalMt = async () => {
         setDownloadingLocalMt(true);
         setLocalMtProgress(0);
@@ -624,6 +631,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
         } catch (e) {
             setDownloadingLocalMt(false);
             toast.error(e instanceof Error ? e.message : t('steps.translation.localMtDownloadFailed'));
+            throw e;
         }
     };
 
@@ -691,6 +699,47 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
     const needsLocalLlm = translationTier === 'smart';
     /** 云端凭据未填齐时不允许完成配置，避免存下用不了的引擎。 */
     const cloudIncomplete = needsCloud && (!openAiKey.trim() || !openAiModel.trim());
+
+    /** 各离线模型的近似体积（MB），仅用于下载清单的合计展示；单行明细以各自的文案为准。 */
+    const MODEL_SIZE_MB: Record<string, number> = { tts: 18, transcription: 640, 'local-ai': 1280, 'local-mt': 300 };
+
+    /** 本次引导需要下载的模型清单：按识别方式与档位决定，run 失败会抛出供批量下载中断。 */
+    const downloadPlan = [
+        { key: 'tts', ready: ttsStatus?.ready ?? false, run: handleDownloadTts },
+        { key: 'transcription', ready: transcriptionStatus?.ready ?? false, run: handleDownloadTranscription },
+        ...(translationTier === 'light'
+            ? [{ key: 'local-mt', ready: localMtStatus?.ready ?? false, run: handleDownloadLocalMt }]
+            : []),
+        ...(needsLocalLlm
+            ? [{ key: 'local-ai', ready: isLocalAiReady, run: handleDownloadLocalAi }]
+            : []),
+    ];
+    /** 尚未下载的模型及其合计体积。 */
+    const pendingDownloads = downloadPlan.filter((item) => !item.ready);
+    const pendingSizeMb = pendingDownloads.reduce((sum, item) => sum + MODEL_SIZE_MB[item.key], 0);
+    const pendingSizeLabel = pendingSizeMb >= 1024
+        ? `${(pendingSizeMb / 1024).toFixed(1)} GB`
+        : `${pendingSizeMb} MB`;
+
+    /**
+     * 按清单顺序依次下载尚未完成的模型，全部成功后保存配置并进入完成页。
+     *
+     * 串行而非并发：同时下载多个模型会互相抢带宽，进度也难以理解。
+     * 任一模型失败即停下（具体原因由各自的下载动作提示），已完成的部分保留。
+     */
+    const handleDownloadAll = async () => {
+        setDownloadingAll(true);
+        try {
+            for (const item of pendingDownloads) {
+                await item.run();
+            }
+            await handleFinishConfig();
+        } catch {
+            // 单个下载动作已提示具体原因，这里只保证不再继续下一个
+        } finally {
+            setDownloadingAll(false);
+        }
+    };
 
     /**
      * 保存配置步骤的结果；成功后进入完成页，失败则留在当前步骤让用户重试或跳过。
@@ -851,76 +900,6 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                         <div className="space-y-4 animate-in fade-in-50 duration-200">
                             <div className="text-center sm:text-left space-y-1">
                                 <h3 className="text-base font-semibold flex items-center justify-center sm:justify-start gap-2">
-                                    <Volume2 className="w-4 h-4 text-primary" />
-                                    {t('steps.models.title')}
-                                </h3>
-                                <p className="text-xs text-muted-foreground leading-relaxed">
-                                    {t('steps.models.desc')}
-                                </p>
-                            </div>
-
-                            <div className="grid gap-3 pt-1">
-                                <ModelDownloadRow
-                                    icon={Volume2}
-                                    title={t('steps.models.ttsTitle')}
-                                    description={t('steps.models.ttsDesc')}
-                                    sizeLabel={t('steps.models.ttsSize')}
-                                    ready={ttsStatus?.ready ?? false}
-                                    downloading={downloadingTts}
-                                    progress={ttsProgress}
-                                    downloadUrls={ttsStatus?.downloadUrls}
-                                    targetPath={ttsStatus?.archivePath}
-                                    onDownload={handleDownloadTts}
-                                    onCancel={handleCancelTts}
-                                    onCopy={copyText}
-                                    onOpenUrl={openUrl}
-                                    onOpenFolder={openFolder}
-                                />
-
-                                <ModelDownloadRow
-                                    icon={Mic}
-                                    title={t('steps.models.transcriptionTitle')}
-                                    description={t('steps.models.transcriptionDesc')}
-                                    sizeLabel={t('steps.models.transcriptionSize')}
-                                    ready={transcriptionStatus?.ready ?? false}
-                                    downloading={downloadingTranscription}
-                                    progress={transcriptionProgress}
-                                    downloadUrls={transcriptionStatus?.downloadUrls}
-                                    targetPath={transcriptionStatus?.archivePath}
-                                    onDownload={handleDownloadTranscription}
-                                    onCancel={handleCancelTranscription}
-                                    onCopy={copyText}
-                                    onOpenUrl={openUrl}
-                                    onOpenFolder={openFolder}
-                                />
-
-                                <ModelDownloadRow
-                                    icon={BookOpen}
-                                    title={t('steps.models.dictionaryTitle')}
-                                    description={t('steps.models.dictionaryDesc')}
-                                    readyLabel={t('steps.models.statusBuiltIn')}
-                                    ready
-                                    downloading={false}
-                                    progress={0}
-                                    onDownload={() => undefined}
-                                    onCancel={() => undefined}
-                                    onCopy={copyText}
-                                    onOpenUrl={openUrl}
-                                    onOpenFolder={openFolder}
-                                />
-
-                            </div>
-
-                            <p className="text-xs text-muted-foreground leading-relaxed pt-1">
-                                {t('steps.models.downloadNote')}
-                            </p>
-                        </div>
-                    )}
-
-                    {currentStep === 3 && (
-                        <div className="space-y-4 animate-in fade-in-50 duration-200">
-                            <div className="text-center sm:text-left space-y-1">
-                                <h3 className="text-base font-semibold flex items-center justify-center sm:justify-start gap-2">
                                     <Languages className="w-4 h-4 text-primary" />
                                     {t('steps.translation.title')}
                                 </h3>
@@ -984,44 +963,11 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                                 </p>
                             )}
 
-                            {/* 当前档位需要的本地模型 */}
-                            {translationTier === 'light' && (
-                                <ModelDownloadRow
-                                    icon={Cpu}
-                                    title={t('steps.translation.localMtTitle')}
-                                    description={t('steps.translation.localMtDesc')}
-                                    sizeLabel={t('steps.translation.localMtSize')}
-                                    ready={localMtStatus?.ready ?? false}
-                                    downloading={downloadingLocalMt}
-                                    progress={localMtProgress}
-                                    downloadUrls={localMtStatus?.downloadUrls}
-                                    targetPath={localMtStatus?.modelPath}
-                                    onDownload={handleDownloadLocalMt}
-                                    onCancel={handleCancelLocalMt}
-                                    onCopy={copyText}
-                                    onOpenUrl={openUrl}
-                                    onOpenFolder={openFolder}
-                                />
-                            )}
-
-                            {needsLocalLlm && (
-                                <ModelDownloadRow
-                                    icon={Cpu}
-                                    title={t('steps.translation.localLlmTitle')}
-                                    description={t('steps.translation.localLlmDesc')}
-                                    sizeLabel={t('steps.translation.localLlmSize')}
-                                    ready={isLocalAiReady}
-                                    downloading={downloadingLocalAi}
-                                    progress={localAiProgress}
-                                    downloadUrls={defaultLocalAiModel?.downloadUrls}
-                                    targetPath={localAiStatus?.modelsDirectory}
-                                    onDownload={handleDownloadLocalAi}
-                                    onCancel={handleCancelLocalAi}
-                                    onCopy={copyText}
-                                    onOpenUrl={openUrl}
-                                    onOpenFolder={openFolder}
-                                />
-                            )}
+                            {/* 内置词典的暗示：查词默认就能用，不需要额外配置或下载 */}
+                            <div className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed">
+                                <BookOpen className="w-3.5 h-3.5 mt-0.5 text-primary shrink-0" />
+                                <span>{t('steps.translation.dictionaryHint')}</span>
+                            </div>
 
                             {/* 附加功能：与档位无关的独立能力，单独成区，避免看着像和模型一起配的 */}
                             <div className="space-y-2 pt-1">
@@ -1140,11 +1086,104 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                                 </div>
                             )}
 
-                            {cloudIncomplete && (
-                                <p className="text-xs text-amber-600 dark:text-amber-400 leading-relaxed">
-                                    {t('steps.translation.cloudIncompleteHint')}
+                        </div>
+                    )}
+
+                    {currentStep === 3 && (
+                        <div className="space-y-4 animate-in fade-in-50 duration-200">
+                            <div className="text-center sm:text-left space-y-1">
+                                <h3 className="text-base font-semibold flex items-center justify-center sm:justify-start gap-2">
+                                    <Download className="w-4 h-4 text-primary" />
+                                    {t('steps.download.title')}
+                                </h3>
+                                <p className="text-xs text-muted-foreground leading-relaxed">
+                                    {pendingDownloads.length > 0
+                                        ? t('steps.download.desc', {
+                                            count: pendingDownloads.length,
+                                            size: pendingSizeLabel,
+                                        })
+                                        : t('steps.download.descReady')}
                                 </p>
-                            )}
+                            </div>
+
+                            <div className="grid gap-3">
+                                <ModelDownloadRow
+                                    icon={Volume2}
+                                    title={t('steps.models.ttsTitle')}
+                                    description={t('steps.models.ttsDesc')}
+                                    sizeLabel={t('steps.models.ttsSize')}
+                                    ready={ttsStatus?.ready ?? false}
+                                    downloading={downloadingTts}
+                                    progress={ttsProgress}
+                                    downloadUrls={ttsStatus?.downloadUrls}
+                                    targetPath={ttsStatus?.archivePath}
+                                    onDownload={() => { void handleDownloadTts().catch(() => null); }}
+                                    onCancel={handleCancelTts}
+                                    onCopy={copyText}
+                                    onOpenUrl={openUrl}
+                                    onOpenFolder={openFolder}
+                                />
+
+                                <ModelDownloadRow
+                                    icon={Mic}
+                                    title={t('steps.models.transcriptionTitle')}
+                                    description={t('steps.models.transcriptionDesc')}
+                                    sizeLabel={t('steps.models.transcriptionSize')}
+                                    ready={transcriptionStatus?.ready ?? false}
+                                    downloading={downloadingTranscription}
+                                    progress={transcriptionProgress}
+                                    downloadUrls={transcriptionStatus?.downloadUrls}
+                                    targetPath={transcriptionStatus?.archivePath}
+                                    onDownload={() => { void handleDownloadTranscription().catch(() => null); }}
+                                    onCancel={handleCancelTranscription}
+                                    onCopy={copyText}
+                                    onOpenUrl={openUrl}
+                                    onOpenFolder={openFolder}
+                                />
+
+                                {translationTier === 'light' && (
+                                    <ModelDownloadRow
+                                        icon={Cpu}
+                                        title={t('steps.translation.localMtTitle')}
+                                        description={t('steps.translation.localMtDesc')}
+                                        sizeLabel={t('steps.translation.localMtSize')}
+                                        ready={localMtStatus?.ready ?? false}
+                                        downloading={downloadingLocalMt}
+                                        progress={localMtProgress}
+                                        downloadUrls={localMtStatus?.downloadUrls}
+                                        targetPath={localMtStatus?.modelPath}
+                                        onDownload={() => { void handleDownloadLocalMt().catch(() => null); }}
+                                        onCancel={handleCancelLocalMt}
+                                        onCopy={copyText}
+                                        onOpenUrl={openUrl}
+                                        onOpenFolder={openFolder}
+                                    />
+                                )}
+
+                                {needsLocalLlm && (
+                                    <ModelDownloadRow
+                                        icon={Cpu}
+                                        title={t('steps.translation.localLlmTitle')}
+                                        description={t('steps.translation.localLlmDesc')}
+                                        sizeLabel={t('steps.translation.localLlmSize')}
+                                        ready={isLocalAiReady}
+                                        downloading={downloadingLocalAi}
+                                        progress={localAiProgress}
+                                        downloadUrls={defaultLocalAiModel?.downloadUrls}
+                                        targetPath={localAiStatus?.modelsDirectory}
+                                        onDownload={() => { void handleDownloadLocalAi().catch(() => null); }}
+                                        onCancel={handleCancelLocalAi}
+                                        onCopy={copyText}
+                                        onOpenUrl={openUrl}
+                                        onOpenFolder={openFolder}
+                                    />
+                                )}
+
+                            </div>
+
+                            <p className="text-xs text-muted-foreground leading-relaxed pt-1">
+                                {t('steps.download.note')}
+                            </p>
                         </div>
                     )}
 
@@ -1212,15 +1251,22 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                             variant="ghost"
                             size="sm"
                             className="text-xs text-muted-foreground hover:text-foreground"
-                            onClick={handleSkip}
+                            disabled={finishing || downloadingAll}
+                            onClick={currentStep === totalSteps ? handleFinishConfig : handleSkip}
                         >
-                            {t('skip')}
+                            {currentStep === totalSteps ? t('steps.download.skip') : t('skip')}
                         </Button>
                     ) : (
                         <span />
                     )}
 
                     <div className="flex items-center gap-2.5">
+                        {currentStep === 2 && cloudIncomplete && (
+                            <span className="text-xs text-amber-600 dark:text-amber-400">
+                                {t('steps.translation.cloudIncompleteHint')}
+                            </span>
+                        )}
+
                         {currentStep > 1 && currentStep <= totalSteps && (
                             <Button
                                 variant="outline"
@@ -1237,6 +1283,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                             <Button
                                 size="sm"
                                 className="h-8.5 px-4 text-xs gap-1.5 rounded-lg"
+                                disabled={currentStep === 2 && cloudIncomplete}
                                 onClick={() => setCurrentStep((s) => Math.min(totalSteps, s + 1))}
                             >
                                 {t('nextStep')}
@@ -1248,15 +1295,21 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                             <Button
                                 size="sm"
                                 className="h-8.5 px-4 text-xs gap-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
-                                disabled={finishing || cloudIncomplete}
-                                onClick={handleFinishConfig}
+                                disabled={finishing || downloadingAll}
+                                onClick={pendingDownloads.length > 0 ? handleDownloadAll : handleFinishConfig}
                             >
-                                {finishing ? (
+                                {finishing || downloadingAll ? (
                                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                ) : pendingDownloads.length > 0 ? (
+                                    <Download className="w-3.5 h-3.5" />
                                 ) : (
                                     <Check className="w-3.5 h-3.5" />
                                 )}
-                                {t('finishConfig')}
+                                {downloadingAll
+                                    ? t('steps.download.downloading')
+                                    : pendingDownloads.length > 0
+                                        ? t('steps.download.startAll')
+                                        : t('finishConfig')}
                             </Button>
                         )}
 

@@ -21,8 +21,6 @@
             "note": "Offline models are large (hundreds of MB to over 1 GB), so pick a location with plenty of space. You can change it later in Settings → Storage."
         },
         "models": {
-            "title": "Offline Speech & Subtitles",
-            "desc": "Pronunciation and speech recognition work offline after a one-time download; lookups use the built-in dictionary out of the box.",
             "ttsTitle": "Word & Sentence Pronunciation",
             "ttsDesc": "Reads words and example sentences aloud, synthesized offline.",
             "ttsSize": "~18 MB",
@@ -30,9 +28,6 @@
             "transcriptionTitle": "Speech-to-Subtitle",
             "transcriptionDesc": "Turns speech in your videos into subtitles, entirely on your device.",
             "transcriptionSize": "~640 MB",
-            "dictionaryTitle": "Built-in dictionary",
-            "dictionaryDesc": "38,000 common words — lookups work out of the box, no download needed",
-            "statusBuiltIn": "Built in",
             "transcriptionDownloadFailed": "Failed to download the recognition model",
             "statusReady": "Downloaded",
             "actionDownload": "Download",
@@ -48,8 +43,16 @@
             "copyPath": "Copy path",
             "openFolder": "Open folder",
             "manualStep3": "3. Finish installation:",
-            "manualStep3Hint": "Once saved, come back and click Download; the app finishes the installation automatically.",
-            "downloadNote": "Downloads can be resumed. If your network is slow, you can also download later in Settings → Services & Models."
+            "manualStep3Hint": "Once saved, come back and click Download; the app finishes the installation automatically."
+        },
+        "download": {
+            "title": "Download offline models",
+            "desc": "Based on your choices, {{count}} item(s) still need downloading (about {{size}}). After that everything works offline.",
+            "descReady": "Everything needed is already downloaded — you can finish the setup.",
+            "startAll": "Download all",
+            "downloading": "Downloading…",
+            "skip": "Skip for now",
+            "note": "You can also download items individually. Downloads can be resumed, and you can do this later in Settings → Services & Models."
         },
         "translation": {
             "title": "Translation & Lookups",
@@ -97,7 +100,8 @@
             "testNoModel": "Enter a model name first",
             "cloudIncompleteHint": "Fill in the API key and model name to finish.",
             "localMtDownloadFailed": "Failed to download the quick translation model",
-            "localModelDownloadFailed": "Failed to download the local model"
+            "localModelDownloadFailed": "Failed to download the local model",
+            "dictionaryHint": "Lookups use the built-in dictionary (38,000 common words) — ready out of the box, no download needed."
         },
         "done": {
             "title": "You're all set!",
