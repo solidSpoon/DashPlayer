@@ -5,6 +5,7 @@ import CacheService from '@/backend/services/CacheService';
 import ClientProviderService from '@/backend/services/ClientProviderService';
 import ModelRoutingService from '@/backend/services/ModelRoutingService';
 import SettingService from '@/backend/services/SettingService';
+import type ResourceFallbackService from '@/backend/services/ResourceFallbackService';
 import type LocalAiService from '@/backend/services/LocalAiService';
 import LocalSubtitleBatchTranslator from '@/backend/services/gateways/translate/LocalSubtitleBatchTranslator';
 import LocalMtSubtitleBatchTranslator from '@/backend/services/gateways/translate/LocalMtSubtitleBatchTranslator';
@@ -247,6 +248,9 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
 
     @inject(TYPES.LocalMtSubtitleBatchTranslator)
     private localMtSubtitleTranslator!: LocalMtSubtitleBatchTranslator;
+
+    @inject(TYPES.ResourceFallbackService)
+    private resourceFallback!: ResourceFallbackService;
 
     /** 按字幕文件维护事件驱动的优先级翻译窗口。 */
     private readonly scheduler =
@@ -935,12 +939,66 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
         };
         this.throwIfAborted(request.signal);
         // 引擎路由由已解析的设置决定；提示词拼装与输出细节各自归基础设施。
-        const items = request.context.provider === 'local-mt'
-            ? await this.localMtSubtitleTranslator.translate(input)
-            : request.context.localModelId
-                ? await this.localSubtitleTranslator.translate({ ...input, modelId: request.context.localModelId })
+        return this.translateWithFallback(
+            input,
+            request.context.provider,
+            request.context.localModelId,
+            targetItems
+        );
+    }
+
+    /**
+     * 调用对应引擎翻译一批目标，并在云端/增强不可用时回退到基础资源（轻量翻译）。
+     *
+     * 云端与本地增强都建立在基础资源之上，它们失败时字幕不应直接空掉；
+     * 云端失败后进入冷却，期间直接走轻量翻译，避免每批都先等一次超时。
+     *
+     * @param input 本批次的翻译输入。
+     * @param provider 当前配置的引擎。
+     * @param localModelId 本地增强模型标识；云端与轻量翻译为 null。
+     * @param targets 本次要校验的目标条目。
+     * @returns 校验后的翻译结果。
+     */
+    private async translateWithFallback(
+        input: SubtitleBatchTranslationInput,
+        provider: 'openai' | 'local' | 'local-mt' | 'tencent',
+        localModelId: string | null,
+        targets: SubtitleTranslationTarget[]
+    ): Promise<Map<string, string>> {
+        const translateWithLocalMt = async () => this.validateGatewayItems(
+            targets,
+            await this.localMtSubtitleTranslator.translate(input)
+        );
+        if (provider === 'local-mt') {
+            return translateWithLocalMt();
+        }
+        if (provider === 'local' && !localModelId) {
+            throw new Error('本地字幕翻译缺少模型标识');
+        }
+        const from = provider === 'local' ? (localModelId as string) : provider;
+        if (provider === 'openai' && this.resourceFallback.isFallbackActive('subtitleTranslation')) {
+            return translateWithLocalMt();
+        }
+        try {
+            const items = provider === 'local'
+                ? await this.localSubtitleTranslator.translate({ ...input, modelId: localModelId as string })
                 : await this.openAiSubtitleTranslator.translate(input);
-        return this.validateGatewayItems(targetItems, items);
+            this.resourceFallback.clear('subtitleTranslation');
+            return this.validateGatewayItems(targets, items);
+        } catch (error) {
+            const reason = error instanceof Error ? error.message : String(error);
+            this.logger.warn('字幕翻译引擎失败，回退到轻量翻译', { provider, from, reason });
+            try {
+                const result = await translateWithLocalMt();
+                this.resourceFallback.markFallback('subtitleTranslation', from, 'local-mt', reason);
+                return result;
+            } catch (fallbackError) {
+                this.logger.error('回退到轻量翻译同样失败', {
+                    reason: fallbackError instanceof Error ? fallbackError.message : String(fallbackError),
+                });
+                throw error;
+            }
+        }
     }
 
     /**
@@ -971,12 +1029,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             style: style ?? '',
             signal: new AbortController().signal,
         };
-        const items = provider === 'local-mt'
-            ? await this.localMtSubtitleTranslator.translate(input)
-            : localModelId
-                ? await this.localSubtitleTranslator.translate({ ...input, modelId: localModelId })
-                : await this.openAiSubtitleTranslator.translate(input);
-        return this.validateGatewayItems(input.targets, items);
+        return this.translateWithFallback(input, provider, localModelId, input.targets);
     }
 
     /**

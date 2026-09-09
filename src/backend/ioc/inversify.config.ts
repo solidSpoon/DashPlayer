@@ -33,6 +33,7 @@ import MainWindowRegistry from '@/backend/infrastructure/system/MainWindowRegist
 import MainWindowRegistryImpl from '@/backend/infrastructure/system/MainWindowRegistryImpl';
 import SystemConfigService, { SystemConfigServiceImpl } from '@/backend/services/SystemConfigService';
 import SettingService, { SettingServiceImpl } from '@/backend/services/SettingService';
+import ResourceFallbackService, { ResourceFallbackServiceImpl } from '@/backend/services/ResourceFallbackService';
 import { FavouriteClipsService, FavouriteClipsServiceImpl } from '@/backend/services/FavouriteClipsService';
 import CacheService, { CacheServiceImpl } from '@/backend/services/CacheService';
 import { ClipOssService } from '@/backend/services/OssService';
@@ -172,6 +173,7 @@ container.bind<Controller>(TYPES.Controller).to(LocalAiController).inSingletonSc
 container.bind<LocalAiService>(TYPES.LocalAiService).to(LocalAiRuntime).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(LocalMtController).inSingletonScope();
 container.bind<LocalMtService>(TYPES.LocalMtService).to(LocalMtRuntime).inSingletonScope();
+container.bind<ResourceFallbackService>(TYPES.ResourceFallbackService).to(ResourceFallbackServiceImpl).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(SherpaTtsModelController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VocabularyController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VideoLearningApiController).inSingletonScope();

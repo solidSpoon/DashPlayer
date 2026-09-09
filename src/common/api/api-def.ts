@@ -1,6 +1,7 @@
 import {DpTask} from '@/common/contracts/dp-task';
 import type { LocalAiSpeedTestResult, LocalAiStatus } from '@/common/contracts/local-ai';
 import type { LocalMtStatus } from '@/common/contracts/local-mt';
+import type { ResourceFallbackSnapshot } from '@/common/contracts/resource-fallback';
 import {OpenAIDictionaryResult} from '@/common/types/DictionaryResult';
 import {ChapterParseResult} from '@/common/types/chapter-result';
 import {SrtSentence, Sentence} from '@/common/types/SentenceC';
@@ -259,6 +260,7 @@ interface SettingsDef {
     'settings/service-credentials/test-openai': { params: { model: string }, return: { success: boolean, message: string } };
     'settings/service-credentials/test-tencent': { params: void, return: { success: boolean, message: string } };
     'settings/engine-selection/detail': { params: void, return: EngineSelectionSettingVO };
+    'settings/resource-fallback/detail': { params: void, return: ResourceFallbackSnapshot };
     'settings/engine-selection/save': { params: EngineSelectionSettingVO, return: void };
     'settings/transcription-engine/detail': { params: void, return: TranscriptionEngine };
     'settings/transcription-engine/save': { params: TranscriptionEngine, return: void };

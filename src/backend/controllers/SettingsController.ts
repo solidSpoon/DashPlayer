@@ -1,4 +1,6 @@
 import registerRoute from '@/backend/controllers/ipc/registerRoute';
+import type ResourceFallbackService from '@/backend/services/ResourceFallbackService';
+import type { ResourceFallbackSnapshot } from '@/common/contracts/resource-fallback';
 import Controller from '@/backend/controllers/Controller';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
@@ -25,6 +27,7 @@ import {
 @injectable()
 export default class SettingsController implements Controller {
     @inject(TYPES.SettingService) private settingService!: SettingService;
+    @inject(TYPES.ResourceFallbackService) private resourceFallback!: ResourceFallbackService;
     private logger = getMainLogger('SettingsController');
 
     /**
@@ -65,6 +68,13 @@ export default class SettingsController implements Controller {
      */
     public async getEngineSelectionDetail(): Promise<EngineSelectionSettingVO> {
         return this.settingService.getEngineSelectionDetail();
+    }
+
+    /**
+     * 获取各功能当前的回退状态（云端/增强不可用时落到基础资源）。
+     */
+    public async getResourceFallbackDetail(): Promise<ResourceFallbackSnapshot> {
+        return this.resourceFallback.getSnapshot();
     }
 
     /**
@@ -168,6 +178,7 @@ export default class SettingsController implements Controller {
         registerRoute('settings/service-credentials/test-openai', (p) => this.testOpenAi(p));
         registerRoute('settings/service-credentials/test-tencent', () => this.testTencent());
         registerRoute('settings/engine-selection/detail', () => this.getEngineSelectionDetail());
+        registerRoute('settings/resource-fallback/detail', () => this.getResourceFallbackDetail());
         registerRoute('settings/engine-selection/save', (p) => this.saveEngineSelection(p));
         registerRoute('settings/transcription-engine/detail', () => this.getTranscriptionEngineDetail());
         registerRoute('settings/transcription-engine/save', (p) => this.saveTranscriptionEngineDetail(p));
