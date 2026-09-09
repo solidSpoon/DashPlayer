@@ -7,6 +7,8 @@ import { AlertTriangle, BookA, Captions, Cloud, HardDrive, Languages, Settings2,
 import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
 import { SettingCard, SettingRow, SettingsLoadingSkeleton } from '@/fronted/features/settings/components/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
+import { cn } from '@/fronted/lib/utils';
 import { Textarea } from '@/fronted/components/ui/textarea';
 import { ResourcePackCard } from '@/fronted/features/settings/components/ResourcePackCard';
 import { LocalLlmCard } from '@/fronted/features/settings/components/LocalLlmCard';
@@ -104,6 +106,10 @@ const ServiceResourceSetting: React.FC = () => {
     const watched = useWatch({ control: preferenceForm.control });
     const subtitleEngine = watched.providers?.subtitleTranslationEngine;
     const subtitleMode = watched.openai?.subtitleTranslationMode;
+    /** 词典补充是否走本地智能模型 / 云端模型。 */
+    const dictionaryEngine = watched.providers?.dictionaryEngine;
+    /** 整句讲解是否启用。 */
+    const sentenceLearningEnabled = watched.openai?.enableSentenceLearning === true;
 
     // 云端密钥的连通性测试
     const [testingOpenAiModel, setTestingOpenAiModel] = React.useState<string | null>(null);
@@ -360,35 +366,53 @@ const ServiceResourceSetting: React.FC = () => {
     /**
      * 卡片头右侧的能力小图标：标明这一档资源能顶哪些功能。
      *
-     * @param items 该卡片覆盖的能力。
+     * 当前由这一档承担的能力会点亮，其余保持喑淡；悬停弹出说明。
+     *
+     * @param items 该卡片覆盖的能力及其是否在用。
      * @param showFallback 是否附带回退警告（仅云端卡片传 true）。
      */
-    const renderCapabilityIcons = (items: CapabilityIcon[], showFallback = false) => (
-        <div className="flex items-center gap-2">
-            {items.map((item) => {
-                const Icon = item.icon;
-                const name = t(item.labelKey);
-                return (
-                    <span
-                        key={item.labelKey}
-                        title={item.configurable
-                            ? t('resources.capability.configurableHint', {
-                                name,
-                                card: t('resources.preference.title'),
-                            })
-                            : name}
-                        className="inline-flex items-center"
-                    >
-                        <Icon className="h-3.5 w-3.5 text-muted-foreground/60" />
-                    </span>
-                );
-            })}
-            {showFallback && cloudFallback && (
-                <span title={t('resources.capability.fallbackHint')} className="inline-flex items-center">
-                    <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
-                </span>
-            )}
-        </div>
+    const renderCapabilityIcons = (
+        items: { cap: CapabilityIcon; active: boolean }[],
+        showFallback = false,
+    ) => (
+        <TooltipProvider delayDuration={150}>
+            <div className="flex items-center gap-1.5">
+                {items.map(({ cap, active }) => {
+                    const Icon = cap.icon;
+                    const name = t(cap.labelKey);
+                    return (
+                        <Tooltip key={cap.labelKey}>
+                            <TooltipTrigger asChild>
+                                <span className="inline-flex cursor-default items-center p-0.5">
+                                    <Icon className={cn(
+                                        'h-3.5 w-3.5 transition-colors',
+                                        active ? 'text-primary' : 'text-muted-foreground/40',
+                                    )} />
+                                </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                                {cap.configurable
+                                    ? t('resources.capability.configurableHint', {
+                                        name,
+                                        card: t('resources.preference.title'),
+                                    })
+                                    : name}
+                            </TooltipContent>
+                        </Tooltip>
+                    );
+                })}
+                {showFallback && cloudFallback && (
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <span className="inline-flex cursor-default items-center p-0.5">
+                                <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                            </span>
+                        </TooltipTrigger>
+                        <TooltipContent>{t('resources.capability.fallbackHint')}</TooltipContent>
+                    </Tooltip>
+                )}
+            </div>
+        </TooltipProvider>
     );
 
     if (!credentialReady || !preferenceReady) {
@@ -429,7 +453,11 @@ const ServiceResourceSetting: React.FC = () => {
                     title={t('resources.pack.title')}
                     description={t('resources.pack.description')}
                     icon={HardDrive}
-                    headerAction={renderCapabilityIcons([CAPABILITY_TTS, CAPABILITY_TRANSCRIPTION, CAPABILITY_TRANSLATION])}
+                    headerAction={renderCapabilityIcons([
+                        { cap: CAPABILITY_TTS, active: true },
+                        { cap: CAPABILITY_TRANSCRIPTION, active: true },
+                        { cap: CAPABILITY_TRANSLATION, active: subtitleEngine === 'local-mt' },
+                    ])}
                 >
                     <ResourcePackCard />
                 </SettingCard>
@@ -439,7 +467,10 @@ const ServiceResourceSetting: React.FC = () => {
                     title={t('resources.enhance.title')}
                     description={t('resources.enhance.description')}
                     icon={Sparkles}
-                    headerAction={renderCapabilityIcons([CAPABILITY_TRANSLATION, CAPABILITY_DICTIONARY])}
+                    headerAction={renderCapabilityIcons([
+                        { cap: CAPABILITY_TRANSLATION, active: subtitleEngine === 'local' },
+                        { cap: CAPABILITY_DICTIONARY, active: dictionaryEngine === 'local' },
+                    ])}
                 >
                     <LocalLlmCard
                         headerless
@@ -488,7 +519,11 @@ const ServiceResourceSetting: React.FC = () => {
                     title={t('resources.cloud.title')}
                     description={t('resources.cloud.description')}
                     icon={Cloud}
-                    headerAction={renderCapabilityIcons([CAPABILITY_TRANSLATION, CAPABILITY_DICTIONARY, CAPABILITY_SENTENCE], true)}
+                    headerAction={renderCapabilityIcons([
+                        { cap: CAPABILITY_TRANSLATION, active: subtitleEngine === 'openai' },
+                        { cap: CAPABILITY_DICTIONARY, active: dictionaryEngine === 'openai' },
+                        { cap: CAPABILITY_SENTENCE, active: sentenceLearningEnabled },
+                    ], true)}
                 >
                     <OpenAiCredentialCard
                         headerless
