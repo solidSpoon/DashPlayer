@@ -140,6 +140,9 @@ export const LocalLlmCard: React.FC<LocalLlmCardProps> = ({
                                         </span>
                                     )}
 
+                                    {/* 模型体积：内置模型也一并展示，让用户知道要占多少空间 */}
+                                    <span className="shrink-0 text-xs text-muted-foreground">{model.sizeLabel}</span>
+
                                     {/* 测速结果内联展示，不新增行高，避免卡片内元素跳动 */}
                                     {testResult && (
                                         testResult.success ? (

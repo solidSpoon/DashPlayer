@@ -478,7 +478,7 @@
             "sizeHint": "约 1 GB",
             "ready": "已就绪",
             "notReady": "未下载",
-            "progressHint": "已安装 {{done}}/{{total}} 项",
+            "progressHint": "共约 {{size}} · 已装 {{done}}/{{total}} 项",
             "download": "下载全部",
             "cancel": "取消下载",
             "delete": "删除资源包",

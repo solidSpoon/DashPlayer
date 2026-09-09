@@ -478,7 +478,7 @@
             "sizeHint": "about 1 GB",
             "ready": "Ready",
             "notReady": "Not downloaded",
-            "progressHint": "{{done}}/{{total}} installed",
+            "progressHint": "{{size}} total · {{done}}/{{total}} installed",
             "download": "Download all",
             "cancel": "Cancel",
             "delete": "Delete pack",

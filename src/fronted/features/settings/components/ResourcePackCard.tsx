@@ -444,7 +444,11 @@ export const ResourcePackCard: React.FC = () => {
                     <span className="text-xs text-muted-foreground truncate">
                         {allReady
                             ? t('resources.pack.sizeHint')
-                            : t('resources.pack.progressHint', { done: readyCount, total: items.length })}
+                            : t('resources.pack.progressHint', {
+                                size: t('resources.pack.sizeHint'),
+                                done: readyCount,
+                                total: items.length,
+                            })}
                     </span>
                 </div>
 
