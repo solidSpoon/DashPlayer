@@ -22,18 +22,10 @@
         },
         "models": {
             "ttsTitle": "单词与例句发音",
-            "ttsDesc": "查词、例句朗读时使用，离线合成，无需联网。",
-            "ttsSize": "约 18 MB",
-            "ttsDownloadFailed": "发音下载失败",
             "transcriptionTitle": "字幕语音识别",
-            "transcriptionDesc": "把视频里的语音自动转成字幕，全程本地完成。",
-            "transcriptionSize": "约 640 MB",
-            "transcriptionDownloadFailed": "识别模型下载失败",
             "statusReady": "已下载",
             "actionDownload": "下载",
-            "downloading": "正在下载",
             "cancelDownload": "取消下载",
-            "cancelFailed": "取消下载失败",
             "manualGuideTitle": "下载不下来？查看手动下载教程",
             "manualStep1": "1. 在浏览器中打开下面的地址下载：",
             "copyLink": "复制链接",
@@ -42,66 +34,22 @@
             "manualStep2": "2. 将下载的文件保存到：",
             "copyPath": "复制路径",
             "openFolder": "打开文件夹",
-            "manualStep3": "3. 完成安装：",
-            "manualStep3Hint": "保存后回到这里点击「下载」，应用会自动完成安装。"
+            "manualStep3": "3. 完成安装："
         },
         "download": {
-            "title": "下载离线模型",
-            "desc": "按你的选择，还需要下载 {{count}} 项（共约 {{size}}）；下载一次之后离线也能用。",
-            "descReady": "需要的内容都已下载，直接完成配置即可。",
-            "startAll": "一键下载",
-            "downloading": "正在下载…",
+            "title": "下载离线资源",
+            "desc": "下载一次，之后断网也能发音、出字幕、翻字幕。",
+            "packTitle": "离线资源包",
+            "packSize": "约 1 GB",
+            "downloading": "正在下载 {{current}}/{{total}} 项",
+            "downloadingShort": "下载中…",
+            "downloadAndFinish": "下载并完成",
+            "retry": "重试",
             "skip": "暂不下载，稍后再说",
-            "note": "也可以只下载其中某一项；下载支持断点续传，网络慢时也可以稍后在「设置中心 → 服务与模型」里下载。"
-        },
-        "translation": {
-            "title": "翻译与查词",
-            "desc": "选一套方案就行，之后随时能在「设置 → 功能设置」里细调。",
-            "recommended": "推荐",
-            "hardwareHintGpu": "检测到 {{memory}} GB 内存、{{cores}} 核 CPU、{{gpu}} 加速，建议选「{{tier}}」。",
-            "hardwareHintNoGpu": "检测到 {{memory}} GB 内存、{{cores}} 核 CPU，本机以 CPU 运行本地智能模型、速度会慢一些，建议选「{{tier}}」。",
-            "extrasTitle": "附加功能",
-            "tier": {
-                "light": {
-                    "title": "本地轻量",
-                    "size": "约 300 MB",
-                    "desc": "速度快，译文偏直白"
-                },
-                "smart": {
-                    "title": "本地智能",
-                    "size": "约 1.28 GB",
-                    "desc": "译文更自然，内存约 2 GB"
-                },
-                "cloud": {
-                    "title": "云端大模型",
-                    "size": "无需下载",
-                    "desc": "效果最好，需要 API Key"
-                }
-            },
-            "sentenceLearningLabel": "整句讲解",
-            "sentenceLearningHint": "选中句子看结构、语法和用法；需要云端模型。",
-            "localMtTitle": "本地快速翻译",
-            "localMtDesc": "只把字幕翻成中文，速度最快、占用最低，译文偏直白。",
-            "localMtSize": "约 300 MB",
-            "localLlmTitle": "本地智能模型",
-            "localLlmDesc": "译文更自然流畅，支持简化英文与自定义风格，超出词库的单词也能用它查。",
-            "localLlmSize": "约 1.28 GB",
-            "openaiKeyLabel": "API 密钥",
-            "openaiKeyPlaceholder": "请输入 sk- 开头的密钥",
-            "openaiEndpointLabel": "接口地址",
-            "openaiEndpointPlaceholder": "https://api.openai.com",
-            "openaiModelLabel": "模型名称",
-            "openaiModelPlaceholder": "例如 gpt-4o-mini",
-            "openaiModelHint": "填写服务商支持的模型名称，翻译和查词都会使用它。",
-            "testConnection": "测试连接",
-            "testing": "测试中...",
-            "testSuccess": "连接成功",
-            "testFailed": "连接失败",
-            "testNoModel": "请先填写模型名称",
-            "cloudIncompleteHint": "填好密钥和模型名称后才能完成配置。",
-            "localMtDownloadFailed": "轻量翻译模型下载失败",
-            "localModelDownloadFailed": "本地模型下载失败",
-            "dictionaryHint": "查词用内置词典（3.8 万常见词），开箱即用，无需下载。"
+            "note": "下载支持断点续传，中途关掉也能接着下；也可以稍后在「设置中心 → 服务与模型」里下载。",
+            "itemMt": "字幕翻译",
+            "etaSeconds": "剩余约 {{seconds}} 秒",
+            "etaMinutes": "剩余约 {{minutes}} 分 {{seconds}} 秒"
         },
         "done": {
             "title": "一切就绪！",

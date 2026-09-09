@@ -224,3 +224,25 @@
   }
 }
 
+/* 引导页下载步骤的点阵涟漪背景：只做透明度与缩放，避免大面积模糊。 */
+@keyframes dot-ripple {
+  0%, 100% {
+    opacity: 0.1;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 0.42;
+    transform: scale(1.9);
+  }
+}
+
+.dot-ripple {
+  animation: dot-ripple 3.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot-ripple {
+    animation: none;
+    opacity: 0.25;
+  }
+}

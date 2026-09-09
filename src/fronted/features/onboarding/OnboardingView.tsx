@@ -3,14 +3,9 @@ import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { create as createConfetti } from 'canvas-confetti';
 import { Button } from '@/fronted/components/ui/button';
 import { Progress } from '@/fronted/components/ui/progress';
-import { RadioGroup, RadioGroupItem } from '@/fronted/components/ui/radio-group';
-import { Checkbox } from '@/fronted/components/ui/checkbox';
-import { Label } from '@/fronted/components/ui/label';
-import { Input } from '@/fronted/components/ui/input';
 import TitleBar from '@/fronted/components/layout/TitleBar/TitleBar';
 import { ManualDownloadGuide } from '@/fronted/components/shared/ManualDownloadGuide';
 import {
-    BookOpen,
     CheckCircle2,
     Copy,
     Download,
@@ -19,73 +14,49 @@ import {
     Folder,
     FolderOpen,
     HardDrive,
-    Languages,
     Loader2,
-    Mic,
-    Volume2,
-    Cpu,
     ArrowRight,
     ArrowLeft,
     Check,
     Square,
-    TestTube,
     XCircle,
 } from 'lucide-react';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
-import { getSystemInfo, markOnboardingCompleted } from '@/fronted/features/onboarding/onboardingApi';
+import { markOnboardingCompleted } from '@/fronted/features/onboarding/onboardingApi';
 import type { ModelInstallationStatusVO } from '@/common/types/vo/model-installation-vo';
 import type { ModelDownloadPhase } from '@/common/contracts/model-download-phase';
 import type { TranscriptionEngine } from '@/common/contracts/transcription-engine';
-import type { LocalAiStatus } from '@/common/contracts/local-ai';
 import type { LocalMtStatus } from '@/common/contracts/local-mt';
-import type { SystemInfo } from '@/fronted/features/onboarding/onboardingApi';
-import { LOCAL_AI_DEFAULT_MODEL_ID } from '@/common/contracts/local-ai';
 import { cn } from '@/fronted/lib/utils';
 import toast from 'react-hot-toast';
 
 export const CURRENT_ONBOARDING_VERSION = '1';
 
-/** 翻译与查词的档位：一次决定字幕翻译与查词各自使用的引擎。 */
-type TranslationTier = 'light' | 'smart' | 'cloud';
+/** 离线资源包内三项资源的标识；数组顺序即下载顺序（先小后大）。 */
+type BundleItemKey = 'tts' | 'transcription' | 'mt';
 
-/** 档位展示顺序。 */
-const TRANSLATION_TIERS: readonly TranslationTier[] = ['light', 'smart', 'cloud'];
+/** 点阵涟漪背景的列数与行数。 */
+const RIPPLE_COLUMNS = 11;
+const RIPPLE_ROWS = 5;
+/** 点阵涟漪的呼吸周期（秒）：下载中更紧凑，让背景跟着进度"活"起来。 */
+const RIPPLE_DURATION_IDLE = 3.6;
+const RIPPLE_DURATION_ACTIVE = 1.4;
+/** 网速的指数滑动平均系数，抑制进度事件抖动。 */
+const SPEED_SMOOTHING = 0.3;
 
-/**
- * 档位到引擎组合的映射：查词永远跟随字幕翻译。
- *
- * 这样就不会出现「下了 1.28 GB 智能模型却只用它查词」这类无意义组合。
- */
-const TIER_ENGINES: Record<TranslationTier, {
-    subtitleTranslationEngine: 'local-mt' | 'local' | 'openai';
-    dictionaryEngine: 'none' | 'local' | 'openai';
-}> = {
-    light: { subtitleTranslationEngine: 'local-mt', dictionaryEngine: 'none' },
-    smart: { subtitleTranslationEngine: 'local', dictionaryEngine: 'local' },
-    cloud: { subtitleTranslationEngine: 'openai', dictionaryEngine: 'openai' },
+/** 下载完成后的收尾阶段文案；未收录的阶段回落到通用下载提示。 */
+const PHASE_LABEL_KEYS: Partial<Record<ModelDownloadPhase, string>> = {
+    verifying: 'steps.models.verifying',
+    extracting: 'steps.models.extracting',
+    installing: 'steps.models.installing',
 };
 
-/** GPU 后端在提示文案里的显示名（专有名词，不翻译）。 */
-const GPU_ACCELERATION_LABELS: Record<'metal' | 'vulkan', string> = {
-    metal: 'Metal',
-    vulkan: 'Vulkan',
-};
-
-/** 内存低于该值（GB）时推荐轻量档。 */
-const LIGHT_TIER_MEMORY_GB = 8;
-/** 没有 GPU 加速时，核数低于该值也推荐轻量档。 */
-const LIGHT_TIER_CPU_COUNT = 4;
-
-/**
- * 依据硬件信息推荐档位：内存不足，或没有 GPU 加速且核数偏少时推荐轻量档。
- *
- * @param hardware 本机硬件信息。
- * @returns 推荐档位；也用作引导页的默认选中档。
- */
-function recommendTier(hardware: SystemInfo): TranslationTier {
-    if (hardware.totalMemoryGb < LIGHT_TIER_MEMORY_GB) return 'light';
-    if (hardware.gpuAcceleration === 'none' && hardware.cpuCount < LIGHT_TIER_CPU_COUNT) return 'light';
-    return 'smart';
+/** 把字节/秒格式化为网速文案。 */
+function formatSpeed(bytesPerSecond: number): string {
+    const megabytes = bytesPerSecond / 1024 / 1024;
+    return megabytes >= 1
+        ? `${megabytes.toFixed(1)} MB/s`
+        : `${Math.max(1, Math.round(bytesPerSecond / 1024))} KB/s`;
 }
 
 /** 撒花颜色；固定亮色，保证深浅色主题下都醒目。 */
@@ -152,184 +123,70 @@ const Confetti: React.FC = () => {
     return null;
 };
 
-export interface OnboardingViewProps {
-    onCompleted?: () => void;
-}
-
-interface ModelDownloadRowProps {
-    icon: React.ElementType;
-    title: string;
-    description: string;
-    /** 体积标签，与描述分开展示，如“约 300 MB”。 */
-    sizeLabel?: string;
-    ready: boolean;
-    downloading: boolean;
-    progress: number;
-    /** 有序候选下载地址（首个为官方地址，其余为备用镜像）；存在时展示手动下载教程。 */
-    downloadUrls?: readonly string[] | null;
-    /** 手动下载后应保存到的文件/目录路径。 */
-    targetPath?: string | null;
-    onDownload: () => void;
-    onCancel: () => void;
-    onCopy: (text: string) => void;
-    onOpenUrl: (url: string) => void;
-    onOpenFolder: (path: string) => void;
-}
-
 /**
- * 引导页里的单个离线模型行：状态、下载/取消、进度条，以及网络不佳时的手动下载教程。
+ * 下载步骤背后的点阵涟漪。
+ *
+ * 小圆点按对角线错开延迟做透明度与缩放呼吸，只用 transform / opacity，不做大面积模糊；
+ * 下载中周期变短。系统开启「减少动效」时由 CSS 直接停掉动画。
  */
-const ModelDownloadRow: React.FC<ModelDownloadRowProps> = ({
-    icon: Icon,
-    title,
-    description,
-    sizeLabel,
-    ready,
-    downloading,
-    progress,
-    downloadUrls,
-    targetPath,
-    onDownload,
-    onCancel,
-    onCopy,
-    onOpenUrl,
-    onOpenFolder,
-}) => {
-    const { t } = useI18nTranslation('onboarding');
+const DotRippleBackground: React.FC<{ active: boolean }> = ({ active }) => {
+    const dots = React.useMemo(
+        () => Array.from({ length: RIPPLE_COLUMNS * RIPPLE_ROWS }, (_, index) => {
+            const column = index % RIPPLE_COLUMNS;
+            const row = Math.floor(index / RIPPLE_COLUMNS);
+            return { key: index, delay: (column + row) * 0.16 };
+        }),
+        [],
+    );
 
     return (
-        <div className="border rounded-xl p-4 bg-card shadow-xs flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-foreground shrink-0">
-                        <Icon className="w-4.5 h-4.5" />
-                    </div>
-                    <div className="min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-medium text-xs sm:text-sm">{title}</span>
-                            {sizeLabel && (
-                                <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                                    {sizeLabel}
-                                </span>
-                            )}
-                        </div>
-                        <div className="text-xs text-muted-foreground">{description}</div>
-                    </div>
-                </div>
-
-                <div className="shrink-0">
-                    {ready ? (
-                        <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-secondary text-secondary-foreground">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                            {t('steps.models.statusReady')}
-                        </span>
-                    ) : downloading ? (
-                        <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-8 min-w-28 justify-center gap-1.5 text-xs"
-                            onClick={onCancel}
-                        >
-                            <Square className="w-3.5 h-3.5 text-destructive" />
-                            {t('steps.models.cancelDownload')}
-                        </Button>
-                    ) : (
-                        <Button
-                            size="sm"
-                            variant="secondary"
-                            className="h-8 min-w-28 justify-center gap-1.5 text-xs"
-                            onClick={onDownload}
-                        >
-                            <Download className="w-3.5 h-3.5" />
-                            {t('steps.models.actionDownload')}
-                        </Button>
-                    )}
-                </div>
+        <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
+            <div
+                className="grid h-full w-full items-center justify-items-center gap-3 px-2 py-6"
+                style={{ gridTemplateColumns: `repeat(${RIPPLE_COLUMNS}, minmax(0, 1fr))` }}
+            >
+                {dots.map((dot) => (
+                    <span
+                        key={dot.key}
+                        className="dot-ripple h-1 w-1 rounded-full bg-primary/60"
+                        style={{
+                            animationDelay: `${dot.delay}s`,
+                            animationDuration: `${active ? RIPPLE_DURATION_ACTIVE : RIPPLE_DURATION_IDLE}s`,
+                        }}
+                    />
+                ))}
             </div>
-
-            {downloading && (
-                <div className="space-y-1">
-                    <div className="flex justify-between text-[11px] text-muted-foreground">
-                        <span>{t('steps.models.downloading')}</span>
-                        <span>{Math.min(100, Math.max(0, Math.round(progress)))}%</span>
-                    </div>
-                    <Progress value={progress} className="h-1.5" />
-                </div>
-            )}
-
-            {!ready && downloadUrls && downloadUrls.length > 0 && (
-                <ManualDownloadGuide variant="plain" title={t('steps.models.manualGuideTitle')}>
-                    <div className="space-y-1.5">
-                        <div className="font-semibold text-foreground">{t('steps.models.manualStep1')}</div>
-                        <div className="bg-background/80 rounded border border-border/60 p-2 space-y-2 font-mono text-[11px] break-all select-text">
-                            {/* 首个为官方地址，其余为备用镜像；网络受限时可改用镜像地址手动下载 */}
-                            {downloadUrls.map((url, index) => (
-                                <div key={url} className="space-y-1">
-                                    <div className="flex items-start gap-1.5">
-                                        {index > 0 && (
-                                            <span className="shrink-0 mt-0.5 rounded bg-amber-500/10 px-1.5 py-0.5 font-sans text-[10px] font-medium text-amber-600 dark:text-amber-400">
-                                                {t('steps.models.backupSource')}
-                                            </span>
-                                        )}
-                                        <span className="text-muted-foreground/70 break-all">{url}</span>
-                                    </div>
-                                    <div className="flex items-center gap-1 font-sans">
-                                        <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => onCopy(url)}>
-                                            <Copy className="w-3 h-3 mr-1" />
-                                            {t('steps.models.copyLink')}
-                                        </Button>
-                                        <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => onOpenUrl(url)}>
-                                            <ExternalLink className="w-3 h-3 mr-1" />
-                                            {t('steps.models.openInBrowser')}
-                                        </Button>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-
-                    {targetPath && (
-                        <div className="space-y-1.5">
-                            <div className="font-semibold text-foreground">{t('steps.models.manualStep2')}</div>
-                            <div className="bg-background/80 rounded border border-border/60 p-2 space-y-1.5 font-mono text-[11px] break-all select-text">
-                                <div className="text-muted-foreground/70">{targetPath}</div>
-                                <div className="flex items-center gap-2 pt-1 font-sans">
-                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => onCopy(targetPath)}>
-                                        <Copy className="w-3 h-3 mr-1" />
-                                        {t('steps.models.copyPath')}
-                                    </Button>
-                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => onOpenFolder(targetPath)}>
-                                        <FolderOpen className="w-3 h-3 mr-1" />
-                                        {t('steps.models.openFolder')}
-                                    </Button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="space-y-0.5 text-muted-foreground/90 bg-muted/30 p-2 rounded">
-                        <div className="font-semibold text-foreground">{t('steps.models.manualStep3')}</div>
-                        <div>{t('steps.models.manualStep3Hint')}</div>
-                    </div>
-                </ManualDownloadGuide>
-            )}
         </div>
     );
 };
 
-/**
- * 首次使用引导：离线模型下载、翻译与词典配置、基础教程。
- *
- * 引导页不暴露引擎名与模型名，用户只看到"用途 + 下载/配置"。
- */
-export const OnboardingView: React.FC<OnboardingViewProps> = ({
-    onCompleted,
-}) => {
+export interface OnboardingViewProps {
+    onCompleted?: () => void;
+}
+
+/** 资源包内单项资源的展示信息与下载动作。 */
+interface BundleEntry {
+    key: BundleItemKey;
+    /** 手动下载教程里展示的名字。 */
+    title: string;
+    ready: boolean;
+    /** 有序候选下载地址（首个为主源，其余为备用镜像）。 */
+    urls: readonly string[] | null;
+    /** 手动下载后应保存到的路径。 */
+    targetPath: string | null;
+    /** 执行该项下载；失败时抛出。 */
+    run: () => Promise<void>;
+    /** 取消该项下载。 */
+    cancel: () => Promise<void>;
+}
+
+
+export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) => {
     const { t } = useI18nTranslation('onboarding');
 
     const [currentStep, setCurrentStep] = useState<number>(1);
-    /** 配置步骤共 3 步；第 4 步是完成页，不计入步骤。 */
-    const totalSteps = 3;
+    /** 配置步骤共 2 步；第 3 步是完成页，不计入步骤。 */
+    const totalSteps = 2;
     const [finishing, setFinishing] = useState(false);
 
     // Step 1：存储位置
@@ -337,55 +194,39 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
     const [storageAvailable, setStorageAvailable] = useState(true);
     const [choosingStorage, setChoosingStorage] = useState(false);
 
-    // Step 1：发音与字幕识别模型
-    const [ttsStatus, setTtsStatus] = useState<ModelInstallationStatusVO | null>(null);
-    const [downloadingTts, setDownloadingTts] = useState(false);
-    const [ttsProgress, setTtsProgress] = useState(0);
-
-    // 字幕识别按用户当前识别方式取模型，不在界面上暴露引擎名
+    // Step 2：资源包内三项资源的状态
     const [transcriptionEngine, setTranscriptionEngine] = useState<TranscriptionEngine>('whisper-cpp');
+    const [ttsStatus, setTtsStatus] = useState<ModelInstallationStatusVO | null>(null);
     const [transcriptionStatus, setTranscriptionStatus] = useState<ModelInstallationStatusVO | null>(null);
-    const [downloadingTranscription, setDownloadingTranscription] = useState(false);
-    const [transcriptionProgress, setTranscriptionProgress] = useState(0);
-
-    // Step 3：翻译与查词档位 + 独立的整句讲解开关
-    const [translationTier, setTranslationTier] = useState<TranslationTier>('smart');
-    const [sentenceLearning, setSentenceLearning] = useState(false);
-    /** 本机硬件信息；未取到时不展示档位建议。 */
-    const [hardware, setHardware] = useState<SystemInfo | null>(null);
-
-    const [localAiStatus, setLocalAiStatus] = useState<LocalAiStatus | null>(null);
-    const [downloadingLocalAi, setDownloadingLocalAi] = useState(false);
-    const [localAiProgress, setLocalAiProgress] = useState(0);
-
     const [localMtStatus, setLocalMtStatus] = useState<LocalMtStatus | null>(null);
-    const [downloadingLocalMt, setDownloadingLocalMt] = useState(false);
-    const [localMtProgress, setLocalMtProgress] = useState(0);
 
-    const [openAiKey, setOpenAiKey] = useState('');
-    const [openAiEndpoint, setOpenAiEndpoint] = useState('https://api.openai.com');
-    const [openAiModel, setOpenAiModel] = useState('');
-    const [testingOpenAi, setTestingOpenAi] = useState(false);
-    const [testResult, setTestResult] = useState<{ success: boolean; message: string } | null>(null);
+    // Step 2：下载过程
+    const [downloadingBundle, setDownloadingBundle] = useState(false);
+    const [activeItem, setActiveItem] = useState<BundleItemKey | null>(null);
+    const [activePhase, setActivePhase] = useState<ModelDownloadPhase | null>(null);
+    /** 当前是第几项（从 1 开始），用于"正在下载 2/3 项"。 */
+    const [itemIndex, setItemIndex] = useState(0);
+    const [progress, setProgress] = useState({ percent: 0, downloaded: 0, total: 0 });
+    const [speed, setSpeed] = useState(0);
+    const [bundleError, setBundleError] = useState<string | null>(null);
+    /** 用户是否点了取消：用于中断串行队列，并区分"取消"与"失败"。 */
+    const cancelRequestedRef = React.useRef(false);
+    /** 最近一次进度采样，用于估算网速。 */
+    const speedSampleRef = React.useRef<{ at: number; downloaded: number } | null>(null);
 
-    /** 正在按清单依次下载全部离线模型。 */
-    const [downloadingAll, setDownloadingAll] = useState(false);
-
-    /** 拉取模型状态与凭据；识别方式变化后重新拉取对应模型状态。 */
+    /** 拉取存储位置与资源包内三项模型的状态。 */
     const refreshAllStatuses = React.useCallback(async () => {
         try {
             const engine = await settingsApi.getTranscriptionEngine().catch(() => 'whisper-cpp' as const);
             setTranscriptionEngine(engine);
-            const [storageStatus, tts, transcription, localAi, localMt, credentials] = await Promise.all([
+            const [storageStatus, tts, transcription, localMt] = await Promise.all([
                 settingsApi.getStorageStatus().catch(() => null),
                 settingsApi.getSherpaTtsModelStatus().catch(() => null),
                 (engine === 'whisper-cpp'
                     ? settingsApi.getWhisperCppModelStatus()
                     : settingsApi.getParakeetModelStatus()
                 ).catch(() => null),
-                settingsApi.getLocalAiStatus().catch(() => null),
                 settingsApi.getLocalMtStatus().catch(() => null),
-                settingsApi.getServiceCredentials().catch(() => null),
             ]);
             if (storageStatus) {
                 setStoragePath(storageStatus.resolvedPath);
@@ -393,36 +234,17 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
             }
             if (tts) setTtsStatus(tts);
             if (transcription) setTranscriptionStatus(transcription);
-            if (localAi) setLocalAiStatus(localAi);
             if (localMt) setLocalMtStatus(localMt);
-            if (credentials?.openai) {
-                if (credentials.openai.key) setOpenAiKey(credentials.openai.key);
-                if (credentials.openai.endpoint) setOpenAiEndpoint(credentials.openai.endpoint);
-                const firstModel = credentials.openai.models[0]?.model;
-                if (firstModel) setOpenAiModel((current) => current || firstModel);
-            }
         } catch {
-            // Ignore error
+            // 状态拉取失败不阻断引导：页面保持"未下载"，用户仍可点下载或跳过
         }
-    }, []);
-
-    /** 读取本机硬件信息：低配机器默认轻量档，并按结果给出档位建议。 */
-    useEffect(() => {
-        void getSystemInfo().then((info) => {
-            setHardware(info);
-            setTranslationTier(recommendTier(info));
-        });
     }, []);
 
     useEffect(() => {
         void refreshAllStatuses();
         // 用户可能在文件管理器里删掉或移动模型目录，窗口重新获得焦点时重新检测
-        const refreshOnFocus = () => {
-            void refreshAllStatuses();
-        };
-        const refreshOnVisible = () => {
-            if (!document.hidden) void refreshAllStatuses();
-        };
+        const refreshOnFocus = () => { void refreshAllStatuses(); };
+        const refreshOnVisible = () => { if (!document.hidden) void refreshAllStatuses(); };
         window.addEventListener('focus', refreshOnFocus);
         document.addEventListener('visibilitychange', refreshOnVisible);
         return () => {
@@ -431,79 +253,62 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
         };
     }, [refreshAllStatuses]);
 
+    /** 记录一次进度采样：更新进度条，并用指数滑动平均估算网速。 */
+    const trackProgress = React.useCallback((downloaded: number, total: number) => {
+        setProgress({
+            percent: total > 0 ? Math.min(100, Math.floor((downloaded / total) * 100)) : 0,
+            downloaded,
+            total,
+        });
+        const now = Date.now();
+        const last = speedSampleRef.current;
+        if (last && now > last.at && downloaded >= last.downloaded) {
+            const instant = ((downloaded - last.downloaded) * 1000) / (now - last.at);
+            setSpeed((previous) => (
+                previous === 0 ? instant : previous * (1 - SPEED_SMOOTHING) + instant * SPEED_SMOOTHING
+            ));
+        }
+        speedSampleRef.current = { at: now, downloaded };
+    }, []);
+
     // 订阅主进程推送的下载进度（initRendererApis 会把 IPC 事件转成不带前缀的 window 事件）
     useEffect(() => {
-        const handleTtsProgress = (event: Event) => {
-            const progress = (event as CustomEvent<{
-                percent: number;
-                downloaded: number;
-                total: number;
-                phase: ModelDownloadPhase;
-            }>).detail;
-            setTtsProgress(progress.percent ?? 0);
-            if (progress.phase === 'idle') {
-                setDownloadingTts(false);
-                void refreshAllStatuses();
-            }
-        };
-
-        const handleTranscriptionProgress = (event: Event) => {
-            const progress = (event as CustomEvent<{
-                percent: number;
-                downloaded: number;
-                total: number;
-                phase: ModelDownloadPhase;
-            }>).detail;
-            setTranscriptionProgress(progress.percent ?? 0);
-            if (progress.phase === 'idle') {
-                setDownloadingTranscription(false);
-                void refreshAllStatuses();
-            }
-        };
-
-        const handleLocalAiProgress = (event: Event) => {
+        const handleArchiveProgress = (event: Event) => {
             const detail = (event as CustomEvent<{
-                modelId: string;
-                phase: 'downloading' | 'verifying' | 'idle';
                 downloaded: number;
                 total: number;
-                percent: number;
+                phase: ModelDownloadPhase;
             }>).detail;
-            if (detail.percent !== undefined) {
-                setLocalAiProgress(detail.percent);
+            setActivePhase(detail.phase);
+            if (detail.phase === 'downloading' && detail.total > 0) {
+                trackProgress(detail.downloaded, detail.total);
             }
-            if (detail.phase === 'idle') {
-                setDownloadingLocalAi(false);
-                void refreshAllStatuses();
-            }
+            if (detail.phase === 'idle') void refreshAllStatuses();
         };
-
         const handleLocalMtProgress = (event: Event) => {
             const detail = (event as CustomEvent<{
                 downloaded: number;
                 total: number;
                 phase: LocalMtStatus['phase'];
             }>).detail;
-            setLocalMtProgress(Math.min(100, Math.floor(detail.downloaded / (detail.total || 1) * 100)));
-            if (detail.phase === 'idle') {
-                setDownloadingLocalMt(false);
-                void refreshAllStatuses();
+            setActivePhase(detail.phase);
+            if (detail.phase === 'downloading' && detail.total > 0) {
+                trackProgress(detail.downloaded, detail.total);
             }
+            if (detail.phase === 'idle') void refreshAllStatuses();
         };
 
-        window.addEventListener('sherpa-tts-model-download-progress', handleTtsProgress);
-        window.addEventListener('whisper-cpp-model-download-progress', handleTranscriptionProgress);
-        window.addEventListener('parakeet-model-download-progress', handleTranscriptionProgress);
-        window.addEventListener('local-ai-model-download-progress', handleLocalAiProgress);
+        window.addEventListener('sherpa-tts-model-download-progress', handleArchiveProgress);
+        window.addEventListener('whisper-cpp-model-download-progress', handleArchiveProgress);
+        window.addEventListener('parakeet-model-download-progress', handleArchiveProgress);
         window.addEventListener('local-mt-download-progress', handleLocalMtProgress);
         return () => {
-            window.removeEventListener('sherpa-tts-model-download-progress', handleTtsProgress);
-            window.removeEventListener('whisper-cpp-model-download-progress', handleTranscriptionProgress);
-            window.removeEventListener('parakeet-model-download-progress', handleTranscriptionProgress);
-            window.removeEventListener('local-ai-model-download-progress', handleLocalAiProgress);
+            window.removeEventListener('sherpa-tts-model-download-progress', handleArchiveProgress);
+            window.removeEventListener('whisper-cpp-model-download-progress', handleArchiveProgress);
+            window.removeEventListener('parakeet-model-download-progress', handleArchiveProgress);
             window.removeEventListener('local-mt-download-progress', handleLocalMtProgress);
         };
-    }, [refreshAllStatuses]);
+    }, [refreshAllStatuses, trackProgress]);
 
     /** 复制文本到剪贴板。 */
     const copyText = async (value: string) => {
@@ -551,234 +356,141 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
         }
     };
 
-    /** 下载发音模型；失败时提示并抛出，供批量下载中断。 */
-    const handleDownloadTts = async () => {
-        setDownloadingTts(true);
-        setTtsProgress(0);
-        try {
-            await settingsApi.downloadSherpaTtsModel();
-        } catch (e) {
-            setDownloadingTts(false);
-            toast.error(e instanceof Error ? e.message : t('steps.models.ttsDownloadFailed'));
-            throw e;
-        }
-    };
-
-    const handleCancelTts = async () => {
-        try {
-            await settingsApi.cancelSherpaTtsModelDownload();
-        } catch (e) {
-            toast.error(e instanceof Error ? e.message : t('steps.models.cancelFailed'));
-        }
-    };
-
-    /** 下载字幕识别模型；失败时提示并抛出，供批量下载中断。 */
-    const handleDownloadTranscription = async () => {
-        setDownloadingTranscription(true);
-        setTranscriptionProgress(0);
-        try {
-            if (transcriptionEngine === 'whisper-cpp') {
-                await settingsApi.downloadWhisperCppModel();
-            } else {
-                await settingsApi.downloadParakeetModel();
-            }
-        } catch (e) {
-            setDownloadingTranscription(false);
-            toast.error(e instanceof Error ? e.message : t('steps.models.transcriptionDownloadFailed'));
-            throw e;
-        }
-    };
-
-    const handleCancelTranscription = async () => {
-        try {
-            if (transcriptionEngine === 'whisper-cpp') {
-                await settingsApi.cancelWhisperCppModelDownload();
-            } else {
-                await settingsApi.cancelParakeetModelDownload();
-            }
-        } catch (e) {
-            toast.error(e instanceof Error ? e.message : t('steps.models.cancelFailed'));
-        }
-    };
-
-    /** 下载本地智能模型；失败时提示并抛出，供批量下载中断。 */
-    const handleDownloadLocalAi = async () => {
-        setDownloadingLocalAi(true);
-        setLocalAiProgress(0);
-        try {
-            await settingsApi.downloadLocalAi(LOCAL_AI_DEFAULT_MODEL_ID);
-        } catch (e) {
-            setDownloadingLocalAi(false);
-            toast.error(e instanceof Error ? e.message : t('steps.translation.localModelDownloadFailed'));
-            throw e;
-        }
-    };
-
-    const handleCancelLocalAi = async () => {
-        try {
-            await settingsApi.cancelLocalAiDownload();
-        } catch (e) {
-            toast.error(e instanceof Error ? e.message : t('steps.models.cancelFailed'));
-        }
-    };
-
-    /** 下载轻量翻译模型；失败时提示并抛出，供批量下载中断。 */
-    const handleDownloadLocalMt = async () => {
-        setDownloadingLocalMt(true);
-        setLocalMtProgress(0);
-        try {
-            await settingsApi.downloadLocalMt();
-        } catch (e) {
-            setDownloadingLocalMt(false);
-            toast.error(e instanceof Error ? e.message : t('steps.translation.localMtDownloadFailed'));
-            throw e;
-        }
-    };
-
-    const handleCancelLocalMt = async () => {
-        try {
-            await settingsApi.cancelLocalMtDownload();
-        } catch (e) {
-            toast.error(e instanceof Error ? e.message : t('steps.models.cancelFailed'));
-        }
-    };
-
-    /** 把当前输入的密钥、接口地址与模型保存到后端，返回归一化后的模型列表。 */
-    const persistOpenAiCredentials = async (): Promise<string[]> => {
-        const existingCreds = await settingsApi.getServiceCredentials();
-        const existingModels = existingCreds.openai.models.map((m) => m.model);
-        const model = openAiModel.trim();
-        const models = model && !existingModels.includes(model)
-            ? [model, ...existingModels]
-            : existingModels;
-        await settingsApi.saveServiceCredentials({
-            ...existingCreds,
-            openai: {
-                ...existingCreds.openai,
-                key: openAiKey.trim(),
-                endpoint: openAiEndpoint.trim(),
-                models,
+    /** 资源包内的三项资源；顺序即下载顺序。 */
+    const bundleEntries: BundleEntry[] = [
+        {
+            key: 'tts',
+            title: t('steps.models.ttsTitle'),
+            ready: ttsStatus?.ready ?? false,
+            urls: ttsStatus?.downloadUrls ?? null,
+            targetPath: ttsStatus?.archivePath ?? null,
+            run: async () => { await settingsApi.downloadSherpaTtsModel(); },
+            cancel: async () => { await settingsApi.cancelSherpaTtsModelDownload(); },
+        },
+        {
+            key: 'transcription',
+            title: t('steps.models.transcriptionTitle'),
+            ready: transcriptionStatus?.ready ?? false,
+            urls: transcriptionStatus?.downloadUrls ?? null,
+            targetPath: transcriptionStatus?.archivePath ?? null,
+            run: async () => {
+                if (transcriptionEngine === 'whisper-cpp') {
+                    await settingsApi.downloadWhisperCppModel();
+                } else {
+                    await settingsApi.downloadParakeetModel();
+                }
             },
-        });
-        return models;
-    };
-
-    const handleTestOpenAi = async () => {
-        const model = openAiModel.trim();
-        if (!model) {
-            setTestResult({ success: false, message: t('steps.translation.testNoModel') });
-            return;
-        }
-        setTestingOpenAi(true);
-        setTestResult(null);
-        try {
-            await persistOpenAiCredentials();
-            const result = await settingsApi.testOpenAi(model);
-            setTestResult(result);
-            if (result.success) {
-                toast.success(t('steps.translation.testSuccess'));
-            } else {
-                toast.error(result.message || t('steps.translation.testFailed'));
-            }
-        } catch (error) {
-            const msg = error instanceof Error ? error.message : String(error);
-            setTestResult({ success: false, message: msg });
-            toast.error(msg);
-        } finally {
-            setTestingOpenAi(false);
-        }
-    };
-
-    const defaultLocalAiModel = localAiStatus?.models.find((m) => m.modelId === LOCAL_AI_DEFAULT_MODEL_ID);
-    const isLocalAiReady = defaultLocalAiModel?.ready ?? false;
-    /** 依据内存、核数与 GPU 给出的推荐档位；硬件信息未就绪时为 null。 */
-    const recommendedTier: TranslationTier | null = hardware ? recommendTier(hardware) : null;
-    /** 选云端档位或开启整句讲解时需要填写云端凭据。 */
-    const needsCloud = translationTier === 'cloud' || sentenceLearning;
-    /** 选本地智能档位时需要下载智能模型。 */
-    const needsLocalLlm = translationTier === 'smart';
-    /** 云端凭据未填齐时不允许完成配置，避免存下用不了的引擎。 */
-    const cloudIncomplete = needsCloud && (!openAiKey.trim() || !openAiModel.trim());
-
-    /** 各离线模型的近似体积（MB），仅用于下载清单的合计展示；单行明细以各自的文案为准。 */
-    const MODEL_SIZE_MB: Record<string, number> = { tts: 18, transcription: 640, 'local-ai': 1280, 'local-mt': 300 };
-
-    /** 本次引导需要下载的模型清单：按识别方式与档位决定，run 失败会抛出供批量下载中断。 */
-    const downloadPlan = [
-        { key: 'tts', ready: ttsStatus?.ready ?? false, run: handleDownloadTts },
-        { key: 'transcription', ready: transcriptionStatus?.ready ?? false, run: handleDownloadTranscription },
-        ...(translationTier === 'light'
-            ? [{ key: 'local-mt', ready: localMtStatus?.ready ?? false, run: handleDownloadLocalMt }]
-            : []),
-        ...(needsLocalLlm
-            ? [{ key: 'local-ai', ready: isLocalAiReady, run: handleDownloadLocalAi }]
-            : []),
+            cancel: async () => {
+                if (transcriptionEngine === 'whisper-cpp') {
+                    await settingsApi.cancelWhisperCppModelDownload();
+                } else {
+                    await settingsApi.cancelParakeetModelDownload();
+                }
+            },
+        },
+        {
+            key: 'mt',
+            title: t('steps.download.itemMt'),
+            ready: localMtStatus?.ready ?? false,
+            urls: localMtStatus?.downloadUrls ?? null,
+            targetPath: localMtStatus?.modelPath ?? null,
+            run: async () => { await settingsApi.downloadLocalMt(); },
+            cancel: async () => { await settingsApi.cancelLocalMtDownload(); },
+        },
     ];
-    /** 尚未下载的模型及其合计体积。 */
-    const pendingDownloads = downloadPlan.filter((item) => !item.ready);
-    const pendingSizeMb = pendingDownloads.reduce((sum, item) => sum + MODEL_SIZE_MB[item.key], 0);
-    const pendingSizeLabel = pendingSizeMb >= 1024
-        ? `${(pendingSizeMb / 1024).toFixed(1)} GB`
-        : `${pendingSizeMb} MB`;
+    const pendingEntries = bundleEntries.filter((entry) => !entry.ready);
+    const allReady = pendingEntries.length === 0;
+    /** 手动下载教程里可复制/打开的落盘位置。 */
+    const manualTargets = bundleEntries.flatMap((entry) => (
+        entry.targetPath ? [{ key: entry.key, path: entry.targetPath }] : []
+    ));
+    /** 按当前网速估算的剩余时间文案；网速未知时为 null。 */
+    const remainingLabel = (() => {
+        if (speed <= 0 || progress.total <= progress.downloaded) return null;
+        const seconds = (progress.total - progress.downloaded) / speed;
+        return seconds >= 60
+            ? t('steps.download.etaMinutes', {
+                minutes: Math.floor(seconds / 60),
+                seconds: Math.round(seconds % 60),
+            })
+            : t('steps.download.etaSeconds', { seconds: Math.max(1, Math.round(seconds)) });
+    })();
 
     /**
-     * 按清单顺序依次下载尚未完成的模型，全部成功后保存配置并进入完成页。
+     * 保存引导结果并进入完成页。
      *
-     * 串行而非并发：同时下载多个模型会互相抢带宽，进度也难以理解。
-     * 任一模型失败即停下（具体原因由各自的下载动作提示），已完成的部分保留。
+     * 字幕翻译只在轻量模型确实就绪时才指向它，否则关闭：避免存下一个指向未下载模型的引擎。
+     * 词典固定走内置词库（引擎关闭），超出词库的查询留到设置页再配。
      */
-    const handleDownloadAll = async () => {
-        setDownloadingAll(true);
-        try {
-            for (const item of pendingDownloads) {
-                await item.run();
-            }
-            await handleFinishConfig();
-        } catch {
-            // 单个下载动作已提示具体原因，这里只保证不再继续下一个
-        } finally {
-            setDownloadingAll(false);
-        }
-    };
-
-    /**
-     * 保存配置步骤的结果；成功后进入完成页，失败则留在当前步骤让用户重试或跳过。
-     */
-    const handleFinishConfig = async () => {
+    const finishOnboarding = async () => {
         setFinishing(true);
         try {
-            const model = openAiModel.trim();
-            if (needsCloud || openAiKey.trim()) {
-                await persistOpenAiCredentials();
-            }
-
-            const currentEngineSettings = await settingsApi.getEngineSelection();
+            const [current, localMt] = await Promise.all([
+                settingsApi.getEngineSelection(),
+                settingsApi.getLocalMtStatus(),
+            ]);
             await settingsApi.saveEngineSelection({
-                ...currentEngineSettings,
-                openai: needsCloud && model
-                    ? {
-                        ...currentEngineSettings.openai,
-                        enableSentenceLearning: sentenceLearning,
-                        featureModels: {
-                            sentenceLearning: model,
-                            subtitleTranslation: model,
-                            dictionary: model,
-                        },
-                    }
-                    : currentEngineSettings.openai,
+                ...current,
                 providers: {
-                    ...currentEngineSettings.providers,
-                    ...TIER_ENGINES[translationTier],
+                    ...current.providers,
+                    subtitleTranslationEngine: localMt.ready ? 'local-mt' : 'none',
+                    dictionaryEngine: 'none',
                 },
             });
-
             await markOnboardingCompleted(CURRENT_ONBOARDING_VERSION);
-            setCurrentStep(4);
+            setCurrentStep(totalSteps + 1);
         } catch (error) {
-            // 保存失败时明确告知用户，不静默丢配置
             toast.error(error instanceof Error ? error.message : String(error));
         } finally {
             setFinishing(false);
+        }
+    };
+
+    /**
+     * 依次下载资源包里尚未完成的项，全部成功后保存配置并进入完成页。
+     *
+     * 串行而非并发：同时下载会互相抢带宽，进度也难以理解。
+     * 任一项失败即停下（原因展示在卡片里），已完成的部分保留。
+     */
+    const downloadBundle = async () => {
+        cancelRequestedRef.current = false;
+        setBundleError(null);
+        setDownloadingBundle(true);
+        try {
+            for (let index = 0; index < pendingEntries.length; index++) {
+                const entry = pendingEntries[index];
+                setItemIndex(index + 1);
+                setActiveItem(entry.key);
+                setActivePhase(null);
+                setProgress({ percent: 0, downloaded: 0, total: 0 });
+                setSpeed(0);
+                speedSampleRef.current = null;
+                await entry.run();
+                if (cancelRequestedRef.current) break;
+            }
+            if (!cancelRequestedRef.current) {
+                await finishOnboarding();
+            }
+        } catch (error) {
+            if (!cancelRequestedRef.current) {
+                setBundleError(error instanceof Error ? error.message : String(error));
+            }
+        } finally {
+            setActiveItem(null);
+            setActivePhase(null);
+            setDownloadingBundle(false);
+        }
+    };
+
+    /** 取消当前项的下载并中断队列。 */
+    const cancelBundleDownload = async () => {
+        cancelRequestedRef.current = true;
+        const entry = bundleEntries.find((item) => item.key === activeItem);
+        if (!entry) return;
+        try {
+            await entry.cancel();
+        } catch (error) {
+            toast.error(error instanceof Error ? error.message : String(error));
         }
     };
 
@@ -815,25 +527,24 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
                                 {t('dialogTitle')}
                             </h1>
-                            <p className="text-sm text-muted-foreground max-w-md mx-auto">
-                                {t('dialogSubtitle')}
+                            <p className="text-xs sm:text-sm text-muted-foreground">
+                                {t('dialogDescription')}
                             </p>
                         </div>
                     )}
 
-                    {/* Step Breadcrumb Bar */}
                     {currentStep <= totalSteps && (
-                        <div className="flex items-center gap-2 pt-2">
+                        <div className="flex items-center gap-1.5 pt-1">
                             {Array.from({ length: totalSteps }, (_, index) => index + 1).map((step) => (
-                                <div
+                                <span
                                     key={step}
                                     className={cn(
-                                        'h-1.5 rounded-full transition-all duration-300',
+                                        'h-1 rounded-full transition-all duration-300',
                                         step === currentStep
                                             ? 'w-8 bg-primary'
                                             : step < currentStep
-                                            ? 'w-4 bg-primary/40'
-                                            : 'w-4 bg-muted'
+                                                ? 'w-4 bg-primary/50'
+                                                : 'w-4 bg-muted',
                                     )}
                                 />
                             ))}
@@ -841,7 +552,6 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                     )}
                 </div>
 
-                {/* Middle Interactive Content */}
                 <div className="w-full my-auto py-6 max-w-2xl overflow-y-auto scrollbar-none">
                     {currentStep === 1 && (
                         <div className="space-y-4 animate-in fade-in-50 duration-200">
@@ -895,293 +605,156 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                             </p>
                         </div>
                     )}
-
                     {currentStep === 2 && (
-                        <div className="space-y-4 animate-in fade-in-50 duration-200">
-                            <div className="text-center sm:text-left space-y-1">
-                                <h3 className="text-base font-semibold flex items-center justify-center sm:justify-start gap-2">
-                                    <Languages className="w-4 h-4 text-primary" />
-                                    {t('steps.translation.title')}
-                                </h3>
-                                <p className="text-xs text-muted-foreground">
-                                    {t('steps.translation.desc')}
-                                </p>
-                            </div>
+                        <div className="relative isolate space-y-4 animate-in fade-in-50 duration-200">
+                            {/* isolate 让点阵的负 z-index 落在本步骤自己的层叠上下文里，否则会被页面背景盖住 */}
+                            <DotRippleBackground active={downloadingBundle} />
 
-                            {/* 三档方案：横向三列，一次决定字幕翻译与查词用哪套引擎 */}
-                            <RadioGroup
-                                value={translationTier}
-                                onValueChange={(value) => setTranslationTier(value as TranslationTier)}
-                                className="grid grid-cols-1 gap-3 sm:grid-cols-3"
-                            >
-                                {TRANSLATION_TIERS.map((tierId) => (
-                                    <Label
-                                        key={tierId}
-                                        htmlFor={`translation-tier-${tierId}`}
-                                        className={cn(
-                                            'flex cursor-pointer flex-col gap-2 rounded-xl border p-3.5 transition-colors',
-                                            translationTier === tierId
-                                                ? 'border-primary bg-primary/5'
-                                                : 'border-border bg-card hover:bg-muted/40',
-                                        )}
-                                    >
-                                        <div className="flex items-center gap-2">
-                                            <RadioGroupItem value={tierId} id={`translation-tier-${tierId}`} />
-                                            <span className="text-sm font-medium text-foreground">
-                                                {t(`steps.translation.tier.${tierId}.title`)}
-                                            </span>
-                                            {recommendedTier === tierId && (
-                                                <span className="shrink-0 rounded bg-primary/10 px-1.5 py-0.5 text-[10px] font-medium text-primary">
-                                                    {t('steps.translation.recommended')}
-                                                </span>
-                                            )}
-                                        </div>
-                                        <span className="w-fit rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                                            {t(`steps.translation.tier.${tierId}.size`)}
-                                        </span>
-                                        <span className="text-xs text-muted-foreground leading-relaxed">
-                                            {t(`steps.translation.tier.${tierId}.desc`)}
-                                        </span>
-                                    </Label>
-                                ))}
-                            </RadioGroup>
-
-                            {hardware && recommendedTier && (
-                                <p className="text-xs text-muted-foreground leading-relaxed">
-                                    {hardware.gpuAcceleration === 'none'
-                                        ? t('steps.translation.hardwareHintNoGpu', {
-                                            memory: hardware.totalMemoryGb,
-                                            cores: hardware.cpuCount,
-                                            tier: t(`steps.translation.tier.${recommendedTier}.title`),
-                                        })
-                                        : t('steps.translation.hardwareHintGpu', {
-                                            memory: hardware.totalMemoryGb,
-                                            cores: hardware.cpuCount,
-                                            gpu: GPU_ACCELERATION_LABELS[hardware.gpuAcceleration],
-                                            tier: t(`steps.translation.tier.${recommendedTier}.title`),
-                                        })}
-                                </p>
-                            )}
-
-                            {/* 内置词典的暗示：查词默认就能用，不需要额外配置或下载 */}
-                            <div className="flex items-start gap-2 text-xs text-muted-foreground leading-relaxed">
-                                <BookOpen className="w-3.5 h-3.5 mt-0.5 text-primary shrink-0" />
-                                <span>{t('steps.translation.dictionaryHint')}</span>
-                            </div>
-
-                            {/* 附加功能：与档位无关的独立能力，单独成区，避免看着像和模型一起配的 */}
-                            <div className="space-y-2 pt-1">
-                                <div className="text-xs font-medium text-muted-foreground">
-                                    {t('steps.translation.extrasTitle')}
-                                </div>
-                            <Label
-                                htmlFor="onboarding-sentence-learning"
-                                className={cn(
-                                    'flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors',
-                                    sentenceLearning ? 'border-primary bg-primary/5' : 'border-border bg-card hover:bg-muted/40',
-                                )}
-                            >
-                                <Checkbox
-                                    id="onboarding-sentence-learning"
-                                    checked={sentenceLearning}
-                                    onCheckedChange={(checked) => setSentenceLearning(checked === true)}
-                                    className="mt-0.5"
-                                />
-                                <div className="min-w-0 flex-1 space-y-0.5">
-                                    <div className="text-sm font-medium text-foreground">
-                                        {t('steps.translation.sentenceLearningLabel')}
-                                    </div>
-                                    <div className="text-xs text-muted-foreground">
-                                        {t('steps.translation.sentenceLearningHint')}
-                                    </div>
-                                </div>
-                            </Label>
-                            </div>
-
-                            {/* 云端配置：选云端档位或开启整句讲解时展开 */}
-                            {needsCloud && (
-                                <div className="border rounded-xl p-4 bg-card shadow-xs space-y-3">
-                                    <div className="space-y-1.5">
-                                        <Label className="text-xs font-medium text-foreground">
-                                            {t('steps.translation.openaiKeyLabel')}
-                                        </Label>
-                                        <Input
-                                            type="password"
-                                            value={openAiKey}
-                                            onChange={(e) => setOpenAiKey(e.target.value)}
-                                            placeholder={t('steps.translation.openaiKeyPlaceholder')}
-                                            className="h-8.5 text-xs"
-                                        />
-                                    </div>
-
-                                    <div className="space-y-1.5">
-                                        <Label className="text-xs font-medium text-foreground">
-                                            {t('steps.translation.openaiEndpointLabel')}
-                                        </Label>
-                                        <Input
-                                            value={openAiEndpoint}
-                                            onChange={(e) => setOpenAiEndpoint(e.target.value)}
-                                            placeholder={t('steps.translation.openaiEndpointPlaceholder')}
-                                            className="h-8.5 text-xs font-mono"
-                                        />
-                                    </div>
-
-                                    <div className="space-y-1.5">
-                                        <Label className="text-xs font-medium text-foreground">
-                                            {t('steps.translation.openaiModelLabel')}
-                                        </Label>
-                                        <Input
-                                            value={openAiModel}
-                                            onChange={(e) => setOpenAiModel(e.target.value)}
-                                            placeholder={t('steps.translation.openaiModelPlaceholder')}
-                                            className="h-8.5 text-xs font-mono"
-                                        />
-                                        <p className="text-[11px] text-muted-foreground leading-relaxed">
-                                            {t('steps.translation.openaiModelHint')}
-                                        </p>
-                                    </div>
-
-                                    <div className="flex items-center justify-between pt-1">
-                                        <div className="min-w-0">
-                                            {testResult && (
-                                                <span className={cn(
-                                                    'flex items-center gap-1.5 text-xs font-medium',
-                                                    testResult.success ? 'text-emerald-500' : 'text-destructive'
-                                                )}>
-                                                    {testResult.success ? (
-                                                        <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                                                    ) : (
-                                                        <XCircle className="w-3.5 h-3.5 shrink-0" />
-                                                    )}
-                                                    <span className="truncate" title={testResult.message}>
-                                                        {testResult.success
-                                                            ? t('steps.translation.testSuccess')
-                                                            : testResult.message || t('steps.translation.testFailed')}
-                                                    </span>
-                                                </span>
-                                            )}
-                                        </div>
-
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            disabled={testingOpenAi || !openAiKey.trim() || !openAiModel.trim()}
-                                            onClick={handleTestOpenAi}
-                                            className="h-7.5 min-w-24 justify-center text-xs gap-1.5 whitespace-nowrap"
-                                        >
-                                            {testingOpenAi ? (
-                                                <>
-                                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                                    {t('steps.translation.testing')}
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <TestTube className="w-3.5 h-3.5" />
-                                                    {t('steps.translation.testConnection')}
-                                                </>
-                                            )}
-                                        </Button>
-                                    </div>
-                                </div>
-                            )}
-
-                        </div>
-                    )}
-
-                    {currentStep === 3 && (
-                        <div className="space-y-4 animate-in fade-in-50 duration-200">
                             <div className="text-center sm:text-left space-y-1">
                                 <h3 className="text-base font-semibold flex items-center justify-center sm:justify-start gap-2">
                                     <Download className="w-4 h-4 text-primary" />
                                     {t('steps.download.title')}
                                 </h3>
                                 <p className="text-xs text-muted-foreground leading-relaxed">
-                                    {pendingDownloads.length > 0
-                                        ? t('steps.download.desc', {
-                                            count: pendingDownloads.length,
-                                            size: pendingSizeLabel,
-                                        })
-                                        : t('steps.download.descReady')}
+                                    {t('steps.download.desc')}
                                 </p>
                             </div>
 
-                            <div className="grid gap-3">
-                                <ModelDownloadRow
-                                    icon={Volume2}
-                                    title={t('steps.models.ttsTitle')}
-                                    description={t('steps.models.ttsDesc')}
-                                    sizeLabel={t('steps.models.ttsSize')}
-                                    ready={ttsStatus?.ready ?? false}
-                                    downloading={downloadingTts}
-                                    progress={ttsProgress}
-                                    downloadUrls={ttsStatus?.downloadUrls}
-                                    targetPath={ttsStatus?.archivePath}
-                                    onDownload={() => { void handleDownloadTts().catch(() => null); }}
-                                    onCancel={handleCancelTts}
-                                    onCopy={copyText}
-                                    onOpenUrl={openUrl}
-                                    onOpenFolder={openFolder}
-                                />
+                            <div className="border rounded-xl p-4 bg-card shadow-xs space-y-3">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-foreground shrink-0">
+                                        <Download className="w-4.5 h-4.5" />
+                                    </div>
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <span className="font-medium text-xs sm:text-sm">{t('steps.download.packTitle')}</span>
+                                            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
+                                                {t('steps.download.packSize')}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="shrink-0">
+                                        {allReady ? (
+                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-secondary text-secondary-foreground">
+                                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+                                                {t('steps.models.statusReady')}
+                                            </span>
+                                        ) : downloadingBundle ? (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-8 min-w-28 justify-center gap-1.5 text-xs"
+                                                onClick={() => { void cancelBundleDownload(); }}
+                                            >
+                                                <Square className="w-3.5 h-3.5 text-destructive" />
+                                                {t('steps.models.cancelDownload')}
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                size="sm"
+                                                variant="secondary"
+                                                className="h-8 min-w-28 justify-center gap-1.5 text-xs"
+                                                onClick={() => { void downloadBundle(); }}
+                                            >
+                                                <Download className="w-3.5 h-3.5" />
+                                                {bundleError ? t('steps.download.retry') : t('steps.models.actionDownload')}
+                                            </Button>
+                                        )}
+                                    </div>
+                                </div>
 
-                                <ModelDownloadRow
-                                    icon={Mic}
-                                    title={t('steps.models.transcriptionTitle')}
-                                    description={t('steps.models.transcriptionDesc')}
-                                    sizeLabel={t('steps.models.transcriptionSize')}
-                                    ready={transcriptionStatus?.ready ?? false}
-                                    downloading={downloadingTranscription}
-                                    progress={transcriptionProgress}
-                                    downloadUrls={transcriptionStatus?.downloadUrls}
-                                    targetPath={transcriptionStatus?.archivePath}
-                                    onDownload={() => { void handleDownloadTranscription().catch(() => null); }}
-                                    onCancel={handleCancelTranscription}
-                                    onCopy={copyText}
-                                    onOpenUrl={openUrl}
-                                    onOpenFolder={openFolder}
-                                />
-
-                                {translationTier === 'light' && (
-                                    <ModelDownloadRow
-                                        icon={Cpu}
-                                        title={t('steps.translation.localMtTitle')}
-                                        description={t('steps.translation.localMtDesc')}
-                                        sizeLabel={t('steps.translation.localMtSize')}
-                                        ready={localMtStatus?.ready ?? false}
-                                        downloading={downloadingLocalMt}
-                                        progress={localMtProgress}
-                                        downloadUrls={localMtStatus?.downloadUrls}
-                                        targetPath={localMtStatus?.modelPath}
-                                        onDownload={() => { void handleDownloadLocalMt().catch(() => null); }}
-                                        onCancel={handleCancelLocalMt}
-                                        onCopy={copyText}
-                                        onOpenUrl={openUrl}
-                                        onOpenFolder={openFolder}
-                                    />
+                                {downloadingBundle && (
+                                    <div className="space-y-1.5">
+                                        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
+                                            <span>
+                                                {activePhase && PHASE_LABEL_KEYS[activePhase]
+                                                    ? t(PHASE_LABEL_KEYS[activePhase] as string)
+                                                    : t('steps.download.downloading', {
+                                                        current: itemIndex,
+                                                        total: pendingEntries.length,
+                                                    })}
+                                            </span>
+                                            <span>{progress.percent}%</span>
+                                        </div>
+                                        <Progress value={progress.percent} className="h-1.5" />
+                                        {speed > 0 && (
+                                            <div className="text-[11px] text-muted-foreground">
+                                                {formatSpeed(speed)}{remainingLabel ? ` · ${remainingLabel}` : ''}
+                                            </div>
+                                        )}
+                                    </div>
                                 )}
 
-                                {needsLocalLlm && (
-                                    <ModelDownloadRow
-                                        icon={Cpu}
-                                        title={t('steps.translation.localLlmTitle')}
-                                        description={t('steps.translation.localLlmDesc')}
-                                        sizeLabel={t('steps.translation.localLlmSize')}
-                                        ready={isLocalAiReady}
-                                        downloading={downloadingLocalAi}
-                                        progress={localAiProgress}
-                                        downloadUrls={defaultLocalAiModel?.downloadUrls}
-                                        targetPath={localAiStatus?.modelsDirectory}
-                                        onDownload={() => { void handleDownloadLocalAi().catch(() => null); }}
-                                        onCancel={handleCancelLocalAi}
-                                        onCopy={copyText}
-                                        onOpenUrl={openUrl}
-                                        onOpenFolder={openFolder}
-                                    />
+                                {bundleError && (
+                                    <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+                                        <XCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
+                                        <span className="break-all">{bundleError}</span>
+                                    </div>
                                 )}
-
                             </div>
 
-                            <p className="text-xs text-muted-foreground leading-relaxed pt-1">
+                            <ManualDownloadGuide variant="plain" title={t('steps.models.manualGuideTitle')}>
+                                <div className="space-y-3">
+                                    <div className="font-semibold text-foreground">{t('steps.models.manualStep1')}</div>
+                                    {bundleEntries.map((entry) => (
+                                        <div key={entry.key} className="space-y-1.5">
+                                            <div className="font-semibold text-foreground">{entry.title}</div>
+                                            <div className="bg-background/80 rounded border border-border/60 p-2 space-y-2 font-mono text-[11px] break-all select-text">
+                                                {(entry.urls ?? []).map((url, index) => (
+                                                    <div key={url} className="space-y-1">
+                                                        <div className="flex items-start gap-1.5">
+                                                            {index > 0 && (
+                                                                <span className="shrink-0 mt-0.5 rounded bg-amber-500/10 px-1.5 py-0.5 font-sans text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                                                                    {t('steps.models.backupSource')}
+                                                                </span>
+                                                            )}
+                                                            <span className="text-muted-foreground/70 break-all">{url}</span>
+                                                        </div>
+                                                        <div className="flex items-center gap-1 font-sans">
+                                                            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => { void copyText(url); }}>
+                                                                <Copy className="w-3 h-3 mr-1" />
+                                                                {t('steps.models.copyLink')}
+                                                            </Button>
+                                                            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => { void openUrl(url); }}>
+                                                                <ExternalLink className="w-3 h-3 mr-1" />
+                                                                {t('steps.models.openInBrowser')}
+                                                            </Button>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    ))}
+
+                                    <div className="space-y-1.5">
+                                        <div className="font-semibold text-foreground">{t('steps.models.manualStep2')}</div>
+                                        <div className="bg-background/80 rounded border border-border/60 p-2 space-y-2 font-mono text-[11px] break-all select-text">
+                                            {manualTargets.map((target) => (
+                                                <div key={target.key} className="space-y-1.5">
+                                                    <div className="text-muted-foreground/70">{target.path}</div>
+                                                    <div className="flex items-center gap-2 font-sans">
+                                                        <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => { void copyText(target.path); }}>
+                                                            <Copy className="w-3 h-3 mr-1" />
+                                                            {t('steps.models.copyPath')}
+                                                        </Button>
+                                                        <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => { void openFolder(target.path); }}>
+                                                            <FolderOpen className="w-3 h-3 mr-1" />
+                                                            {t('steps.models.openFolder')}
+                                                        </Button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <div className="font-semibold text-foreground">{t('steps.models.manualStep3')}</div>
+                                        <div className="text-muted-foreground">{t('steps.models.installHint')}</div>
+                                    </div>
+                                </div>
+                            </ManualDownloadGuide>
+
+                            <p className="text-xs text-muted-foreground leading-relaxed">
                                 {t('steps.download.note')}
                             </p>
                         </div>
@@ -1243,7 +816,6 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                         </div>
                     )}
                 </div>
-
                 {/* Footer Controls */}
                 <div className="w-full max-w-2xl flex items-center justify-between pt-4 border-t border-border/60 shrink-0">
                     {currentStep <= totalSteps ? (
@@ -1251,8 +823,10 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                             variant="ghost"
                             size="sm"
                             className="text-xs text-muted-foreground hover:text-foreground"
-                            disabled={finishing || downloadingAll}
-                            onClick={currentStep === totalSteps ? handleFinishConfig : handleSkip}
+                            disabled={finishing || downloadingBundle}
+                            onClick={currentStep === totalSteps
+                                ? () => { void finishOnboarding(); }
+                                : () => { void handleSkip(); }}
                         >
                             {currentStep === totalSteps ? t('steps.download.skip') : t('skip')}
                         </Button>
@@ -1261,12 +835,6 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                     )}
 
                     <div className="flex items-center gap-2.5">
-                        {currentStep === 2 && cloudIncomplete && (
-                            <span className="text-xs text-amber-600 dark:text-amber-400">
-                                {t('steps.translation.cloudIncompleteHint')}
-                            </span>
-                        )}
-
                         {currentStep > 1 && currentStep <= totalSteps && (
                             <Button
                                 variant="outline"
@@ -1283,7 +851,6 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                             <Button
                                 size="sm"
                                 className="h-8.5 px-4 text-xs gap-1.5 rounded-lg"
-                                disabled={currentStep === 2 && cloudIncomplete}
                                 onClick={() => setCurrentStep((s) => Math.min(totalSteps, s + 1))}
                             >
                                 {t('nextStep')}
@@ -1295,21 +862,21 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                             <Button
                                 size="sm"
                                 className="h-8.5 px-4 text-xs gap-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
-                                disabled={finishing || downloadingAll}
-                                onClick={pendingDownloads.length > 0 ? handleDownloadAll : handleFinishConfig}
+                                disabled={finishing || downloadingBundle}
+                                onClick={() => { void (allReady ? finishOnboarding() : downloadBundle()); }}
                             >
-                                {finishing || downloadingAll ? (
+                                {finishing || downloadingBundle ? (
                                     <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                ) : pendingDownloads.length > 0 ? (
-                                    <Download className="w-3.5 h-3.5" />
-                                ) : (
+                                ) : allReady ? (
                                     <Check className="w-3.5 h-3.5" />
+                                ) : (
+                                    <Download className="w-3.5 h-3.5" />
                                 )}
-                                {downloadingAll
-                                    ? t('steps.download.downloading')
-                                    : pendingDownloads.length > 0
-                                        ? t('steps.download.startAll')
-                                        : t('finishConfig')}
+                                {downloadingBundle
+                                    ? t('steps.download.downloadingShort')
+                                    : allReady
+                                        ? t('finishConfig')
+                                        : t('steps.download.downloadAndFinish')}
                             </Button>
                         )}
 
