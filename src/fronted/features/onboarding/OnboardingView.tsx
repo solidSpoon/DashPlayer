@@ -807,23 +807,20 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({
                             </div>
 
                             <div className="border rounded-xl p-4 bg-card shadow-xs space-y-3">
-                                <div className="flex items-center gap-3 min-w-0">
+                                <div className="flex items-center gap-3">
                                     <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-foreground shrink-0">
                                         <Folder className="w-4.5 h-4.5" />
                                     </div>
-                                    <div className="min-w-0">
+                                    <div className="min-w-0 flex-1">
                                         <div className="font-medium text-xs sm:text-sm">{t('steps.storage.pathLabel')}</div>
                                         <div className="text-xs text-muted-foreground font-mono break-all">
                                             {storagePath || t('steps.storage.pathLoading')}
                                         </div>
                                     </div>
-                                </div>
-
-                                <div className="flex items-center gap-2">
                                     <Button
                                         size="sm"
                                         variant="secondary"
-                                        className="h-8 gap-1.5 text-xs"
+                                        className="h-8 gap-1.5 text-xs shrink-0"
                                         disabled={choosingStorage}
                                         onClick={handleChooseStorage}
                                     >
