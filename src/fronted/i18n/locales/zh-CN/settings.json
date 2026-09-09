@@ -551,9 +551,9 @@
         "enhance": {
             "title": "本地增强资源包",
             "description": "在本地基础资源包的基础上，让翻译与查词更自然、更贴近原意。属于锦上添花的一项，可按需安装。",
-            "hardwareHintGpu": "本机 {{memory}} GB 内存、{{cores}} 核 CPU，可用 {{gpu}} 加速，跑起来更流畅。",
-            "hardwareHintNoGpu": "本机 {{memory}} GB 内存、{{cores}} 核 CPU，会以 CPU 运行，速度慢一些。",
-            "hardwareHintLowSpec": "本机 {{memory}} GB 内存、{{cores}} 核 CPU，运行本地增强资源包会明显慢一些。",
+            "hardwareHintGpu": "本机适合运行本地增强资源包：{{memory}} GB 内存、{{cores}} 核 CPU、{{gpu}} 加速。",
+            "hardwareHintNoGpu": "本机可以运行本地增强资源包，但只能用 CPU，速度会慢一些（{{memory}} GB 内存、{{cores}} 核 CPU）。",
+            "hardwareHintLowSpec": "本机内存偏小，本地增强资源包可能跑不动（{{memory}} GB 内存、{{cores}} 核 CPU）。",
             "delete": "删除资源包",
             "deleteConfirmTitle": "删除本地增强资源包？"
         },

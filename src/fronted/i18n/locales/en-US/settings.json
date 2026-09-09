@@ -551,9 +551,9 @@
         "enhance": {
             "title": "Local enhancement resource pack",
             "description": "Builds on the local base resource pack for more natural translation and lookups. A nice-to-have — install it when you want the extra polish.",
-            "hardwareHintGpu": "This machine has {{memory}} GB RAM, {{cores}} CPU cores and {{gpu}} acceleration, so it runs smoothly.",
-            "hardwareHintNoGpu": "This machine has {{memory}} GB RAM and {{cores}} CPU cores; the model runs on CPU, which is slower.",
-            "hardwareHintLowSpec": "This machine has {{memory}} GB RAM and {{cores}} CPU cores, so the local enhancement pack runs noticeably slower.",
+            "hardwareHintGpu": "This machine is a good fit for the local enhancement pack: {{memory}} GB RAM, {{cores}} CPU cores, {{gpu}} acceleration.",
+            "hardwareHintNoGpu": "This machine can run the local enhancement pack, but only on CPU, so it will be slower ({{memory}} GB RAM, {{cores}} CPU cores).",
+            "hardwareHintLowSpec": "This machine is short on memory; the local enhancement pack may not run well ({{memory}} GB RAM, {{cores}} CPU cores).",
             "delete": "Delete pack",
             "deleteConfirmTitle": "Delete the local enhancement resource pack?"
         },
