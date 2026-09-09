@@ -113,10 +113,8 @@ export const LocalLlmCard: React.FC<LocalLlmCardProps> = ({
                         <div key={model.modelId} className="space-y-2">
                             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                                 <div className="flex flex-1 items-center gap-2 min-w-0">
-                                    {/* 只有自定义模型才展示文件名；内置模型靠卡片标题即可识别 */}
-                                    {model.custom && (
-                                        <span className="text-sm font-medium text-foreground truncate">{model.name}</span>
-                                    )}
+                                    {/* 模型名对用户判断“跑的是哪个模型”很重要，内置模型也一并展示 */}
+                                    <span className="text-sm font-medium text-foreground truncate">{model.name}</span>
                                     {isActive ? (
                                         <span className="inline-flex items-center gap-1 rounded-full bg-green-500/10 px-2 py-0.5 text-xs font-medium text-green-600 dark:text-green-400">
                                             <CheckCircle2 className="h-3 w-3" />

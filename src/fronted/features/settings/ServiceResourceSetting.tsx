@@ -331,6 +331,12 @@ const ServiceResourceSetting: React.FC = () => {
         ) : null
     );
 
+    /** 当前使用中的本地增强模型名；未安装时为本地增强模型，用于“当前使用”总览。 */
+    const activeEnhanceModelName = React.useMemo(() => {
+        const active = localAiStatus?.models.find((model) => model.modelId === localAiStatus.activeModelId);
+        return active?.name ?? '';
+    }, [localAiStatus]);
+
     /** 本地增强模型的硬件条件提示；硬件信息未就绪时为 undefined。 */
     const enhanceHardwareHint = React.useMemo(() => {
         if (!hardware) return undefined;
@@ -394,6 +400,7 @@ const ServiceResourceSetting: React.FC = () => {
                         sentenceLearningEnabled={watched.openai?.enableSentenceLearning ?? false}
                         sentenceModel={watched.openai?.featureModels?.sentenceLearning ?? ''}
                         transcriptionEngine={transcriptionEngineSetting ?? 'whisper-cpp'}
+                        enhanceModelName={activeEnhanceModelName}
                         fallback={fallbackState ?? null}
                     />
                 </SettingCard>

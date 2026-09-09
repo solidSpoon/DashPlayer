@@ -51,6 +51,8 @@ export interface ResourceUsageCardProps {
     sentenceModel: string;
     /** 字幕识别方式。 */
     transcriptionEngine: TranscriptionEngine;
+    /** 当前使用的本地增强模型名；未安装时为空字符串。 */
+    enhanceModelName: string;
     /** 回退状态；未加载时为 null。 */
     fallback: ResourceFallbackSnapshot | null;
 }
@@ -69,6 +71,7 @@ export const ResourceUsageCard: React.FC<ResourceUsageCardProps> = ({
     sentenceLearningEnabled,
     sentenceModel,
     transcriptionEngine,
+    enhanceModelName,
     fallback,
 }) => {
     const { t } = useTranslation('settings');
@@ -91,7 +94,7 @@ export const ResourceUsageCard: React.FC<ResourceUsageCardProps> = ({
             return { ...base, tier: 'cloud', detail: subtitleModel };
         }
         if (subtitleEngine === 'local') {
-            return { ...base, tier: 'enhance', detail: t('serviceCredentials.localAi.builtinModelName') };
+            return { ...base, tier: 'enhance', detail: enhanceModelName };
         }
         if (subtitleEngine === 'local-mt') {
             return { ...base, tier: 'base', detail: t('resources.pack.itemMt') };
@@ -105,7 +108,7 @@ export const ResourceUsageCard: React.FC<ResourceUsageCardProps> = ({
         const supplement = dictionaryEngine === 'openai'
             ? dictionaryModel
             : dictionaryEngine === 'local'
-                ? t('resources.preference.engineLocalAi')
+                ? enhanceModelName || t('resources.preference.engineLocalAi')
                 : null;
         return {
             ...base,
