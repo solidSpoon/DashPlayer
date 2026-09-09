@@ -15,6 +15,7 @@ import { LocalLlmCard } from '@/fronted/features/settings/components/LocalLlmCar
 import { OpenAiCredentialCard } from '@/fronted/features/settings/components/OpenAiCredentialCard';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
+import { OPENAI_SUBTITLE_DEFAULT_STYLES } from '@/common/constants/openaiSubtitlePrompts';
 import type { LocalAiModelStatus, LocalAiStatus } from '@/common/contracts/local-ai';
 import type { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 import type { ServiceCredentialSettingDetailVO, ServiceCredentialSettingSaveVO } from '@/common/types/vo/service-credentials-setting-vo';
@@ -133,7 +134,15 @@ const ServiceResourceSetting: React.FC = () => {
 
     React.useEffect(() => {
         if (!engineSettings) return;
-        initializePreferences(engineSettings);
+        // 自定义风格留空时，实际生效的是默认风格；直接把默认值填进输入框，让用户看到真实生效的内容
+        initializePreferences({
+            ...engineSettings,
+            openai: {
+                ...engineSettings.openai,
+                subtitleCustomStyle: engineSettings.openai.subtitleCustomStyle.trim()
+                    || OPENAI_SUBTITLE_DEFAULT_STYLES.custom,
+            },
+        });
     }, [engineSettings, initializePreferences]);
 
     /** 云端模型列表；字幕翻译、词典与整句讲解共用。 */
@@ -588,18 +597,19 @@ const ServiceResourceSetting: React.FC = () => {
                         title={t('resources.preference.styleLabel')}
                         icon={Settings2}
                         alignTop={subtitleMode === 'custom'}
+                        className="sm:flex-col sm:items-stretch"
                     >
                         {subtitleEngine === 'local-mt' ? (
                             <div className="text-xs text-muted-foreground">{t('resources.preference.localMtZhOnlyHint')}</div>
                         ) : (
-                            <div className="flex w-72 flex-col gap-2">
+                            <div className="flex w-full flex-col gap-2">
                                 <Select
                                     value={watched.openai?.subtitleTranslationMode}
                                     onValueChange={(value: 'zh' | 'simple_en' | 'custom') => {
                                         setValue('openai.subtitleTranslationMode', value, { shouldDirty: true });
                                     }}
                                 >
-                                    <SelectTrigger><SelectValue /></SelectTrigger>
+                                    <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
                                     <SelectContent>
                                         <SelectItem value="zh">{t('resources.preference.styleZh')}</SelectItem>
                                         <SelectItem value="simple_en">{t('resources.preference.styleSimpleEn')}</SelectItem>
@@ -613,7 +623,7 @@ const ServiceResourceSetting: React.FC = () => {
                                             setValue('openai.subtitleCustomStyle', event.target.value, { shouldDirty: true });
                                         }}
                                         placeholder={t('resources.preference.stylePlaceholder')}
-                                        className="min-h-[100px] resize-none text-xs"
+                                        className="min-h-[100px] w-full resize-none text-xs"
                                     />
                                 )}
                             </div>
