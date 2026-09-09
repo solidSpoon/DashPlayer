@@ -555,10 +555,14 @@
             "hardwareHintNoGpu": "本机 {{memory}} GB 内存、{{cores}} 核 CPU，会以 CPU 运行，速度慢一些。",
             "hardwareHintLowSpec": "本机 {{memory}} GB 内存、{{cores}} 核 CPU，运行本地增强模型会明显慢一些。"
         },
-        "status": {
-            "cloudReady": "已配置",
-            "cloudMissing": "未配置",
-            "cloudFallback": "云端暂时不可用，已回退到基础资源"
+        "capability": {
+            "translation": "翻译",
+            "dictionary": "词典",
+            "sentence": "整句讲解",
+            "transcription": "字幕识别",
+            "tts": "发音",
+            "configurableHint": "{{name}}：可在下方「{{card}}」里修改",
+            "fallbackHint": "云端暂时不可用，已回退到基础资源"
         }
     }
 }

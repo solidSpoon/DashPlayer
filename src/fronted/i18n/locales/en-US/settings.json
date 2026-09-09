@@ -555,10 +555,14 @@
             "hardwareHintNoGpu": "This machine has {{memory}} GB RAM and {{cores}} CPU cores; the model runs on CPU, which is slower.",
             "hardwareHintLowSpec": "This machine has {{memory}} GB RAM and {{cores}} CPU cores, so the local enhancement model runs noticeably slower."
         },
-        "status": {
-            "cloudReady": "Configured",
-            "cloudMissing": "Not configured",
-            "cloudFallback": "Cloud is unavailable right now; fell back to base resources"
+        "capability": {
+            "translation": "Translation",
+            "dictionary": "Dictionary",
+            "sentence": "Sentence explanation",
+            "transcription": "Subtitle recognition",
+            "tts": "Pronunciation",
+            "configurableHint": "{{name}} — change it in “{{card}}” below",
+            "fallbackHint": "Cloud is unavailable right now; fell back to base resources"
         }
     }
 }

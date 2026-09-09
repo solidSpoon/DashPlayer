@@ -3,7 +3,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import useSWR from 'swr';
 import toast from 'react-hot-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { AlertTriangle, CheckCircle2, CircleDashed, Cloud, HardDrive, Languages, Settings2, Sparkles } from 'lucide-react';
+import { AlertTriangle, BookA, Captions, Cloud, HardDrive, Languages, Settings2, Sparkles, Volume2 } from 'lucide-react';
 import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
 import { SettingCard, SettingRow, SettingsLoadingSkeleton } from '@/fronted/features/settings/components/form';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
@@ -25,6 +25,22 @@ const GPU_ACCELERATION_LABELS: Record<'metal' | 'vulkan', string> = {
     metal: 'Metal',
     vulkan: 'Vulkan',
 };
+
+/** 卡片头右侧的能力图标。 */
+interface CapabilityIcon {
+    /** 图标组件。 */
+    icon: React.ElementType;
+    /** 能力名文案键。 */
+    labelKey: string;
+    /** 是否能在下方「翻译与查词偏好」里切换（决定悬停提示文案）。 */
+    configurable: boolean;
+}
+
+const CAPABILITY_TRANSLATION: CapabilityIcon = { icon: Languages, labelKey: 'resources.capability.translation', configurable: true };
+const CAPABILITY_DICTIONARY: CapabilityIcon = { icon: BookA, labelKey: 'resources.capability.dictionary', configurable: true };
+const CAPABILITY_SENTENCE: CapabilityIcon = { icon: Sparkles, labelKey: 'resources.capability.sentence', configurable: true };
+const CAPABILITY_TRANSCRIPTION: CapabilityIcon = { icon: Captions, labelKey: 'resources.capability.transcription', configurable: false };
+const CAPABILITY_TTS: CapabilityIcon = { icon: Volume2, labelKey: 'resources.capability.tts', configurable: false };
 
 /** 本地增强模型的下载进度事件携带的数据。 */
 interface LocalAiDownloadProgress {
@@ -322,9 +338,6 @@ const ServiceResourceSetting: React.FC = () => {
         <SelectItem key={`${prefix}-${model}`} value={`openai:${model}`}>{model}</SelectItem>
     ));
 
-    /** 运行资源包是否全部就绪；由资源包卡片回报，用于卡片头状态图标。 */
-    const [packReady, setPackReady] = React.useState(false);
-
     /** 本地智能模型的硬件条件提示；硬件信息未就绪时为 undefined。 */
     const enhanceHardwareHint = React.useMemo(() => {
         if (!hardware) return undefined;
@@ -341,36 +354,41 @@ const ServiceResourceSetting: React.FC = () => {
         });
     }, [hardware, t]);
 
-    /** 云端是否已配置：密钥与模型列表都就位。 */
-    const cloudConfigured = Boolean(settings?.openai.key && settings.openai.models.length > 0);
-    /** 本地智能模型是否已安装。 */
-    const enhanceReady = localAiStatus?.models.some((model) => model.ready) ?? false;
     /** 云端是否处于回退中（字幕翻译或词典已落到基础资源）。 */
     const cloudFallback = Boolean(fallbackState?.subtitleTranslation || fallbackState?.dictionary);
 
     /**
-     * 卡片头右侧的低调状态图标：已就绪打勾、未安装空心圆、回退中黄色感叹号。
+     * 卡片头右侧的能力小图标：标明这一档资源能顶哪些功能。
      *
-     * @param ready 该档资源是否可用。
-     * @param readyLabel 可用时的悬停说明。
-     * @param missingLabel 不可用时的悬停说明。
-     * @param warning 非空时优先显示警告图标（如云端已回退）。
+     * @param items 该卡片覆盖的能力。
+     * @param showFallback 是否附带回退警告（仅云端卡片传 true）。
      */
-    const renderStatusIcon = (
-        ready: boolean,
-        readyLabel: string,
-        missingLabel: string,
-        warning?: string,
-    ) => (
-        <span title={warning ?? (ready ? readyLabel : missingLabel)} className="inline-flex items-center">
-            {warning ? (
-                <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-            ) : ready ? (
-                <CheckCircle2 className="h-4 w-4 text-green-600/70 dark:text-green-400/70" />
-            ) : (
-                <CircleDashed className="h-4 w-4 text-muted-foreground/50" />
+    const renderCapabilityIcons = (items: CapabilityIcon[], showFallback = false) => (
+        <div className="flex items-center gap-2">
+            {items.map((item) => {
+                const Icon = item.icon;
+                const name = t(item.labelKey);
+                return (
+                    <span
+                        key={item.labelKey}
+                        title={item.configurable
+                            ? t('resources.capability.configurableHint', {
+                                name,
+                                card: t('resources.preference.title'),
+                            })
+                            : name}
+                        className="inline-flex items-center"
+                    >
+                        <Icon className="h-3.5 w-3.5 text-muted-foreground/60" />
+                    </span>
+                );
+            })}
+            {showFallback && cloudFallback && (
+                <span title={t('resources.capability.fallbackHint')} className="inline-flex items-center">
+                    <AlertTriangle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                </span>
             )}
-        </span>
+        </div>
     );
 
     if (!credentialReady || !preferenceReady) {
@@ -411,13 +429,9 @@ const ServiceResourceSetting: React.FC = () => {
                     title={t('resources.pack.title')}
                     description={t('resources.pack.description')}
                     icon={HardDrive}
-                    headerAction={renderStatusIcon(
-                        packReady,
-                        t('resources.pack.ready'),
-                        t('resources.pack.notReady'),
-                    )}
+                    headerAction={renderCapabilityIcons([CAPABILITY_TTS, CAPABILITY_TRANSCRIPTION, CAPABILITY_TRANSLATION])}
                 >
-                    <ResourcePackCard onReadyChange={setPackReady} />
+                    <ResourcePackCard />
                 </SettingCard>
 
                 {/* ② 本地智能模型：可选的本地大模型，文案强调“在资源包基础上再提升” */}
@@ -425,11 +439,7 @@ const ServiceResourceSetting: React.FC = () => {
                     title={t('resources.enhance.title')}
                     description={t('resources.enhance.description')}
                     icon={Sparkles}
-                    headerAction={renderStatusIcon(
-                        enhanceReady,
-                        t('resources.pack.ready'),
-                        t('resources.pack.notReady'),
-                    )}
+                    headerAction={renderCapabilityIcons([CAPABILITY_TRANSLATION, CAPABILITY_DICTIONARY])}
                 >
                     <LocalLlmCard
                         headerless
@@ -478,12 +488,7 @@ const ServiceResourceSetting: React.FC = () => {
                     title={t('resources.cloud.title')}
                     description={t('resources.cloud.description')}
                     icon={Cloud}
-                    headerAction={renderStatusIcon(
-                        cloudConfigured,
-                        t('resources.status.cloudReady'),
-                        t('resources.status.cloudMissing'),
-                        cloudFallback ? t('resources.status.cloudFallback') : undefined,
-                    )}
+                    headerAction={renderCapabilityIcons([CAPABILITY_TRANSLATION, CAPABILITY_DICTIONARY, CAPABILITY_SENTENCE], true)}
                 >
                     <OpenAiCredentialCard
                         headerless

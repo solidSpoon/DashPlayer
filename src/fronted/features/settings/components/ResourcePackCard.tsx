@@ -80,12 +80,7 @@ interface PackItem {
  * 默认只显示"就绪状态 + 一个下载按钮"，下载时是一条整体进度（按项数均分），
  * 识别方式、手动下载教程等技术细节收在「查看详情」里。
  */
-export interface ResourcePackCardProps {
-    /** 资源包是否全部就绪；供外层卡片头展示状态图标。 */
-    onReadyChange?: (ready: boolean) => void;
-}
-
-export const ResourcePackCard: React.FC<ResourcePackCardProps> = ({ onReadyChange }) => {
+export const ResourcePackCard: React.FC = () => {
     const { t } = useTranslation('settings');
 
     const [transcriptionEngine, setTranscriptionEngine] = React.useState<TranscriptionEngine>('whisper-cpp');
@@ -307,9 +302,6 @@ export const ResourcePackCard: React.FC<ResourcePackCardProps> = ({ onReadyChang
     const pendingItems = items.filter((item) => !item.ready);
     const allReady = pendingItems.length === 0;
     const readyCount = items.length - pendingItems.length;
-
-    // 把就绪状态同步给外层卡片头（状态图标），避免外层重复拉一遍三项资源
-    React.useEffect(() => { onReadyChange?.(allReady); }, [allReady, onReadyChange]);
     /** 整体进度百分比：已完成项按整项计入，当前项按其自身进度折算。 */
     const overallPercent = packProgress.count > 0
         ? Math.min(100, Math.floor(((packProgress.completed + live.percent / 100) / packProgress.count) * 100))
