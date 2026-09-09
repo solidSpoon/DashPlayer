@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { create as createConfetti } from 'canvas-confetti';
 import { Button } from '@/fronted/components/ui/button';
 import { Progress } from '@/fronted/components/ui/progress';
 import { RadioGroup, RadioGroupItem } from '@/fronted/components/ui/radio-group';
@@ -22,7 +23,6 @@ import {
     Loader2,
     Mic,
     Volume2,
-    Cloud,
     Cpu,
     ArrowRight,
     ArrowLeft,
@@ -91,47 +91,65 @@ function recommendTier(hardware: SystemInfo): TranslationTier {
 /** 撒花颜色；固定亮色，保证深浅色主题下都醒目。 */
 const CONFETTI_COLORS = ['#f59e0b', '#10b981', '#3b82f6', '#ef4444', '#8b5cf6', '#ec4899', '#f97316', '#14b8a6'];
 
+/** 随机烟花连放的束数。 */
+const FIREWORK_BURSTS = 4;
+
 /**
- * 完成页的全屏撒花。
+ * 完成页的全屏庆祝动画。
  *
- * 固定定位铺满窗口（不受内容容器裁剪），每片纸屑有随机的横向漂移与旋转；
- * 纯 CSS 动画实现（keyframes 见 index.css 的 confetti-fall），不引入额外依赖。
+ * 用 canvas-confetti 在自建的全屏 canvas 上绘制，分三段递进：
+ * 左右两侧斜向礼炮对射 → 中央星形爆发 → 随机位置的烟花连放，整段约 4 秒。
+ * 动画跑在 Web Worker + OffscreenCanvas 上，不阻塞主线程；
+ * 开启 `disableForReducedMotion`，偏好减少动效的用户直接跳过。
  */
 const Confetti: React.FC = () => {
-    const pieces = React.useMemo(
-        () => Array.from({ length: 120 }, (_, index) => ({
-            left: Math.random() * 100,
-            delay: Math.random() * 2.4,
-            duration: 2.6 + Math.random() * 2.4,
-            size: 6 + Math.random() * 8,
-            drift: (Math.random() - 0.5) * 260,
-            spin: 360 + Math.random() * 900,
-            round: index % 3 === 0,
-            color: CONFETTI_COLORS[index % CONFETTI_COLORS.length],
-        })),
-        [],
-    );
+    React.useEffect(() => {
+        const canvas = document.createElement('canvas');
+        canvas.setAttribute('aria-hidden', 'true');
+        Object.assign(canvas.style, {
+            position: 'fixed',
+            inset: '0',
+            width: '100%',
+            height: '100%',
+            pointerEvents: 'none',
+            zIndex: '50',
+        });
+        document.body.appendChild(canvas);
 
-    return (
-        <div className="pointer-events-none fixed inset-0 z-50 overflow-hidden" aria-hidden="true">
-            {pieces.map((piece, index) => (
-                <span
-                    key={index}
-                    className="absolute top-0 block"
-                    style={{
-                        left: `${piece.left}%`,
-                        width: `${piece.size}px`,
-                        height: `${piece.round ? piece.size : piece.size * 1.7}px`,
-                        borderRadius: piece.round ? '9999px' : '2px',
-                        backgroundColor: piece.color,
-                        animation: `confetti-fall ${piece.duration}s cubic-bezier(0.22, 0.61, 0.36, 1) ${piece.delay}s forwards`,
-                        '--confetti-drift': `${piece.drift}px`,
-                        '--confetti-spin': `${piece.spin}deg`,
-                    } as React.CSSProperties}
-                />
-            ))}
-        </div>
-    );
+        const fire = createConfetti(canvas, { resize: true, useWorker: true, disableForReducedMotion: true });
+        const base = { colors: CONFETTI_COLORS, disableForReducedMotion: true };
+
+        // 两侧礼炮对射：扁平纸条 + 高初速，斜向上打到画面中部。
+        void fire({ ...base, particleCount: 60, angle: 58, spread: 58, origin: { x: 0, y: 0.78 }, startVelocity: 60, scalar: 1.1, flat: true, ticks: 260 });
+        void fire({ ...base, particleCount: 60, angle: 122, spread: 58, origin: { x: 1, y: 0.78 }, startVelocity: 60, scalar: 1.1, flat: true, ticks: 260 });
+
+        // 中央星形爆发：星星与圆片混合，飘落更慢。
+        void fire({ ...base, particleCount: 110, spread: 110, origin: { x: 0.5, y: 0.4 }, startVelocity: 44, scalar: 1.2, shapes: ['star', 'circle'], gravity: 0.9, decay: 0.91, ticks: 300 });
+
+        // 随机位置烟花连放，把动画尾巴拉长到约 4 秒。
+        const timers = Array.from({ length: FIREWORK_BURSTS }, (_, index) => window.setTimeout(() => {
+            void fire({
+                ...base,
+                particleCount: 55,
+                spread: 360,
+                startVelocity: 26,
+                origin: { x: 0.2 + Math.random() * 0.6, y: 0.22 + Math.random() * 0.34 },
+                scalar: 0.9,
+                shapes: ['star', 'circle'],
+                gravity: 0.6,
+                decay: 0.94,
+                ticks: 200,
+            });
+        }, 240 + index * 240));
+
+        return () => {
+            timers.forEach((timer) => window.clearTimeout(timer));
+            fire.reset();
+            canvas.remove();
+        };
+    }, []);
+
+    return null;
 };
 
 export interface OnboardingViewProps {

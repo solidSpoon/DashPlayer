@@ -4701,6 +4701,11 @@
     "@types/node" "*"
     "@types/responselike" "^1.0.0"
 
+"@types/canvas-confetti@^1.9.0":
+  version "1.9.0"
+  resolved "https://registry.yarnpkg.com/@types/canvas-confetti/-/canvas-confetti-1.9.0.tgz#d1077752e046413c9881fbb2ba34a70ebe3c1773"
+  integrity sha512-aBGj/dULrimR1XDZLtG9JwxX1b4HPRF6CX9Yfwh3NvstZEm1ZL7RBnel4keCPSqs1ANRu1u2Aoz9R+VmtjYuTg==
+
 "@types/chai@^5.2.2":
   version "5.2.3"
   resolved "https://registry.yarnpkg.com/@types/chai/-/chai-5.2.3.tgz#8e9cd9e1c3581fa6b341a5aed5588eb285be0b4a"
@@ -6374,6 +6379,11 @@ caniuse-lite@^1.0.30001759, caniuse-lite@^1.0.30001810:
   version "1.0.30001810"
   resolved "https://registry.yarnpkg.com/caniuse-lite/-/caniuse-lite-1.0.30001810.tgz#4970b477dea3278374de9bc43aa8f5d39fc3cda2"
   integrity sha512-TITQPUkaz+aVk5GL6NhOdwk1aEaNTSDPsGFWrTuhKGtjTF70jL/Oht2W4c6rXUe5fu7Ie19VIahAXHIIiWWNeg==
+
+canvas-confetti@^1.9.4:
+  version "1.9.4"
+  resolved "https://registry.yarnpkg.com/canvas-confetti/-/canvas-confetti-1.9.4.tgz#4412a5daa96afd0b4d70ecd66b65ce8db3022b2b"
+  integrity sha512-yxQbJkAVrFXWNbTUjPqjF7G+g6pDotOUHGbkZq2NELZUMDpiJ85rIEazVb8GTaAptNW2miJAXbs1BtioA251Pw==
 
 castable-video@~1.1.13:
   version "1.1.16"

@@ -224,15 +224,3 @@
   }
 }
 
-
-/* 引导页完成页的全屏撒花动效（纯 CSS，不引入额外依赖）。 */
-@keyframes confetti-fall {
-  0% {
-    transform: translate3d(0, -12vh, 0) rotate(0deg);
-    opacity: 1;
-  }
-  100% {
-    transform: translate3d(var(--confetti-drift, 0px), 108vh, 0) rotate(var(--confetti-spin, 540deg));
-    opacity: 0;
-  }
-}
