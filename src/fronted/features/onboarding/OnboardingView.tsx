@@ -13,12 +13,9 @@ import {
     FileVideo,
     Folder,
     FolderOpen,
-    HardDrive,
     Loader2,
     ArrowRight,
-    ArrowLeft,
     Check,
-    Square,
     XCircle,
 } from 'lucide-react';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
@@ -27,7 +24,6 @@ import type { ModelInstallationStatusVO } from '@/common/types/vo/model-installa
 import type { ModelDownloadPhase } from '@/common/contracts/model-download-phase';
 import type { TranscriptionEngine } from '@/common/contracts/transcription-engine';
 import type { LocalMtStatus } from '@/common/contracts/local-mt';
-import { cn } from '@/fronted/lib/utils';
 import toast from 'react-hot-toast';
 
 export const CURRENT_ONBOARDING_VERSION = '1';
@@ -140,7 +136,7 @@ const DotRippleBackground: React.FC<{ active: boolean }> = ({ active }) => {
     );
 
     return (
-        <div className="pointer-events-none absolute inset-0 -z-10 overflow-hidden" aria-hidden="true">
+        <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
             <div
                 className="grid h-full w-full items-center justify-items-center gap-3 px-2 py-6"
                 style={{ gridTemplateColumns: `repeat(${RIPPLE_COLUMNS}, minmax(0, 1fr))` }}
@@ -184,28 +180,25 @@ interface BundleEntry {
 export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) => {
     const { t } = useI18nTranslation('onboarding');
 
-    const [currentStep, setCurrentStep] = useState<number>(1);
-    /** 配置步骤共 2 步；第 3 步是完成页，不计入步骤。 */
-    const totalSteps = 2;
+    /** 是否已进入完成页（撒花 + 上手技巧）。 */
+    const [done, setDone] = useState(false);
     const [finishing, setFinishing] = useState(false);
 
-    // Step 1：存储位置
+    // 存储位置（页面左下角的小元素，默认值可直接用）
     const [storagePath, setStoragePath] = useState('');
     const [storageAvailable, setStorageAvailable] = useState(true);
     const [choosingStorage, setChoosingStorage] = useState(false);
 
-    // Step 2：资源包内三项资源的状态
+    // 资源包内三项资源的状态
     const [transcriptionEngine, setTranscriptionEngine] = useState<TranscriptionEngine>('whisper-cpp');
     const [ttsStatus, setTtsStatus] = useState<ModelInstallationStatusVO | null>(null);
     const [transcriptionStatus, setTranscriptionStatus] = useState<ModelInstallationStatusVO | null>(null);
     const [localMtStatus, setLocalMtStatus] = useState<LocalMtStatus | null>(null);
 
-    // Step 2：下载过程
+    // 下载过程
     const [downloadingBundle, setDownloadingBundle] = useState(false);
     const [activeItem, setActiveItem] = useState<BundleItemKey | null>(null);
     const [activePhase, setActivePhase] = useState<ModelDownloadPhase | null>(null);
-    /** 当前是第几项（从 1 开始），用于"正在下载 2/3 项"。 */
-    const [itemIndex, setItemIndex] = useState(0);
     const [progress, setProgress] = useState({ percent: 0, downloaded: 0, total: 0 });
     const [speed, setSpeed] = useState(0);
     const [bundleError, setBundleError] = useState<string | null>(null);
@@ -214,7 +207,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
     /** 最近一次进度采样，用于估算网速。 */
     const speedSampleRef = React.useRef<{ at: number; downloaded: number } | null>(null);
 
-    /** 拉取存储位置与资源包内三项模型的状态。 */
+    /** 拉取存储位置与资源包内三项资源的状态。 */
     const refreshAllStatuses = React.useCallback(async () => {
         try {
             const engine = await settingsApi.getTranscriptionEngine().catch(() => 'whisper-cpp' as const);
@@ -415,6 +408,10 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
             })
             : t('steps.download.etaSeconds', { seconds: Math.max(1, Math.round(seconds)) });
     })();
+    /** 下载中展示的阶段文案：优先收尾阶段，其次统一的"正在下载运行环境"。 */
+    const progressLabel = activePhase && PHASE_LABEL_KEYS[activePhase]
+        ? t(PHASE_LABEL_KEYS[activePhase] as string)
+        : t('steps.download.downloadingEnv');
 
     /**
      * 保存引导结果并进入完成页。
@@ -438,7 +435,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
                 },
             });
             await markOnboardingCompleted(CURRENT_ONBOARDING_VERSION);
-            setCurrentStep(totalSteps + 1);
+            setDone(true);
         } catch (error) {
             toast.error(error instanceof Error ? error.message : String(error));
         } finally {
@@ -450,16 +447,14 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
      * 依次下载资源包里尚未完成的项，全部成功后保存配置并进入完成页。
      *
      * 串行而非并发：同时下载会互相抢带宽，进度也难以理解。
-     * 任一项失败即停下（原因展示在卡片里），已完成的部分保留。
+     * 任一项失败即停下（原因展示在主按钮下方），已完成的部分保留。
      */
     const downloadBundle = async () => {
         cancelRequestedRef.current = false;
         setBundleError(null);
         setDownloadingBundle(true);
         try {
-            for (let index = 0; index < pendingEntries.length; index++) {
-                const entry = pendingEntries[index];
-                setItemIndex(index + 1);
+            for (const entry of pendingEntries) {
                 setActiveItem(entry.key);
                 setActivePhase(null);
                 setProgress({ percent: 0, downloaded: 0, total: 0 });
@@ -494,405 +489,248 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
         }
     };
 
-    const handleSkip = async () => {
-        try {
-            await markOnboardingCompleted(CURRENT_ONBOARDING_VERSION);
-        } catch (error) {
-            toast.error(error instanceof Error ? error.message : String(error));
-        }
-        onCompleted?.();
-    };
-
     return (
-        <div className="flex h-screen w-full flex-col text-foreground bg-background select-none">
-            {/* Top Bar */}
-            <header className="top-0 flex h-9 items-center shrink-0">
+        <div className="relative flex h-screen w-full flex-col overflow-hidden bg-background text-foreground select-none">
+            <header className="relative z-20 flex h-9 shrink-0 items-center">
                 <TitleBar maximizable={false} className="top-0 left-0 w-full h-9 z-50" />
             </header>
 
-            {/* Main Stage */}
-            <main className="relative flex-1 flex flex-col items-center justify-between px-6 sm:px-12 py-8 max-w-3xl mx-auto w-full overflow-hidden">
-                {currentStep > totalSteps && <Confetti />}
+            {!done && <DotRippleBackground active={downloadingBundle} />}
 
-                {/* Header & Step Tracker */}
-                <div className="w-full flex flex-col items-center text-center space-y-3 shrink-0">
-                    {currentStep <= totalSteps && (
-                        <div className="flex items-center px-3 py-1 rounded-full bg-secondary text-secondary-foreground text-xs font-medium">
-                            <span>{t('stepIndicator', { current: currentStep, total: totalSteps })}</span>
-                        </div>
-                    )}
+            {!done && (
+                <>
+                    {/* 跳过：右上角小元素 */}
+                    <div className="absolute top-11 right-6 z-20">
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs text-muted-foreground hover:text-foreground"
+                            disabled={finishing || downloadingBundle}
+                            onClick={() => { void finishOnboarding(); }}
+                        >
+                            {t('steps.download.skip')}
+                        </Button>
+                    </div>
 
-                    {currentStep <= totalSteps && (
-                        <div className="space-y-1">
-                            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-                                {t('dialogTitle')}
-                            </h1>
-                            <p className="text-xs sm:text-sm text-muted-foreground">
-                                {t('dialogDescription')}
-                            </p>
-                        </div>
-                    )}
+                    <main className="relative z-10 flex flex-1 items-center justify-center px-8 pb-14">
+                        <div className="flex w-full max-w-xl flex-col items-center gap-7 text-center">
+                            {/* 图标与光晕 */}
+                            <span className="relative flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/12 text-primary">
+                                <span className="absolute inset-0 rounded-full bg-primary/20 blur-2xl" aria-hidden="true" />
+                                <Download className="relative h-7 w-7" />
+                            </span>
 
-                    {currentStep <= totalSteps && (
-                        <div className="flex items-center gap-1.5 pt-1">
-                            {Array.from({ length: totalSteps }, (_, index) => index + 1).map((step) => (
-                                <span
-                                    key={step}
-                                    className={cn(
-                                        'h-1 rounded-full transition-all duration-300',
-                                        step === currentStep
-                                            ? 'w-8 bg-primary'
-                                            : step < currentStep
-                                                ? 'w-4 bg-primary/50'
-                                                : 'w-4 bg-muted',
-                                    )}
-                                />
-                            ))}
-                        </div>
-                    )}
-                </div>
-
-                <div className="w-full my-auto py-6 max-w-2xl overflow-y-auto scrollbar-none">
-                    {currentStep === 1 && (
-                        <div className="space-y-4 animate-in fade-in-50 duration-200">
-                            <div className="text-center sm:text-left space-y-1">
-                                <h3 className="text-base font-semibold flex items-center justify-center sm:justify-start gap-2">
-                                    <HardDrive className="w-4 h-4 text-primary" />
-                                    {t('steps.storage.title')}
-                                </h3>
-                                <p className="text-xs text-muted-foreground leading-relaxed">
-                                    {t('steps.storage.desc')}
-                                </p>
+                            <div className="space-y-2">
+                                <h1 className="text-3xl font-bold tracking-tight">{t('steps.download.heroTitle')}</h1>
+                                <p className="text-sm text-muted-foreground">{t('steps.download.heroDesc')}</p>
                             </div>
 
-                            <div className="border rounded-xl p-4 bg-card shadow-xs space-y-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-foreground shrink-0">
-                                        <Folder className="w-4.5 h-4.5" />
+                            {/* 主操作区 */}
+                            {downloadingBundle ? (
+                                <div className="flex w-full max-w-sm flex-col items-center gap-3">
+                                    <div className="flex items-baseline gap-1">
+                                        <span className="text-4xl font-semibold tabular-nums tracking-tight">{progress.percent}</span>
+                                        <span className="text-lg text-muted-foreground">%</span>
                                     </div>
-                                    <div className="min-w-0 flex-1">
-                                        <div className="font-medium text-xs sm:text-sm">{t('steps.storage.pathLabel')}</div>
-                                        <div className="text-xs text-muted-foreground font-mono break-all">
-                                            {storagePath || t('steps.storage.pathLoading')}
-                                        </div>
-                                    </div>
+                                    <Progress value={progress.percent} className="h-1.5" />
+                                    <p className="text-xs text-muted-foreground">
+                                        {progressLabel}
+                                        {speed > 0 ? ` · ${formatSpeed(speed)}` : ''}
+                                        {remainingLabel ? ` · ${remainingLabel}` : ''}
+                                    </p>
                                     <Button
+                                        variant="ghost"
                                         size="sm"
-                                        variant="secondary"
-                                        className="h-8 gap-1.5 text-xs shrink-0"
-                                        disabled={choosingStorage}
-                                        onClick={handleChooseStorage}
+                                        className="text-xs text-muted-foreground hover:text-foreground"
+                                        onClick={() => { void cancelBundleDownload(); }}
                                     >
-                                        {choosingStorage ? (
-                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                        ) : (
-                                            <FolderOpen className="w-3.5 h-3.5" />
-                                        )}
-                                        {t('steps.storage.chooseFolder')}
+                                        {t('steps.download.cancel')}
                                     </Button>
                                 </div>
-
-                                {!storageAvailable && (
-                                    <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                                        <XCircle className="w-3.5 h-3.5 shrink-0" />
-                                        <span>{t('steps.storage.unavailable')}</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            <p className="text-xs text-muted-foreground leading-relaxed">
-                                {t('steps.storage.note')}
-                            </p>
-                        </div>
-                    )}
-                    {currentStep === 2 && (
-                        <div className="relative isolate space-y-4 animate-in fade-in-50 duration-200">
-                            {/* isolate 让点阵的负 z-index 落在本步骤自己的层叠上下文里，否则会被页面背景盖住 */}
-                            <DotRippleBackground active={downloadingBundle} />
-
-                            <div className="text-center sm:text-left space-y-1">
-                                <h3 className="text-base font-semibold flex items-center justify-center sm:justify-start gap-2">
-                                    <Download className="w-4 h-4 text-primary" />
-                                    {t('steps.download.title')}
-                                </h3>
-                                <p className="text-xs text-muted-foreground leading-relaxed">
-                                    {t('steps.download.desc')}
-                                </p>
-                            </div>
-
-                            <div className="border rounded-xl p-4 bg-card shadow-xs space-y-3">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-9 h-9 rounded-lg bg-muted flex items-center justify-center text-foreground shrink-0">
-                                        <Download className="w-4.5 h-4.5" />
-                                    </div>
-                                    <div className="min-w-0 flex-1">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <span className="font-medium text-xs sm:text-sm">{t('steps.download.packTitle')}</span>
-                                            <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground">
-                                                {t('steps.download.packSize')}
-                                            </span>
-                                        </div>
-                                    </div>
-                                    <div className="shrink-0">
-                                        {allReady ? (
-                                            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium bg-secondary text-secondary-foreground">
-                                                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
-                                                {t('steps.models.statusReady')}
-                                            </span>
-                                        ) : downloadingBundle ? (
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                className="h-8 min-w-28 justify-center gap-1.5 text-xs"
-                                                onClick={() => { void cancelBundleDownload(); }}
-                                            >
-                                                <Square className="w-3.5 h-3.5 text-destructive" />
-                                                {t('steps.models.cancelDownload')}
-                                            </Button>
-                                        ) : (
-                                            <Button
-                                                size="sm"
-                                                variant="secondary"
-                                                className="h-8 min-w-28 justify-center gap-1.5 text-xs"
-                                                onClick={() => { void downloadBundle(); }}
-                                            >
-                                                <Download className="w-3.5 h-3.5" />
-                                                {bundleError ? t('steps.download.retry') : t('steps.models.actionDownload')}
-                                            </Button>
-                                        )}
-                                    </div>
+                            ) : allReady ? (
+                                <div className="flex flex-col items-center gap-4">
+                                    <span className="inline-flex items-center gap-2 text-sm font-medium text-emerald-500">
+                                        <CheckCircle2 className="h-4 w-4" />
+                                        {t('steps.download.ready')}
+                                    </span>
+                                    <Button
+                                        size="lg"
+                                        className="h-12 rounded-full px-10 text-sm gap-2"
+                                        disabled={finishing}
+                                        onClick={() => { void finishOnboarding(); }}
+                                    >
+                                        {finishing
+                                            ? <Loader2 className="h-4 w-4 animate-spin" />
+                                            : <Check className="h-4 w-4" />}
+                                        {t('steps.download.finish')}
+                                    </Button>
                                 </div>
+                            ) : (
+                                <div className="flex flex-col items-center gap-3">
+                                    <Button
+                                        size="lg"
+                                        className="h-12 rounded-full px-9 text-sm gap-2.5 shadow-lg shadow-primary/20"
+                                        disabled={finishing}
+                                        onClick={() => { void downloadBundle(); }}
+                                    >
+                                        <Download className="h-4 w-4" />
+                                        {bundleError ? t('steps.download.retry') : t('steps.download.action')}
+                                        <span className="text-xs font-normal opacity-75">{t('steps.download.packSize')}</span>
+                                    </Button>
+                                    {bundleError && (
+                                        <span className="flex items-center gap-1.5 text-xs text-destructive">
+                                            <XCircle className="h-3.5 w-3.5 shrink-0" />
+                                            <span className="break-all">{bundleError}</span>
+                                        </span>
+                                    )}
+                                </div>
+                            )}
 
-                                {downloadingBundle && (
-                                    <div className="space-y-1.5">
-                                        <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                                            <span>
-                                                {activePhase && PHASE_LABEL_KEYS[activePhase]
-                                                    ? t(PHASE_LABEL_KEYS[activePhase] as string)
-                                                    : t('steps.download.downloading', {
-                                                        current: itemIndex,
-                                                        total: pendingEntries.length,
-                                                    })}
-                                            </span>
-                                            <span>{progress.percent}%</span>
-                                        </div>
-                                        <Progress value={progress.percent} className="h-1.5" />
-                                        {speed > 0 && (
-                                            <div className="text-[11px] text-muted-foreground">
-                                                {formatSpeed(speed)}{remainingLabel ? ` · ${remainingLabel}` : ''}
-                                            </div>
-                                        )}
-                                    </div>
-                                )}
-
-                                {bundleError && (
-                                    <div className="flex items-start gap-2 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-                                        <XCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                                        <span className="break-all">{bundleError}</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            <ManualDownloadGuide variant="plain" title={t('steps.models.manualGuideTitle')}>
-                                <div className="space-y-3">
-                                    <div className="font-semibold text-foreground">{t('steps.models.manualStep1')}</div>
-                                    {bundleEntries.map((entry) => (
-                                        <div key={entry.key} className="space-y-1.5">
-                                            <div className="font-semibold text-foreground">{entry.title}</div>
-                                            <div className="bg-background/80 rounded border border-border/60 p-2 space-y-2 font-mono text-[11px] break-all select-text">
-                                                {(entry.urls ?? []).map((url, index) => (
-                                                    <div key={url} className="space-y-1">
-                                                        <div className="flex items-start gap-1.5">
-                                                            {index > 0 && (
-                                                                <span className="shrink-0 mt-0.5 rounded bg-amber-500/10 px-1.5 py-0.5 font-sans text-[10px] font-medium text-amber-600 dark:text-amber-400">
-                                                                    {t('steps.models.backupSource')}
-                                                                </span>
-                                                            )}
-                                                            <span className="text-muted-foreground/70 break-all">{url}</span>
+                            {/* 手动下载入口 */}
+                            <div className="w-full text-left">
+                                <ManualDownloadGuide variant="plain" title={t('steps.models.manualGuideTitle')}>
+                                    <div className="space-y-3">
+                                        <div className="font-semibold text-foreground">{t('steps.models.manualStep1')}</div>
+                                        {bundleEntries.map((entry) => (
+                                            <div key={entry.key} className="space-y-1.5">
+                                                <div className="font-semibold text-foreground">{entry.title}</div>
+                                                <div className="space-y-2 rounded border border-border/60 bg-background/80 p-2 font-mono text-[11px] break-all select-text">
+                                                    {(entry.urls ?? []).map((url, index) => (
+                                                        <div key={url} className="space-y-1">
+                                                            <div className="flex items-start gap-1.5">
+                                                                {index > 0 && (
+                                                                    <span className="mt-0.5 shrink-0 rounded bg-amber-500/10 px-1.5 py-0.5 font-sans text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                                                                        {t('steps.models.backupSource')}
+                                                                    </span>
+                                                                )}
+                                                                <span className="break-all text-muted-foreground/70">{url}</span>
+                                                            </div>
+                                                            <div className="flex items-center gap-1 font-sans">
+                                                                <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => { void copyText(url); }}>
+                                                                    <Copy className="mr-1 w-3 h-3" />
+                                                                    {t('steps.models.copyLink')}
+                                                                </Button>
+                                                                <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => { void openUrl(url); }}>
+                                                                    <ExternalLink className="mr-1 w-3 h-3" />
+                                                                    {t('steps.models.openInBrowser')}
+                                                                </Button>
+                                                            </div>
                                                         </div>
-                                                        <div className="flex items-center gap-1 font-sans">
-                                                            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => { void copyText(url); }}>
-                                                                <Copy className="w-3 h-3 mr-1" />
-                                                                {t('steps.models.copyLink')}
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))}
+
+                                        <div className="space-y-1.5">
+                                            <div className="font-semibold text-foreground">{t('steps.models.manualStep2')}</div>
+                                            <div className="space-y-2 rounded border border-border/60 bg-background/80 p-2 font-mono text-[11px] break-all select-text">
+                                                {manualTargets.map((target) => (
+                                                    <div key={target.key} className="space-y-1.5">
+                                                        <div className="text-muted-foreground/70">{target.path}</div>
+                                                        <div className="flex items-center gap-2 font-sans">
+                                                            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => { void copyText(target.path); }}>
+                                                                <Copy className="mr-1 w-3 h-3" />
+                                                                {t('steps.models.copyPath')}
                                                             </Button>
-                                                            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => { void openUrl(url); }}>
-                                                                <ExternalLink className="w-3 h-3 mr-1" />
-                                                                {t('steps.models.openInBrowser')}
+                                                            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => { void openFolder(target.path); }}>
+                                                                <FolderOpen className="mr-1 w-3 h-3" />
+                                                                {t('steps.models.openFolder')}
                                                             </Button>
                                                         </div>
                                                     </div>
                                                 ))}
                                             </div>
                                         </div>
-                                    ))}
 
-                                    <div className="space-y-1.5">
-                                        <div className="font-semibold text-foreground">{t('steps.models.manualStep2')}</div>
-                                        <div className="bg-background/80 rounded border border-border/60 p-2 space-y-2 font-mono text-[11px] break-all select-text">
-                                            {manualTargets.map((target) => (
-                                                <div key={target.key} className="space-y-1.5">
-                                                    <div className="text-muted-foreground/70">{target.path}</div>
-                                                    <div className="flex items-center gap-2 font-sans">
-                                                        <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => { void copyText(target.path); }}>
-                                                            <Copy className="w-3 h-3 mr-1" />
-                                                            {t('steps.models.copyPath')}
-                                                        </Button>
-                                                        <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => { void openFolder(target.path); }}>
-                                                            <FolderOpen className="w-3 h-3 mr-1" />
-                                                            {t('steps.models.openFolder')}
-                                                        </Button>
-                                                    </div>
-                                                </div>
-                                            ))}
+                                        <div className="space-y-1.5">
+                                            <div className="font-semibold text-foreground">{t('steps.models.manualStep3')}</div>
+                                            <div className="text-muted-foreground">{t('steps.models.installHint')}</div>
                                         </div>
                                     </div>
-
-                                    <div className="space-y-1.5">
-                                        <div className="font-semibold text-foreground">{t('steps.models.manualStep3')}</div>
-                                        <div className="text-muted-foreground">{t('steps.models.installHint')}</div>
-                                    </div>
-                                </div>
-                            </ManualDownloadGuide>
-
-                            <p className="text-xs text-muted-foreground leading-relaxed">
-                                {t('steps.download.note')}
-                            </p>
-                        </div>
-                    )}
-
-                    {currentStep === 4 && (
-                        <div className="space-y-5 animate-in fade-in-50 duration-200">
-                            <div className="text-center space-y-2">
-                                <div className="flex justify-center">
-                                    <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/15 text-primary">
-                                        <Check className="h-6 w-6" />
-                                    </span>
-                                </div>
-                                <h3 className="text-lg font-semibold">{t('steps.done.title')}</h3>
-                                <p className="text-xs text-muted-foreground leading-relaxed">
-                                    {t('steps.done.desc')}
-                                </p>
-                            </div>
-
-                            <div className="space-y-3">
-                                <div className="text-center sm:text-left space-y-1">
-                                    <h3 className="text-base font-semibold flex items-center justify-center sm:justify-start gap-2">
-                                        <FileVideo className="w-4 h-4 text-primary" />
-                                        {t('steps.tutorial.title')}
-                                    </h3>
-                                    <p className="text-xs text-muted-foreground">
-                                        {t('steps.tutorial.desc')}
-                                    </p>
-                                </div>
-
-                                <div className="space-y-3 pt-1">
-                                    <div className="border rounded-xl p-4 bg-card shadow-xs space-y-2">
-                                        <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-foreground">
-                                            <Folder className="w-4 h-4 text-primary shrink-0" />
-                                            <span>{t('steps.tutorial.method1Title')}</span>
-                                        </div>
-                                        <p className="text-xs text-muted-foreground leading-relaxed">
-                                            {t('steps.tutorial.method1Desc')}
-                                        </p>
-                                        <div className="text-xs text-foreground/90 bg-muted/60 p-2.5 rounded-lg border border-border/40">
-                                            {t('steps.tutorial.method1Tip')}
-                                        </div>
-                                    </div>
-
-                                    <div className="border rounded-xl p-4 bg-card shadow-xs space-y-2">
-                                        <div className="flex items-center gap-2 text-xs sm:text-sm font-semibold text-foreground">
-                                            <FileVideo className="w-4 h-4 text-primary shrink-0" />
-                                            <span>{t('steps.tutorial.method2Title')}</span>
-                                        </div>
-                                        <p className="text-xs text-muted-foreground leading-relaxed">
-                                            {t('steps.tutorial.method2Desc')}
-                                        </p>
-                                        <div className="text-xs text-foreground/90 bg-muted/60 p-2.5 rounded-lg border border-border/40">
-                                            {t('steps.tutorial.method2Tip')}
-                                        </div>
-                                    </div>
-                                </div>
+                                </ManualDownloadGuide>
                             </div>
                         </div>
-                    )}
-                </div>
-                {/* Footer Controls */}
-                <div className="w-full max-w-2xl flex items-center justify-between pt-4 border-t border-border/60 shrink-0">
-                    {currentStep <= totalSteps ? (
+                    </main>
+
+                    {/* 保存位置：左下角小元素 */}
+                    <div className="absolute bottom-5 left-6 z-20 flex items-center gap-2 text-[11px] text-muted-foreground">
+                        <Folder className="h-3.5 w-3.5 shrink-0" />
+                        <span className="max-w-[46vw] truncate font-mono">{storagePath || t('steps.storage.pathLoading')}</span>
                         <Button
-                            variant="ghost"
+                            variant="link"
                             size="sm"
-                            className="text-xs text-muted-foreground hover:text-foreground"
-                            disabled={finishing || downloadingBundle}
-                            onClick={currentStep === totalSteps
-                                ? () => { void finishOnboarding(); }
-                                : () => { void handleSkip(); }}
+                            className="h-auto p-0 text-[11px]"
+                            disabled={choosingStorage}
+                            onClick={() => { void handleChooseStorage(); }}
                         >
-                            {currentStep === totalSteps ? t('steps.download.skip') : t('skip')}
+                            {t('steps.download.changeLocation')}
                         </Button>
-                    ) : (
-                        <span />
-                    )}
+                        {!storageAvailable && <span className="text-destructive">{t('steps.storage.unavailable')}</span>}
+                    </div>
+                </>
+            )}
 
-                    <div className="flex items-center gap-2.5">
-                        {currentStep > 1 && currentStep <= totalSteps && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8.5 px-3 text-xs gap-1.5 rounded-lg"
-                                onClick={() => setCurrentStep((s) => Math.max(1, s - 1))}
-                            >
-                                <ArrowLeft className="w-3.5 h-3.5" />
-                                {t('prevStep')}
-                            </Button>
-                        )}
+            {done && (
+                <main className="relative z-10 flex flex-1 flex-col items-center overflow-y-auto scrollbar-none px-8 py-10">
+                    <Confetti />
+                    <div className="w-full max-w-2xl space-y-6">
+                        <div className="space-y-2 text-center">
+                            <div className="flex justify-center">
+                                <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/15 text-primary">
+                                    <Check className="h-6 w-6" />
+                                </span>
+                            </div>
+                            <h3 className="text-lg font-semibold">{t('steps.done.title')}</h3>
+                            <p className="text-xs text-muted-foreground leading-relaxed">{t('steps.done.desc')}</p>
+                        </div>
 
-                        {currentStep < totalSteps && (
-                            <Button
-                                size="sm"
-                                className="h-8.5 px-4 text-xs gap-1.5 rounded-lg"
-                                onClick={() => setCurrentStep((s) => Math.min(totalSteps, s + 1))}
-                            >
-                                {t('nextStep')}
-                                <ArrowRight className="w-3.5 h-3.5" />
-                            </Button>
-                        )}
+                        <div className="space-y-3">
+                            <div className="space-y-1 text-center sm:text-left">
+                                <h3 className="flex items-center justify-center gap-2 text-base font-semibold sm:justify-start">
+                                    <FileVideo className="w-4 h-4 text-primary" />
+                                    {t('steps.tutorial.title')}
+                                </h3>
+                                <p className="text-xs text-muted-foreground">{t('steps.tutorial.desc')}</p>
+                            </div>
 
-                        {currentStep === totalSteps && (
-                            <Button
-                                size="sm"
-                                className="h-8.5 px-4 text-xs gap-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
-                                disabled={finishing || downloadingBundle}
-                                onClick={() => { void (allReady ? finishOnboarding() : downloadBundle()); }}
-                            >
-                                {finishing || downloadingBundle ? (
-                                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                                ) : allReady ? (
-                                    <Check className="w-3.5 h-3.5" />
-                                ) : (
-                                    <Download className="w-3.5 h-3.5" />
-                                )}
-                                {downloadingBundle
-                                    ? t('steps.download.downloadingShort')
-                                    : allReady
-                                        ? t('finishConfig')
-                                        : t('steps.download.downloadAndFinish')}
-                            </Button>
-                        )}
+                            <div className="space-y-3 pt-1">
+                                <div className="space-y-2 rounded-xl border bg-card p-4 shadow-xs">
+                                    <div className="flex items-center gap-2 text-xs font-semibold text-foreground sm:text-sm">
+                                        <Folder className="w-4 h-4 shrink-0 text-primary" />
+                                        <span>{t('steps.tutorial.method1Title')}</span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground leading-relaxed">{t('steps.tutorial.method1Desc')}</p>
+                                    <div className="rounded-lg border border-border/40 bg-muted/60 p-2.5 text-xs text-foreground/90">
+                                        {t('steps.tutorial.method1Tip')}
+                                    </div>
+                                </div>
 
-                        {currentStep > totalSteps && (
+                                <div className="space-y-2 rounded-xl border bg-card p-4 shadow-xs">
+                                    <div className="flex items-center gap-2 text-xs font-semibold text-foreground sm:text-sm">
+                                        <FileVideo className="w-4 h-4 shrink-0 text-primary" />
+                                        <span>{t('steps.tutorial.method2Title')}</span>
+                                    </div>
+                                    <p className="text-xs text-muted-foreground leading-relaxed">{t('steps.tutorial.method2Desc')}</p>
+                                    <div className="rounded-lg border border-border/40 bg-muted/60 p-2.5 text-xs text-foreground/90">
+                                        {t('steps.tutorial.method2Tip')}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex justify-end">
                             <Button
                                 size="sm"
-                                className="h-8.5 px-4 text-xs gap-1.5 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90"
+                                className="h-8.5 gap-1.5 rounded-lg px-4 text-xs"
                                 onClick={onCompleted}
                             >
                                 {t('startUsing')}
                                 <ArrowRight className="w-3.5 h-3.5" />
                             </Button>
-                        )}
+                        </div>
                     </div>
-                </div>
-            </main>
+                </main>
+            )}
         </div>
     );
 };

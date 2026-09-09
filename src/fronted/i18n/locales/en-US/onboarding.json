@@ -11,14 +11,9 @@
     "openFolderFailed": "Failed to open the folder",
     "steps": {
         "storage": {
-            "title": "Choose a storage location",
-            "desc": "Videos, subtitles, and offline models all live in the same folder.",
-            "pathLabel": "Current location",
             "pathLoading": "Loading…",
-            "chooseFolder": "Choose folder",
             "saved": "Storage location updated",
-            "unavailable": "This folder is not usable right now. Please pick another one.",
-            "note": "Offline models are large (hundreds of MB to over 1 GB), so pick a location with plenty of space. You can change it later in Settings → Storage."
+            "unavailable": "This folder is not usable right now. Please pick another one."
         },
         "models": {
             "ttsTitle": "Word & Sentence Pronunciation",
@@ -37,16 +32,17 @@
             "manualStep3": "3. Finish installation:"
         },
         "download": {
-            "title": "Download offline resources",
-            "desc": "Download once — pronunciation, subtitles and translation keep working even when you are offline.",
-            "packTitle": "Offline resource pack",
+            "heroTitle": "Preparing the offline runtime",
+            "heroDesc": "Download once — everything keeps working even when you are offline.",
+            "action": "Download",
             "packSize": "~1 GB",
-            "downloading": "Downloading {{current}} of {{total}}",
-            "downloadingShort": "Downloading…",
-            "downloadAndFinish": "Download & finish",
+            "downloadingEnv": "Downloading runtime…",
+            "cancel": "Cancel",
+            "ready": "Ready",
+            "finish": "Finish",
             "retry": "Retry",
-            "skip": "Skip for now",
-            "note": "Downloads can be resumed if interrupted. You can also do this later in Settings → Services & Models.",
+            "skip": "Skip",
+            "changeLocation": "Change",
             "itemMt": "Subtitle translation",
             "etaSeconds": "about {{seconds}}s left",
             "etaMinutes": "about {{minutes}}m {{seconds}}s left"

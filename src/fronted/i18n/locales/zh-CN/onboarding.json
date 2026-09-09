@@ -11,14 +11,9 @@
     "openFolderFailed": "打开文件夹失败",
     "steps": {
         "storage": {
-            "title": "选择存储位置",
-            "desc": "视频、字幕和离线模型都会存在同一个文件夹里。",
-            "pathLabel": "当前存储位置",
             "pathLoading": "正在读取…",
-            "chooseFolder": "选择文件夹",
             "saved": "存储位置已更新",
-            "unavailable": "这个文件夹当前不可用，请重新选择一个。",
-            "note": "离线模型比较大（几百 MB 到 1 GB 以上），建议选一个空间充足的位置；之后也可以在「设置中心 → 存储」里修改。"
+            "unavailable": "这个文件夹当前不可用，请重新选择一个。"
         },
         "models": {
             "ttsTitle": "单词与例句发音",
@@ -37,16 +32,17 @@
             "manualStep3": "3. 完成安装："
         },
         "download": {
-            "title": "下载离线资源",
-            "desc": "下载一次，之后断网也能发音、出字幕、翻字幕。",
-            "packTitle": "离线资源包",
+            "heroTitle": "准备离线运行环境",
+            "heroDesc": "下载一次，之后断网也能正常使用。",
+            "action": "下载",
             "packSize": "约 1 GB",
-            "downloading": "正在下载 {{current}}/{{total}} 项",
-            "downloadingShort": "下载中…",
-            "downloadAndFinish": "下载并完成",
+            "downloadingEnv": "正在下载运行环境…",
+            "cancel": "取消",
+            "ready": "已就绪",
+            "finish": "完成",
             "retry": "重试",
-            "skip": "暂不下载，稍后再说",
-            "note": "下载支持断点续传，中途关掉也能接着下；也可以稍后在「设置中心 → 服务与模型」里下载。",
+            "skip": "跳过",
+            "changeLocation": "更改",
             "itemMt": "字幕翻译",
             "etaSeconds": "剩余约 {{seconds}} 秒",
             "etaMinutes": "剩余约 {{minutes}} 分 {{seconds}} 秒"

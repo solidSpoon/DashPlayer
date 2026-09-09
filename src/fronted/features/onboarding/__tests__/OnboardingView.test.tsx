@@ -41,10 +41,7 @@ vi.mock('@/fronted/components/layout/TitleBar/TitleBar', () => ({
 
 vi.mock('react-i18next', () => ({
     useTranslation: () => ({
-        t: (key: string, opts?: { current?: number; total?: number }) => {
-            if (key === 'stepIndicator') return `Step ${opts?.current} of ${opts?.total}`;
-            return key;
-        },
+        t: (key: string) => key,
     }),
 }));
 
@@ -112,17 +109,19 @@ describe('OnboardingView Component', () => {
         });
     });
 
-    it('renders initial step with model information', async () => {
+    it('首屏就是一个下载入口，并加载各项资源状态', async () => {
         render(<OnboardingView />);
-        expect(screen.getByText('dialogTitle')).toBeDefined();
-        expect(screen.getByText('steps.storage.title')).toBeDefined();
+
+        expect(screen.getByText('steps.download.heroTitle')).toBeDefined();
+        expect(screen.getByText('steps.download.action')).toBeDefined();
         await waitFor(() => {
             expect(settingsApi.getSherpaTtsModelStatus).toHaveBeenCalled();
             expect(settingsApi.getWhisperCppModelStatus).toHaveBeenCalled();
+            expect(settingsApi.getLocalMtStatus).toHaveBeenCalled();
         });
     });
 
-    it('下载资源包会依次下载三项，全部完成后保存配置并进入完成页', async () => {
+    it('下载会依次处理三项资源，全部完成后保存配置并进入完成页', async () => {
         // 模拟真实时序：下载完成后本地轻量模型状态变为就绪
         let mtReady = false;
         vi.mocked(settingsApi.getLocalMtStatus).mockImplementation(async () => localMtStatus(mtReady));
@@ -130,8 +129,7 @@ describe('OnboardingView Component', () => {
 
         render(<OnboardingView />);
 
-        fireEvent.click(screen.getByText('nextStep'));
-        fireEvent.click(screen.getByText('steps.download.downloadAndFinish'));
+        fireEvent.click(screen.getByText('steps.download.action'));
 
         await waitFor(() => {
             expect(settingsApi.downloadSherpaTtsModel).toHaveBeenCalled();
@@ -147,14 +145,15 @@ describe('OnboardingView Component', () => {
             );
             expect(markOnboardingCompleted).toHaveBeenCalledWith(CURRENT_ONBOARDING_VERSION);
         });
+        // 进入完成页
+        expect(await screen.findByText('steps.done.title')).toBeDefined();
     });
 
-    it('任一项下载失败即停下，并把失败原因显示在卡片上', async () => {
+    it('任一项下载失败即停下，并把失败原因显示在下载按钮下方', async () => {
         vi.mocked(settingsApi.downloadWhisperCppModel).mockRejectedValue(new Error('网络中断'));
 
         render(<OnboardingView />);
-        fireEvent.click(screen.getByText('nextStep'));
-        fireEvent.click(screen.getByText('steps.download.downloadAndFinish'));
+        fireEvent.click(screen.getByText('steps.download.action'));
 
         await waitFor(() => {
             expect(screen.getByText('网络中断')).toBeDefined();
@@ -164,9 +163,8 @@ describe('OnboardingView Component', () => {
         expect(markOnboardingCompleted).not.toHaveBeenCalled();
     });
 
-    it('暂不下载时仍然保存保守配置并进入完成页', async () => {
+    it('跳过下载时仍然保存保守配置并进入完成页', async () => {
         render(<OnboardingView />);
-        fireEvent.click(screen.getByText('nextStep'));
         fireEvent.click(screen.getByText('steps.download.skip'));
 
         await waitFor(() => {
@@ -183,15 +181,19 @@ describe('OnboardingView Component', () => {
         });
     });
 
-    it('saves completed status immediately when skipping', async () => {
+    it('资源都已就绪时显示完成按钮，开始使用会关闭引导', async () => {
+        const readyStatus = { ...NOT_READY, ready: true };
+        vi.mocked(settingsApi.getSherpaTtsModelStatus).mockResolvedValue(readyStatus);
+        vi.mocked(settingsApi.getWhisperCppModelStatus).mockResolvedValue(readyStatus);
+        vi.mocked(settingsApi.getLocalMtStatus).mockResolvedValue(localMtStatus(true));
         const onCompleted = vi.fn();
         render(<OnboardingView onCompleted={onCompleted} />);
 
-        fireEvent.click(screen.getByText('skip'));
+        // 等状态加载完，按钮才会从「下载」变成「完成」
+        fireEvent.click(await screen.findByText('steps.download.finish'));
 
-        await waitFor(() => {
-            expect(markOnboardingCompleted).toHaveBeenCalledWith(CURRENT_ONBOARDING_VERSION);
-            expect(onCompleted).toHaveBeenCalled();
-        });
+        expect(await screen.findByText('startUsing')).toBeDefined();
+        fireEvent.click(screen.getByText('startUsing'));
+        expect(onCompleted).toHaveBeenCalled();
     });
 });
