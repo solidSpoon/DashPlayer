@@ -257,6 +257,8 @@
         "descriptionLine1": "DashPlayer caches translation results locally to reduce API costs.",
         "descriptionLine2": "Cache is managed automatically. Manual modifications are not recommended.",
         "resetDatabase": "Reset Database",
+        "resetSuccess": "Database reset successfully",
+        "resetFailed": "Failed to reset the database",
         "resetConfirmTitle": "Reset database?",
         "resetConfirmDescription": "This clears all database records and restarts the app. Saved and vocabulary clips will be rebuilt from local files on restart; other data will be lost. This cannot be undone.",
         "resetConfirmCancel": "Cancel",

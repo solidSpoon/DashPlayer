@@ -50,9 +50,9 @@ const PROGRESS_RENDER_INTERVAL_MS = 500;
 
 /** 下载完成后的收尾阶段文案；未收录的阶段回落到通用下载提示。 */
 const PHASE_LABEL_KEYS: Partial<Record<ModelDownloadPhase, string>> = {
-    verifying: 'steps.models.verifying',
-    extracting: 'steps.models.extracting',
-    installing: 'steps.models.installing',
+    verifying: 'steps.download.verifying',
+    extracting: 'steps.download.extracting',
+    installing: 'steps.download.installing',
 };
 
 /** 把字节/秒格式化为网速文案。 */
