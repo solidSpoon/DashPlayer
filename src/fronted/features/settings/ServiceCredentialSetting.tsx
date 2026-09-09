@@ -87,7 +87,6 @@ const ServiceCredentialSetting: React.FC = () => {
     const [localMtStatus, setLocalMtStatus] = React.useState<LocalMtStatus | null>(null);
     const [localMtBusy, setLocalMtBusy] = React.useState(false);
     const [localAiBusy, setLocalAiBusy] = React.useState(false);
-    const [localAiRescanning, setLocalAiRescanning] = React.useState(false);
     const [testingModelId, setTestingModelId] = React.useState<string | null>(null);
     const [testResultsMap, setTestResultsMap] = React.useState<Record<string, {
         success: boolean;
@@ -210,20 +209,6 @@ const ServiceCredentialSetting: React.FC = () => {
             // ignore
         }
     }, []);
-
-    /** 手动点击刷新本地 LLM 模型列表。 */
-    const handleRescanLocalAi = async () => {
-        setLocalAiRescanning(true);
-        try {
-            const status = await settingsApi.getLocalAiStatus();
-            setLocalAiStatus(status);
-            toast.success(t('common.ready'));
-        } catch (error) {
-            toast.error(error instanceof Error ? error.message : String(error));
-        } finally {
-            setLocalAiRescanning(false);
-        }
-    };
 
     /** 对指定本地 LLM 模型执行测速基准测试。 */
     const testLocalAiModel = async (modelId: string) => {
@@ -546,11 +531,9 @@ const ServiceCredentialSetting: React.FC = () => {
                     {/* 本地智能模型卡片 */}
                     <LocalLlmCard
                         status={localAiStatus}
-                        rescanning={localAiRescanning}
                         busy={localAiBusy}
                         testingModelId={testingModelId}
                         testResultsMap={testResultsMap}
-                        onRescan={handleRescanLocalAi}
                         onUseModel={(modelId, name) =>
                             runLocalAiAction(
                                 modelId,

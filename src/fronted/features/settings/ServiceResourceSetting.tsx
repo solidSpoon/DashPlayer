@@ -6,9 +6,7 @@ import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { Languages, Settings2 } from 'lucide-react';
 import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
 import { SettingCard, SettingRow, SettingsLoadingSkeleton } from '@/fronted/features/settings/components/form';
-import { Button } from '@/fronted/components/ui/button';
 import { Checkbox } from '@/fronted/components/ui/checkbox';
-import { Label } from '@/fronted/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import { Textarea } from '@/fronted/components/ui/textarea';
 import { ResourcePackCard } from '@/fronted/features/settings/components/ResourcePackCard';
@@ -98,7 +96,6 @@ const ServiceResourceSetting: React.FC = () => {
     // 本地增强模型
     const [localAiStatus, setLocalAiStatus] = React.useState<LocalAiStatus | null>(null);
     const [localAiBusy, setLocalAiBusy] = React.useState(false);
-    const [localAiRescanning, setLocalAiRescanning] = React.useState(false);
     const [testingModelId, setTestingModelId] = React.useState<string | null>(null);
     const [testResultsMap, setTestResultsMap] = React.useState<Record<string, {
         success: boolean;
@@ -184,19 +181,6 @@ const ServiceResourceSetting: React.FC = () => {
             }
         } finally {
             await refreshLocalAiStatus();
-        }
-    };
-
-    /** 重新扫描本地增强模型目录。 */
-    const rescanLocalAi = async () => {
-        setLocalAiRescanning(true);
-        try {
-            await refreshLocalAiStatus();
-            toast.success(t('common.ready'));
-        } catch (error) {
-            toast.error(error instanceof Error ? error.message : String(error));
-        } finally {
-            setLocalAiRescanning(false);
         }
     };
 
@@ -378,14 +362,12 @@ const ServiceResourceSetting: React.FC = () => {
                 <SettingCard>
                     <LocalLlmCard
                         status={localAiStatus}
-                        rescanning={localAiRescanning}
                         busy={localAiBusy}
                         testingModelId={testingModelId}
                         title={t('resources.enhance.title')}
                         description={t('resources.enhance.description')}
                         hardwareHint={enhanceHardwareHint}
                         testResultsMap={testResultsMap}
-                        onRescan={() => rescanLocalAi().catch(() => null)}
                         onUseModel={(modelId) => {
                             const model = localAiStatus?.models.find((item) => item.modelId === modelId);
                             if (!model) return;

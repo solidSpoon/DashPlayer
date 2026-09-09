@@ -10,12 +10,10 @@ import {
     FolderOpen,
     Gauge,
     Loader2,
-    RefreshCw,
     Square,
     Trash2,
     XCircle,
 } from 'lucide-react';
-import { cn } from '@/fronted/lib/utils';
 import { Button } from '@/fronted/components/ui/button';
 import { Progress } from '@/fronted/components/ui/progress';
 import {
@@ -35,7 +33,6 @@ import type { LocalAiStatus } from '@/common/contracts/local-ai';
 
 export interface LocalLlmCardProps {
     status: LocalAiStatus | null;
-    rescanning: boolean;
     busy: boolean;
     testingModelId: string | null;
     /** 卡片标题；不传时用设置页通用文案。 */
@@ -50,7 +47,6 @@ export interface LocalLlmCardProps {
         tps: string;
         errorMessage?: string;
     } | null>;
-    onRescan: () => void;
     onUseModel: (modelId: string, name: string) => void;
     onTestModel: (modelId: string) => void;
     onDownloadModel: (modelId: string, name: string) => void;
@@ -70,14 +66,12 @@ export interface LocalLlmCardProps {
  */
 export const LocalLlmCard: React.FC<LocalLlmCardProps> = ({
     status,
-    rescanning,
     busy,
     testingModelId,
     title,
     description,
     hardwareHint,
     testResultsMap,
-    onRescan,
     onUseModel,
     onTestModel,
     onDownloadModel,
@@ -98,31 +92,6 @@ export const LocalLlmCard: React.FC<LocalLlmCardProps> = ({
                 title={title ?? t('serviceCredentials.localAi.cardTitle')}
                 description={description ?? t('serviceCredentials.localAi.cardDescription')}
                 icon={Bot}
-                action={
-                    status?.modelsDirectory ? (
-                        <>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                disabled={rescanning || !status}
-                                onClick={onRescan}
-                            >
-                                <RefreshCw className={cn("w-3.5 h-3.5 mr-1.5", rescanning && "animate-spin")} />
-                                {t('serviceCredentials.localAi.rescan')}
-                            </Button>
-                            <Button
-                                type="button"
-                                variant="outline"
-                                size="sm"
-                                onClick={() => onOpenFolder(status.modelsDirectory)}
-                            >
-                                <FolderOpen className="w-3.5 h-3.5 mr-1.5" />
-                                {t('common.openFolder')}
-                            </Button>
-                        </>
-                    ) : null
-                }
             />
 
             {/* 硬件条件提示：本地增强模型对内存与算力有一定要求 */}

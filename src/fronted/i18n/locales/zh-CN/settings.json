@@ -449,7 +449,6 @@
             "cancelDelete": "取消",
             "confirmDelete": "确认删除",
             "deleteSuccess": "模型已删除",
-            "rescan": "刷新模型列表",
             "copyPath": "复制路径",
             "speedWarm": "日常响应",
             "speedTps": "翻译速度",
@@ -457,7 +456,7 @@
             "runtimeMissing": "本地智能模型组件缺失，请重新安装应用。",
             "customGuideTitle": "网络不佳？查看手动下载与导入教程",
             "customGuideStep1": "下载指令对话版（Instruct）的 GGUF 模型文件（推荐 Qwen 系列，量化版本选 Q4_K_M 体积与效果最平衡）。",
-            "customGuideStep3": "放入目录后点击右上角的「刷新模型列表」，新模型会出现在上方；点击「设为使用」即可启用。"
+            "customGuideStep3": "文件放好后回到应用，新模型会自动出现在列表里；点击「设为使用」即可启用。"
         },
         "localMt": {
             "cardTitle": "本地快速翻译",
