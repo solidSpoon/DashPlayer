@@ -23,18 +23,12 @@
         "models": {
             "ttsTitle": "单词与例句发音",
             "transcriptionTitle": "字幕语音识别",
-            "statusReady": "已下载",
-            "actionDownload": "下载",
-            "cancelDownload": "取消下载",
             "manualGuideTitle": "下载不下来？查看手动下载教程",
-            "manualStep1": "1. 在浏览器中打开下面的地址下载：",
             "copyLink": "复制链接",
             "backupSource": "备用下载源",
             "openInBrowser": "在浏览器中打开",
-            "manualStep2": "2. 将下载的文件保存到：",
             "copyPath": "复制路径",
-            "openFolder": "打开文件夹",
-            "manualStep3": "3. 完成安装："
+            "openFolder": "打开文件夹"
         },
         "download": {
             "heroTitle": "准备离线运行环境",
@@ -50,6 +44,14 @@
             "itemMt": "字幕翻译",
             "etaSeconds": "剩余约 {{seconds}} 秒",
             "etaMinutes": "剩余约 {{minutes}} 分 {{seconds}} 秒"
+        },
+        "manual": {
+            "title": "手动下载",
+            "desc": "网络下载不顺利时，用浏览器把下面的文件下载好，再放到指定位置。",
+            "back": "返回",
+            "addressLabel": "下载地址",
+            "targetLabel": "保存到",
+            "footer": "放好之后回到上一页点击「下载」，应用会自动完成安装。"
         },
         "done": {
             "title": "一切就绪！",

@@ -186,6 +186,22 @@ describe('OnboardingView Component', () => {
         });
     });
 
+    it('下载中点手动下载会先中断下载，再进入手动下载页', async () => {
+        // 下载挂住不返回，模拟下载中
+        vi.mocked(settingsApi.downloadSherpaTtsModel).mockImplementation(() => new Promise(() => {}));
+
+        render(<OnboardingView />);
+        fireEvent.click(screen.getByText('nextStep'));
+        fireEvent.click(screen.getByText('steps.download.action'));
+
+        fireEvent.click(screen.getByText('steps.models.manualGuideTitle'));
+
+        await waitFor(() => {
+            expect(settingsApi.cancelSherpaTtsModelDownload).toHaveBeenCalled();
+            expect(screen.getByText('steps.manual.title')).toBeDefined();
+        });
+    });
+
     it('资源都已就绪时显示完成按钮，开始使用会关闭引导', async () => {
         const readyStatus = { ...NOT_READY, ready: true };
         vi.mocked(settingsApi.getSherpaTtsModelStatus).mockResolvedValue(readyStatus);

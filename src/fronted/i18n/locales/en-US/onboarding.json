@@ -23,18 +23,12 @@
         "models": {
             "ttsTitle": "Word & Sentence Pronunciation",
             "transcriptionTitle": "Speech-to-Subtitle",
-            "statusReady": "Downloaded",
-            "actionDownload": "Download",
-            "cancelDownload": "Cancel",
             "manualGuideTitle": "Download not working? Manual install guide",
-            "manualStep1": "1. Open the link below in your browser and download:",
             "copyLink": "Copy link",
             "backupSource": "Backup source",
             "openInBrowser": "Open in browser",
-            "manualStep2": "2. Save the downloaded file to:",
             "copyPath": "Copy path",
-            "openFolder": "Open folder",
-            "manualStep3": "3. Finish installation:"
+            "openFolder": "Open folder"
         },
         "download": {
             "heroTitle": "Preparing the offline runtime",
@@ -50,6 +44,14 @@
             "itemMt": "Subtitle translation",
             "etaSeconds": "about {{seconds}}s left",
             "etaMinutes": "about {{minutes}}m {{seconds}}s left"
+        },
+        "manual": {
+            "title": "Manual download",
+            "desc": "If the download is not going well, grab the files below with your browser and put them in the given locations.",
+            "back": "Back",
+            "addressLabel": "Download URL",
+            "targetLabel": "Save to",
+            "footer": "Once the files are in place, go back and click “Download” — the app finishes the installation automatically."
         },
         "done": {
             "title": "You're all set!",

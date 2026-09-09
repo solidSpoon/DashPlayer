@@ -4,7 +4,6 @@ import { create as createConfetti } from 'canvas-confetti';
 import { Button } from '@/fronted/components/ui/button';
 import { Progress } from '@/fronted/components/ui/progress';
 import TitleBar from '@/fronted/components/layout/TitleBar/TitleBar';
-import { ManualDownloadGuide } from '@/fronted/components/shared/ManualDownloadGuide';
 import {
     CheckCircle2,
     Copy,
@@ -13,7 +12,9 @@ import {
     FileVideo,
     Folder,
     FolderOpen,
+    HelpCircle,
     Loader2,
+    ArrowLeft,
     ArrowRight,
     Check,
     XCircle,
@@ -180,8 +181,8 @@ interface BundleEntry {
 export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) => {
     const { t } = useI18nTranslation('onboarding');
 
-    /** 当前屏幕：选择保存位置 → 下载运行环境 → 完成页（撒花 + 上手技巧）。 */
-    const [screen, setScreen] = useState<'storage' | 'download' | 'done'>('storage');
+    /** 当前屏幕：选择保存位置 → 下载运行环境 →（手动下载）→ 完成页（撒花 + 上手技巧）。 */
+    const [screen, setScreen] = useState<'storage' | 'download' | 'manual' | 'done'>('storage');
     const [finishing, setFinishing] = useState(false);
 
     // 存储位置（页面左下角的小元素，默认值可直接用）
@@ -393,10 +394,6 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
     ];
     const pendingEntries = bundleEntries.filter((entry) => !entry.ready);
     const allReady = pendingEntries.length === 0;
-    /** 手动下载教程里可复制/打开的落盘位置。 */
-    const manualTargets = bundleEntries.flatMap((entry) => (
-        entry.targetPath ? [{ key: entry.key, path: entry.targetPath }] : []
-    ));
     /** 按当前网速估算的剩余时间文案；网速未知时为 null。 */
     const remainingLabel = (() => {
         if (speed <= 0 || progress.total <= progress.downloaded) return null;
@@ -475,6 +472,19 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
             setActivePhase(null);
             setDownloadingBundle(false);
         }
+    };
+
+    /**
+     * 打开手动下载页。
+     *
+     * 下载中先中断当前下载：手动下载与自动下载同时进行会互相抢带宽，
+     * 而且用户之所以要看手动教程，多半就是自动下载走不通。
+     */
+    const openManualGuide = async () => {
+        if (downloadingBundle) {
+            await cancelBundleDownload();
+        }
+        setScreen('manual');
     };
 
     /** 取消当前项的下载并中断队列。 */
@@ -645,73 +655,101 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
                                 </div>
                             )}
 
-                            {/* 手动下载入口 */}
-                            <div className="w-full text-left">
-                                <ManualDownloadGuide variant="plain" title={t('steps.models.manualGuideTitle')}>
-                                    <div className="space-y-3">
-                                        <div className="font-semibold text-foreground">{t('steps.models.manualStep1')}</div>
-                                        {bundleEntries.map((entry) => (
-                                            <div key={entry.key} className="space-y-1.5">
-                                                <div className="font-semibold text-foreground">{entry.title}</div>
-                                                <div className="space-y-2 rounded border border-border/60 bg-background/80 p-2 font-mono text-[11px] break-all select-text">
-                                                    {(entry.urls ?? []).map((url, index) => (
-                                                        <div key={url} className="space-y-1">
-                                                            <div className="flex items-start gap-1.5">
-                                                                {index > 0 && (
-                                                                    <span className="mt-0.5 shrink-0 rounded bg-amber-500/10 px-1.5 py-0.5 font-sans text-[10px] font-medium text-amber-600 dark:text-amber-400">
-                                                                        {t('steps.models.backupSource')}
-                                                                    </span>
-                                                                )}
-                                                                <span className="break-all text-muted-foreground/70">{url}</span>
-                                                            </div>
-                                                            <div className="flex items-center gap-1 font-sans">
-                                                                <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => { void copyText(url); }}>
-                                                                    <Copy className="mr-1 w-3 h-3" />
-                                                                    {t('steps.models.copyLink')}
-                                                                </Button>
-                                                                <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => { void openUrl(url); }}>
-                                                                    <ExternalLink className="mr-1 w-3 h-3" />
-                                                                    {t('steps.models.openInBrowser')}
-                                                                </Button>
-                                                            </div>
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        ))}
-
-                                        <div className="space-y-1.5">
-                                            <div className="font-semibold text-foreground">{t('steps.models.manualStep2')}</div>
-                                            <div className="space-y-2 rounded border border-border/60 bg-background/80 p-2 font-mono text-[11px] break-all select-text">
-                                                {manualTargets.map((target) => (
-                                                    <div key={target.key} className="space-y-1.5">
-                                                        <div className="text-muted-foreground/70">{target.path}</div>
-                                                        <div className="flex items-center gap-2 font-sans">
-                                                            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => { void copyText(target.path); }}>
-                                                                <Copy className="mr-1 w-3 h-3" />
-                                                                {t('steps.models.copyPath')}
-                                                            </Button>
-                                                            <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => { void openFolder(target.path); }}>
-                                                                <FolderOpen className="mr-1 w-3 h-3" />
-                                                                {t('steps.models.openFolder')}
-                                                            </Button>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-
-                                        <div className="space-y-1.5">
-                                            <div className="font-semibold text-foreground">{t('steps.models.manualStep3')}</div>
-                                            <div className="text-muted-foreground">{t('steps.models.installHint')}</div>
-                                        </div>
-                                    </div>
-                                </ManualDownloadGuide>
-                            </div>
+                            {/* 手动下载入口：单独一页，避免在这里挤 */}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                                onClick={() => { void openManualGuide(); }}
+                            >
+                                <HelpCircle className="h-3.5 w-3.5" />
+                                {t('steps.models.manualGuideTitle')}
+                            </Button>
                         </div>
                     </main>
 
                 </>
+            )}
+
+
+            {screen === 'manual' && (
+                <main className="relative z-10 flex flex-1 flex-col items-center overflow-y-auto scrollbar-none px-8 py-8">
+                    <div className="w-full max-w-2xl space-y-6">
+                        <div>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                                onClick={() => setScreen('download')}
+                            >
+                                <ArrowLeft className="h-3.5 w-3.5" />
+                                {t('steps.manual.back')}
+                            </Button>
+                        </div>
+
+                        <div className="space-y-2 text-center">
+                            <h1 className="text-2xl font-bold tracking-tight">{t('steps.manual.title')}</h1>
+                            <p className="text-sm text-muted-foreground leading-relaxed">{t('steps.manual.desc')}</p>
+                        </div>
+
+                        <div className="space-y-4">
+                            {bundleEntries.map((entry) => (
+                                <div key={entry.key} className="space-y-4 rounded-2xl border border-border/70 bg-card/80 p-5">
+                                    <div className="text-sm font-semibold text-foreground">{entry.title}</div>
+
+                                    <div className="space-y-2">
+                                        <div className="text-xs text-muted-foreground">{t('steps.manual.addressLabel')}</div>
+                                        {(entry.urls ?? []).map((url, index) => (
+                                            <div key={url} className="space-y-2 rounded-lg border border-border/50 bg-background/60 p-3">
+                                                <div className="flex items-start gap-2">
+                                                    {index > 0 && (
+                                                        <span className="mt-0.5 shrink-0 rounded bg-amber-500/10 px-1.5 py-0.5 text-[10px] font-medium text-amber-600 dark:text-amber-400">
+                                                            {t('steps.models.backupSource')}
+                                                        </span>
+                                                    )}
+                                                    <span className="font-mono text-[11px] break-all text-muted-foreground">{url}</span>
+                                                </div>
+                                                <div className="flex items-center gap-2">
+                                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => { void copyText(url); }}>
+                                                        <Copy className="mr-1 w-3 h-3" />
+                                                        {t('steps.models.copyLink')}
+                                                    </Button>
+                                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => { void openUrl(url); }}>
+                                                        <ExternalLink className="mr-1 w-3 h-3" />
+                                                        {t('steps.models.openInBrowser')}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {entry.targetPath && (
+                                        <div className="space-y-2">
+                                            <div className="text-xs text-muted-foreground">{t('steps.manual.targetLabel')}</div>
+                                            <div className="space-y-2 rounded-lg border border-border/50 bg-background/60 p-3">
+                                                <div className="font-mono text-[11px] break-all text-muted-foreground">{entry.targetPath}</div>
+                                                <div className="flex items-center gap-2">
+                                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => { void copyText(entry.targetPath as string); }}>
+                                                        <Copy className="mr-1 w-3 h-3" />
+                                                        {t('steps.models.copyPath')}
+                                                    </Button>
+                                                    <Button type="button" variant="outline" size="sm" className="h-7 text-xs" onClick={() => { void openFolder(entry.targetPath as string); }}>
+                                                        <FolderOpen className="mr-1 w-3 h-3" />
+                                                        {t('steps.models.openFolder')}
+                                                    </Button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+
+                        <p className="pb-2 text-center text-xs text-muted-foreground leading-relaxed">
+                            {t('steps.manual.footer')}
+                        </p>
+                    </div>
+                </main>
             )}
 
             {screen === 'done' && (
