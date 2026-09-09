@@ -593,16 +593,16 @@ const ServiceResourceSetting: React.FC = () => {
                         </div>
                     </SettingRow>
 
-                    <SettingRow
-                        title={t('resources.preference.styleLabel')}
-                        icon={Settings2}
-                        alignTop={subtitleMode === 'custom'}
-                        className="sm:flex-col sm:items-stretch"
-                    >
-                        {subtitleEngine === 'local-mt' ? (
-                            <div className="text-xs text-muted-foreground">{t('resources.preference.localMtZhOnlyHint')}</div>
-                        ) : (
-                            <div className="flex w-full flex-col gap-2">
+                    {/* 翻译风格：下拉与其它行一样靠右，自定义提示词单独占满整行 */}
+                    <div className="space-y-3 p-4 transition-colors hover:bg-muted/10">
+                        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                            <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                                <Settings2 className="h-4 w-4 shrink-0 text-muted-foreground" />
+                                <span>{t('resources.preference.styleLabel')}</span>
+                            </div>
+                            {subtitleEngine === 'local-mt' ? (
+                                <div className="text-xs text-muted-foreground">{t('resources.preference.localMtZhOnlyHint')}</div>
+                            ) : (
                                 <Select
                                     value={watched.openai?.subtitleTranslationMode}
                                     onValueChange={(value: 'zh' | 'simple_en' | 'custom') => {
@@ -616,19 +616,19 @@ const ServiceResourceSetting: React.FC = () => {
                                         <SelectItem value="custom">{t('resources.preference.styleCustom')}</SelectItem>
                                     </SelectContent>
                                 </Select>
-                                {subtitleMode === 'custom' && (
-                                    <Textarea
-                                        value={watched.openai?.subtitleCustomStyle}
-                                        onChange={(event) => {
-                                            setValue('openai.subtitleCustomStyle', event.target.value, { shouldDirty: true });
-                                        }}
-                                        placeholder={t('resources.preference.stylePlaceholder')}
-                                        className="min-h-[100px] w-full resize-none text-xs"
-                                    />
-                                )}
-                            </div>
+                            )}
+                        </div>
+                        {subtitleEngine !== 'local-mt' && subtitleMode === 'custom' && (
+                            <Textarea
+                                value={watched.openai?.subtitleCustomStyle}
+                                onChange={(event) => {
+                                    setValue('openai.subtitleCustomStyle', event.target.value, { shouldDirty: true });
+                                }}
+                                placeholder={t('resources.preference.stylePlaceholder')}
+                                className="min-h-[100px] w-full resize-none text-xs"
+                            />
                         )}
-                    </SettingRow>
+                    </div>
 
                     <SettingRow
                         title={t('resources.preference.dictionaryLabel')}
