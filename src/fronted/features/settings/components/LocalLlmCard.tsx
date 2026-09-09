@@ -39,6 +39,10 @@ export interface LocalLlmCardProps {
     testingModelId: string | null;
     /** 硬件条件提示；不传时不展示。 */
     hardwareHint?: React.ReactNode;
+    /** 删除按钮文案；不传时用设置页通用文案（删除模型）。 */
+    deleteLabel?: string;
+    /** 删除确认弹窗标题；不传时用设置页通用文案。 */
+    deleteConfirmTitle?: string;
     testResultsMap: Record<string, {
         success: boolean;
         warmSec: string;
@@ -68,6 +72,8 @@ export const LocalLlmCard: React.FC<LocalLlmCardProps> = ({
     headerless = false,
     testingModelId,
     hardwareHint,
+    deleteLabel,
+    deleteConfirmTitle,
     testResultsMap,
     onUseModel,
     onTestModel,
@@ -236,12 +242,12 @@ export const LocalLlmCard: React.FC<LocalLlmCardProps> = ({
                                                     disabled={busy || testingModelId !== null}
                                                 >
                                                     <Trash2 className="mr-1.5 h-3.5 w-3.5" />
-                                                    {t('serviceCredentials.localModel.deleteModel')}
+                                                    {deleteLabel ?? t('serviceCredentials.localModel.deleteModel')}
                                                 </Button>
                                             </AlertDialogTrigger>
                                             <AlertDialogContent>
                                                 <AlertDialogHeader>
-                                                    <AlertDialogTitle>{t('serviceCredentials.localAi.deleteConfirmTitle')}</AlertDialogTitle>
+                                                    <AlertDialogTitle>{deleteConfirmTitle ?? t('serviceCredentials.localAi.deleteConfirmTitle')}</AlertDialogTitle>
                                                     <AlertDialogDescription>{t('serviceCredentials.localAi.deleteConfirmDescription')}</AlertDialogDescription>
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>

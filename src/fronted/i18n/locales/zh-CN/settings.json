@@ -546,14 +546,16 @@
         },
         "cloud": {
             "title": "云端服务",
-            "description": "连接云端模型，需要填写服务商密钥。"
+            "description": "连接云端模型，需要填写服务商密钥；云端不可用时自动回退到本地基础资源包。"
         },
         "enhance": {
             "title": "本地增强资源包",
             "description": "在本地基础资源包的基础上，让翻译与查词更自然、更贴近原意。属于锦上添花的一项，可按需安装。",
             "hardwareHintGpu": "本机 {{memory}} GB 内存、{{cores}} 核 CPU，可用 {{gpu}} 加速，跑起来更流畅。",
             "hardwareHintNoGpu": "本机 {{memory}} GB 内存、{{cores}} 核 CPU，会以 CPU 运行，速度慢一些。",
-            "hardwareHintLowSpec": "本机 {{memory}} GB 内存、{{cores}} 核 CPU，运行本地增强资源包会明显慢一些。"
+            "hardwareHintLowSpec": "本机 {{memory}} GB 内存、{{cores}} 核 CPU，运行本地增强资源包会明显慢一些。",
+            "delete": "删除资源包",
+            "deleteConfirmTitle": "删除本地增强资源包？"
         },
         "capability": {
             "translation": "翻译",

@@ -546,14 +546,16 @@
         },
         "cloud": {
             "title": "Cloud Services",
-            "description": "Connect cloud models; a provider key is required."
+            "description": "Connect cloud models; a provider key is required. When the cloud is unavailable it falls back to the local base resource pack."
         },
         "enhance": {
             "title": "Local enhancement resource pack",
             "description": "Builds on the local base resource pack for more natural translation and lookups. A nice-to-have — install it when you want the extra polish.",
             "hardwareHintGpu": "This machine has {{memory}} GB RAM, {{cores}} CPU cores and {{gpu}} acceleration, so it runs smoothly.",
             "hardwareHintNoGpu": "This machine has {{memory}} GB RAM and {{cores}} CPU cores; the model runs on CPU, which is slower.",
-            "hardwareHintLowSpec": "This machine has {{memory}} GB RAM and {{cores}} CPU cores, so the local enhancement pack runs noticeably slower."
+            "hardwareHintLowSpec": "This machine has {{memory}} GB RAM and {{cores}} CPU cores, so the local enhancement pack runs noticeably slower.",
+            "delete": "Delete pack",
+            "deleteConfirmTitle": "Delete the local enhancement resource pack?"
         },
         "capability": {
             "translation": "Translation",

@@ -478,6 +478,8 @@ const ServiceResourceSetting: React.FC = () => {
                         busy={localAiBusy}
                         testingModelId={testingModelId}
                         hardwareHint={enhanceHardwareHint}
+                        deleteLabel={t('resources.enhance.delete')}
+                        deleteConfirmTitle={t('resources.enhance.deleteConfirmTitle')}
                         testResultsMap={testResultsMap}
                         onUseModel={(modelId) => {
                             const model = localAiStatus?.models.find((item) => item.modelId === modelId);
