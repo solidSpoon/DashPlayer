@@ -456,7 +456,8 @@
             "runtimeMissing": "本地智能模型组件缺失，请重新安装应用。",
             "customGuideTitle": "网络不佳？查看手动下载与导入教程",
             "customGuideStep1": "下载指令对话版（Instruct）的 GGUF 模型文件（推荐 Qwen 系列，量化版本选 Q4_K_M 体积与效果最平衡）。",
-            "customGuideStep3": "文件放好后回到应用，新模型会自动出现在列表里；点击「设为使用」即可启用。"
+            "customGuideStep3": "文件放好后回到应用，新模型会自动出现在列表里；点击「设为使用」即可启用。",
+            "aboutSize": "约 {{size}}"
         },
         "localMt": {
             "cardTitle": "本地快速翻译",

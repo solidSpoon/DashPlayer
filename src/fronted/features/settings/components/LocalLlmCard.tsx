@@ -141,7 +141,9 @@ export const LocalLlmCard: React.FC<LocalLlmCardProps> = ({
                                     )}
 
                                     {/* 模型体积：内置模型也一并展示，让用户知道要占多少空间 */}
-                                    <span className="shrink-0 text-xs text-muted-foreground">{model.sizeLabel}</span>
+                                    <span className="shrink-0 text-xs text-muted-foreground">
+                                        {t('serviceCredentials.localAi.aboutSize', { size: model.sizeLabel })}
+                                    </span>
 
                                     {/* 测速结果内联展示，不新增行高，避免卡片内元素跳动 */}
                                     {testResult && (
@@ -284,7 +286,9 @@ export const LocalLlmCard: React.FC<LocalLlmCardProps> = ({
                         {builtinModel.downloadUrls.length > 0 ? (
                             <>
                                 <div className="text-muted-foreground/90">
-                                    {t('serviceCredentials.localModel.modelToDownload', { model: `${builtinModel.name}（${builtinModel.sizeLabel}）` })}
+                                    {t('serviceCredentials.localModel.modelToDownload', {
+                                        model: `${builtinModel.name}（${t('serviceCredentials.localAi.aboutSize', { size: builtinModel.sizeLabel })}）`,
+                                    })}
                                 </div>
                                 <div className="bg-background/80 rounded border border-border/60 p-2 space-y-2 font-mono text-[11px] break-all select-text">
                                     {/* 首个为官方地址，其余为备用镜像；网络受限时可改用镜像地址手动下载 */}

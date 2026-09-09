@@ -456,7 +456,8 @@
             "runtimeMissing": "The local AI component is missing. Please reinstall the app.",
             "customGuideTitle": "Download not working? See the manual import guide",
             "customGuideStep1": "Download an instruct-tuned GGUF model file (Qwen series recommended; Q4_K_M offers the best balance of size and quality).",
-            "customGuideStep3": "Once the file is in place, come back to the app — the new model appears in the list automatically. Click \"Use\" to enable it."
+            "customGuideStep3": "Once the file is in place, come back to the app — the new model appears in the list automatically. Click \"Use\" to enable it.",
+            "aboutSize": "about {{size}}"
         },
         "localMt": {
             "cardTitle": "Local Quick Translation",

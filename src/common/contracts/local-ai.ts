@@ -28,7 +28,7 @@ export const LOCAL_AI_MODELS: readonly LocalAiModelDefinition[] = [
         name: 'Qwen3.5 2B Q4_K_M',
         file: 'Qwen3.5-2B-Q4_K_M.gguf',
         bytes: 1280835840,
-        sizeLabel: '~1.28 GB',
+        sizeLabel: '1.28 GB',
         urls: [
             'https://www.modelscope.cn/models/unsloth/Qwen3.5-2B-GGUF/resolve/master/Qwen3.5-2B-Q4_K_M.gguf',
             'https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf',
