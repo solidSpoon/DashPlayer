@@ -432,7 +432,7 @@
             "openTargetFolder": "Open target folder"
         },
         "localAi": {
-            "cardTitle": "Local AI Model",
+            "cardTitle": "Local enhancement resource pack",
             "cardDescription": "Fully offline translation and dictionary lookups with more natural wording, private and free of API costs.",
             "inUse": "In use",
             "readyNotInUse": "Ready",
@@ -453,7 +453,7 @@
             "speedWarm": "Daily response",
             "speedTps": "Translation speed",
             "speedTpsUnit": "chars/s",
-            "runtimeMissing": "The local AI component is missing. Please reinstall the app.",
+            "runtimeMissing": "The local enhancement pack component is missing; please reinstall the app.",
             "customGuideTitle": "Download not working? See the manual import guide",
             "customGuideStep1": "Download an instruct-tuned GGUF model file (Qwen series recommended; Q4_K_M offers the best balance of size and quality).",
             "customGuideStep3": "Once the file is in place, come back to the app — the new model appears in the list automatically. Click \"Use\" to enable it.",
@@ -472,9 +472,9 @@
     },
     "resources": {
         "title": "Services & Resources",
-        "description": "Download the resources needed to run locally, and enable local enhancement or cloud services as needed.",
+        "description": "Download the resources needed to run locally, and install the local enhancement pack or connect cloud services as needed.",
         "pack": {
-            "title": "Runtime Resource Pack",
+            "title": "Local base resource pack",
             "description": "Pronunciation, subtitle recognition and lightweight translation — install once and use offline.",
             "sizeHint": "about 1 GB",
             "ready": "Ready",
@@ -483,12 +483,12 @@
             "download": "Download all",
             "cancel": "Cancel",
             "delete": "Delete pack",
-            "deleteConfirmTitle": "Delete the runtime resource pack?",
+            "deleteConfirmTitle": "Delete the local base resource pack?",
             "deleteConfirmDescription": "You will need to download it again before using it. Delete anyway?",
             "cancelDelete": "Keep it",
             "confirmDelete": "Delete",
-            "downloaded": "Runtime resource pack is ready",
-            "deleted": "Runtime resource pack deleted",
+            "downloaded": "Local base resource pack is ready",
+            "deleted": "Local base resource pack deleted",
             "downloading": "Downloading required resources…",
             "verifying": "Verifying…",
             "extracting": "Extracting…",
@@ -529,7 +529,7 @@
             "subtitleDesc": "Which resource translates video subtitles.",
             "dictionaryLabel": "Dictionary lookup",
             "dictionaryDesc": "The built-in dictionary covers 38,000 common words, so lookups work without any setup. This setting only decides what to use for words it does not cover.",
-            "engineLocalAi": "Local smart model",
+            "engineLocalAi": "Local enhancement resource pack",
             "engineNone": "Off",
             "styleLabel": "Translation style",
             "styleZh": "Translate into Chinese",
@@ -537,23 +537,23 @@
             "styleCustom": "Custom",
             "stylePlaceholder": "Custom prompt style…",
             "localMtZhOnlyHint": "Lightweight translation only supports translating into Chinese.",
-            "notReadyHint": "The selected resource is not downloaded yet. Download the runtime resource pack above first.",
+            "notReadyHint": "The selected resource is not downloaded yet. Download the local base resource pack above first.",
             "sentenceLabel": "Sentence explanation",
             "sentenceDesc": "Press the shortcut to open an explanation panel for the current sentence, covering grammar and usage.",
             "engineDisabled": "Disabled",
             "engineNoSupplement": "No supplement",
-            "engineLocalBase": "Local base translation"
+            "engineLocalBase": "Local base resource pack"
         },
         "cloud": {
             "title": "Cloud Services",
             "description": "Connect cloud models; a provider key is required."
         },
         "enhance": {
-            "title": "Local smart model",
-            "description": "Builds on the runtime resource pack for more natural translation and lookups. A nice-to-have — install it when you want the extra polish.",
+            "title": "Local enhancement resource pack",
+            "description": "Builds on the local base resource pack for more natural translation and lookups. A nice-to-have — install it when you want the extra polish.",
             "hardwareHintGpu": "This machine has {{memory}} GB RAM, {{cores}} CPU cores and {{gpu}} acceleration, so it runs smoothly.",
             "hardwareHintNoGpu": "This machine has {{memory}} GB RAM and {{cores}} CPU cores; the model runs on CPU, which is slower.",
-            "hardwareHintLowSpec": "This machine has {{memory}} GB RAM and {{cores}} CPU cores, so the local enhancement model runs noticeably slower."
+            "hardwareHintLowSpec": "This machine has {{memory}} GB RAM and {{cores}} CPU cores, so the local enhancement pack runs noticeably slower."
         },
         "capability": {
             "translation": "Translation",

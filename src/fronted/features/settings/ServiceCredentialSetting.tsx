@@ -528,7 +528,7 @@ const ServiceCredentialSetting: React.FC = () => {
                         onOpenUrl={openDownloadUrl}
                     />
 
-                    {/* 本地智能模型卡片 */}
+                    {/* 本地增强资源包卡片 */}
                     <LocalLlmCard
                         status={localAiStatus}
                         busy={localAiBusy}

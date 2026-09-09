@@ -432,7 +432,7 @@
             "openTargetFolder": "打开目标文件夹"
         },
         "localAi": {
-            "cardTitle": "本地智能模型",
+            "cardTitle": "本地增强资源包",
             "cardDescription": "完全离线的翻译与词典查询，译文更自然，隐私安全、无 API 费用。",
             "inUse": "当前使用",
             "readyNotInUse": "已就绪",
@@ -453,7 +453,7 @@
             "speedWarm": "日常响应",
             "speedTps": "翻译速度",
             "speedTpsUnit": "字/秒",
-            "runtimeMissing": "本地智能模型组件缺失，请重新安装应用。",
+            "runtimeMissing": "本地增强资源包组件缺失，请重新安装应用。",
             "customGuideTitle": "网络不佳？查看手动下载与导入教程",
             "customGuideStep1": "下载指令对话版（Instruct）的 GGUF 模型文件（推荐 Qwen 系列，量化版本选 Q4_K_M 体积与效果最平衡）。",
             "customGuideStep3": "文件放好后回到应用，新模型会自动出现在列表里；点击「设为使用」即可启用。",
@@ -472,9 +472,9 @@
     },
     "resources": {
         "title": "服务与资源",
-        "description": "下载本地运行所需资源，按需启用本地增强或云端服务。",
+        "description": "下载本地运行所需资源，按需安装本地增强资源包或接入云端服务。",
         "pack": {
-            "title": "运行资源包",
+            "title": "本地基础资源包",
             "description": "发音、字幕识别与轻量翻译，装一次即可离线使用。",
             "sizeHint": "约 1 GB",
             "ready": "已就绪",
@@ -483,12 +483,12 @@
             "download": "下载全部",
             "cancel": "取消下载",
             "delete": "删除资源包",
-            "deleteConfirmTitle": "删除运行资源包？",
+            "deleteConfirmTitle": "删除本地基础资源包？",
             "deleteConfirmDescription": "删除后需要重新下载才能使用，确定要删除吗？",
             "cancelDelete": "暂不删除",
             "confirmDelete": "确认删除",
-            "downloaded": "运行资源包已就绪",
-            "deleted": "运行资源包已删除",
+            "downloaded": "本地基础资源包已就绪",
+            "deleted": "本地基础资源包已删除",
             "downloading": "正在下载所需资源…",
             "verifying": "正在校验…",
             "extracting": "正在解压…",
@@ -529,7 +529,7 @@
             "subtitleDesc": "翻译视频字幕时使用哪一档资源。",
             "dictionaryLabel": "词典查询",
             "dictionaryDesc": "内置词典已覆盖 3.8 万常见词，无需配置即可查词；这里选择的是超出词库时的补充方式。",
-            "engineLocalAi": "本地智能模型",
+            "engineLocalAi": "本地增强资源包",
             "engineNone": "关闭",
             "styleLabel": "翻译风格",
             "styleZh": "翻译成中文",
@@ -537,23 +537,23 @@
             "styleCustom": "自定义",
             "stylePlaceholder": "自定义 Prompt 样式…",
             "localMtZhOnlyHint": "轻量翻译只支持翻译为中文。",
-            "notReadyHint": "所选资源还没下载，请先在上方下载运行资源包。",
+            "notReadyHint": "所选资源还没下载，请先在上方下载本地基础资源包。",
             "sentenceLabel": "整句讲解",
             "sentenceDesc": "按快捷键为当前句打开讲解面板，讲解语法与用法。",
             "engineDisabled": "禁用",
             "engineNoSupplement": "不补充",
-            "engineLocalBase": "本地基础翻译"
+            "engineLocalBase": "本地基础资源包"
         },
         "cloud": {
             "title": "云端服务",
             "description": "连接云端模型，需要填写服务商密钥。"
         },
         "enhance": {
-            "title": "本地智能模型",
-            "description": "在运行资源包的基础上，让翻译与查词更自然、更贴近原意。属于锦上添花的一项，可按需安装。",
+            "title": "本地增强资源包",
+            "description": "在本地基础资源包的基础上，让翻译与查词更自然、更贴近原意。属于锦上添花的一项，可按需安装。",
             "hardwareHintGpu": "本机 {{memory}} GB 内存、{{cores}} 核 CPU，可用 {{gpu}} 加速，跑起来更流畅。",
             "hardwareHintNoGpu": "本机 {{memory}} GB 内存、{{cores}} 核 CPU，会以 CPU 运行，速度慢一些。",
-            "hardwareHintLowSpec": "本机 {{memory}} GB 内存、{{cores}} 核 CPU，运行本地增强模型会明显慢一些。"
+            "hardwareHintLowSpec": "本机 {{memory}} GB 内存、{{cores}} 核 CPU，运行本地增强资源包会明显慢一些。"
         },
         "capability": {
             "translation": "翻译",

@@ -55,7 +55,7 @@ interface LocalAiDownloadProgress {
 /**
  * 服务与资源设置页（新版预览）。
  *
- * 把"服务与模型"与"功能设置"两页合并成四块：运行资源包（发音/字幕识别/轻量翻译三合一）、
+ * 把"服务与模型"与"功能设置"两页合并成四块：本地基础资源包（发音/字幕识别/轻量翻译三合一）、
  * 本地增强（可选）、云端服务（可选）、翻译与查词偏好。旧页面暂时保留，便于对比效果。
  */
 const ServiceResourceSetting: React.FC = () => {
@@ -106,7 +106,7 @@ const ServiceResourceSetting: React.FC = () => {
     const watched = useWatch({ control: preferenceForm.control });
     const subtitleEngine = watched.providers?.subtitleTranslationEngine;
     const subtitleMode = watched.openai?.subtitleTranslationMode;
-    /** 词典补充是否走本地智能模型 / 云端模型。 */
+    /** 词典补充是否走本地增强资源包 / 云端模型。 */
     const dictionaryEngine = watched.providers?.dictionaryEngine;
     /** 整句讲解是否启用。 */
     const sentenceLearningEnabled = watched.openai?.enableSentenceLearning === true;
@@ -344,7 +344,7 @@ const ServiceResourceSetting: React.FC = () => {
         <SelectItem key={`${prefix}-${model}`} value={`openai:${model}`}>{model}</SelectItem>
     ));
 
-    /** 本地智能模型的硬件条件提示；硬件信息未就绪时为 undefined。 */
+    /** 本地增强资源包的硬件条件提示；硬件信息未就绪时为 undefined。 */
     const enhanceHardwareHint = React.useMemo(() => {
         if (!hardware) return undefined;
         const params = { memory: hardware.totalMemoryGb, cores: hardware.cpuCount };
@@ -448,7 +448,7 @@ const ServiceResourceSetting: React.FC = () => {
                     </div>
                 )}
 
-                {/* ① 运行资源包：发音 + 字幕识别 + 轻量翻译 */}
+                {/* ① 本地基础资源包：发音 + 字幕识别 + 轻量翻译 */}
                 <SettingCard
                     title={t('resources.pack.title')}
                     description={t('resources.pack.description')}
@@ -462,7 +462,7 @@ const ServiceResourceSetting: React.FC = () => {
                     <ResourcePackCard />
                 </SettingCard>
 
-                {/* ② 本地智能模型：可选的本地大模型，文案强调“在资源包基础上再提升” */}
+                {/* ② 本地增强资源包：可选的本地大模型，文案强调“在资源包基础上再提升” */}
                 <SettingCard
                     title={t('resources.enhance.title')}
                     description={t('resources.enhance.description')}
