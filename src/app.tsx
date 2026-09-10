@@ -31,27 +31,69 @@ import type { MigrationFailureDetail } from '@/common/contracts/migration-failur
 import { Button } from '@/fronted/components/ui/button';
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
+import { Loader2 } from 'lucide-react';
 import { applyLanguageSetting } from '@/fronted/i18n';
 
 const UPDATE_CHECK_DELAY_MS = 6000;
 const UPDATE_TOAST_ID = 'update-available';
-const App = () => {
+
+/**
+ * 启动门槛的判定结果，优先级从高到低：迁移失败 → 首次使用引导 → 主界面。
+ *
+ * null 表示尚未判定完成：此时只展示轻量加载态，避免主界面先闪一下再被引导页顶掉。
+ */
+type StartupGate =
+    | { kind: 'migration-failure'; failure: MigrationFailureDetail }
+    | { kind: 'onboarding' }
+    | { kind: 'main' };
+
+/**
+ * 启动门槛判定期间的过渡态。
+ *
+ * 判定只等一轮 IPC 往返，但主界面挂载很重（首页会立即拉列表、改窗口尺寸），
+ * 所以这里只给一个轻量加载指示：既不先渲染主界面再切走，也不留一片空白。
+ */
+const StartupLoading: React.FC = () => {
+    const { t } = useI18nTranslation('common');
+    return (
+        <div
+            role="status"
+            className="flex h-full w-full items-center justify-center gap-2 text-muted-foreground"
+        >
+            <Loader2 className="h-4 w-4 animate-spin" />
+            <span className="text-xs">{t('loading')}</span>
+        </div>
+    );
+};
+
+export const App = () => {
     const { t } = useI18nTranslation('toast');
     const theme = useSetting((s) => s.values.get('appearance.theme'));
     const languageSetting = useSetting((s) => s.values.get('i18n.language'));
-    const [needsOnboarding, setNeedsOnboarding] = React.useState<boolean | null>(null);
-    /** 迁移失败状态；null 表示已确认无失败（或读取失败时按无失败处理）。 */
-    const [migrationFailure, setMigrationFailure] = React.useState<MigrationFailureDetail | null>(null);
+    /** 当前生效的启动门槛；null 表示两个门槛都还没读出结果。 */
+    const [gate, setGate] = React.useState<StartupGate | null>(null);
 
+    // 两个门槛并行读取、统一裁决，避免各自为政时互相覆盖；
+    // 单次读取失败按「该门槛不拦截」处理，否则一次 IPC 异常就会把用户永久锁在启动页。
     useEffect(() => {
+        let cancelled = false;
         (async () => {
-            try {
-                const detail = await getMigrationFailureDetail();
-                setMigrationFailure(detail.failed ? detail : null);
-            } catch {
-                setMigrationFailure(null);
+            const [failure, completedVersion] = await Promise.all([
+                getMigrationFailureDetail().catch(() => null),
+                getOnboardingCompletedVersion().catch(() => null),
+            ]);
+            if (cancelled) {
+                return;
             }
+            if (failure?.failed) {
+                setGate({ kind: 'migration-failure', failure });
+                return;
+            }
+            setGate(completedVersion ? { kind: 'main' } : { kind: 'onboarding' });
         })();
+        return () => {
+            cancelled = true;
+        };
     }, []);
 
     useEffect(() => {
@@ -105,11 +147,13 @@ const App = () => {
     return (
         <>
             <div className="w-full h-screen text-black overflow-hidden select-none font-sans">
-                {migrationFailure ? (
-                    <MigrationFailureGate failure={migrationFailure} />
-                ) : needsOnboarding ? (
-                    <OnboardingView onCompleted={() => setNeedsOnboarding(false)} />
-                ) : (
+                {gate?.kind === 'migration-failure' && (
+                    <MigrationFailureGate failure={gate.failure} />
+                )}
+                {gate?.kind === 'onboarding' && (
+                    <OnboardingView onCompleted={() => setGate({ kind: 'main' })} />
+                )}
+                {gate?.kind === 'main' && (
                     <HashRouter>
                         <Routes>
                             <Route path="/" element={<HomePage />} />
@@ -183,6 +227,7 @@ const App = () => {
                         </Routes>
                     </HashRouter>
                 )}
+                {gate === null && <StartupLoading />}
             </div>
             <HotToaster
                 position="top-center"
