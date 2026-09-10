@@ -17,10 +17,6 @@ jobs:
   release-please:
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
-      # 透传发版 tag。steps 上下文只在 job outputs 处可用，下游 job 的
-      # with 里必须经 needs 引用本 output，直接写 steps.* 会导致整个
-      # workflow 文件解析失败（Unrecognized named-value）。
-      tag_name: ${{ steps.release.outputs.tag_name }}
     runs-on: ubuntu-latest
     steps:
       - name: Run release-please
@@ -32,11 +28,10 @@ jobs:
 
   # 发版 PR 合并（release_created 为 true）时，直接调用 release.yml 执行四平台构建；
   # 构建上下文即本次 push 的 main 提交（发版 PR 的合并结果，与 tag 内容一致）。
+  # 安装包由 electron-forge publish 按 package.json 版本号自行挂到对应 Release，无需传 tag
   build:
     needs: release-please
     if: needs.release-please.outputs.release_created == 'true'
     uses: ./.github/workflows/release.yml
-    with:
-      release_tag: ${{ needs.release-please.outputs.tag_name }}
     permissions:
       contents: write
