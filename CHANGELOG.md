@@ -2,6 +2,64 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.11.0](https://github.com/solidSpoon/DashPlayer/compare/v6.10.0...v6.11.0) (2026-09-10)
+
+
+### Features
+
+* Qwen3.5 本地大模型下载接入国内镜像 ([81eccff](https://github.com/solidSpoon/DashPlayer/commit/81eccff7a65697c587625b98c3bb65bb57aae010))
+* whisper.cpp 无核显时静默回退 CPU 并记录 warn 日志 ([1d77d98](https://github.com/solidSpoon/DashPlayer/commit/1d77d981e6b2325d0f9c57b1096fa18769d344c5))
+* whisper.cpp 运行时支持本地源码构建兜底 ([84165ce](https://github.com/solidSpoon/DashPlayer/commit/84165ce953ef8752aa0332b0d31f27822faa95aa))
+* 云端或本地增强不可用时自动回退到基础资源 ([96d4d53](https://github.com/solidSpoon/DashPlayer/commit/96d4d533ca6121b3fd034346e4a7e2aca66147d6))
+* 引导完成后按 GPU 优先切换识别引擎 ([67db347](https://github.com/solidSpoon/DashPlayer/commit/67db347eebd825b8c19f85649fad093a0e68fa7e))
+* 引导页下载页补返回按钮，保存位置页重排 ([b93cb6f](https://github.com/solidSpoon/DashPlayer/commit/b93cb6f243ee13b60735494613f9d6b08ade77f5))
+* 引导页完成页撒花改用 canvas-confetti ([3ffca06](https://github.com/solidSpoon/DashPlayer/commit/3ffca06218919f2d2d77b5f5827f14906cb7b6c9))
+* 引导页恢复三屏：选择保存位置 → 下载运行环境 → 完成页 ([973cd2b](https://github.com/solidSpoon/DashPlayer/commit/973cd2b336432ae370392da53b7c0e6486185297))
+* 引导页收敛为一屏全屏下载页，去掉步骤编号 ([8b56045](https://github.com/solidSpoon/DashPlayer/commit/8b56045de334198ccc21fbfcc6b696dbc138a466))
+* 引导页改为先选方案、最后统一下载离线模型 ([e3501f0](https://github.com/solidSpoon/DashPlayer/commit/e3501f00a3aa2466e7d2b704b380c26985c618b2))
+* 引导页档位建议纳入 GPU 加速探测 ([a3e740e](https://github.com/solidSpoon/DashPlayer/commit/a3e740ee3e0ab3f718fe88ec6e89e6676d141302))
+* 引导页第二步补充「内置词典」条目，暗示查词开箱即用 ([6369c35](https://github.com/solidSpoon/DashPlayer/commit/6369c35cf608147ad54bccc6a59d9cb13b9226cd))
+* 引导页简化为两步：选位置 + 下载一个离线资源包 ([b9b2f75](https://github.com/solidSpoon/DashPlayer/commit/b9b2f75e6c96b3754e20e6e4861a830b43688c50))
+* 引导页翻译配置改为三档方案，并按电脑配置给出建议 ([a988cf6](https://github.com/solidSpoon/DashPlayer/commit/a988cf684eb139f399f53667ef5c7887bb7d2c59))
+* 手动下载独立成一页，切换前先中断正在进行的下载 ([44f6a28](https://github.com/solidSpoon/DashPlayer/commit/44f6a2821d23615958dac21cb00efb4ba7eacae1))
+* 整句讲解改为单下拉选择，词典文案点明内置词库规模 ([461614d](https://github.com/solidSpoon/DashPlayer/commit/461614d9d5921671fedab5ff91e71a46f5341a82))
+* 新增「服务与资源（预览）」设置页，把本地资源合并成一个资源包 ([a1e83c0](https://github.com/solidSpoon/DashPlayer/commit/a1e83c0b9542527e14bd9a3880898831205eafb1))
+* 新增首次使用引导，字幕翻译与查词可交叉配置本地或云端引擎 ([4cab6a0](https://github.com/solidSpoon/DashPlayer/commit/4cab6a00ce522852c0b44105203ea70591b22618))
+* 本地增强与运行资源包补上资源体积 ([47fdd7c](https://github.com/solidSpoon/DashPlayer/commit/47fdd7c7561e6d151e0a99c24d73c1c7afc46d25))
+* 本地增强显示具体模型名，当前使用总览同步带上 ([56fe775](https://github.com/solidSpoon/DashPlayer/commit/56fe77521507b0d0b8e9794d86f25f4875b2e98f))
+* 本地增强补上本机硬件提示，说明它对内存与算力的要求 ([be4c762](https://github.com/solidSpoon/DashPlayer/commit/be4c76204518432844a450bada3de870c2f0a6a8))
+* 本地字幕识别新增 whisper.cpp 核显引擎并可切换 ([d2424ab](https://github.com/solidSpoon/DashPlayer/commit/d2424ab86215e177090cb4725b7a6bbdb60b7e43))
+* 本地字幕识别新增 whisper.cpp 核显引擎并可切换 ([558afbb](https://github.com/solidSpoon/DashPlayer/commit/558afbbebfd30292da1f2f41e156c9a36f2ca357))
+* 本地快速翻译模型下载接入国内镜像 ([320eb7e](https://github.com/solidSpoon/DashPlayer/commit/320eb7e36b29391c35a59c2a28ee867022f6ed63))
+* 本地轻量翻译模型（OPUS-MT）合入 main ([167f203](https://github.com/solidSpoon/DashPlayer/commit/167f203b0058439723b4bc5bc0dcf7f5880aaec9))
+* 模型下载新增国内镜像与可达性探测回退 ([c788267](https://github.com/solidSpoon/DashPlayer/commit/c788267d0c907b327b93def50e870d4571e96c48))
+* 模型下载源改用 ModelScope 优先，归档补充 SHA256 校验 ([178ee7b](https://github.com/solidSpoon/DashPlayer/commit/178ee7b13f5c93beebd9c37244a4a15a4ad74a14))
+* 翻译风格固定展示实际生效的提示词，非自定义时只读 ([7bafa37](https://github.com/solidSpoon/DashPlayer/commit/7bafa37f74b88c065bf2d95294d44b8a5ca4a978))
+* 老用户升级后自动沿用 sherpa-onnx CPU 识别引擎 ([08fd2f1](https://github.com/solidSpoon/DashPlayer/commit/08fd2f196475fc46737b037e3194d496513f8c08))
+* 能力图标按当前配置点亮，悬停改用浮层提示 ([78c0d52](https://github.com/solidSpoon/DashPlayer/commit/78c0d52b1aa652fbfb49446fb90fcee9971d26ef))
+* 设置页「本地快速翻译」补齐手动下载教程 ([ba479f7](https://github.com/solidSpoon/DashPlayer/commit/ba479f7f62f1bfbd17171205fa40b777caa081e2))
+* 设置页新增「当前使用」总览，下拉按档位分组 ([dd1295e](https://github.com/solidSpoon/DashPlayer/commit/dd1295e063d2ceddaeebb4c0dcf31b4729f84854))
+* 资源包手动下载教程改成三步式，增强模型与查词文案说清楚定位 ([9a5cd7d](https://github.com/solidSpoon/DashPlayer/commit/9a5cd7d44a6887f750b892bdf35976ac1ee2307c))
+* 迁移失败进入启动恢复页，支持重试与重置 ([15c4526](https://github.com/solidSpoon/DashPlayer/commit/15c4526faf43e8ab1573d47dbf90afc06cc54da3))
+* 重构「服务与模型」设置页，隐藏技术细节并支持按模型测试云端连通性 ([0546319](https://github.com/solidSpoon/DashPlayer/commit/054631955d01d1c6fcb07397fa117c8d975272a5))
+
+
+### Bug Fixes
+
+* parakeet-cli 单独空格 token 不再导致识别失败 ([2a94f28](https://github.com/solidSpoon/DashPlayer/commit/2a94f28f309a09e6235f2bd804eee30d1b641892))
+* whisper.cpp 运行时按平台取资产扩展名，CI 缺资产时显式失败 ([869d2bb](https://github.com/solidSpoon/DashPlayer/commit/869d2bb2a22daabc1b6568caa0780e21da49f1a6))
+* 修 whisper.cpp 运行时 Vulkan 目标的工具链（glslc 与 SPIRV-Headers） ([b5d92f5](https://github.com/solidSpoon/DashPlayer/commit/b5d92f59cef22b245074aa5fcf6e4e4967865469))
+* 修 whisper.cpp 运行时 Vulkan 目标的工具链（glslc 与 SPIRV-Headers） ([33ba8d4](https://github.com/solidSpoon/DashPlayer/commit/33ba8d434bc5e377f9e7cf6e7b5b42b2059b5a58))
+* 字幕翻译失败仅对失败批次回退到轻量模型 ([67d4d21](https://github.com/solidSpoon/DashPlayer/commit/67d4d2146019e8e5ecc104f0d4a713f5a892f409))
+* 引导页下载进度与网速按 500ms 节流刷新，避免数字闪烁 ([f668a78](https://github.com/solidSpoon/DashPlayer/commit/f668a78d13f24f3bc828608988eed2670152408d))
+* 引导页下载进度改为整体进度，不再每项从零重来 ([57d53d4](https://github.com/solidSpoon/DashPlayer/commit/57d53d403561f3bcbfe7581135363effab3581d5))
+* 性能提示只留在本地增强，基础资源包不再提示 ([33f21e7](https://github.com/solidSpoon/DashPlayer/commit/33f21e782dc08dca7590cce904465c90d4123d1c))
+* 手动下载教程里的归档文件名与上游保持一致，下载后无需改名 ([ffea3bf](https://github.com/solidSpoon/DashPlayer/commit/ffea3bffb86a52e69f792414a74a246b7a4d603f))
+* 清除缓存只清已启用的引擎，全部关闭时不再显示该行 ([354306d](https://github.com/solidSpoon/DashPlayer/commit/354306d6d94127545f32be76bf660d3a929c08ef))
+* 移除合并遗留的 SherpaOnnxCli 重复 DI 绑定 ([f7cacac](https://github.com/solidSpoon/DashPlayer/commit/f7cacac20f6d2f8d9ecb1d5abf518c02f1584de0))
+* 补齐引导页校验/解压/安装阶段文案，顺手补上存储页两处缺的文案 ([676bd5b](https://github.com/solidSpoon/DashPlayer/commit/676bd5b1fdbde4a9ef8ee7f83659024546a373b2))
+* 词典设置说明改回「内置优先、其它只补漏」的正确语义 ([414a027](https://github.com/solidSpoon/DashPlayer/commit/414a0278ae36aac3afc42adb4ebc6df5a8dc0ec9))
+
 ## [6.10.0](https://github.com/solidSpoon/DashPlayer/compare/v6.9.1...v6.10.0) (2026-09-07)
 
 
