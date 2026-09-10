@@ -662,7 +662,12 @@ async function buildWhisperCppFromSource({ basePath, exeName }) {
 
     const gpuFlags = isMac
         ? ['-DGGML_METAL=ON', '-DGGML_METAL_USE_BF16=ON', '-DGGML_METAL_EMBED_LIBRARY=ON', `-DCMAKE_OSX_ARCHITECTURES=${arch === 'arm64' ? 'arm64' : 'x86_64'}`]
-        : ['-DGGML_VULKAN=ON'];
+        : [
+            '-DGGML_VULKAN=ON',
+            // Windows 用静态 CRT（/MT），与 release.yml 对齐：MSVC 默认 /MD 会让二进制
+            // 依赖 VCRUNTIME140.dll / MSVCP140.dll（来自 VC++ Redistributable，不保证存在）
+            ...(platform === 'win32' ? ['-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded'] : []),
+        ];
     console.info(chalk.blue('=> Building whisper.cpp parakeet-cli (first build takes a few minutes)...'));
     try {
         execSync(
