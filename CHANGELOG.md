@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.11.1](https://github.com/solidSpoon/DashPlayer/compare/v6.11.0...v6.11.1) (2026-09-10)
+
+
+### Bug Fixes
+
+* 修复打包版启动崩溃（scoped 依赖丢失 + 原生动态库未解包）并按平台裁剪原生库 ([56d20a4](https://github.com/solidSpoon/DashPlayer/commit/56d20a4ba25aa8a8e450ed7005e3d8e6c9aaa820))
+* 打包时解出原生动态库，修复 onnxruntime/sharp 加载失败 ([6365651](https://github.com/solidSpoon/DashPlayer/commit/6365651299b7affc897c6f3d7060fe99306a0133))
+* 打包白名单放行 npm scope 目录，修复打包版 scoped 依赖丢失 ([598fba1](https://github.com/solidSpoon/DashPlayer/commit/598fba1a089e69ac6d9fe9f283a2020b12843231))
+
 ## [6.11.0](https://github.com/solidSpoon/DashPlayer/compare/v6.10.0...v6.11.0) (2026-09-10)
 
 
