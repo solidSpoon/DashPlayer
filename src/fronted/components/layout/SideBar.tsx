@@ -102,9 +102,9 @@ const SideBar = ({ compact }: SideBarProps) => {
                     <SquareSplitHorizontal />
                 )}
                 {item(
-                    t('formatConverter'),
-                    '/convert',
-                    'convert',
+                    t('playbackRepair'),
+                    '/repair',
+                    'repair',
                     <Rotate3D />
                 )}
                 {item(

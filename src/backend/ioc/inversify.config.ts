@@ -22,7 +22,7 @@ import SrtTimeAdjustController from '@/backend/controllers/SrtTimeAdjustControll
 import AiFuncController from '@/backend/controllers/AiFuncController';
 import ChatStreamController from '@/backend/controllers/ChatStreamController';
 import AiTransController from '@/backend/controllers/AiTransController';
-import ConvertController from '@/backend/controllers/ConvertController';
+import PlaybackRepairController from '@/backend/controllers/PlaybackRepairController';
 import DpTaskController from '@/backend/controllers/DpTaskController';
 import MediaController from '@/backend/controllers/MediaController';
 import MigrationFailureController from '@/backend/controllers/MigrationFailureController';
@@ -49,7 +49,7 @@ import ChatSessionService, { ChatSessionServiceImpl } from '@/backend/services/C
 import ChatSessionStore, { InMemoryChatSessionStore } from '@/backend/services/chat/ChatSessionStore';
 import AiProviderService, { AiProviderServiceImpl } from '@/backend/services/AiProviderService';
 import ModelRoutingService, { ModelRoutingServiceImpl } from '@/backend/services/ModelRoutingService';
-import ConvertService, { ConvertServiceImpl } from '@/backend/services/ConvertService';
+import PlaybackRepairService, { PlaybackRepairServiceImpl } from '@/backend/services/PlaybackRepairService';
 import SplitVideoService, { SplitVideoServiceImpl } from '@/backend/services/SplitVideoService';
 import MediaService, { MediaServiceImpl } from '@/backend/services/MediaService';
 import ClientProviderService from '@/backend/services/ClientProviderService';
@@ -160,7 +160,7 @@ container.bind<Controller>(TYPES.Controller).to(SrtTimeAdjustController).inSingl
 container.bind<Controller>(TYPES.Controller).to(AiFuncController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(ChatStreamController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(AiTransController).inSingletonScope();
-container.bind<Controller>(TYPES.Controller).to(ConvertController).inSingletonScope();
+container.bind<Controller>(TYPES.Controller).to(PlaybackRepairController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(DpTaskController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(MediaController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(StorageController).inSingletonScope();
@@ -231,7 +231,7 @@ container.bind<DpTaskService>(TYPES.DpTaskService).to(DpTaskServiceImpl).inSingl
 container.bind<ChatService>(TYPES.ChatService).to(ChatServiceImpl).inSingletonScope();
 container.bind<ChatSessionStore>(TYPES.ChatSessionStore).to(InMemoryChatSessionStore).inSingletonScope();
 container.bind<ChatSessionService>(TYPES.ChatSessionService).to(ChatSessionServiceImpl).inSingletonScope();
-container.bind<ConvertService>(TYPES.ConvertService).to(ConvertServiceImpl).inSingletonScope();
+container.bind<PlaybackRepairService>(TYPES.PlaybackRepairService).to(PlaybackRepairServiceImpl).inSingletonScope();
 container.bind<SplitVideoService>(TYPES.SplitVideoService).to(SplitVideoServiceImpl).inSingletonScope();
 container.bind<MediaService>(TYPES.MediaService).to(MediaServiceImpl).inSingletonScope();
 container.bind<TranslateService>(TYPES.TranslateService).to(TranslateServiceImpl).inSingletonScope();

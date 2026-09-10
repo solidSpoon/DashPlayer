@@ -40,7 +40,7 @@
             "empty": "No clips yet"
         }
     },
-    "formatConverter": {
+    "playbackRepair": {
         "title": "Fix Playback Issues",
         "description": "Convert video encoding to resolve silent audio, stuttering, or playback failures",
         "empty": {

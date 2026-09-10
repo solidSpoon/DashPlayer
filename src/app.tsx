@@ -19,7 +19,7 @@ import RendererToastHost from '@/fronted/components/shared/toasts/RendererToastH
 import TranscriptPage from '@/fronted/features/transcript/TranscriptPage';
 import SplitPage from '@/fronted/features/split/SplitPage';
 import GlobalShortCut from '@/fronted/components/shared/shortcuts/GlobalShortCut';
-import ConvertPage from '@/fronted/features/convert/ConvertPage';
+import RepairPage from '@/fronted/features/repair/RepairPage';
 import Eb from '@/fronted/components/shared/common/Eb';
 import FavouritePage from '@/fronted/features/favourite/FavouritePage';
 import VideoLearningPage from '@/fronted/features/video-learning/VideoLearningPage';
@@ -177,8 +177,8 @@ export const App = () => {
                                         element={<Eb key="split"><SplitPage /></Eb>}
                                     />
                                     <Route
-                                        path="convert"
-                                        element={<Eb key="convert"><ConvertPage /></Eb>}
+                                        path="repair"
+                                        element={<Eb key="repair"><RepairPage /></Eb>}
                                     />
                                     <Route
                                         path="vocabulary"

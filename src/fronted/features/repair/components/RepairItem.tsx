@@ -13,18 +13,18 @@ import {
     ContextMenuTrigger
 } from '@/fronted/components/ui/context-menu';
 import { Button } from '@/fronted/components/ui/button';
-import useConvert from '../convertStore';
+import useRepair from '../repairStore';
 import { useShallow } from 'zustand/react/shallow';
 import { emptyFunc } from '@/common/utils/Util';
-import { ConvertResult } from '@/common/contracts/convert';
+import { RepairTaskResult } from '@/common/contracts/playback-repair';
 import { DpTaskState } from '@/common/contracts/dp-task';
 import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import StrUtil from '@/common/utils/str-util';
 import UrlUtil from '@/common/utils/UrlUtil';
-import { convertApi } from '../convertApi';
+import { repairApi } from '../repairApi';
 import i18n from '@/fronted/i18n';
 
-const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: {
+const RepairItem = ({ file, onSelected, className, buttonVariant, onDeleted }: {
     file: string,
     className?: string,
     onSelected: () => void;
@@ -35,25 +35,25 @@ const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: 
     const { data: url } = useSWR(file ?
             [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, file, 5] : null,
         async ([, path, time]) => {
-            return await convertApi.getThumbnail(path, time);
+            return await repairApi.getThumbnail(path, time);
         }
     );
     const { data: videoLength } = useSWR(file ? ['duration', file] : null, async ([, f]) => {
-        return await convertApi.getDuration(f);
+        return await repairApi.getDuration(f);
     }, { revalidateOnFocus: false });
     const {
         taskId,
-        convert
-    } = useConvert(useShallow(s => ({
+        repair
+    } = useRepair(useShallow(s => ({
         taskId: s.tasks.get(file),
-        convert: s.convert
+        repair: s.repair
     })));
     const { task: dpTask } = useDpTaskViewer(taskId);
     const resultJson = dpTask?.result;
     const progress = StrUtil.isNotBlank(resultJson) ? JSON.parse(resultJson) : {
         progress: 0,
         path: file
-    } as ConvertResult;
+    } as RepairTaskResult;
 
 
     const isRunning = dpTask?.status === DpTaskState.IN_PROGRESS;
@@ -119,7 +119,7 @@ const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: 
                                             if (taskId === undefined) {
                                                 throw new Error(`转换任务缺少任务编号：${file}`);
                                             }
-                                            await convertApi.cancelTask(taskId);
+                                            await repairApi.cancelTask(taskId);
                                         } else {
                                             onDeleted?.();
                                         }
@@ -130,12 +130,12 @@ const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: 
                                     size="sm"
                                     variant="ghost"
                                 >
-                                    {isRunning ? t('formatConverter.cancel') : t('formatConverter.delete')}
+                                    {isRunning ? t('playbackRepair.cancel') : t('playbackRepair.delete')}
                                 </Button>
                                 <Button
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        convert(file);
+                                        repair(file);
                                     }}
                                     disabled={isRunning}
                                     className={cn(
@@ -144,7 +144,7 @@ const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: 
                                     size="sm"
                                     variant={isRunning ? 'secondary' : 'default'}
                                 >
-                                    {t('formatConverter.fix')}
+                                    {t('playbackRepair.fix')}
                                 </Button>
                             </div>
                         </div>
@@ -162,7 +162,7 @@ const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: 
             <ContextMenuContent>
                 <ContextMenuItem
                     onClick={async () => {
-                        await convertApi.openFolder(file);
+                        await repairApi.openFolder(file);
                     }}
                 >
                     {i18n.t('common:showInExplorer')}
@@ -173,10 +173,10 @@ const ConvertItem = ({ file, onSelected, className, buttonVariant, onDeleted }: 
 
 
 };
-ConvertItem.defaultProps = {
+RepairItem.defaultProps = {
     buttonVariant: 'default',
     className: '',
     onDeleted: emptyFunc
 };
 
-export default ConvertItem;
+export default RepairItem;

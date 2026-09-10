@@ -52,8 +52,7 @@ function createGateway(probeStdout = JSON.stringify({ format: { duration: 66.6 }
         buildTrimVideo: vi.fn(() => ['-trim-video']),
         buildThumbnail: vi.fn(() => ['-thumbnail']),
         buildExtractSubtitle: vi.fn(() => ['-extract-sub']),
-        buildToMp4: vi.fn(() => ['-to-mp4']),
-        buildMkvToMp4: vi.fn(() => ['-mkv-to-mp4']),
+        buildRepair: vi.fn(() => ['-repair']),
         buildConvertToWav: vi.fn(() => ['-to-wav']),
         buildTrimAudio: vi.fn(() => ['-trim-audio']),
     } as unknown as FfmpegCommandBuilder;
@@ -203,7 +202,10 @@ describe('FfmpegGatewayImpl', () => {
         const { gateway, deps } = createGateway();
         const onProgress = vi.fn();
 
-        await gateway.toMp4(inputFilePath, path.join(workDir, 'out.mp4'), { onProgress });
+        await gateway.repair(
+            { inputFile: inputFilePath, outputFile: path.join(workDir, 'out.mp4'), recipe: 'full-transcode' },
+            { onProgress },
+        );
 
         expect(deps.runMock).toHaveBeenCalledTimes(1);
         expect(deps.startMock.mock.calls[0][0].inputDurationSecond).toBe(66.6);
@@ -212,7 +214,10 @@ describe('FfmpegGatewayImpl', () => {
     it('上层显式传入时长时应跳过探测并透传给 runner', async () => {
         const { gateway, deps } = createGateway();
 
-        await gateway.mkvToMp4(inputFilePath, path.join(workDir, 'out.mp4'), { inputDurationSecond: 99 });
+        await gateway.repair(
+            { inputFile: inputFilePath, outputFile: path.join(workDir, 'out.mp4'), recipe: 'remux-copy' },
+            { inputDurationSecond: 99 },
+        );
 
         expect(deps.runMock).not.toHaveBeenCalled();
         expect(deps.startMock.mock.calls[0][0].inputDurationSecond).toBe(99);
@@ -287,10 +292,13 @@ describe('FfmpegGatewayImpl', () => {
         const { gateway } = createGateway();
         const onProgress = vi.fn();
 
-        await gateway.toMp4(inputFilePath, path.join(workDir, 'out.mp4'), {
-            onProgress,
-            inputDurationSecond: 100,
-        });
+        await gateway.repair(
+            { inputFile: inputFilePath, outputFile: path.join(workDir, 'out.mp4'), recipe: 'full-transcode' },
+            {
+                onProgress,
+                inputDurationSecond: 100,
+            },
+        );
 
         expect(onProgress).toHaveBeenCalledWith(10);
     });

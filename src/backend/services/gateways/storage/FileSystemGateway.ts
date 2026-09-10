@@ -51,6 +51,18 @@ export default interface FileSystemGateway {
     readBinaryFile(filePath: string): Promise<Buffer>;
 
     /**
+     * 读取文件头部指定长度的字节。
+     *
+     * 用于只需要看文件开头特征的场景（如判定 MP3 码率模式），
+     * 避免为了几百 KB 的特征把整个大文件读进内存。
+     *
+     * @param filePath 文件绝对路径。
+     * @param length 期望读取的最大字节数；实际文件更短时返回实际内容。
+     * @returns 文件头部字节。
+     */
+    readBinaryFileSlice(filePath: string, length: number): Promise<Buffer>;
+
+    /**
      * 计算目录内所有普通文件的总大小。
      * @param directoryPath 目录绝对路径。
      * @returns 文件总大小，单位为字节；遍历失败时直接抛出错误。

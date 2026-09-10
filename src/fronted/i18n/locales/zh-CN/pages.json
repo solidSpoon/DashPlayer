@@ -40,7 +40,7 @@
             "empty": "暂无视频片段"
         }
     },
-    "formatConverter": {
+    "playbackRepair": {
         "title": "修复播放问题",
         "description": "自动转换视频编码格式，解决无声、卡顿或黑屏等兼容性问题",
         "empty": {

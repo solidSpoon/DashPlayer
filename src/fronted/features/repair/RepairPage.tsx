@@ -1,23 +1,23 @@
 import { cn } from '@/fronted/lib/utils';
 import React from 'react';
-import ConvertFileSelector from './components/ConvertFileSelector';
-import ConvertFolderSelector from './components/ConvertFolderSelector';
-import ConvertItem from './components/ConvertItem';
-import useConvert from './convertStore';
+import RepairFileSelector from './components/RepairFileSelector';
+import RepairFolderSelector from './components/RepairFolderSelector';
+import RepairItem from './components/RepairItem';
+import useRepair from './repairStore';
 import { useShallow } from 'zustand/react/shallow';
 import { Button } from '@/fronted/components/ui/button';
 import { DpTaskState } from '@/common/contracts/dp-task';
 import Eb from '@/fronted/components/shared/common/Eb';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
-import { convertApi } from './convertApi';
+import { repairApi } from './repairApi';
 import PageHeader from '@/fronted/components/shared/common/PageHeader';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { Wrench } from 'lucide-react';
 
-const logger = getRendererLogger('Convert');
+const logger = getRendererLogger('RepairPage');
 
 /** 展示转码队列并组织文件、文件夹选择与批量转换操作。 */
-const ConvertPage = () => {
+const RepairPage = () => {
     const { t } = useI18nTranslation('pages');
     const {
         files,
@@ -25,10 +25,10 @@ const ConvertPage = () => {
         addFiles,
         addFolders,
         taskStats,
-        convertFolder,
+        repairFolder,
         deleteFolder,
         deleteFile
-    } = useConvert(useShallow(s => ({
+    } = useRepair(useShallow(s => ({
         files: s.files,
         folders: s.folders,
         addFiles: s.addFiles,
@@ -36,7 +36,7 @@ const ConvertPage = () => {
         deleteFolder: s.deleteFolder,
         deleteFile: s.deleteFile,
         taskStats: s.taskStats,
-        convertFolder: s.convertFolder
+        repairFolder: s.repairFolder
     })));
 
     const isEmpty = files.length === 0 && folders.length === 0;
@@ -46,18 +46,18 @@ const ConvertPage = () => {
             {/* 顶栏标题区：无分割线 */}
             <div className="px-6 pt-5 pb-2">
                 <PageHeader
-                    title={t('formatConverter.title')}
-                    description={t('formatConverter.description')}
+                    title={t('playbackRepair.title')}
+                    description={t('playbackRepair.description')}
                     rightSlot={
                         <div className="flex items-center gap-2.5 shrink-0">
-                            <ConvertFileSelector
+                            <RepairFileSelector
                                 onSelected={async (ps) => {
                                     addFiles(ps);
                                 }}
                             />
-                            <ConvertFolderSelector
+                            <RepairFolderSelector
                                 onSelected={async (fp) => {
-                                    const folderList = await convertApi.scanFolders(fp);
+                                    const folderList = await repairApi.scanFolders(fp);
                                     addFolders(folderList);
                                 }}
                             />
@@ -78,10 +78,10 @@ const ConvertPage = () => {
                             <Wrench className="h-7 w-7 stroke-1 text-muted-foreground/80" />
                         </div>
                         <h3 className="text-sm font-medium text-foreground mb-1">
-                            {t('formatConverter.empty.title')}
+                            {t('playbackRepair.empty.title')}
                         </h3>
                         <p className="text-xs text-muted-foreground max-w-xs leading-relaxed">
-                            {t('formatConverter.empty.guide')}
+                            {t('playbackRepair.empty.guide')}
                         </p>
                     </div>
                 ) : (
@@ -102,27 +102,27 @@ const ConvertPage = () => {
                                                 className="h-7 px-2.5 text-xs text-muted-foreground hover:text-foreground"
                                                 onClick={() => deleteFolder(folder.folder)}
                                             >
-                                                {hasP ? t('formatConverter.cancel') : t('formatConverter.delete')}
+                                                {hasP ? t('playbackRepair.cancel') : t('playbackRepair.delete')}
                                             </Button>
                                             <Button
                                                 disabled={allP}
                                                 size="sm"
                                                 className="h-7 px-3 text-xs font-medium"
-                                                onClick={() => convertFolder(folder.folder)}
+                                                onClick={() => repairFolder(folder.folder)}
                                             >
-                                                {t('formatConverter.fix')}
+                                                {t('playbackRepair.fix')}
                                             </Button>
                                         </div>
 
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                             {folder.videos.map((file) => (
                                                 <Eb key={file}>
-                                                    <ConvertItem
+                                                    <RepairItem
                                                         buttonVariant="small"
                                                         className="border border-border/50 bg-muted/20 hover:bg-muted/35 transition-colors"
                                                         file={file}
                                                         onSelected={() => {
-                                                            logger.debug('File selected in convert folder', { file });
+                                                            logger.debug('File selected in repair folder', { file });
                                                         }}
                                                         onDeleted={() => {
                                                             deleteFolder(folder.folder, file);
@@ -141,11 +141,11 @@ const ConvertPage = () => {
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                     {files.map((file) => (
                                         <Eb key={file}>
-                                            <ConvertItem
+                                            <RepairItem
                                                 className="border border-border/70 rounded-2xl bg-card shadow-2xs hover:border-border transition-colors"
                                                 file={file}
                                                 onSelected={() => {
-                                                    logger.debug('File selected in convert files', { file });
+                                                    logger.debug('File selected in repair files', { file });
                                                 }}
                                                 onDeleted={() => {
                                                     deleteFile(file);
@@ -163,4 +163,4 @@ const ConvertPage = () => {
     );
 };
 
-export default ConvertPage;
+export default RepairPage;

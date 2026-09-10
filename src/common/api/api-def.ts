@@ -12,7 +12,11 @@ import {SentenceStruct} from '@/common/types/SentenceStruct';
 import {WindowState} from '@/common/types/Types';
 import {SubtitleTimestampAdjustmentInput} from '@/common/contracts/subtitle-timestamp-adjustment';
 import { UpdateCheckResult } from '@/common/types/update-check';
-import { FolderVideos } from '@/common/contracts/convert';
+import {
+    FolderVideos,
+    PlaybackRepairDiagnosis,
+    PlaybackRepairStartResult,
+} from '@/common/contracts/playback-repair';
 
 import {Tag} from '@/common/contracts/tag';
 import {ClipQuery, SimpleClipQuery} from '@/common/api/dto';
@@ -319,11 +323,11 @@ interface MediaDef {
     'media/info': { params: string, return: VideoInfo };
 }
 
-interface ConvertDef {
-    'convert/to-mp4': { params: string, return: number };
-    'convert/from-folder': { params: string[], return: FolderVideos[] };
-    'convert/suggest-html5-video': { params: string, return: string | null };
-
+interface PlaybackRepairDef {
+    'repair/diagnose': { params: string, return: PlaybackRepairDiagnosis };
+    'repair/start': { params: string, return: PlaybackRepairStartResult };
+    'repair/scan-folders': { params: string[], return: FolderVideos[] };
+    'repair/discard': { params: string, return: boolean };
 }
 
 interface FavoriteClipsDef {
@@ -442,7 +446,7 @@ export type ApiDefinitions = ApiDefinition
     & SettingsDef
     & ParakeetModelDef
     & WhisperCppModelDef
-    & ConvertDef
+    & PlaybackRepairDef
     & FavoriteClipsDef
     & TagDef
     & VocabularyDef

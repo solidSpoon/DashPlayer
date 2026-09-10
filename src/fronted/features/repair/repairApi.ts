@@ -1,8 +1,8 @@
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 
-export const convertApi = {
+export const repairApi = {
     /**
-     * 打开文件选择器并返回用户选中的待转换文件。
+     * 打开文件选择器并返回用户选中的待修复文件。
      *
      * @param formats 允许选择的文件扩展名。
      * @returns 用户选中的文件绝对路径。
@@ -17,35 +17,53 @@ export const convertApi = {
     selectFolders: () => backendClient.call('system/select-folder', {}),
 
     /**
-     * 扫描目录并找出需要转换的视频。
+     * 扫描目录并找出需要修复的媒体文件。
      *
      * @param folders 待扫描的文件夹绝对路径。
-     * @returns 按文件夹分组的待转换视频。
+     * @returns 按文件夹分组的待修复文件。
      */
-    scanFolders: (folders: string[]) => backendClient.call('convert/from-folder', folders),
+    scanFolders: (folders: string[]) => backendClient.call('repair/scan-folders', folders),
 
     /**
-     * 启动单个视频的 MP4 转换任务。
+     * 诊断单个媒体文件是否需要修复。
      *
-     * @param file 待转换视频的绝对路径。
-     * @returns 后端任务编号。
+     * @param file 待诊断媒体绝对路径。
+     * @returns 诊断结论；已修复时 `needsRepair` 为 false。
      */
-    startConversion: (file: string) => backendClient.call('convert/to-mp4', file),
+    diagnose: (file: string) => backendClient.call('repair/diagnose', file),
 
     /**
-     * 获取视频指定时间点的缩略图。
+     * 诊断并启动单个媒体的修复任务。
      *
-     * @param filePath 视频绝对路径。
+     * @param file 待修复媒体绝对路径。
+     * @returns 任务编号与诊断结论；无需修复时任务编号为 null。
+     */
+    startRepair: (file: string) => backendClient.call('repair/start', file),
+
+    /**
+     * 丢弃某个媒体的修复产物。
+     *
+     * 用于产物在真机试播验收中仍不可播的场景：产物留着会被后续播放优先选中。
+     *
+     * @param file 原媒体或产物绝对路径。
+     * @returns 产物存在并被删除时返回 true。
+     */
+    discard: (file: string) => backendClient.call('repair/discard', file),
+
+    /**
+     * 获取媒体指定时间点的缩略图。
+     *
+     * @param filePath 媒体绝对路径。
      * @param time 截图时间，单位为秒。
      * @returns 缩略图文件路径。
      */
     getThumbnail: (filePath: string, time: number) => backendClient.call('media/thumbnail', { filePath, time }),
 
     /**
-     * 获取视频时长。
+     * 获取媒体时长。
      *
-     * @param file 视频绝对路径。
-     * @returns 视频时长，单位为秒。
+     * @param file 媒体绝对路径。
+     * @returns 媒体时长，单位为秒。
      */
     getDuration: (file: string) => backendClient.call('media/duration', file),
 
