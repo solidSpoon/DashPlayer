@@ -56,10 +56,10 @@ interface LocalAiDownloadProgress {
 }
 
 /**
- * 服务与资源设置页（新版预览）。
+ * 服务与资源设置页。
  *
- * 把"服务与模型"与"功能设置"两页合并成四块：本地基础资源包（发音/字幕识别/轻量翻译三合一）、
- * 本地增强（可选）、云端服务（可选）、翻译与查词偏好。旧页面暂时保留，便于对比效果。
+ * 把“服务与模型”与“功能设置”两页合并成四块：本地基础资源包（发音/字幕识别/轻量翻译三合一）、
+ * 本地增强（可选）、云端服务（可选）、翻译与查词偏好。
  */
 const ServiceResourceSetting: React.FC = () => {
     const { t } = useI18nTranslation('settings');
@@ -250,9 +250,9 @@ const ServiceResourceSetting: React.FC = () => {
             await settingsApi.downloadLocalAi(modelId);
             toast.success(t('common.downloadDone'));
         } catch (error) {
-            if (model) {
-                toast.error(`${localAiDisplayName(model)}: ${error instanceof Error ? error.message : String(error)}`);
-            }
+            // 状态未加载完时找不到模型名，也要把失败显式露出来，不能静默吞掉。
+            const prefix = model ? `${localAiDisplayName(model)}: ` : '';
+            toast.error(`${prefix}${error instanceof Error ? error.message : String(error)}`);
         } finally {
             await refreshResourceStatus();
         }
@@ -467,7 +467,8 @@ const ServiceResourceSetting: React.FC = () => {
         </TooltipProvider>
     );
 
-    if (!credentialReady || !preferenceReady) {
+    // 资源状态聚合未加载完成时整页骨架：避免识别引擎等字段在无数据时猜默认值。
+    if (!credentialReady || !preferenceReady || !resourceStatus) {
         return (
             <SettingsLoadingSkeleton
                 title={t('resources.title')}
@@ -512,7 +513,7 @@ const ServiceResourceSetting: React.FC = () => {
                     ])}
                 >
                     <ResourcePackCard
-                        transcriptionEngine={resourceStatus?.transcriptionEngine ?? 'whisper-cpp'}
+                        transcriptionEngine={resourceStatus.transcriptionEngine}
                         ttsStatus={resourceStatus?.tts ?? null}
                         transcriptionStatus={resourceStatus?.transcription ?? null}
                         localMtStatus={resourceStatus?.localMt ?? null}

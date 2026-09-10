@@ -172,6 +172,8 @@ export class WhisperCppCli {
                 }, 4000);
 
                 child.on('error', (error) => {
+                    // spawn 失败时 close 可能不触发，这里也要清理心跳，避免定时器空转泄漏。
+                    clearInterval(heartbeat);
                     this.logger.error('whisper.cpp spawn failed', { job: request.job, pid: child.pid, error });
                     reject(error);
                 });

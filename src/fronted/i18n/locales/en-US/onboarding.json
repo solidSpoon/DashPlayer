@@ -1,10 +1,5 @@
 {
-    "dialogTitle": "Welcome to DashPlayer",
-    "dialogSubtitle": "A few quick steps and you are ready to start.",
-    "stepIndicator": "Step {{current}} of {{total}}",
-    "prevStep": "Previous",
     "nextStep": "Next",
-    "skip": "Skip for now",
     "copied": "Copied",
     "copyFailed": "Copy failed",
     "openUrlFailed": "Failed to open the link",
@@ -72,6 +67,5 @@
             "method2Tip": "💡 Tip: Selecting both at once automatically binds the subtitles and loads the player."
         }
     },
-    "finishConfig": "Finish setup",
     "startUsing": "Start using"
 }

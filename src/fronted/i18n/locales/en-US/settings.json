@@ -1,6 +1,5 @@
 {
     "layoutTitle": "Settings",
-    "layoutSubtitle": "Manage shortcuts, appearance preferences, credentials, and local storage policies in one place.",
     "common": {
         "viewDocs": "View docs",
         "docs": "Documentation",
@@ -17,10 +16,6 @@
         "notDownloaded": "Not downloaded",
         "copy": "Copy",
         "copied": "Download address copied",
-        "manualDownloadTitle": "If the network is unstable, download the model manually:",
-        "manualDownloadUrlLabel": "Download address",
-        "manualDownloadSaveTo": "Save the downloaded file to:",
-        "manualDownloadNextStep": "Then return here and click Download to finish installing the model.",
         "openFolder": "Open folder",
         "openFolderFailed": "Failed to open folder",
         "openInBrowser": "Open in browser",
@@ -301,21 +296,11 @@
                 "temp": "Temporary Files",
                 "other": "Other Files"
             }
-        }
+        },
+        "openFailed": "Failed to open the cache folder"
     },
     "serviceCredentials": {
-        "sections": {
-            "cloud": {
-                "title": "Cloud Services",
-                "description": "Connect cloud translation and language models. Requires provider keys."
-            },
-            "local": {
-                "title": "Local Models",
-                "description": "Runs fully offline; each model needs one download before first use."
-            }
-        },
         "openai": {
-            "description": "Supports OpenAI-compatible endpoints for subtitle translation, dictionary lookup, and sentence learning.",
             "autoAppendV1": "Auto-append /v1",
             "autoAppendV1Hint": "When enabled, /v1 is automatically appended to the base URL. Disable if your URL already includes /v1.",
             "chatCompletionOnly": "Only the chat completion API format is supported.",
@@ -336,51 +321,23 @@
             "usageDictionary": "Dictionary"
         },
         "transcription": {
-            "cardTitle": "Speech-to-Subtitle",
-            "cardDescription": "Turns speech in your videos into subtitles, fully offline.",
-            "engineLabel": "Recognition mode",
-            "engineHardware": "Hardware accelerated (recommended)",
-            "engineCompat": "Compatibility mode",
-            "engineNotice": "Takes effect the next time subtitles are generated.",
             "whisperCppModelFile": "Parakeet TDT 0.6B v3 (GGUF q8_0, ~640 MB)",
             "sherpaOnnxModelFile": "Parakeet TDT 0.6B v3 (ONNX int8, ~640 MB)"
         },
         "localTts": {
-            "cardTitle": "Word & Sentence Pronunciation",
-            "cardDescription": "Reads words and sentences aloud, synthesized offline without network access.",
             "modelFile": "Piper en_US Amy Low (~18 MB)"
         },
         "localModel": {
-            "cancelDownload": "Cancel download",
-            "installing": "Installing…",
-            "downloading": "Downloading…",
-            "verifying": "Verifying…",
-            "extracting": "Extracting…",
             "deleteModel": "Delete model",
-            "deleteConfirmTitle": "Delete the {{name}} model?",
-            "deleteConfirmDescription": "You will need to download it again before using this feature.",
-            "cancelDelete": "Keep it",
-            "confirmDelete": "Delete",
-            "installed": "{{name}} model downloaded",
-            "downloadCancelled": "{{name}} model download cancelled",
-            "deleted": "{{name}} model deleted",
-            "deleteFailed": "Delete failed. Please try again later.",
-            "notDownloadedHint": "Download once, then it runs fully offline.",
-            "guideTitle": "Download not working? See the manual install guide",
             "step1Title": "1. Download the model file:",
             "modelToDownload": "Model to download: {{model}}",
             "step2Title": "2. Save the downloaded file to:",
             "step3Title": "3. Finish installation:",
-            "installHint": "Once saved, come back and click Download above; the app finishes the installation automatically.",
             "backupSource": "Backup source",
             "copyDownloadUrl": "Copy download link",
-            "openInBrowser": "Open in browser",
-            "copyTargetPath": "Copy target path",
-            "openTargetFolder": "Open target folder"
+            "openInBrowser": "Open in browser"
         },
         "localAi": {
-            "cardTitle": "Local enhancement resource pack",
-            "cardDescription": "Fully offline translation and dictionary lookups with more natural wording, private and free of API costs.",
             "inUse": "In use",
             "readyNotInUse": "Ready",
             "use": "Use this model",
@@ -405,16 +362,6 @@
             "customGuideStep1": "Download an instruct-tuned GGUF model file (Qwen series recommended; Q4_K_M offers the best balance of size and quality).",
             "customGuideStep3": "Once the file is in place, come back to the app — the new model appears in the list automatically. Click \"Use\" to enable it.",
             "aboutSize": "about {{size}}"
-        },
-        "localMt": {
-            "cardTitle": "Local Quick Translation",
-            "cardDescription": "Offline Chinese-English subtitle translation with more literal wording; Chinese output only.",
-            "downloadDone": "Local quick translation model downloaded",
-            "deleteDone": "Local quick translation model deleted",
-            "deleteConfirmTitle": "Delete the local quick translation model?",
-            "deleteConfirmDescription": "You will need to download it again before using it.",
-            "filesToDownload": "Files to download: everything in the repo (including the onnx folder), keeping the same folder structure.",
-            "installHint": "Once the files are in place, come back and click Download above; the app verifies them and finishes the installation."
         }
     },
     "resources": {

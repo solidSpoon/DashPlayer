@@ -179,7 +179,7 @@ interface SubtitleTranslationSession<TContext> {
  * 围绕当前播放位置维护有界翻译窗口的调度器。
  *
  * 调度器不是先进先出队列，也没有常驻循环：
- * 每次需求更新或任务完成时，按照距离播放位置的优先级启动最多三个消费者。
+ * 每次需求更新或任务完成时，按照距离播放位置的优先级启动最多 MAX_CONSUMERS 个消费者。
  */
 export default class SubtitleTranslationScheduler<TContext> {
     private readonly sessions = new Map<string, SubtitleTranslationSession<TContext>>();
@@ -382,7 +382,7 @@ export default class SubtitleTranslationScheduler<TContext> {
     }
 
     /**
-     * 在消费者空闲时按优先级启动最多三个批次。
+     * 在消费者空闲时按优先级启动最多 MAX_CONSUMERS 个批次。
      *
      * @param session 当前字幕翻译会话。
      */

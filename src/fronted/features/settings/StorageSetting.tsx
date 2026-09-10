@@ -146,7 +146,12 @@ const StorageSetting = () => {
     };
 
     const handleOpen = async () => {
-        await settingsApi.openCacheFolder();
+        try {
+            await settingsApi.openCacheFolder();
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            toast.error(`${t('storage.openFailed')}\n${message}`);
+        }
     };
 
     /**

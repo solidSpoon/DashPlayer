@@ -518,23 +518,20 @@ export class TranslateServiceImpl implements TranslateService {
 
         try {
             const parsed = JSON.parse(trans ?? '');
-            if (provider === 'openai' || provider === 'local') {
-                const parsedResult = openAIDictionaryCacheSchema.safeParse(parsed);
-                if (!parsedResult.success) {
-                    this.logger.warn('OpenAI 字典缓存格式不正确，忽略本地缓存', {
-                        word,
-                        issues: parsedResult.error.issues
-                    });
-                    return undefined;
-                }
-                const sanitized = sanitizeDictionaryResult(parsedResult.data as OpenAIDictionaryResult);
-                if (!sanitized.definitions.length) {
-                    this.logger.warn('OpenAI 字典缓存缺少有效释义，忽略本地缓存', { word });
-                    return undefined;
-                }
-                return sanitized;
+            const parsedResult = openAIDictionaryCacheSchema.safeParse(parsed);
+            if (!parsedResult.success) {
+                this.logger.warn('OpenAI 字典缓存格式不正确，忽略本地缓存', {
+                    word,
+                    issues: parsedResult.error.issues
+                });
+                return undefined;
             }
-
+            const sanitized = sanitizeDictionaryResult(parsedResult.data as OpenAIDictionaryResult);
+            if (!sanitized.definitions.length) {
+                this.logger.warn('OpenAI 字典缓存缺少有效释义，忽略本地缓存', { word });
+                return undefined;
+            }
+            return sanitized;
         } catch (error) {
             this.logger.error('解析字典缓存失败', { provider, word, error });
             return undefined;

@@ -45,11 +45,11 @@ export interface LocalLlmCardProps {
         tps: string;
         errorMessage?: string;
     } | null>;
-    onUseModel: (modelId: string, name: string) => void;
+    onUseModel: (modelId: string) => void;
     onTestModel: (modelId: string) => void;
-    onDownloadModel: (modelId: string, name: string) => void;
+    onDownloadModel: (modelId: string) => void;
     onCancelDownload: () => void;
-    onDeleteModel: (modelId: string, name: string) => void;
+    onDeleteModel: (modelId: string) => void;
     onOpenFolder: (path?: string) => void;
     onCopy: (text: string) => void;
     /** 打开外部下载链接（手动下载教程用）。 */
@@ -167,7 +167,7 @@ export const LocalLlmCard: React.FC<LocalLlmCardProps> = ({
                                             type="button"
                                             size="sm"
                                             disabled={busy || anyDownloading}
-                                            onClick={() => onDownloadModel(model.modelId, model.name)}
+                                            onClick={() => onDownloadModel(model.modelId)}
                                         >
                                             <Download className="mr-1.5 h-3.5 w-3.5" />
                                             {t('common.download')}
@@ -190,7 +190,7 @@ export const LocalLlmCard: React.FC<LocalLlmCardProps> = ({
                                             type="button"
                                             size="sm"
                                             disabled={busy || testingModelId !== null}
-                                            onClick={() => onUseModel(model.modelId, model.name)}
+                                            onClick={() => onUseModel(model.modelId)}
                                         >
                                             <CheckCircle2 className="mr-1.5 h-3.5 w-3.5" />
                                             {t('serviceCredentials.localAi.use')}
@@ -239,7 +239,7 @@ export const LocalLlmCard: React.FC<LocalLlmCardProps> = ({
                                                 </AlertDialogHeader>
                                                 <AlertDialogFooter>
                                                     <AlertDialogCancel>{t('serviceCredentials.localAi.cancelDelete')}</AlertDialogCancel>
-                                                    <AlertDialogAction onClick={() => onDeleteModel(model.modelId, model.name)}>
+                                                    <AlertDialogAction onClick={() => onDeleteModel(model.modelId)}>
                                                         {t('serviceCredentials.localAi.confirmDelete')}
                                                     </AlertDialogAction>
                                                 </AlertDialogFooter>

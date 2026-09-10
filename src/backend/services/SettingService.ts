@@ -47,7 +47,6 @@ export default interface SettingService {
     saveServiceCredentials(settings: ServiceCredentialSettingSaveVO): Promise<void>;
     getEngineSelectionDetail(): Promise<EngineSelectionSettingVO>;
     saveEngineSelection(settings: EngineSelectionSettingVO): Promise<void>;
-    getTranscriptionEngine(): Promise<TranscriptionEngine>;
     saveTranscriptionEngine(engine: TranscriptionEngine): Promise<void>;
     getShortcutSettingsDetail(): Promise<ShortcutSettingDetailVO>;
     saveShortcutSettings(settings: ShortcutSettingSaveVO): Promise<void>;
@@ -306,17 +305,6 @@ export class SettingServiceImpl implements SettingService {
         const allowedRates = new Set(['0.25', '0.5', '0.75', '1', '1.25', '1.5', '1.75', '2']);
         const rates = value.split(',');
         return !rates.some((rate) => !allowedRates.has(rate)) && new Set(rates).size === rates.length;
-    }
-
-    /**
-     * 查询本地语音识别引擎设置，严格校验存储值。
-     */
-    public async getTranscriptionEngine(): Promise<TranscriptionEngine> {
-        return this.requireEnumValue(
-            this.getValue('transcription.engine'),
-            TRANSCRIPTION_ENGINES,
-            'transcription.engine',
-        );
     }
 
     /**

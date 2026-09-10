@@ -175,13 +175,6 @@ export const settingsApi = {
     deleteWhisperCppModel: () => backendClient.call('whisper-cpp/models/delete'),
 
     /**
-     * 查询本地语音识别引擎设置。
-     *
-     * @returns 当前引擎。
-     */
-    getTranscriptionEngine: () => backendClient.call('settings/transcription-engine/detail'),
-
-    /**
      * 保存本地语音识别引擎设置。
      *
      * @param engine 目标引擎。

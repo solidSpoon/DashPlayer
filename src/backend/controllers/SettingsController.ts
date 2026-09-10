@@ -128,13 +128,6 @@ export default class SettingsController implements Controller {
     }
 
     /**
-     * 获取本地语音识别引擎设置。
-     */
-    public async getTranscriptionEngineDetail(): Promise<TranscriptionEngine> {
-        return this.settingService.getTranscriptionEngine();
-    }
-
-    /**
      * 保存本地语音识别引擎设置。
      */
     public async saveTranscriptionEngineDetail(engine: TranscriptionEngine): Promise<void> {
@@ -223,7 +216,6 @@ export default class SettingsController implements Controller {
         registerRoute('settings/resource-fallback/detail', () => this.getResourceFallbackDetail());
         registerRoute('settings/resource-status/detail', () => this.getResourceStatusDetail());
         registerRoute('settings/engine-selection/save', (p) => this.saveEngineSelection(p));
-        registerRoute('settings/transcription-engine/detail', () => this.getTranscriptionEngineDetail());
         registerRoute('settings/transcription-engine/save', (p) => this.saveTranscriptionEngineDetail(p));
         registerRoute('settings/shortcuts/detail', () => this.getShortcutSettingsDetail());
         registerRoute('settings/shortcuts/save', (p) => this.saveShortcutSettings(p));

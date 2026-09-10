@@ -13,7 +13,8 @@ import {
     Trash2,
 } from 'lucide-react';
 import toast from 'react-hot-toast';
-import { Button } from '@/fronted/components/ui/button';import { Progress } from '@/fronted/components/ui/progress';
+import { Button } from '@/fronted/components/ui/button';
+import { Progress } from '@/fronted/components/ui/progress';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import {
     AlertDialog,

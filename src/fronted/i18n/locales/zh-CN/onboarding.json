@@ -1,10 +1,5 @@
 {
-    "dialogTitle": "欢迎使用 DashPlayer",
-    "dialogSubtitle": "只需几步，就能开始沉浸式外语学习。",
-    "stepIndicator": "第 {{current}} 步 / 共 {{total}} 步",
-    "prevStep": "上一步",
     "nextStep": "下一步",
-    "skip": "暂不配置，稍后再说",
     "copied": "已复制",
     "copyFailed": "复制失败",
     "openUrlFailed": "打开链接失败",
@@ -72,6 +67,5 @@
             "method2Tip": "💡 提示：直接同时选中即可自动完成字幕绑定并载入播放器。"
         }
     },
-    "finishConfig": "完成配置",
     "startUsing": "开始使用"
 }

@@ -1,6 +1,5 @@
 {
     "layoutTitle": "设置",
-    "layoutSubtitle": "统一管理快捷键、外观偏好、服务凭据与本地存储策略。",
     "common": {
         "viewDocs": "查看文档",
         "docs": "文档",
@@ -17,10 +16,6 @@
         "notDownloaded": "未下载",
         "copy": "复制",
         "copied": "已复制下载地址",
-        "manualDownloadTitle": "网络不稳定时，也可以手动下载模型：",
-        "manualDownloadUrlLabel": "下载地址",
-        "manualDownloadSaveTo": "下载完成后，将文件保存到：",
-        "manualDownloadNextStep": "保存后，回到这里点击“下载”，完成模型安装。",
         "openFolder": "打开文件夹",
         "openFolderFailed": "打开文件夹失败",
         "openInBrowser": "在浏览器中打开",
@@ -301,21 +296,11 @@
                 "temp": "临时文件",
                 "other": "其他文件"
             }
-        }
+        },
+        "openFailed": "打开缓存目录失败"
     },
     "serviceCredentials": {
-        "sections": {
-            "cloud": {
-                "title": "云端服务",
-                "description": "连接云端翻译与语言模型，需要填写服务商密钥。"
-            },
-            "local": {
-                "title": "本地模型",
-                "description": "完全离线运行，首次使用需下载一次模型。"
-            }
-        },
         "openai": {
-            "description": "支持 OpenAI 兼容接口，用于字幕翻译、词典与整句学习能力。",
             "autoAppendV1": "是否自动追加 /v1",
             "autoAppendV1Hint": "开启后自动在接口地址后追加 /v1；关闭时请在地址中自行包含 /v1。",
             "chatCompletionOnly": "仅支持 chat completion API 格式。",
@@ -336,51 +321,23 @@
             "usageDictionary": "词典查询"
         },
         "transcription": {
-            "cardTitle": "字幕语音识别",
-            "cardDescription": "自动识别视频语音并生成字幕，完全离线运行，无需联网。",
-            "engineLabel": "识别方式",
-            "engineHardware": "硬件加速（推荐）",
-            "engineCompat": "兼容模式",
-            "engineNotice": "切换后将在下次生成字幕时生效。",
             "whisperCppModelFile": "Parakeet TDT 0.6B v3（GGUF q8_0，约 640 MB）",
             "sherpaOnnxModelFile": "Parakeet TDT 0.6B v3（ONNX int8，约 640 MB）"
         },
         "localTts": {
-            "cardTitle": "单词与例句发音",
-            "cardDescription": "查询单词和例句时自动朗读，离线合成，无需联网。",
             "modelFile": "Piper en_US Amy Low（约 18 MB）"
         },
         "localModel": {
-            "cancelDownload": "取消下载",
-            "installing": "正在安装…",
-            "downloading": "正在下载…",
-            "verifying": "正在校验…",
-            "extracting": "正在解压…",
             "deleteModel": "删除模型",
-            "deleteConfirmTitle": "删除{{name}}模型？",
-            "deleteConfirmDescription": "删除后需要重新下载才能使用，确定要删除吗？",
-            "cancelDelete": "暂不删除",
-            "confirmDelete": "确认删除",
-            "installed": "{{name}}模型已下载",
-            "downloadCancelled": "{{name}}模型下载已取消",
-            "deleted": "{{name}}模型已删除",
-            "deleteFailed": "删除失败，请稍后重试。",
-            "notDownloadedHint": "首次使用需下载一次，之后即可离线运行。",
-            "guideTitle": "网络不佳？查看手动下载教程",
             "step1Title": "1. 下载模型文件：",
             "modelToDownload": "需要的模型：{{model}}",
             "step2Title": "2. 将下载的文件保存到：",
             "step3Title": "3. 完成安装：",
-            "installHint": "保存后回到这里点击上方的「下载」，应用会自动完成安装。",
             "backupSource": "备用下载源",
             "copyDownloadUrl": "复制下载链接",
-            "openInBrowser": "在浏览器中打开",
-            "copyTargetPath": "复制目标路径",
-            "openTargetFolder": "打开目标文件夹"
+            "openInBrowser": "在浏览器中打开"
         },
         "localAi": {
-            "cardTitle": "本地增强资源包",
-            "cardDescription": "完全离线的翻译与词典查询，译文更自然，隐私安全、无 API 费用。",
             "inUse": "当前使用",
             "readyNotInUse": "已就绪",
             "use": "设为使用",
@@ -405,16 +362,6 @@
             "customGuideStep1": "下载指令对话版（Instruct）的 GGUF 模型文件（推荐 Qwen 系列，量化版本选 Q4_K_M 体积与效果最平衡）。",
             "customGuideStep3": "文件放好后回到应用，新模型会自动出现在列表里；点击「设为使用」即可启用。",
             "aboutSize": "约 {{size}}"
-        },
-        "localMt": {
-            "cardTitle": "本地快速翻译",
-            "cardDescription": "中英字幕翻译，完全离线，译文偏直白；仅支持翻译为中文。",
-            "downloadDone": "本地快速翻译模型下载完成",
-            "deleteDone": "本地快速翻译模型已删除",
-            "deleteConfirmTitle": "删除本地快速翻译模型？",
-            "deleteConfirmDescription": "删除后需要重新下载才能使用，确定要删除吗？",
-            "filesToDownload": "需要的文件：仓库里的全部文件（含 onnx 子目录），请保持原有目录结构。",
-            "installHint": "文件放好后，回到这里点击上方的「下载」，应用会校验并完成安装。"
         }
     },
     "resources": {

@@ -67,7 +67,7 @@ const SettingLayout = () => {
                                 key={item.key}
                                 to={`/settings/${item.key}`}
                                 className={cn(
-                                    'flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all',
+                                    'group flex items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-all',
                                     isActive
                                         ? 'bg-primary text-primary-foreground font-semibold shadow-xs'
                                         : 'text-muted-foreground hover:bg-muted/80 hover:text-foreground'
