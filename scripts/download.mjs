@@ -602,13 +602,13 @@ const whisperRuntimeAssetName = (platform, arch) =>
     `whisper-cpp-${platform}-${arch}.${platform === 'win32' ? 'zip' : 'tar.gz'}`;
 
 /**
- * 本地源码构建 whisper.cpp parakeet-cli（发布资产不可用时的开发机兜底）。
+ * 本地源码构建 whisper.cpp parakeet-cli（开发机获取运行时的唯一路径）。
  *
  * 复刻 release.yml whisper-cpp-runtime 任务的构建参数：静态链接
  * （BUILD_SHARED_LIBS=OFF），macOS Metal 内嵌 GGML 库
  * （GGML_METAL_EMBED_LIBRARY=ON），产出单文件自包含二进制。
  * 源码缓存在 node_modules/.cache/whisper.cpp（不随应用打包，也不进 git）。
- * 只在开发机调用：CI 上缺资产是发版流水线的问题，必须显式失败（见下方 whisper.cpp 段落）。
+ * 只在开发机调用：CI 侧由 release.yml 的 whisper-cpp-runtime 任务提供预编译产物。
  *
  * @param {{ basePath: string, exeName: string }} param 目标目录与可执行文件名。
  * @returns {Promise<boolean>} 构建成功且二进制已就位时 true；缺少构建依赖或构建失败时
@@ -721,12 +721,11 @@ async function buildWhisperCppFromSource({ basePath, exeName }) {
 
 {
     // whisper.cpp 离线识别 CLI（whisper.cpp 引擎的核显加速运行时）。
-    // 二进制跟着安装包一起分发，来源有两个：
+    // 二进制跟着安装包一起分发，来源只有两个：
     //   1) DASHPLAYER_WHISPER_RUNTIME_DIR 指定目录里已有归档：release.yml 的
-    //      whisper-cpp-runtime 任务构建出的产物在本次运行内直接传给 app 构建
-    //      （不再“先上传 Release 再下载”），本地也可手动指定跳过网络；
-    //   2) 当前版本对应的 Release 资产：本地开发的默认路径，发版时由
-    //      release.yml 的 publish-runtime 任务在 app 构建全部成功后挂上去。
+    //      whisper-cpp-runtime 任务构建出的产物在本次运行内直接传给 app 构建；
+    //   2) 其余情况（开发机）：按固定 ref 本地编译源码（buildWhisperCppFromSource）。
+    // 运行时不上传 Release：发版资产只放安装包。
     const platformDir = platform === 'darwin' ? 'darwin' : platform === 'win32' ? 'win32' : 'linux';
     const archDir = arch === 'arm64' ? 'arm64' : 'x64';
     const basePath = path.join(dir, 'whisper-cpp', archDir, platformDir);
@@ -741,37 +740,18 @@ async function buildWhisperCppFromSource({ basePath, exeName }) {
     if (!supportedArchs[platform]?.includes(arch)) {
         console.info(chalk.yellow(`=> whisper.cpp 暂不提供 ${platform}/${arch} 运行时，已跳过；whisper.cpp 引擎在该平台不可用，请使用 sherpa-onnx 引擎`));
     } else {
-        const version = packageJson.version;
-        const assetUrl = `https://github.com/solidSpoon/DashPlayer/releases/download/v${version}/${whisperRuntimeAssetName(platform, arch)}`;
-        // CI 会用这个变量把本次运行的运行时产物目录传进来；有本地归档就不再探 Release
+        // CI 会把本次运行的运行时产物目录传进来（release.yml 的 whisper-cpp-runtime
+        // 任务产出 artifact，再由 app 构建任务下载到该目录）
         const localArchiveDir = process.env.DASHPLAYER_WHISPER_RUNTIME_DIR;
         const localArchivePath = localArchiveDir
             ? path.join(localArchiveDir, whisperRuntimeAssetName(platform, arch))
             : null;
         const localArchiveExists = Boolean(localArchivePath && fs.existsSync(localArchivePath));
-        // 预检 Release 资产是否存在：download() 对任何失败都会终止整个脚本，
-        // 而资产缺失（本地开发、历史版本）是可跳过的合法状态，只对 404 放行跳过。
-        // 必须带超时：无超时的 axios 在 GitHub 偶发挂起时会让整个脚本静默卡死
-        let assetExists = false;
-        if (!localArchiveExists) {
-            assetExists = true;
-            try {
-                await axios.head(assetUrl, { headers: getGithubAuthHeaders(assetUrl), timeout: 15000 });
-            } catch (error) {
-                if (error?.response?.status === 404) {
-                    assetExists = false;
-                } else {
-                    // 非 404（网络/超时）：资产是否存在还未知，按“存在”继续，
-                    // 真有问题会在下面的下载步骤报错退出，不在这里静默掉
-                    console.info(chalk.yellow(`=> whisper.cpp 资产预检未完成（${error.message}），继续尝试下载`));
-                }
-            }
-        }
 
         // parakeet-cli 的输出格式是解析契约（见 WhisperCppCli.parseOutput），所以已装的
-        // 二进制必须带上来源：标记与预期不符（换版本 / 换 ref / 手工放置）就重新安装。
-        // 本地归档同样来自固定 ref 的源码构建，因此与源码兜底共用 source 标记。
-        const expectedMarker = assetExists ? `release:${version}` : `source:${WHISPER_CPP_REF}`;
+        // 二进制必须带上来源：标记与预期不符（换了 whisper.cpp ref / 手工放置）就重新安装。
+        // 运行时只由固定 ref 的源码构建产出，因此标记统一是 source:<ref>。
+        const expectedMarker = `source:${WHISPER_CPP_REF}`;
         const installedMarker = readWhisperRuntimeMarker(markerPath);
         if (fs.existsSync(exePath) && installedMarker === expectedMarker) {
             console.info(chalk.green(`✅ File ${exeName} already exists (${expectedMarker})`));
@@ -788,27 +768,19 @@ async function buildWhisperCppFromSource({ basePath, exeName }) {
                     binaryNameCandidates: ['parakeet-cli', 'parakeet-cli.exe'],
                 });
                 fs.writeFileSync(markerPath, `${expectedMarker}\n`);
-            } else if (assetExists) {
-                console.info(chalk.blue(`=> whisper.cpp target: ${exePath}`));
-                await downloadAndExtractBinaryFromArchive({
-                    url: assetUrl,
-                    outputPath: exePath,
-                    binaryNameCandidates: ['parakeet-cli', 'parakeet-cli.exe'],
-                });
-                fs.writeFileSync(markerPath, `${expectedMarker}\n`);
             } else if (process.env.CI) {
-                // CI 上不许编译兜底：缺资产说明 whisper-cpp-runtime 没产出该平台运行时，
+                // CI 上不许编译兜底：缺运行时说明 whisper-cpp-runtime 没产出该平台产物，
                 // 而 whisper.cpp 是新用户的默认识别引擎，必须让该平台构建显式失败
                 console.error(
                     chalk.red(
-                        `❌ whisper.cpp 运行时缺失：${assetUrl}\n` +
-                        `   CI 走运行内产物时应由 DASHPLAYER_WHISPER_RUNTIME_DIR 提供归档（当前：${localArchivePath ?? '未设置'}）\n` +
+                        `❌ whisper.cpp 运行时缺失：CI 应从 DASHPLAYER_WHISPER_RUNTIME_DIR 取得归档\n` +
+                        `   期望路径：${localArchivePath ?? '（变量未设置）'}\n` +
                         `   请检查 release.yml 的 whisper-cpp-runtime 任务是否成功构建了 ${platform}/${arch} 运行时。`
                     )
                 );
                 process.exit(1);
             } else {
-                // 开发机（尚未发版 / checkout 历史版本）：回退到本地源码构建
+                // 开发机：没有预编译产物，回退到本地源码编译（缺工具链时上面已有安装提示）
                 const built = await buildWhisperCppFromSource({ basePath, exeName });
                 if (built) {
                     fs.writeFileSync(markerPath, `${expectedMarker}\n`);

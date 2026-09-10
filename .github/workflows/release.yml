@@ -20,12 +20,6 @@ on:
   # （GITHUB_TOKEN 打的 tag 不会触发 push 事件，不能只靠下面的 tag 触发器）
   workflow_call:
     inputs:
-      # 发版 tag（如 v6.12.0）。workflow_call 上下文是 main 分支 push，
-      # 取不到 tag 名，由 release-please 显式传入，供运行时资产上传到对应 Release
-      release_tag:
-        type: string
-        required: false
-        default: ''
       # 与 workflow_dispatch 的同名开关一致；发版链路固定不传（false）
       runtime_only:
         type: boolean
@@ -42,10 +36,11 @@ permissions:
   contents: write
 jobs:
   # whisper.cpp 核显运行时先行构建，作为本次运行的临时产物（artifact）交给 app 构建，
-  # 由 download.mjs 从 DASHPLAYER_WHISPER_RUNTIME_DIR 就地安装——不再“先挂 Release 再下载”。
+  # 由 download.mjs 从 DASHPLAYER_WHISPER_RUNTIME_DIR 就地安装。运行时不上传 Release：
+  # 发版资产只放安装包，开发机需要运行时就走 download.mjs 的本地源码编译。
   # 矩阵 fail-fast: false：单个目标失败不阻塞其余目标，也不阻塞其他平台的 app 构建；
   # 但缺了自家平台运行时的平台会构建失败（download.mjs 在 CI 下不编译兜底、不静默跳过），
-  # 避免发出一个默认识别引擎不可用的包。挂到 Release 由末尾的 publish-runtime 统一做
+  # 避免发出一个默认识别引擎不可用的包
   whisper-cpp-runtime:
     strategy:
       fail-fast: false
@@ -106,7 +101,7 @@ jobs:
         run: cmake --build build --config Release --target parakeet-cli -j 4
       - name: Package
         # 资产名契约：scripts/download.mjs 的 whisperRuntimeAssetName() 按同一套
-        # whisper-cpp-<platform>-<arch>.{tar.gz,zip} 规则拼下载地址，改名必须两边同步
+        # whisper-cpp-<platform>-<arch>.{tar.gz,zip} 规则去临时产物目录里找归档，改名必须两边同步
         shell: bash
         run: |
           mkdir -p stage
@@ -128,7 +123,7 @@ jobs:
           retention-days: 7
   build:
     # needs 只为保证运行内产物先产出再被下载（download.mjs 从
-    # DASHPLAYER_WHISPER_RUNTIME_DIR 就地安装，不再依赖 Release 资产）；
+    # DASHPLAYER_WHISPER_RUNTIME_DIR 就地安装，运行时不经过 Release）；
     # 配合 !cancelled() 让运行时任务失败时其余平台照常构建（缺自家平台运行时的那一平台
     # 会在安装步骤显式失败）；runtime_only 给手动干跑用，理由同上
     needs: whisper-cpp-runtime
@@ -197,27 +192,3 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=4096
           DASHPLAYER_WHISPER_RUNTIME_DIR: ${{ github.workspace }}\.ci-runtime
         run: call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64 && npm run ${{ inputs.package_only && 'make' || 'publish' }}
-
-  # 运行内产物用完后再挂到 Release：本地开发 `yarn run download` 从 Release 取资产，
-  # 而这里等 app 构建全部成功才上传，避免出现“Release 上只有运行时、没有安装包”的半成品
-  publish-runtime:
-    needs: [whisper-cpp-runtime, build]
-    if: ${{ success() && !inputs.runtime_only && !inputs.package_only && (inputs.release_tag != '' || github.ref_type == 'tag') }}
-    runs-on: ubuntu-latest
-    steps:
-      - name: Download runtime artifacts
-        uses: actions/download-artifact@v8
-        with:
-          pattern: whisper-runtime-*
-          path: runtime
-          merge-multiple: true
-      - name: Upload to release
-        # workflow_call 链路用传入的 release_tag；tag push 链路用当前 ref
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          TAG="${{ inputs.release_tag || github.ref_name }}"
-          ls -l runtime
-          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1 || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes
-          gh release upload "$TAG" runtime/* --repo "$GITHUB_REPOSITORY" --clobber
