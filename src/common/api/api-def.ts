@@ -3,6 +3,7 @@ import type { LocalAiSpeedTestResult, LocalAiStatus } from '@/common/contracts/l
 import type { LocalMtStatus } from '@/common/contracts/local-mt';
 import type { ResourceFallbackSnapshot } from '@/common/contracts/resource-fallback';
 import type { ResourceStatusSnapshot } from '@/common/contracts/resource-status';
+import type { MigrationFailureDetail } from '@/common/contracts/migration-failure';
 import type { GpuAcceleration } from '@/common/contracts/system-info';
 import {OpenAIDictionaryResult} from '@/common/types/DictionaryResult';
 import {ChapterParseResult} from '@/common/types/chapter-result';
@@ -265,8 +266,10 @@ interface SettingsDef {
     'settings/resource-fallback/detail': { params: void, return: ResourceFallbackSnapshot };
     'settings/resource-status/detail': { params: void, return: ResourceStatusSnapshot };
     'settings/engine-selection/save': { params: EngineSelectionSettingVO, return: void };
-    'settings/transcription-engine/detail': { params: void, return: TranscriptionEngine };
     'settings/transcription-engine/save': { params: TranscriptionEngine, return: void };
+    'migration-failure/detail': { params: void, return: MigrationFailureDetail };
+    'migration-failure/retry': { params: void, return: void };
+    'migration-failure/reset-and-relaunch': { params: void, return: void };
     'settings/shortcuts/detail': { params: void, return: ShortcutSettingDetailVO };
     'settings/shortcuts/save': { params: ShortcutSettingSaveVO, return: void };
     'settings/appearance/detail': { params: void, return: AppearanceSettingVO };

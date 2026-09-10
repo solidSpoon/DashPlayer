@@ -25,6 +25,9 @@ import FavouritePage from '@/fronted/features/favourite/FavouritePage';
 import VideoLearningPage from '@/fronted/features/video-learning/VideoLearningPage';
 import { OnboardingView } from '@/fronted/features/onboarding/OnboardingView';
 import { getOnboardingCompletedVersion } from '@/fronted/features/onboarding/onboardingApi';
+import { MigrationFailureGate } from '@/fronted/features/migration-failure/MigrationFailureGate';
+import { getMigrationFailureDetail } from '@/fronted/features/migration-failure/migrationFailureApi';
+import type { MigrationFailureDetail } from '@/common/contracts/migration-failure';
 import { Button } from '@/fronted/components/ui/button';
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
@@ -37,14 +40,16 @@ const App = () => {
     const theme = useSetting((s) => s.values.get('appearance.theme'));
     const languageSetting = useSetting((s) => s.values.get('i18n.language'));
     const [needsOnboarding, setNeedsOnboarding] = React.useState<boolean | null>(null);
+    /** 迁移失败状态；null 表示已确认无失败（或读取失败时按无失败处理）。 */
+    const [migrationFailure, setMigrationFailure] = React.useState<MigrationFailureDetail | null>(null);
 
     useEffect(() => {
         (async () => {
             try {
-                const completedVersion = await getOnboardingCompletedVersion();
-                setNeedsOnboarding(!completedVersion);
+                const detail = await getMigrationFailureDetail();
+                setMigrationFailure(detail.failed ? detail : null);
             } catch {
-                setNeedsOnboarding(false);
+                setMigrationFailure(null);
             }
         })();
     }, []);
@@ -100,7 +105,9 @@ const App = () => {
     return (
         <>
             <div className="w-full h-screen text-black overflow-hidden select-none font-sans">
-                {needsOnboarding ? (
+                {migrationFailure ? (
+                    <MigrationFailureGate failure={migrationFailure} />
+                ) : needsOnboarding ? (
                     <OnboardingView onCompleted={() => setNeedsOnboarding(false)} />
                 ) : (
                     <HashRouter>

@@ -25,6 +25,7 @@ import AiTransController from '@/backend/controllers/AiTransController';
 import ConvertController from '@/backend/controllers/ConvertController';
 import DpTaskController from '@/backend/controllers/DpTaskController';
 import MediaController from '@/backend/controllers/MediaController';
+import MigrationFailureController from '@/backend/controllers/MigrationFailureController';
 import StorageController from '@/backend/controllers/StorageController';
 import SystemController from '@/backend/controllers/SystemController';
 import SubtitleController from '@/backend/controllers/SubtitleController';
@@ -177,6 +178,8 @@ container.bind<ResourceFallbackService>(TYPES.ResourceFallbackService).to(Resour
 container.bind<Controller>(TYPES.Controller).to(SherpaTtsModelController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VocabularyController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VideoLearningApiController).inSingletonScope();
+// 恢复路由控制器：不绑定到 TYPES.Controller（恢复模式下不解析业务控制器），单独绑定。
+container.bind<MigrationFailureController>(TYPES.MigrationFailureController).to(MigrationFailureController).inSingletonScope();
 // Services
 container.bind<RendererGateway>(TYPES.RendererGateway).to(RendererGatewayImpl).inSingletonScope();
 container.bind<RendererEvents>(TYPES.RendererEvents).to(RendererEventsImpl).inSingletonScope();

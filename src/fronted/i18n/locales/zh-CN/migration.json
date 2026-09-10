@@ -1,0 +1,17 @@
+{
+    "title": "数据升级失败",
+    "desc": "本地数据升级未完成，应用功能暂不可用。可以先重试；反复失败时再重置。",
+    "detailLabel": "失败详情",
+    "copy": "复制详情",
+    "copied": "已复制",
+    "retry": "重试（重启应用）",
+    "retryFailed": "重试指令发送失败，请手动重启应用",
+    "retrying": "正在重启…",
+    "reset": "重置并重试",
+    "resetting": "正在重置并重启…",
+    "resetFailed": "重置失败",
+    "resetConfirmTitle": "确认重置并重试？",
+    "resetConfirmDesc": "将删除全部设置与本地数据库：包括 API 密钥、引擎选择、生词本与收藏等学习数据、字幕翻译缓存。视频文件与已下载的模型资源不受影响。此操作不可撤销。",
+    "resetConfirmOk": "重置并重启",
+    "resetConfirmCancel": "取消"
+}
