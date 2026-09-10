@@ -426,7 +426,9 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             : undefined;
         const resolved = resolveSubtitleStyleWithSignature(mode, customStyle);
         const localModelId = provider === 'local' ? await this.localAiService.getActiveModelId() : null;
-        if (localModelId) {
+        if (provider === 'local') {
+            // 本地引擎缺少模型标识时显式失败，不滑入云端路由掩盖配置问题。
+            if (!localModelId) throw new Error('本地字幕翻译模型未配置');
             const storageMode = buildSubtitleStorageMode('local', localModelId, mode, resolved.signature);
             return { mode, storageMode, style: resolved.style, profileKey: `${storageMode}:${localModelId}`, localModelId };
         }
@@ -948,10 +950,11 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
     }
 
     /**
-     * 调用对应引擎翻译一批目标，并在云端/增强不可用时回退到基础资源（轻量翻译）。
+     * 调用对应引擎翻译一批目标，失败时对这一批回退到基础资源（轻量翻译）。
      *
-     * 云端与本地增强都建立在基础资源之上，它们失败时字幕不应直接空掉；
-     * 云端失败后进入冷却，期间直接走轻量翻译，避免每批都先等一次超时。
+     * 云端与本地增强都建立在基础资源之上，它们失败时字幕不应直接空掉。
+     * 回退只作用于失败的那一批：不设冷却窗口，每一批都会重新尝试当前引擎，
+     * 原引擎恢复后立即生效。回退状态仅用于设置页展示，不短路后续批次。
      *
      * @param input 本批次的翻译输入。
      * @param provider 当前配置的引擎。
@@ -976,9 +979,6 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             throw new Error('本地字幕翻译缺少模型标识');
         }
         const from = provider === 'local' ? (localModelId as string) : provider;
-        if (provider === 'openai' && this.resourceFallback.isFallbackActive('subtitleTranslation')) {
-            return translateWithLocalMt();
-        }
         try {
             const items = provider === 'local'
                 ? await this.localSubtitleTranslator.translate({ ...input, modelId: localModelId as string })
@@ -990,6 +990,7 @@ export class SubtitleTranslationServiceImpl implements SubtitleTranslationServic
             this.logger.warn('字幕翻译引擎失败，回退到轻量翻译', { provider, from, reason });
             try {
                 const result = await translateWithLocalMt();
+                // 仅登记展示状态（设置页可见），不依据它短路后续批次。
                 this.resourceFallback.markFallback('subtitleTranslation', from, 'local-mt', reason);
                 return result;
             } catch (fallbackError) {

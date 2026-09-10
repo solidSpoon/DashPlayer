@@ -23,7 +23,7 @@ export interface ResourceFallbackState {
     reason: string;
     /** 回退发生时间（毫秒时间戳）。 */
     at: number;
-    /** 冷却截止时间（毫秒时间戳）；期间直接走基础资源，不再尝试原资源。 */
+    /** 冷却截止时间（毫秒时间戳）；词典回退在期内直接走基础资源，字幕回退仅作展示、每批仍重试原引擎。 */
     until: number;
 }
 
