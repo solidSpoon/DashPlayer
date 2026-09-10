@@ -11,6 +11,7 @@ import * as tarFs from 'tar-fs';
 import unbzip2Stream from 'unbzip2-stream';
 import chalk from 'chalk';
 import { $ } from 'zx';
+import { withNetworkRetry } from './network-retry.mjs';
 
 const getGithubToken = () => process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 
@@ -152,13 +153,13 @@ const downloadAndExtractBinaryFromZip = async ({url, outputPath, binaryNameCandi
 
 const getLatestReleaseAssetUrl = async ({owner, repo, nameRegex}) => {
     const apiUrl = `https://api.github.com/repos/${owner}/${repo}/releases/latest`;
-    const res = await axios.get(apiUrl, {
+    const res = await withNetworkRetry(() => axios.get(apiUrl, {
         headers: {
             'Accept': 'application/vnd.github+json',
             'User-Agent': 'DashPlayer-downloader',
             ...getGithubAuthHeaders(apiUrl),
         }
-    });
+    }), {label: `查询 ${owner}/${repo} 最新发布`});
     const assets = res.data?.assets ?? [];
     const match = assets.find((a) => nameRegex.test(a?.name || ''));
     return match?.browser_download_url || null;
@@ -166,13 +167,13 @@ const getLatestReleaseAssetUrl = async ({owner, repo, nameRegex}) => {
 
 const getLatestReleaseAssetUrlIncludingPrerelease = async ({owner, repo, nameRegex}) => {
     const apiUrl = `https://api.github.com/repos/${owner}/${repo}/releases?per_page=10`;
-    const res = await axios.get(apiUrl, {
+    const res = await withNetworkRetry(() => axios.get(apiUrl, {
         headers: {
             'Accept': 'application/vnd.github+json',
             'User-Agent': 'DashPlayer-downloader',
             ...getGithubAuthHeaders(apiUrl),
         }
-    });
+    }), {label: `查询 ${owner}/${repo} 发布列表`});
     const releases = res.data ?? [];
     for (const release of releases) {
         const assets = release?.assets ?? [];
@@ -511,7 +512,49 @@ function setProxy() {
 }
 
 /**
+ * 单次下载尝试：流式写入目标文件，并按需校验 SHA1。
+ * 失败时抛出错误，交给 withNetworkRetry 判断是否值得重试。
+ *
+ * @param {{url: string, dest: string, file: string, sha: string | undefined}} param
+ *   url 下载地址；dest 目标文件路径；file 文件名（日志与校验用）；sha 可选 SHA1。
+ * @returns {Promise<void>} 文件写入并通过校验后结束。
+ */
+async function fetchToFile({url, dest, file, sha}) {
+    const response = await axios.get(url, {
+        responseType: "stream",
+        headers: getGithubAuthHeaders(url),
+    });
+    const totalLength = response.headers["content-length"];
+
+    const progressBar = new progress(`-> downloading [:bar] :percent :etas`, {
+        width: 40,
+        complete: "=",
+        incomplete: " ",
+        renderThrottle: 1,
+        total: parseInt(totalLength),
+    });
+
+    response.data.on("data", (chunk) => {
+        progressBar.tick(chunk.length);
+    });
+    await new Promise((resolve, reject) => {
+        response.data.pipe(fs.createWriteStream(dest)).on("close", async () => {
+            console.info(chalk.green(`✅ File ${file} downloaded successfully`));
+            const hash = await hashFile(dest, {algo: "sha1"});
+            if (sha === undefined || hash === sha) {
+                resolve();
+            } else {
+                // 内容对不上：常见原因是下载被截断，带 HASH_MISMATCH 让上层重下一次
+                reject(Object.assign(new Error(`File ${file} sha1 mismatch`), {code: 'HASH_MISMATCH'}));
+            }
+        });
+    });
+}
+
+/**
  * 下载文件并校验可选的 SHA1 摘要。
+ * 瞬时网络故障（DNS 抖动、连接重置、5xx、下载被截断）会退避重试，重试用尽才失败。
+ *
  * @param url {string} 下载地址。
  * @param dir {string} 保存目录。
  * @param file {string} 保存文件名。
@@ -522,40 +565,8 @@ async function download({url, dir, file, sha}) {
     const dest = path.join(dir, file);
     console.info(chalk.blue(`=> Start to download from ${url} to ${dest}`));
     try {
-        const response = await axios.get(url, {
-            responseType: "stream",
-            headers: getGithubAuthHeaders(url),
-        });
-        const totalLength = response.headers["content-length"];
-
-        const progressBar = new progress(`-> downloading [:bar] :percent :etas`, {
-            width: 40,
-            complete: "=",
-            incomplete: " ",
-            renderThrottle: 1,
-            total: parseInt(totalLength),
-        });
-
-        response.data.on("data", (chunk) => {
-            progressBar.tick(chunk.length);
-        });
-        await new Promise((resolve, reject) => {
-            response.data.pipe(fs.createWriteStream(dest)).on("close", async () => {
-                console.info(chalk.green(`✅ File ${file} downloaded successfully`));
-                const hash = await hashFile(path.join(dir, file), {algo: "sha1"});
-                if (sha === undefined || hash === sha) {
-                    console.info(chalk.green(`✅ File ${file} valid`));
-                    resolve();
-                } else {
-                    console.error(
-                        chalk.red(
-                            `❌ File ${file} not valid, please try again using command \`yarn download\``
-                        )
-                    );
-                    reject();
-                }
-            });
-        });
+        await withNetworkRetry(() => fetchToFile({url, dest, file, sha}), {label: `download ${file}`});
+        console.info(chalk.green(`✅ File ${file} valid`));
     } catch (err) {
         console.error(
             chalk.red(
