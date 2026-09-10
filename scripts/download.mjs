@@ -611,8 +611,8 @@ async function buildWhisperCppFromSource({ basePath, exeName }) {
             {
                 bin: 'glslc',
                 hint: platform === 'win32'
-                    ? 'Windows: 安装 LunarG Vulkan SDK（提供 Vulkan 头文件与 glslc）'
-                    : 'Linux: apt install libvulkan-dev glslang-tools',
+                    ? 'Windows: 安装 LunarG Vulkan SDK 1.4.x（同时提供 glslc 与 SPIRV-Headers）'
+                    : 'Linux: 需 glslc + SPIRV-Headers（Ubuntu 24.04: apt install glslc libvulkan-dev spirv-headers；22.04: 用 LunarG 的 jammy 源装 vulkan-sdk）',
             },
         ];
     for (const tool of requiredTools) {
