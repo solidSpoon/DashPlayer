@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.11.2](https://github.com/solidSpoon/DashPlayer/compare/v6.11.1...v6.11.2) (2026-09-10)
+
+
+### Bug Fixes
+
+* 修复首次使用引导被启动门槛覆盖而永不展示 ([1d4e805](https://github.com/solidSpoon/DashPlayer/commit/1d4e805e2bd1686cbd0efca1dce5b67893fe208b))
+* 修复首次使用引导被启动门槛覆盖而永不展示 ([88bc316](https://github.com/solidSpoon/DashPlayer/commit/88bc316886509baa719deecc437bb0bd9ff624f3))
+
 ## [6.11.1](https://github.com/solidSpoon/DashPlayer/compare/v6.11.0...v6.11.1) (2026-09-10)
 
 
