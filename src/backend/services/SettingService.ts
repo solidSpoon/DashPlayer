@@ -22,7 +22,6 @@ import { ProxySettingDetailVO, ProxySettingSaveVO } from '@/common/contracts/pro
 import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
 import { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
 import { getSubtitleDefaultStyle } from '@/common/constants/openaiSubtitlePrompts';
-import ModelRoutingService from '@/backend/services/ModelRoutingService';
 import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import type LocalAiService from '@/backend/services/LocalAiService';
 import {
@@ -31,6 +30,7 @@ import {
     RuntimeSettingSaveRequest,
     RuntimeSettingsSnapshot,
 } from '@/common/contracts/runtime-settings';
+import { TRANSCRIPTION_ENGINES, TranscriptionEngine } from '@/common/contracts/transcription-engine';
 
 /** 字幕翻译引擎的合法取值；设置校验与运行时查询共用，避免各处字面量漂移。 */
 const SUBTITLE_TRANSLATION_ENGINES = ['openai', 'local', 'local-mt', 'tencent', 'none'] as const;
@@ -47,6 +47,7 @@ export default interface SettingService {
     saveServiceCredentials(settings: ServiceCredentialSettingSaveVO): Promise<void>;
     getEngineSelectionDetail(): Promise<EngineSelectionSettingVO>;
     saveEngineSelection(settings: EngineSelectionSettingVO): Promise<void>;
+    saveTranscriptionEngine(engine: TranscriptionEngine): Promise<void>;
     getShortcutSettingsDetail(): Promise<ShortcutSettingDetailVO>;
     saveShortcutSettings(settings: ShortcutSettingSaveVO): Promise<void>;
     getAppearanceSettingDetail(): Promise<AppearanceSettingVO>;
@@ -60,7 +61,7 @@ export default interface SettingService {
     getOpenAiSubtitleTranslationMode(): Promise<'zh' | 'simple_en' | 'custom'>;
     getOpenAiSubtitleCustomStyle(): Promise<string>;
     getCurrentDictionaryProvider(): Promise<'openai' | 'local' | null>;
-    testOpenAi(): Promise<{ success: boolean, message: string }>;
+    testOpenAi(modelId: string): Promise<{ success: boolean, message: string }>;
     testTencent(): Promise<{ success: boolean, message: string }>;
 }
 
@@ -74,7 +75,6 @@ export class SettingServiceImpl implements SettingService {
     @inject(TYPES.AiProviderService) private aiProviderService!: AiProviderService;
     @inject(TYPES.TencentClientProvider) private tencentProvider!: ClientProviderService<TencentTranslateClient>;
     @inject(TYPES.SettingsStore) private settingsStore!: SettingsStore;
-    @inject(TYPES.ModelRoutingService) private modelRoutingService!: ModelRoutingService;
     @inject(TYPES.StorageDirectoryProvider) private storageDirectoryProvider!: StorageDirectoryProvider;
     @inject(TYPES.LocalAiService) private localAi!: LocalAiService;
     private logger = getMainLogger('SettingServiceImpl');
@@ -305,6 +305,15 @@ export class SettingServiceImpl implements SettingService {
         const allowedRates = new Set(['0.25', '0.5', '0.75', '1', '1.25', '1.5', '1.75', '2']);
         const rates = value.split(',');
         return !rates.some((rate) => !allowedRates.has(rate)) && new Set(rates).size === rates.length;
+    }
+
+    /**
+     * 保存本地语音识别引擎设置，非法值立即抛错。
+     */
+    public async saveTranscriptionEngine(engine: TranscriptionEngine): Promise<void> {
+        const validated = this.requireEnumValue(engine, TRANSCRIPTION_ENGINES, 'transcription.engine');
+        this.logger.info('update transcription engine', { engine: validated });
+        await this.setValue('transcription.engine', validated);
     }
 
     /**
@@ -728,19 +737,28 @@ export class SettingServiceImpl implements SettingService {
         return null;
     }
 
-    public async testOpenAi(): Promise<{ success: boolean, message: string }> {
+    /**
+     * 测试指定 OpenAI 模型的连通性。
+     *
+     * 只测试用户选中的单个模型，不涉及功能路由：模型必须仍在可用模型列表中，
+     * 否则直接失败，避免“密钥没问题但选了个已删除的模型”这类误判。
+     *
+     * @param modelId 待测试的模型标识。
+     * @returns 测试结果；密钥/地址缺失或调用失败时 success 为 false。
+     */
+    public async testOpenAi(modelId: string): Promise<{ success: boolean, message: string }> {
         try {
-            this.logger.info('testing openai connection');
+            this.logger.info('testing openai connection', { model: modelId });
             const apiKey = storeGet('apiKeys.openAi.key');
             const endpoint = storeGet('apiKeys.openAi.endpoint');
             if (StrUtil.hasBlank(apiKey, endpoint)) {
                 return { success: false, message: 'OpenAI 密钥或接口地址未配置' };
             }
-            const routedModel = this.modelRoutingService.resolveOpenAiModel('sentenceLearning');
-            if (!routedModel || StrUtil.isBlank(routedModel.modelId)) {
-                return { success: false, message: 'OpenAI 模型未配置，请先在功能设置中选择模型' };
+            const availableModels = this.parseOpenAiModels(this.getValue('models.openai.available'));
+            if (!availableModels.includes(modelId)) {
+                return { success: false, message: '模型未在服务配置中启用' };
             }
-            const model = this.aiProviderService.createModelById(routedModel.modelId);
+            const model = this.aiProviderService.createModelById(modelId);
             const result = await generateText({
                 model,
                 prompt: 'Hello',
@@ -748,15 +766,15 @@ export class SettingServiceImpl implements SettingService {
             });
 
             if (StrUtil.isNotBlank(result.text)) {
-                this.logger.info('openai test successful');
-                return { success: true, message: 'OpenAI 配置测试成功' };
+                this.logger.info('openai test successful', { model: modelId });
+                return { success: true, message: '测试成功' };
             }
-            this.logger.warn('openai returned empty response');
-            return { success: false, message: 'OpenAI 返回了空响应' };
+            this.logger.warn('openai returned empty response', { model: modelId });
+            return { success: false, message: '返回了空响应' };
         } catch (error: unknown) {
             const message = error instanceof Error ? error.message : String(error);
-            this.logger.error('openai test failed', { error: message });
-            return { success: false, message: `OpenAI 测试失败: ${message}` };
+            this.logger.error('openai test failed', { model: modelId, error: message });
+            return { success: false, message: `测试失败: ${message}` };
         }
     }
 

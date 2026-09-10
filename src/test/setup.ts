@@ -77,3 +77,54 @@ Object.defineProperty(HTMLMediaElement.prototype, 'pause', {
   writable: true,
   value: vi.fn(),
 })
+// jsdom 未实现以下浏览器 API，Radix 系列组件（Select / Popover 等）依赖它们。
+globalThis.ResizeObserver = class ResizeObserver {
+  observe() {
+    // Mock observe method
+  }
+  unobserve() {
+    // Mock unobserve method
+  }
+  disconnect() {
+    // Mock disconnect method
+  }
+} as unknown as typeof ResizeObserver
+
+if (!Element.prototype.hasPointerCapture) {
+  Element.prototype.hasPointerCapture = () => false
+  Element.prototype.setPointerCapture = () => undefined
+  Element.prototype.releasePointerCapture = () => undefined
+}
+
+if (!Element.prototype.scrollIntoView) {
+  Element.prototype.scrollIntoView = () => undefined
+}
+
+// jsdom 未实现 canvas 2D 上下文（getContext 返回 null 并抛 Not implemented），
+// 引导页完成页的撒花动画（canvas-confetti）在卸载时会因空上下文报错。
+// 这里补一个只接受调用、不做真实绘制的上下文替身。
+const canvasContextStub = {
+  fillStyle: '',
+  strokeStyle: '',
+  font: '',
+  globalAlpha: 1,
+  save: () => undefined,
+  restore: () => undefined,
+  translate: () => undefined,
+  rotate: () => undefined,
+  scale: () => undefined,
+  beginPath: () => undefined,
+  closePath: () => undefined,
+  moveTo: () => undefined,
+  lineTo: () => undefined,
+  arc: () => undefined,
+  ellipse: () => undefined,
+  fill: () => undefined,
+  fillRect: () => undefined,
+  clearRect: () => undefined,
+  drawImage: () => undefined,
+  fillText: () => undefined,
+  measureText: () => ({ width: 0 }),
+  createPattern: () => null,
+}
+HTMLCanvasElement.prototype.getContext = (() => canvasContextStub) as unknown as typeof HTMLCanvasElement.prototype.getContext

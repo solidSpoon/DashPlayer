@@ -123,7 +123,7 @@ const download = (url, dest) =>
                 out.on('finish', () => resolve());
                 out.on('error', reject);
                 res.on('error', reject);
-            });
+            }, reject);
         };
         request(url, 0);
     });
@@ -132,13 +132,13 @@ const download = (url, dest) =>
  * HTTPS GET 的最小封装，避免脚本依赖 axios（Node 原生 https 即可满足一次性下载）。
  * @param {string} url 请求地址。
  * @param {(res: import('node:http').IncomingMessage) => void} callback 响应回调。
+ * @param {(error: Error) => void} onError 请求级错误回调（连接失败/重置等）；
+ *   事件回调里不能直接 throw，否则错误会变成 uncaught exception，外层 Promise 永远不会 settle。
  */
-const httpsGet = (url, callback) => {
+const httpsGet = (url, callback, onError) => {
     import('node:https').then(({ default: https }) => {
         https.get(url, { headers: { 'User-Agent': 'DashPlayer-dictionary-build' } }, callback)
-            .on('error', (error) => {
-                throw error;
-            });
+            .on('error', onError);
     });
 };
 /**

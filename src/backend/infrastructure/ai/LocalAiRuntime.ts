@@ -13,6 +13,7 @@ import type LocalAiService from '@/backend/services/LocalAiService';
 import type { LocalGenerateTextOptions } from '@/backend/services/LocalAiService';
 import StorageDirectoryProvider, { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import { getRuntimeResourcePath } from '@/backend/utils/runtimeEnv';
+import { probeReachableDownloadUrl } from '@/backend/utils/probeDownloadUrl';
 import { concurrency } from '@/backend/utils/concurrency';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import type { SettingsStore } from '@/backend/services/gateways/SettingsStore';
@@ -107,7 +108,7 @@ export class LocalAiRuntime implements LocalAiService {
 
     /** 解析模型在媒体库中的安装路径；目录模型在独立子目录，自定义模型直接位于模型根目录。 */
     private async modelPath(model: LocalAiModelDefinition): Promise<string> {
-        const directory = await this.directories.provideDirectory(StorageDirectoryTarget.LOCAL_AI);
+        const directory = await this.modelsDirectory();
         return model.source === 'custom'
             ? path.join(directory, model.file)
             : path.join(directory, model.id, model.file);
@@ -115,7 +116,7 @@ export class LocalAiRuntime implements LocalAiService {
 
     /** 返回模型根目录的绝对路径，供设置页展示手动安装教程。 */
     private async modelsDirectory(): Promise<string> {
-        return this.directories.provideDirectory(StorageDirectoryTarget.LOCAL_AI);
+        return this.directories.provideDirectory(StorageDirectoryTarget.MODELS);
     }
 
     /** 估算模型运行内存占用；约为文件体积的 1.5 倍，覆盖权重 + KV cache + 推理缓冲。 */
@@ -146,7 +147,7 @@ export class LocalAiRuntime implements LocalAiService {
             file,
             bytes,
             sizeLabel: `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`,
-            url: '',
+            urls: [],
             sha256: '',
             source: 'custom',
         };
@@ -276,7 +277,7 @@ export class LocalAiRuntime implements LocalAiService {
                 downloaded: downloading ? this.downloaded : await this.fileSize(`${modelPath}.part`),
                 total: model.bytes,
                 modelPath,
-                downloadUrl: model.url,
+                downloadUrls: [...model.urls],
                 error: this.modelErrors.get(model.id) ?? null,
                 custom: false,
             };
@@ -293,7 +294,7 @@ export class LocalAiRuntime implements LocalAiService {
             downloaded: model.bytes,
             total: model.bytes,
             modelPath: await this.modelPath(model),
-            downloadUrl: null,
+            downloadUrls: [],
             error: null,
             custom: true,
         })));
@@ -373,8 +374,20 @@ export class LocalAiRuntime implements LocalAiService {
         }
     }
 
+    /**
+     * 选定本地模型下载地址：多候选时先并行探测可达性，按声明顺序取第一个可达的
+     * （国内镜像在前）；全部不可达时仍按首个地址发起请求，失败原因由真实下载给出
+     * 并展示在模型卡上。单候选时直接使用，不探测。
+     */
+    private async resolveDownloadUrl(model: LocalAiModelDefinition, signal: AbortSignal): Promise<string> {
+        if (model.urls.length === 1) return model.urls[0];
+        const reachable = await probeReachableDownloadUrl([...model.urls], signal);
+        this.logger.info('local model download url selected', { model: model.id, reachable: reachable ?? model.urls[0] });
+        return reachable ?? model.urls[0];
+    }
+
     /** 下载固定版本，验证长度和 SHA256 后再原子重命名；损坏数据显式报错。 */
-    private async install(model: LocalAiModelDefinition, signal: AbortSignal): Promise<void> {
+    protected async install(model: LocalAiModelDefinition, signal: AbortSignal): Promise<void> {
         const modelPath = await this.modelPath(model);
         if (await this.fileSize(modelPath) === model.bytes) return;
         const partial = `${modelPath}.part`;
@@ -384,7 +397,10 @@ export class LocalAiRuntime implements LocalAiService {
         this.downloaded = existing;
         this.logger.info('local model download started', { model: model.id, downloaded: existing });
         if (existing < model.bytes) {
-            const response = await axios.get(model.url, {
+            // 多候选地址时先探测可达性择优（官方优先）；既有 .part 跨源续传安全：
+            // 镜像与官方是同一文件的逐字节镜像，续传范围校验 + 下载后 SHA256 兜底。
+            const downloadUrl = await this.resolveDownloadUrl(model, signal);
+            const response = await axios.get(downloadUrl, {
                 responseType: 'stream', signal, timeout: 60_000,
                 headers: existing > 0 ? { Range: `bytes=${existing}-` } : {},
             });

@@ -7,7 +7,8 @@ import { ModelArchiveInstaller } from '@/backend/services/models/ModelArchiveIns
 import {
     SHERPA_TTS_MODEL_ARCHIVE_NAME,
     SHERPA_TTS_MODEL_DIRECTORY,
-    SHERPA_TTS_MODEL_DOWNLOAD_URL,
+    SHERPA_TTS_MODEL_ARCHIVE_SHA256,
+    SHERPA_TTS_MODEL_DOWNLOAD_URLS,
     SHERPA_TTS_REQUIRED_FILES,
 } from '@/backend/services/models/sherpaTtsModel';
 import type { ModelInstallationStatusVO } from '@/common/types/vo/model-installation-vo';
@@ -64,7 +65,8 @@ export class SherpaTtsModelServiceImpl implements SherpaTtsModelService {
     ) {
         this.installer = new ModelArchiveInstaller(
             {
-                downloadUrl: SHERPA_TTS_MODEL_DOWNLOAD_URL,
+                downloadUrls: [...SHERPA_TTS_MODEL_DOWNLOAD_URLS],
+                archiveSha256: SHERPA_TTS_MODEL_ARCHIVE_SHA256,
                 workDirectoryName: DOWNLOAD_WORK_DIR,
                 archiveFileName: SHERPA_TTS_MODEL_ARCHIVE_NAME,
                 modelDirectoryName: SHERPA_TTS_MODEL_DIRECTORY,

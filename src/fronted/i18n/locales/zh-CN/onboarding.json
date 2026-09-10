@@ -1,50 +1,71 @@
 {
-  "dialogTitle": "欢迎使用 DashPlayer",
-  "dialogSubtitle": "只需简单几步配置，即刻开启浸入式外语影音学习。",
-  "stepIndicator": "第 {{current}} 步 / 共 {{total}} 步",
-  "prevStep": "上一步",
-  "nextStep": "下一步",
-  "skip": "暂不配置，稍后再说",
-  "finish": "完成并开始使用",
-  "steps": {
-    "models": {
-      "title": "离线语音与转录模型",
-      "desc": "DashPlayer 内置了强大的本地离线模型，无需联网即可进行自然发音与语音识别。",
-      "ttsTitle": "单词与文本发音 (Sherpa-TTS)",
-      "ttsDesc": "用于单词查询、查词弹窗及学习面板的离线高清语音朗读。",
-      "ttsStatusReady": "已就绪（已下载）",
-      "ttsStatusNotReady": "未下载",
-      "ttsStatusDownloading": "正在下载模型 ({{percent}}%)...",
-      "ttsActionDownload": "一键下载发音模型",
-      "transcriptionTitle": "字幕语音识别 (Parakeet v3)",
-      "transcriptionDesc": "用于无字幕视频的一键自动转录与双语对齐，完全在本地高效完成。",
-      "transcriptionStatusReady": "已就绪（已下载）",
-      "transcriptionStatusNotReady": "未下载",
-      "transcriptionStatusDownloading": "正在下载模型 ({{percent}}%)...",
-      "transcriptionActionDownload": "一键下载转录模型",
-      "downloadNote": "提示：模型下载支持断点续传。如果网络较慢，您也可以稍后在“设置中心 → 服务凭据”中按需下载。"
+    "nextStep": "下一步",
+    "copied": "已复制",
+    "copyFailed": "复制失败",
+    "openUrlFailed": "打开链接失败",
+    "openFolderFailed": "打开文件夹失败",
+    "steps": {
+        "storage": {
+            "heroTitle": "选择保存位置",
+            "heroDesc": "视频、字幕和运行所需的资源都会存在同一个文件夹里。",
+            "pathLabel": "当前保存位置",
+            "pathLoading": "正在读取…",
+            "chooseFolder": "选择文件夹",
+            "saved": "保存位置已更新",
+            "unavailable": "这个文件夹当前不可用，请重新选择一个。",
+            "note": "运行所需的资源约 1 GB，建议选一个空间充足的位置；之后也能在「设置中心 → 存储」里修改。"
+        },
+        "models": {
+            "ttsTitle": "单词与例句发音",
+            "transcriptionTitle": "字幕语音识别",
+            "manualGuideTitle": "下载不下来？查看手动下载教程",
+            "copyLink": "复制链接",
+            "backupSource": "备用下载源",
+            "openInBrowser": "在浏览器中打开",
+            "copyPath": "复制路径",
+            "openFolder": "打开文件夹"
+        },
+        "download": {
+            "heroTitle": "下载运行所需资源",
+            "heroDesc": "应用需要这些资源才能正常工作，安装一次即可。",
+            "action": "下载",
+            "packSize": "约 1 GB",
+            "downloadingEnv": "正在下载所需资源…",
+            "verifying": "正在校验…",
+            "extracting": "正在解压…",
+            "installing": "正在安装…",
+            "cancel": "取消",
+            "ready": "已就绪",
+            "finish": "完成",
+            "retry": "重试",
+            "skip": "跳过",
+            "itemMt": "字幕翻译",
+            "etaSeconds": "剩余约 {{seconds}} 秒",
+            "etaMinutes": "剩余约 {{minutes}} 分 {{seconds}} 秒",
+            "etaLong": "剩余超过 1 小时"
+        },
+        "manual": {
+            "title": "手动下载",
+            "desc": "网络下载不顺利时，用浏览器把下面的文件下载好，再放到指定位置。",
+            "back": "返回",
+            "addressLabel": "下载地址",
+            "targetLabel": "保存到",
+            "footer": "放好之后回到上一页点击「下载」，应用会自动完成安装。"
+        },
+        "done": {
+            "title": "一切就绪！",
+            "desc": "配置已完成。下面两个小技巧，帮你快速上手。"
+        },
+        "tutorial": {
+            "title": "如何打开视频与字幕",
+            "desc": "掌握两个最便捷的音视频导入方式，让学习快人一步：",
+            "method1Title": "方式一：导入整个媒体文件夹（推荐）",
+            "method1Desc": "点击首页的「打开文件夹」，选择包含视频与同名或相关字幕的目录。DashPlayer 会自动关联并解析结构。",
+            "method1Tip": "💡 提示：视频与字幕建议同名放置在同一文件夹下，例如 movie.mp4 与 movie.srt。",
+            "method2Title": "方式二：单次同时多选文件",
+            "method2Desc": "点击「打开文件」，在弹出的系统文件选择窗口中，按住 Ctrl / Command 键同时选中视频文件（.mp4/.mkv 等）和字幕文件（.srt/.vtt 等）。",
+            "method2Tip": "💡 提示：直接同时选中即可自动完成字幕绑定并载入播放器。"
+        }
     },
-    "translation": {
-      "title": "字幕与词典翻译偏好",
-      "desc": "选择您期望的字幕翻译与查词引擎。可在设置中随时更改。",
-      "optionLocalTitle": "本地离线模型 (推荐在 Apple Silicon 启用)",
-      "optionLocalDesc": "使用本地部署的轻量模型（如 Qwen-2.5），无需 API Key，保护隐私且无费用支出。",
-      "optionOpenAiTitle": "OpenAI / 云端大模型",
-      "optionOpenAiDesc": "使用云端大模型进行高精度、多语境的上下文翻译与句子深度拆解（需配置 API Key）。",
-      "optionTencentTitle": "腾讯机器翻译 / 经典翻译",
-      "optionTencentDesc": "低延迟的专业机器翻译服务（需配置 SecretId / SecretKey）。",
-      "currentSelection": "当前选择偏好",
-      "configureKeysNote": "若选用云端大模型或翻译服务，可在完成引导后前往“设置中心”填入对应密钥。"
-    },
-    "tutorial": {
-      "title": "如何打开视频与字幕",
-      "desc": "掌握两个最便捷的音视频导入方式，让学习快人一步：",
-      "method1Title": "方式一：导入整个媒体文件夹（推荐）",
-      "method1Desc": "点击首页的「打开文件夹」，选择包含视频与同名或相关字幕的目录。DashPlayer 会自动关联并解析结构。",
-      "method1Tip": "💡 提示：视频与字幕建议同名放置在同一文件夹下，例如 movie.mp4 与 movie.srt。",
-      "method2Title": "方式二：单次同时多选文件",
-      "method2Desc": "点击「打开文件」，在弹出的系统文件选择窗口中，按住 Ctrl / Command 键同时选中视频文件（.mp4/.mkv 等）和字幕文件（.srt/.vtt 等）。",
-      "method2Tip": "💡 提示：直接同时选中即可自动完成字幕绑定并载入播放器。"
-    }
-  }
+    "startUsing": "开始使用"
 }

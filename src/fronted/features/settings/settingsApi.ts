@@ -3,6 +3,7 @@ import { ProxySettingSaveVO } from '@/common/contracts/proxy-setting-vo';
 import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
 import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 import { ServiceCredentialSettingSaveVO } from '@/common/types/vo/service-credentials-setting-vo';
+import type { TranscriptionEngine } from '@/common/contracts/transcription-engine';
 import { ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 
@@ -102,6 +103,13 @@ export const settingsApi = {
     getServiceCredentials: () => backendClient.call('settings/service-credentials/detail'),
 
     /**
+     * 查询资源状态聚合快照（资源包三项、本地增强、硬件与回退状态）。
+     *
+     * @returns 设置页所需的全部运行时状态。
+     */
+    getResourceStatus: () => backendClient.call('settings/resource-status/detail'),
+
+    /**
      * 保存服务凭据设置。
      *
      * @param settings 待保存的服务凭据。
@@ -139,13 +147,48 @@ export const settingsApi = {
     deleteParakeetModel: () => backendClient.call('parakeet/models/delete'),
 
     /**
+     * 查询 whisper.cpp 模型状态。
+     *
+     * @returns 当前模型状态。
+     */
+    getWhisperCppModelStatus: () => backendClient.call('whisper-cpp/models/status'),
+
+    /**
+     * 下载 whisper.cpp 模型。
+     *
+     * @returns 下载任务结果。
+     */
+    downloadWhisperCppModel: () => backendClient.call('whisper-cpp/models/download'),
+
+    /**
+     * 取消 whisper.cpp 模型下载。
+     *
+     * @returns 取消结果。
+     */
+    cancelWhisperCppModelDownload: () => backendClient.call('whisper-cpp/models/cancel-download'),
+
+    /**
+     * 删除 whisper.cpp 模型。
+     *
+     * @returns 删除完成后结束。
+     */
+    deleteWhisperCppModel: () => backendClient.call('whisper-cpp/models/delete'),
+
+    /**
+     * 保存本地语音识别引擎设置。
+     *
+     * @param engine 目标引擎。
+     * @returns 保存完成后结束。
+     */
+    saveTranscriptionEngine: (engine: TranscriptionEngine) =>
+        backendClient.call('settings/transcription-engine/save', engine),
+
+    /**
      * 查询 Sherpa TTS 模型状态。
      *
      * @returns 当前模型状态。
      */
     getSherpaTtsModelStatus: () => backendClient.call('sherpa-tts/models/status'),
-    /** 查询本地 Qwen 模型目录与 llama.cpp 运行时状态。 */
-    getLocalAiStatus: () => backendClient.call('local-ai/status'),
     /** 将全部本地功能切换到指定模型。 */
     useLocalAiModel: (modelId: string) => backendClient.call('local-ai/use', { modelId }),
     /** 清除当前字幕翻译配置（引擎、模型、风格一致）的翻译缓存，返回删除条数。 */
@@ -191,18 +234,13 @@ export const settingsApi = {
     deleteSherpaTtsModel: () => backendClient.call('sherpa-tts/models/delete'),
 
     /**
-     * 测试服务凭据是否可用。
+     * 测试指定 OpenAI 模型的连通性。
      *
-     * @param provider 待测试的服务提供方。
-     * @returns 凭据测试结果。
+     * @param model 待测试的模型标识，必须是当前可用模型列表中的一项。
+     * @returns 测试结果。
      */
-    testServiceCredential: (provider: 'openai' | 'tencent') => {
-        const routeMap = {
-            openai: 'settings/service-credentials/test-openai',
-            tencent: 'settings/service-credentials/test-tencent',
-        } as const;
-        return backendClient.call(routeMap[provider]);
-    },
+    testOpenAi: (model: string) =>
+        backendClient.call('settings/service-credentials/test-openai', { model }),
 
     /**
      * 查询快捷键设置。

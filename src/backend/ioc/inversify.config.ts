@@ -25,6 +25,7 @@ import AiTransController from '@/backend/controllers/AiTransController';
 import ConvertController from '@/backend/controllers/ConvertController';
 import DpTaskController from '@/backend/controllers/DpTaskController';
 import MediaController from '@/backend/controllers/MediaController';
+import MigrationFailureController from '@/backend/controllers/MigrationFailureController';
 import StorageController from '@/backend/controllers/StorageController';
 import SystemController from '@/backend/controllers/SystemController';
 import SubtitleController from '@/backend/controllers/SubtitleController';
@@ -33,6 +34,7 @@ import MainWindowRegistry from '@/backend/infrastructure/system/MainWindowRegist
 import MainWindowRegistryImpl from '@/backend/infrastructure/system/MainWindowRegistryImpl';
 import SystemConfigService, { SystemConfigServiceImpl } from '@/backend/services/SystemConfigService';
 import SettingService, { SettingServiceImpl } from '@/backend/services/SettingService';
+import ResourceFallbackService, { ResourceFallbackServiceImpl } from '@/backend/services/ResourceFallbackService';
 import { FavouriteClipsService, FavouriteClipsServiceImpl } from '@/backend/services/FavouriteClipsService';
 import CacheService, { CacheServiceImpl } from '@/backend/services/CacheService';
 import { ClipOssService } from '@/backend/services/OssService';
@@ -69,11 +71,15 @@ import WatchHistoryService, { WatchHistoryServiceImpl } from '@/backend/services
 import WatchHistoryController from '@/backend/controllers/WatchHistoryController';
 import SettingsController from '@/backend/controllers/SettingsController';
 import { ParakeetModelController } from '@/backend/controllers/ParakeetModelController';
+import WhisperCppModelController from '@/backend/controllers/WhisperCppModelController';
 import ParakeetModelService, { ParakeetModelServiceImpl } from '@/backend/services/ParakeetModelService';
+import WhisperCppModelService, { WhisperCppModelServiceImpl } from '@/backend/services/WhisperCppModelService';
+import TranscriptionEngineSelector, { TranscriptionEngineSelectorImpl } from '@/backend/services/TranscriptionEngineSelector';
 import { LocalTranscriptionServiceImpl, TranscriptionService } from '@/backend/services/TranscriptionService';
 import { SherpaOnnxCli } from '@/backend/infrastructure/media/sherpa/SherpaOnnxCli';
-import SpeechRecognitionGateway from '@/backend/services/gateways/media/SpeechRecognitionGateway';
 import SherpaOnnxGatewayImpl from '@/backend/infrastructure/media/sherpa/SherpaOnnxGatewayImpl';
+import { WhisperCppCli } from '@/backend/infrastructure/media/whispercpp/WhisperCppCli';
+import WhisperCppGatewayImpl from '@/backend/infrastructure/media/whispercpp/WhisperCppGatewayImpl';
 import { SherpaOnnxTtsCli } from '@/backend/infrastructure/media/sherpa/SherpaOnnxTtsCli';
 import SherpaTtsModelService, { SherpaTtsModelServiceImpl } from '@/backend/services/SherpaTtsModelService';
 import LocalTtsService, { LocalTtsServiceImpl } from '@/backend/services/LocalTtsService';
@@ -163,13 +169,17 @@ container.bind<Controller>(TYPES.Controller).to(SubtitleController).inSingletonS
 container.bind<Controller>(TYPES.Controller).to(WatchHistoryController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(SettingsController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(ParakeetModelController).inSingletonScope();
+container.bind<Controller>(TYPES.Controller).to(WhisperCppModelController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(LocalAiController).inSingletonScope();
 container.bind<LocalAiService>(TYPES.LocalAiService).to(LocalAiRuntime).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(LocalMtController).inSingletonScope();
 container.bind<LocalMtService>(TYPES.LocalMtService).to(LocalMtRuntime).inSingletonScope();
+container.bind<ResourceFallbackService>(TYPES.ResourceFallbackService).to(ResourceFallbackServiceImpl).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(SherpaTtsModelController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VocabularyController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VideoLearningApiController).inSingletonScope();
+// 恢复路由控制器：不绑定到 TYPES.Controller（恢复模式下不解析业务控制器），单独绑定。
+container.bind<MigrationFailureController>(TYPES.MigrationFailureController).to(MigrationFailureController).inSingletonScope();
 // Services
 container.bind<RendererGateway>(TYPES.RendererGateway).to(RendererGatewayImpl).inSingletonScope();
 container.bind<RendererEvents>(TYPES.RendererEvents).to(RendererEventsImpl).inSingletonScope();
@@ -178,7 +188,11 @@ container.bind<WindowPort>(TYPES.WindowPort).to(WindowPortImpl).inSingletonScope
 container.bind<AiFuncService>(TYPES.AiFuncService).to(AiFuncServiceImpl).inSingletonScope();
 container.bind<ParakeetModelService>(TYPES.ParakeetModelService).to(ParakeetModelServiceImpl).inSingletonScope();
 container.bind<SherpaOnnxCli>(TYPES.SherpaOnnxCli).to(SherpaOnnxCli).inSingletonScope();
-container.bind<SpeechRecognitionGateway>(TYPES.SpeechRecognitionGateway).to(SherpaOnnxGatewayImpl).inSingletonScope();
+container.bind<WhisperCppCli>(TYPES.WhisperCppCli).to(WhisperCppCli).inSingletonScope();
+container.bind<SherpaOnnxGatewayImpl>(TYPES.SherpaOnnxGateway).to(SherpaOnnxGatewayImpl).inSingletonScope();
+container.bind<WhisperCppGatewayImpl>(TYPES.WhisperCppGateway).to(WhisperCppGatewayImpl).inSingletonScope();
+container.bind<TranscriptionEngineSelector>(TYPES.TranscriptionEngineSelector).to(TranscriptionEngineSelectorImpl).inSingletonScope();
+container.bind<WhisperCppModelService>(TYPES.WhisperCppModelService).to(WhisperCppModelServiceImpl).inSingletonScope();
 container.bind<SherpaOnnxTtsCli>(TYPES.SherpaOnnxTtsCli).to(SherpaOnnxTtsCli).inSingletonScope();
 container.bind<SherpaTtsModelService>(TYPES.SherpaTtsModelService).to(SherpaTtsModelServiceImpl).inSingletonScope();
 container.bind<LocalTtsService>(TYPES.LocalTtsService).to(LocalTtsServiceImpl).inSingletonScope();

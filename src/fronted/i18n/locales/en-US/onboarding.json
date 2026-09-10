@@ -1,0 +1,71 @@
+{
+    "nextStep": "Next",
+    "copied": "Copied",
+    "copyFailed": "Copy failed",
+    "openUrlFailed": "Failed to open the link",
+    "openFolderFailed": "Failed to open the folder",
+    "steps": {
+        "storage": {
+            "heroTitle": "Choose where to save",
+            "heroDesc": "Videos, subtitles and the resources the app needs all live in the same folder.",
+            "pathLabel": "Current location",
+            "pathLoading": "Loading…",
+            "chooseFolder": "Choose folder",
+            "saved": "Location updated",
+            "unavailable": "This folder is not available right now — please pick another one.",
+            "note": "These resources take about 1 GB, so pick a location with enough space. You can change this later in Settings → Storage."
+        },
+        "models": {
+            "ttsTitle": "Word & Sentence Pronunciation",
+            "transcriptionTitle": "Speech-to-Subtitle",
+            "manualGuideTitle": "Download not working? Manual install guide",
+            "copyLink": "Copy link",
+            "backupSource": "Backup source",
+            "openInBrowser": "Open in browser",
+            "copyPath": "Copy path",
+            "openFolder": "Open folder"
+        },
+        "download": {
+            "heroTitle": "Download required resources",
+            "heroDesc": "The app needs these resources to work — a one-time install.",
+            "action": "Download",
+            "packSize": "~1 GB",
+            "downloadingEnv": "Downloading resources…",
+            "verifying": "Verifying…",
+            "extracting": "Extracting…",
+            "installing": "Installing…",
+            "cancel": "Cancel",
+            "ready": "Ready",
+            "finish": "Finish",
+            "retry": "Retry",
+            "skip": "Skip",
+            "itemMt": "Subtitle translation",
+            "etaSeconds": "about {{seconds}}s left",
+            "etaMinutes": "about {{minutes}}m {{seconds}}s left",
+            "etaLong": "over 1 hour left"
+        },
+        "manual": {
+            "title": "Manual download",
+            "desc": "If the download is not going well, grab the files below with your browser and put them in the given locations.",
+            "back": "Back",
+            "addressLabel": "Download URL",
+            "targetLabel": "Save to",
+            "footer": "Once the files are in place, go back and click “Download” — the app finishes the installation automatically."
+        },
+        "done": {
+            "title": "You're all set!",
+            "desc": "Setup is complete. Here are two quick tips to get you started."
+        },
+        "tutorial": {
+            "title": "How to Open Videos & Subtitles",
+            "desc": "Master the two most convenient ways to import media and start learning:",
+            "method1Title": "Method 1: Open a media folder (recommended)",
+            "method1Desc": "Click 'Open Folder' on the home page and select a directory containing your videos and subtitles. DashPlayer links them automatically.",
+            "method1Tip": "💡 Tip: Keep video and subtitle files in the same folder with matching names, e.g. movie.mp4 and movie.srt.",
+            "method2Title": "Method 2: Multi-select video and subtitle files",
+            "method2Desc": "Click 'Open File', then in the system file picker hold Ctrl / Command to select both the video file (.mp4/.mkv, etc.) and the subtitle file (.srt/.vtt, etc.).",
+            "method2Tip": "💡 Tip: Selecting both at once automatically binds the subtitles and loads the player."
+        }
+    },
+    "startUsing": "Start using"
+}

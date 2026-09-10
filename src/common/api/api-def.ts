@@ -1,6 +1,10 @@
 import {DpTask} from '@/common/contracts/dp-task';
 import type { LocalAiSpeedTestResult, LocalAiStatus } from '@/common/contracts/local-ai';
 import type { LocalMtStatus } from '@/common/contracts/local-mt';
+import type { ResourceFallbackSnapshot } from '@/common/contracts/resource-fallback';
+import type { ResourceStatusSnapshot } from '@/common/contracts/resource-status';
+import type { MigrationFailureDetail } from '@/common/contracts/migration-failure';
+import type { GpuAcceleration } from '@/common/contracts/system-info';
 import {OpenAIDictionaryResult} from '@/common/types/DictionaryResult';
 import {ChapterParseResult} from '@/common/types/chapter-result';
 import {SrtSentence, Sentence} from '@/common/types/SentenceC';
@@ -31,6 +35,7 @@ import {
     ServiceCredentialSettingSaveVO,
 } from '@/common/types/vo/service-credentials-setting-vo';
 import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
+import type { TranscriptionEngine } from '@/common/contracts/transcription-engine';
 import { ShortcutSettingDetailVO, ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
 import { ProxySettingDetailVO, ProxySettingSaveVO } from '@/common/contracts/proxy-setting-vo';
 import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
@@ -96,6 +101,12 @@ interface SystemDef {
             isMac: boolean,
             isLinux: boolean,
             pathSeparator: string,
+            /** 物理内存总量（GB，保留一位小数）。 */
+            totalMemoryGb: number,
+            /** 逻辑 CPU 核数。 */
+            cpuCount: number,
+            /** 可用的 GPU 推理后端；none 表示会走 CPU 推理。 */
+            gpuAcceleration: GpuAcceleration,
         }
     };
     'system/select-file': {
@@ -132,6 +143,8 @@ interface SystemDef {
     'system/open-url': { params: string, return: void };
     'system/app-version': { params: void, return: string };
     'system/test-renderer-api': { params: void, return: void };
+    'system/config/get': { params: string, return: string | null };
+    'system/config/set': { params: { key: string; value: string }, return: void };
 }
 
 interface AiTransDef {
@@ -247,10 +260,16 @@ interface SettingsDef {
     'settings/runtime/save': { params: RuntimeSettingSaveRequest, return: void };
     'settings/service-credentials/detail': { params: void, return: ServiceCredentialSettingDetailVO };
     'settings/service-credentials/save': { params: ServiceCredentialSettingSaveVO, return: void };
-    'settings/service-credentials/test-openai': { params: void, return: { success: boolean, message: string } };
+    'settings/service-credentials/test-openai': { params: { model: string }, return: { success: boolean, message: string } };
     'settings/service-credentials/test-tencent': { params: void, return: { success: boolean, message: string } };
     'settings/engine-selection/detail': { params: void, return: EngineSelectionSettingVO };
+    'settings/resource-fallback/detail': { params: void, return: ResourceFallbackSnapshot };
+    'settings/resource-status/detail': { params: void, return: ResourceStatusSnapshot };
     'settings/engine-selection/save': { params: EngineSelectionSettingVO, return: void };
+    'settings/transcription-engine/save': { params: TranscriptionEngine, return: void };
+    'migration-failure/detail': { params: void, return: MigrationFailureDetail };
+    'migration-failure/retry': { params: void, return: void };
+    'migration-failure/reset-and-relaunch': { params: void, return: void };
     'settings/shortcuts/detail': { params: void, return: ShortcutSettingDetailVO };
     'settings/shortcuts/save': { params: ShortcutSettingSaveVO, return: void };
     'settings/appearance/detail': { params: void, return: AppearanceSettingVO };
@@ -266,6 +285,13 @@ interface ParakeetModelDef {
     'parakeet/models/download': { params: void, return: { success: boolean; message: string } };
     'parakeet/models/cancel-download': { params: void, return: { cancelled: boolean } };
     'parakeet/models/delete': { params: void, return: { success: boolean; message: string } };
+}
+
+interface WhisperCppModelDef {
+    'whisper-cpp/models/status': { params: void, return: ModelInstallationStatusVO };
+    'whisper-cpp/models/download': { params: void, return: { success: boolean; message: string } };
+    'whisper-cpp/models/cancel-download': { params: void, return: { cancelled: boolean } };
+    'whisper-cpp/models/delete': { params: void, return: { success: boolean; message: string } };
 }
 
 /** 视频切分 IPC 定义。 */
@@ -415,6 +441,7 @@ export type ApiDefinitions = ApiDefinition
     & StorageDef
     & SettingsDef
     & ParakeetModelDef
+    & WhisperCppModelDef
     & ConvertDef
     & FavoriteClipsDef
     & TagDef

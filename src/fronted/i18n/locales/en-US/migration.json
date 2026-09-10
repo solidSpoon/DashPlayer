@@ -1,0 +1,17 @@
+{
+    "title": "Data upgrade failed",
+    "desc": "A local data upgrade did not finish, so the app is unavailable. Try again first; reset only if it keeps failing.",
+    "detailLabel": "Failure details",
+    "copy": "Copy details",
+    "copied": "Copied",
+    "retry": "Retry (restart app)",
+    "retryFailed": "Failed to send the restart command, please restart the app manually",
+    "retrying": "Restarting…",
+    "reset": "Reset and retry",
+    "resetting": "Resetting and restarting…",
+    "resetFailed": "Reset failed",
+    "resetConfirmTitle": "Reset and retry?",
+    "resetConfirmDesc": "This deletes all settings and the local database: API keys, engine selections, learning data (vocabulary and favourites), and subtitle translation caches. Video files and downloaded model resources are not affected. This cannot be undone.",
+    "resetConfirmOk": "Reset and restart",
+    "resetConfirmCancel": "Cancel"
+}

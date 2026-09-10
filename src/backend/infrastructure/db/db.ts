@@ -1,4 +1,5 @@
 import path from 'path';
+import fs from 'fs';
 import { and, ExtractTablesWithRelations, sql } from 'drizzle-orm';
 import { SQLiteTransaction } from 'drizzle-orm/sqlite-core';
 import Database from 'better-sqlite3';
@@ -14,7 +15,7 @@ const dbLogger = getMainLogger('database');
 const slowQueryLogger = getMainLogger('db-slow-query');
 
 // 创建当前运行环境的单例数据库；慢查询通过回调归因到日志。
-const { db, sqlite } = createDb(file, {
+const { db, sqlite, close: closeSqlite } = createDb(file, {
     logger: isDevelopmentMode() && enableDbLog,
     onSlowQuery: (sqlText, ms) => slowQueryLogger.warn('slow query', { sql: sqlText, ms }),
 });
@@ -64,5 +65,21 @@ export async function clearDB() {
 }
 
 export default db;
+
+/**
+ * 关闭数据库连接并删除数据库文件（含 -wal / -shm）。
+ *
+ * 仅供迁移失败后的「重置并重试」使用：必须先关连接（Windows 上打开中的文件
+ * 无法删除），再删文件；下次启动由 runMigrate 重建全新库。
+ * 有损操作——库内业务数据（生词本、收藏、翻译缓存等）全部丢失。
+ *
+ * @throws 文件被占用、无写权限等删除失败时原样抛出，由调用方展示给用户。
+ */
+export async function resetDatabaseFile(): Promise<void> {
+    closeSqlite();
+    for (const suffix of ['', '-wal', '-shm']) {
+        fs.rmSync(`${file}${suffix}`, { force: true });
+    }
+}
 
 export type Transaction = SQLiteTransaction<'sync', Database.RunResult, Record<string, never>, ExtractTablesWithRelations<Record<string, never>>>;

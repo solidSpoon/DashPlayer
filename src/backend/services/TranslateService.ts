@@ -14,6 +14,7 @@ import SettingService from '@/backend/services/SettingService';
 import BuiltinDictionaryStore from '@/backend/services/gateways/translate/BuiltinDictionaryStore';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import type LocalAiService from '@/backend/services/LocalAiService';
+import type ResourceFallbackService from '@/backend/services/ResourceFallbackService';
 
 export default interface TranslateService {
     transWord(
@@ -209,6 +210,10 @@ export class TranslateServiceImpl implements TranslateService {
     @inject(TYPES.LocalAiService)
     private localAiService!: LocalAiService;
 
+    /** 补充资源不可用时登记回退状态，供设置页展示。 */
+    @inject(TYPES.ResourceFallbackService)
+    private resourceFallback!: ResourceFallbackService;
+
     constructor(
         @inject(TYPES.RendererGateway) rendererGateway: RendererGateway,
         @inject(TYPES.AiProviderService) aiProviderService: AiProviderService,
@@ -307,9 +312,24 @@ export class TranslateServiceImpl implements TranslateService {
         }
 
         if (currentProvider === 'local') {
-            const result = await this.translateWordWithLocal(str, requestId);
-            if (result) await this.wordRecordOpenAI(str, result, 'local');
-            return result;
+            // 补充资源处于回退冷却时不再调用，直接用内置词库结果
+            if (this.resourceFallback.isFallbackActive('dictionary')) {
+                return null;
+            }
+            try {
+                const result = await this.translateWordWithLocal(str, requestId);
+                this.resourceFallback.clear('dictionary');
+                if (result) await this.wordRecordOpenAI(str, result, 'local');
+                return result;
+            } catch (error) {
+                this.resourceFallback.markFallback(
+                    'dictionary',
+                    'local',
+                    'builtinDictionary',
+                    error instanceof Error ? error.message : String(error)
+                );
+                return null;
+            }
         }
         return await this.translateWordWithOpenAI(str, requestId);
     }
@@ -328,6 +348,7 @@ export class TranslateServiceImpl implements TranslateService {
             const model = this.aiProviderService.getModel('dictionary');
             if (!model) {
                 this.logger.error('OpenAI 模型未配置');
+                this.resourceFallback.markFallback('dictionary', 'openai', 'builtinDictionary', '云端模型未配置');
                 return null;
             }
 
@@ -407,6 +428,12 @@ export class TranslateServiceImpl implements TranslateService {
             return null;
         } catch (error) {
             this.logger.error('OpenAI 字典查询失败', { word, error });
+            this.resourceFallback.markFallback(
+                'dictionary',
+                'openai',
+                'builtinDictionary',
+                error instanceof Error ? error.message : String(error)
+            );
             if (requestId) {
                 try {
                     await this.emitOpenAIDictionaryUpdate(
@@ -491,23 +518,20 @@ export class TranslateServiceImpl implements TranslateService {
 
         try {
             const parsed = JSON.parse(trans ?? '');
-            if (provider === 'openai' || provider === 'local') {
-                const parsedResult = openAIDictionaryCacheSchema.safeParse(parsed);
-                if (!parsedResult.success) {
-                    this.logger.warn('OpenAI 字典缓存格式不正确，忽略本地缓存', {
-                        word,
-                        issues: parsedResult.error.issues
-                    });
-                    return undefined;
-                }
-                const sanitized = sanitizeDictionaryResult(parsedResult.data as OpenAIDictionaryResult);
-                if (!sanitized.definitions.length) {
-                    this.logger.warn('OpenAI 字典缓存缺少有效释义，忽略本地缓存', { word });
-                    return undefined;
-                }
-                return sanitized;
+            const parsedResult = openAIDictionaryCacheSchema.safeParse(parsed);
+            if (!parsedResult.success) {
+                this.logger.warn('OpenAI 字典缓存格式不正确，忽略本地缓存', {
+                    word,
+                    issues: parsedResult.error.issues
+                });
+                return undefined;
             }
-
+            const sanitized = sanitizeDictionaryResult(parsedResult.data as OpenAIDictionaryResult);
+            if (!sanitized.definitions.length) {
+                this.logger.warn('OpenAI 字典缓存缺少有效释义，忽略本地缓存', { word });
+                return undefined;
+            }
+            return sanitized;
         } catch (error) {
             this.logger.error('解析字典缓存失败', { provider, word, error });
             return undefined;

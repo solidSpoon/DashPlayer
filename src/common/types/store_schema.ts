@@ -29,6 +29,7 @@ export const SettingKeyObj = {
     'apiKeys.openAi.autoAppendV1': 'true',
     'apiKeys.openAi.stream': 'on',
     'translation.engine': 'tencent',
+    'transcription.engine': 'whisper-cpp',
     'providers.subtitleTranslation': 'openai',
     'providers.dictionary': 'openai',
     'features.openai.enableSentenceLearning': 'true',

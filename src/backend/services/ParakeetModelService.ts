@@ -7,7 +7,8 @@ import { ModelArchiveInstaller } from '@/backend/services/models/ModelArchiveIns
 import {
     PARAKEET_MODEL_ARCHIVE_NAME,
     PARAKEET_MODEL_DIRECTORY,
-    PARAKEET_MODEL_DOWNLOAD_URL,
+    PARAKEET_MODEL_ARCHIVE_SHA256,
+    PARAKEET_MODEL_DOWNLOAD_URLS,
     PARAKEET_REQUIRED_FILES,
 } from '@/backend/services/models/parakeetModel';
 import type { ModelInstallationStatusVO } from '@/common/types/vo/model-installation-vo';
@@ -64,7 +65,8 @@ export class ParakeetModelServiceImpl implements ParakeetModelService {
     ) {
         this.installer = new ModelArchiveInstaller(
             {
-                downloadUrl: PARAKEET_MODEL_DOWNLOAD_URL,
+                downloadUrls: [...PARAKEET_MODEL_DOWNLOAD_URLS],
+                archiveSha256: PARAKEET_MODEL_ARCHIVE_SHA256,
                 workDirectoryName: DOWNLOAD_WORK_DIR,
                 archiveFileName: PARAKEET_MODEL_ARCHIVE_NAME,
                 modelDirectoryName: PARAKEET_MODEL_DIRECTORY,

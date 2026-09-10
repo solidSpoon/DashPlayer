@@ -11,6 +11,7 @@ import { setConcurrencyLogger } from '@/backend/utils/concurrency';
 import { seedDefaultVocabularyIfNeeded } from '@/backend/startup/seedDefaultVocabulary';
 import { DpTaskServiceImpl } from '@/backend/services/DpTaskService';
 import runStartupMigrations from '@/backend/startup/runStartupMigrations';
+import { getMigrationFailure } from '@/backend/startup/migrationFailureState';
 import { initProxyFeature } from '@/backend/startup/initProxy';
 import container from '@/backend/ioc/inversify.config';
 import TYPES from '@/backend/ioc/types';
@@ -219,7 +220,19 @@ const createWindow = () => {
 // initialization and is ready to create browser windows.
 // Some APIs can only be used after this event occurs.
 app.on('ready', async () => {
-    await runStartupMigrations();
+    try {
+        await runStartupMigrations();
+    } catch (error) {
+        logger.error('startup migrations failed, entering recovery mode', { error });
+    }
+    if (getMigrationFailure() !== null) {
+        // 恢复模式：迁移未完成，业务控制器与后台任务全部不启动（它们依赖数据库），
+        // 只注册恢复路由并建窗，由前端 gate 页引导用户重试或重置。
+        logger.warn('entering migration recovery mode');
+        registerHandler(mainWindowRef, { recoveryMode: true });
+        createWindow();
+        return;
+    }
     logStartupPhase('migrations');
     // 数据库迁移完成后再解析控制器，避免服务的 postConstruct 提前访问未建表数据库。
     registerHandler(mainWindowRef);

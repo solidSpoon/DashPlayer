@@ -287,6 +287,8 @@ const ffmpegUrls = {
 ////////////////////
 setProxy();
 const dir = path.join(process.cwd(), 'lib');
+// 当前源码版本号：whisper.cpp 运行时资产按发版 tag 发布，与该版本一一对应
+const packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf8'));
 mkdirp(dir);
 
 const platform = process.env.npm_config_platform || os.platform()
@@ -542,5 +544,236 @@ async function download({url, dir, file, sha}) {
             )
         );
         process.exit(1);
+    }
+}
+
+/**
+ * 运行时基于固定版本的 whisper.cpp 构建；parakeet-cli 输出格式是
+ * 解析契约（见 WhisperCppCli.parseOutput），升级前需重新验证。
+ */
+const WHISPER_CPP_REF = '52a939a2a762224e255d366c1182b2af4dd1a032';
+
+/**
+ * 运行时目录中的来源标记文件名：记录已安装的二进制来自哪个 Release 版本或哪个源码 ref。
+ * 只判文件存在无法区分“装的是哪一份”，会让人在换 ref / 换版本后继续沿用旧二进制。
+ */
+const WHISPER_RUNTIME_MARKER = '.runtime-source';
+
+/**
+ * 读取运行时来源标记。
+ * @param {string} markerPath 标记文件路径。
+ * @returns {string | null} 标记内容；未安装过或标记缺失时为 null。
+ */
+const readWhisperRuntimeMarker = (markerPath) => {
+    try {
+        return fs.readFileSync(markerPath, 'utf8').trim();
+    } catch {
+        return null;
+    }
+};
+
+/**
+ * whisper.cpp 运行时资产名，与 release.yml 的 Package 步骤产出一一对应：
+ * Windows 打包为 zip，其余平台 tar.gz。
+ * @param {string} platform 目标平台（process.platform 取值）。
+ * @param {string} arch 目标架构（x64 / arm64）。
+ * @returns {string} 资产文件名。
+ */
+const whisperRuntimeAssetName = (platform, arch) =>
+    `whisper-cpp-${platform}-${arch}.${platform === 'win32' ? 'zip' : 'tar.gz'}`;
+
+/**
+ * 本地源码构建 whisper.cpp parakeet-cli（发布资产不可用时的开发机兜底）。
+ *
+ * 复刻 release.yml whisper-cpp-runtime 任务的构建参数：静态链接
+ * （BUILD_SHARED_LIBS=OFF），macOS Metal 内嵌 GGML 库
+ * （GGML_METAL_EMBED_LIBRARY=ON），产出单文件自包含二进制。
+ * 源码缓存在 node_modules/.cache/whisper.cpp（不随应用打包，也不进 git）。
+ * 只在开发机调用：CI 上缺资产是发版流水线的问题，必须显式失败（见下方 whisper.cpp 段落）。
+ *
+ * @param {{ basePath: string, exeName: string }} param 目标目录与可执行文件名。
+ * @returns {Promise<boolean>} 构建成功且二进制已就位时 true；缺少构建依赖或构建失败时
+ *   false（原因已打印），由调用方按“运行时暂缺”处理（whisper 引擎在运行时会显式报错）。
+ */
+async function buildWhisperCppFromSource({ basePath, exeName }) {
+    const { execSync } = await import('node:child_process');
+    // Vulkan 目标的硬依赖来自 ggml 的 find_package(Vulkan COMPONENTS glslc REQUIRED)：
+    // 缺 glslc 时 cmake 只会抛底层报错，这里先给出能直接照做的安装提示。
+    const isMac = platform === 'darwin';
+    const requiredTools = isMac
+        ? [
+            { bin: 'cmake', hint: 'macOS: brew install cmake' },
+            { bin: 'git', hint: 'macOS: brew install git' },
+        ]
+        : [
+            { bin: 'cmake', hint: '请先安装 cmake' },
+            { bin: 'git', hint: '请先安装 git' },
+            {
+                bin: 'glslc',
+                hint: platform === 'win32'
+                    ? 'Windows: 安装 LunarG Vulkan SDK（提供 Vulkan 头文件与 glslc）'
+                    : 'Linux: apt install libvulkan-dev glslang-tools',
+            },
+        ];
+    for (const tool of requiredTools) {
+        try {
+            execSync(`${tool.bin} --version`, { stdio: 'ignore' });
+        } catch {
+            console.info(chalk.yellow(`=> 本地构建 whisper.cpp 需要 ${tool.bin}；${tool.hint}`));
+            return false;
+        }
+    }
+
+    const srcDir = path.join(process.cwd(), 'node_modules', '.cache', 'whisper.cpp');
+    const buildDir = path.join(srcDir, 'build');
+    mkdirp(srcDir);
+    let needFetch = false;
+    try {
+        needFetch = execSync('git rev-parse HEAD', { cwd: srcDir, encoding: 'utf8' }).trim() !== WHISPER_CPP_REF;
+    } catch {
+        // 本地缓存还不是 git 仓库（首次构建）
+        needFetch = true;
+    }
+    if (needFetch) {
+        console.info(chalk.blue(`=> Fetching whisper.cpp @ ${WHISPER_CPP_REF.slice(0, 8)}...`));
+        // 换 ref 后必须丢弃上一份源码的构建缓存，否则 cmake 会复用另一棵源码树的 cache
+        fs.rmSync(buildDir, { recursive: true, force: true });
+        try {
+            execSync(`git init "${srcDir}"`, { stdio: 'ignore' });
+            let hasOrigin = true;
+            try {
+                execSync(`git -C "${srcDir}" remote get-url origin`, { stdio: 'ignore' });
+            } catch {
+                hasOrigin = false;
+            }
+            execSync(
+                hasOrigin
+                    ? `git -C "${srcDir}" remote set-url origin https://github.com/ggml-org/whisper.cpp`
+                    : `git -C "${srcDir}" remote add origin https://github.com/ggml-org/whisper.cpp`,
+                { stdio: 'inherit' },
+            );
+            execSync(`git -C "${srcDir}" fetch --depth 1 origin ${WHISPER_CPP_REF}`, { stdio: 'inherit' });
+            execSync(`git -C "${srcDir}" checkout --detach FETCH_HEAD`, { stdio: 'inherit' });
+        } catch (error) {
+            console.info(chalk.yellow(`=> whisper.cpp 源码获取失败：${error.message}`));
+            return false;
+        }
+    }
+
+    const gpuFlags = isMac
+        ? ['-DGGML_METAL=ON', '-DGGML_METAL_USE_BF16=ON', '-DGGML_METAL_EMBED_LIBRARY=ON', `-DCMAKE_OSX_ARCHITECTURES=${arch === 'arm64' ? 'arm64' : 'x86_64'}`]
+        : [
+            '-DGGML_VULKAN=ON',
+            // Windows 用静态 CRT（/MT），与 release.yml 对齐：MSVC 默认 /MD 会让二进制
+            // 依赖 VCRUNTIME140.dll / MSVCP140.dll（来自 VC++ Redistributable，不保证存在）
+            ...(platform === 'win32' ? ['-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded'] : []),
+        ];
+    console.info(chalk.blue('=> Building whisper.cpp parakeet-cli (first build takes a few minutes)...'));
+    try {
+        execSync(
+            [
+                'cmake -B build',
+                '-DCMAKE_BUILD_TYPE=Release',
+                '-DGGML_NATIVE=OFF',
+                '-DBUILD_SHARED_LIBS=OFF',
+                '-DWHISPER_BUILD_EXAMPLES=ON',
+                '-DWHISPER_BUILD_TESTS=OFF',
+                ...gpuFlags,
+            ].join(' '),
+            { cwd: srcDir, stdio: 'inherit' },
+        );
+        execSync(`cmake --build build --config Release --target parakeet-cli -j 4`, { cwd: srcDir, stdio: 'inherit' });
+    } catch (error) {
+        console.info(chalk.yellow(`=> whisper.cpp 构建失败：${error.message}`));
+        return false;
+    }
+
+    const builtPath = platform === 'win32'
+        ? path.join(buildDir, 'bin', 'Release', 'parakeet-cli.exe')
+        : path.join(buildDir, 'bin', 'parakeet-cli');
+    if (!fs.existsSync(builtPath)) {
+        console.info(chalk.yellow(`=> whisper.cpp 构建产物未找到：${builtPath}`));
+        return false;
+    }
+    fs.copyFileSync(builtPath, path.join(basePath, exeName));
+    console.info(chalk.green(`✅ whisper.cpp parakeet-cli built and installed to ${basePath}`));
+    return true;
+}
+
+{
+    // whisper.cpp 离线识别 CLI（whisper.cpp 引擎的核显加速运行时）。
+    // 资产随应用 Release 一起发布：release.yml 的 whisper-cpp-runtime 任务
+    // 在发版时构建四个目标并上传；本段从当前版本对应的 Release 下载。
+    const platformDir = platform === 'darwin' ? 'darwin' : platform === 'win32' ? 'win32' : 'linux';
+    const archDir = arch === 'arm64' ? 'arm64' : 'x64';
+    const basePath = path.join(dir, 'whisper-cpp', archDir, platformDir);
+    mkdirp(basePath);
+
+    const exeName = platform === 'win32' ? 'parakeet-cli.exe' : 'parakeet-cli';
+    const exePath = path.join(basePath, exeName);
+    const markerPath = path.join(basePath, WHISPER_RUNTIME_MARKER);
+
+    // 核显运行时仅覆盖主流桌面平台；其余平台由 sherpa-onnx 引擎兜底
+    const supportedArchs = { linux: ['x64'], win32: ['x64'], darwin: ['arm64', 'x64'] };
+    if (!supportedArchs[platform]?.includes(arch)) {
+        console.info(chalk.yellow(`=> whisper.cpp 暂不提供 ${platform}/${arch} 运行时，已跳过；whisper.cpp 引擎在该平台不可用，请使用 sherpa-onnx 引擎`));
+    } else {
+        const version = packageJson.version;
+        const assetUrl = `https://github.com/solidSpoon/DashPlayer/releases/download/v${version}/${whisperRuntimeAssetName(platform, arch)}`;
+        // 预检资产是否存在：download() 对任何失败都会终止整个脚本，
+        // 而资产缺失（本地开发、历史版本）是可跳过的合法状态，只对 404 放行跳过。
+        // 必须带超时：无超时的 axios 在 GitHub 偶发挂起时会让整个脚本静默卡死
+        let assetExists = true;
+        try {
+            await axios.head(assetUrl, { headers: getGithubAuthHeaders(assetUrl), timeout: 15000 });
+        } catch (error) {
+            if (error?.response?.status === 404) {
+                assetExists = false;
+            } else {
+                // 非 404（网络/超时）：资产是否存在还未知，按“存在”继续，
+                // 真有问题会在下面的下载步骤报错退出，不在这里静默掉
+                console.info(chalk.yellow(`=> whisper.cpp 资产预检未完成（${error.message}），继续尝试下载`));
+            }
+        }
+
+        // parakeet-cli 的输出格式是解析契约（见 WhisperCppCli.parseOutput），所以已装的
+        // 二进制必须带上来源：标记与预期不符（换版本 / 换 ref / 手工放置）就重新安装
+        const expectedMarker = assetExists ? `release:${version}` : `source:${WHISPER_CPP_REF}`;
+        const installedMarker = readWhisperRuntimeMarker(markerPath);
+        if (fs.existsSync(exePath) && installedMarker === expectedMarker) {
+            console.info(chalk.green(`✅ File ${exeName} already exists (${expectedMarker})`));
+        } else {
+            if (fs.existsSync(exePath) && installedMarker === null) {
+                console.info(chalk.yellow(`=> 现有 ${exeName} 没有来源标记（手工放置或旧版本安装），按 ${expectedMarker} 重新安装以对齐版本`));
+            }
+            if (assetExists) {
+                console.info(chalk.blue(`=> whisper.cpp target: ${exePath}`));
+                await downloadAndExtractBinaryFromArchive({
+                    url: assetUrl,
+                    outputPath: exePath,
+                    binaryNameCandidates: ['parakeet-cli', 'parakeet-cli.exe'],
+                });
+                fs.writeFileSync(markerPath, `${expectedMarker}\n`);
+            } else if (process.env.CI) {
+                // CI 上不许编译兜底：缺资产说明 whisper-cpp-runtime 没产出该平台运行时，
+                // 而 whisper.cpp 是新用户的默认识别引擎，必须让该平台构建显式失败
+                console.error(
+                    chalk.red(
+                        `❌ whisper.cpp 运行时资产缺失：${assetUrl}\n` +
+                        `   请检查 release.yml 的 whisper-cpp-runtime 任务是否成功构建并上传了 ${platform}/${arch} 运行时。`
+                    )
+                );
+                process.exit(1);
+            } else {
+                // 开发机（尚未发版 / checkout 历史版本）：回退到本地源码构建
+                const built = await buildWhisperCppFromSource({ basePath, exeName });
+                if (built) {
+                    fs.writeFileSync(markerPath, `${expectedMarker}\n`);
+                } else {
+                    console.info(chalk.yellow(`=> whisper.cpp 运行时暂缺且本地构建未完成，已跳过；识别引擎可暂用 sherpa-onnx`));
+                    console.info(chalk.yellow(`   手动放置二进制时请一并写入来源标记 ${markerPath}（内容 ${expectedMarker}），否则下次 yarn run download 会重新安装`));
+                }
+            }
+        }
     }
 }

@@ -9,6 +9,8 @@ import ChatService from '@/backend/services/ChatService';
 import { AiFuncFormatSplitPrompt } from '@/common/types/aiRes/AiFuncFormatSplit';
 import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import ParakeetModelService from '@/backend/services/ParakeetModelService';
+import WhisperCppModelService from '@/backend/services/WhisperCppModelService';
+import TranscriptionEngineSelector from '@/backend/services/TranscriptionEngineSelector';
 import {
     TranscriptTask,
     TranscriptTaskResult,
@@ -56,6 +58,12 @@ export class AiFuncServiceImpl implements AiFuncService {
 
     @inject(TYPES.ParakeetModelService)
     private parakeetModelService!: ParakeetModelService;
+
+    @inject(TYPES.WhisperCppModelService)
+    private whisperCppModelService!: WhisperCppModelService;
+
+    @inject(TYPES.TranscriptionEngineSelector)
+    private transcriptionEngineSelector!: TranscriptionEngineSelector;
 
     @inject(TYPES.LocalTranscriptionService)
     private localTranscriptionService!: TranscriptionService;
@@ -123,9 +131,13 @@ export class AiFuncServiceImpl implements AiFuncService {
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(filePath);
         await this.localTranscriptionService.enqueue(filePath);
 
-        const modelStatus = await this.parakeetModelService.getStatus();
+        // 引擎按设置路由：whisper.cpp 走 GGUF 模型，sherpa-onnx 走 INT8 模型，各自独立下载。
+        const engine = this.transcriptionEngineSelector.currentEngine();
+        const modelStatus = engine === 'whisper-cpp'
+            ? await this.whisperCppModelService.getStatus()
+            : await this.parakeetModelService.getStatus();
         if (!modelStatus.ready) {
-            this.logger.warn('Parakeet model not downloaded', { modelPath: modelStatus?.modelPath });
+            this.logger.warn('Transcription model not downloaded', { engine, modelPath: modelStatus?.modelPath });
             const result: TranscriptTaskResult = {
                 error: '字幕模型尚未下载',
                 message: '请先到“设置中心 > 服务凭据”中下载字幕模型',

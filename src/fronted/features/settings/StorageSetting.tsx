@@ -138,15 +138,20 @@ const StorageSetting = () => {
     const handleClear = async () => {
         try {
             await settingsApi.resetDatabase();
-            toast.success(t('storage.resetSuccess', { defaultValue: '数据库已成功重置' }));
+            toast.success(t('storage.resetSuccess'));
         } catch (error) {
             const message = error instanceof Error ? error.message : String(error);
-            toast.error(`${t('storage.resetFailed', { defaultValue: '数据库重置失败' })}\n${message}`);
+            toast.error(`${t('storage.resetFailed')}\n${message}`);
         }
     };
 
     const handleOpen = async () => {
-        await settingsApi.openCacheFolder();
+        try {
+            await settingsApi.openCacheFolder();
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            toast.error(`${t('storage.openFailed')}\n${message}`);
+        }
     };
 
     /**

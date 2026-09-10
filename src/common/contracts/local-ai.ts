@@ -10,8 +10,11 @@ export interface LocalAiModelDefinition {
     bytes: number;
     /** 展示用大小标签。 */
     sizeLabel: string;
-    /** 固定版本的下载地址；自定义模型无下载源。 */
-    url: string;
+    /**
+     * 有序候选下载地址：声明顺序即优先级，首个为优先源（国内镜像），其余为备用源。
+     * 自定义模型无下载源。
+     */
+    urls: readonly string[];
     /** 固定版本的 SHA256；自定义模型留空。 */
     sha256: string;
     /** 模型来源：catalog 由应用目录预置，custom 为用户手动放入模型目录的文件。 */
@@ -25,8 +28,11 @@ export const LOCAL_AI_MODELS: readonly LocalAiModelDefinition[] = [
         name: 'Qwen3.5 2B Q4_K_M',
         file: 'Qwen3.5-2B-Q4_K_M.gguf',
         bytes: 1280835840,
-        sizeLabel: '~1.28 GB',
-        url: 'https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf',
+        sizeLabel: '1.28 GB',
+        urls: [
+            'https://www.modelscope.cn/models/unsloth/Qwen3.5-2B-GGUF/resolve/master/Qwen3.5-2B-Q4_K_M.gguf',
+            'https://huggingface.co/unsloth/Qwen3.5-2B-GGUF/resolve/main/Qwen3.5-2B-Q4_K_M.gguf',
+        ],
         sha256: 'aaf42c8b7c3cab2bf3d69c355048d4a0ee9973d48f16c731c0520ee914699223',
         source: 'catalog',
     },
@@ -81,8 +87,8 @@ export interface LocalAiModelStatus {
     total: number;
     /** 固定版本的模型安装路径。 */
     modelPath: string;
-    /** 固定版本的下载地址；自定义模型为 null。 */
-    downloadUrl: string | null;
+    /** 有序候选下载地址（首个为官方地址，其余为备用镜像）；自定义模型为空数组。 */
+    downloadUrls: string[];
     /** 最近一次下载失败原因；成功或无记录时为 null。 */
     error: string | null;
     /** 是否为用户手动放入模型目录的自定义模型。 */

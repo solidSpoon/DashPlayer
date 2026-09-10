@@ -18,8 +18,8 @@ export interface ModelInstallationStatusVO {
     phase: ModelDownloadPhase | null;
     /** 当前下载进度百分比（0-100）；未在下载时为 0。 */
     percent: number;
-    /** 官方模型归档下载地址。 */
-    downloadUrl: string;
+    /** 有序候选下载地址（首个为官方地址，其余为备用镜像）；手动下载指引展示全部。 */
+    downloadUrls: string[];
     /** 手动下载时应保存的归档完整路径。 */
     archivePath: string;
 }

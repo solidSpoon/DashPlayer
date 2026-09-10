@@ -2,15 +2,115 @@
 name: Release app
 on:
   workflow_dispatch:
+    inputs:
+      # 只构建 whisper.cpp 运行时矩阵、跳过 app 构建：用于发版前干跑验证
+      # Vulkan/Metal 工具链。手动触发时运行时任务本身也跳过上传，不碰 Release 资产
+      runtime_only:
+        type: boolean
+        required: false
+        default: false
   # 供 release-please.yml 在发版 PR 合并后以 workflow_call 直接调用
   # （GITHUB_TOKEN 打的 tag 不会触发 push 事件，不能只靠下面的 tag 触发器）
   workflow_call:
+    inputs:
+      # 发版 tag（如 v6.12.0）。workflow_call 上下文是 main 分支 push，
+      # 取不到 tag 名，由 release-please 显式传入，供运行时资产上传到对应 Release
+      release_tag:
+        type: string
+        required: false
+        default: ''
+      # 与 workflow_dispatch 的同名开关一致；发版链路固定不传（false）
+      runtime_only:
+        type: boolean
+        required: false
+        default: false
   push:
     tags: ['v*']
 permissions:
   contents: write
 jobs:
+  # whisper.cpp 核显运行时先行构建并挂到 Release，供后续 publish 中的
+  # `yarn run download` 取用。矩阵 fail-fast: false：单个目标失败不阻塞其余目标，
+  # 也不阻塞其他平台的 app 构建；但缺了自家平台资产的平台会构建失败
+  # （download.mjs 在 CI 下不编译兜底、不静默跳过），避免发出一个默认识别引擎不可用的包
+  whisper-cpp-runtime:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-x64, os: ubuntu-22.04, gpu: vulkan }
+          - { name: win32-x64, os: windows-2022, gpu: vulkan }
+          - { name: darwin-arm64, os: macos-14, gpu: metal }
+          - { name: darwin-x64, os: macos-15-intel, gpu: metal }
+    runs-on: ${{ matrix.os }}
+    env:
+      # 运行时基于固定版本的 whisper.cpp 构建；parakeet-cli 输出格式是
+      # 解析契约（见 WhisperCppCli.parseOutput），升级前需重新验证
+      WHISPER_CPP_REF: 52a939a2a762224e255d366c1182b2af4dd1a032
+    steps:
+      - name: Checkout whisper.cpp
+        uses: actions/checkout@v5
+        with:
+          repository: ggml-org/whisper.cpp
+          ref: ${{ env.WHISPER_CPP_REF }}
+      - name: Install Vulkan toolchain (Linux only)
+        if: matrix.gpu == 'vulkan' && runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libvulkan-dev glslang-tools
+      - name: Install Vulkan SDK (Windows only)
+        if: matrix.gpu == 'vulkan' && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          curl.exe -L -o "$env:RUNNER_TEMP\VulkanSDK-Installer.exe" "https://sdk.lunarg.com/sdk/download/1.3.290.0/windows/VulkanSDK-1.3.290.0-Installer.exe"
+          & "$env:RUNNER_TEMP\VulkanSDK-Installer.exe" --accept-licenses --default-answer --confirm-command install
+          Add-Content $env:GITHUB_ENV "VULKAN_SDK=C:\VulkanSDK\1.3.290.0"
+      - name: Configure (Vulkan)
+        if: matrix.gpu == 'vulkan'
+        env:
+          # Windows 用静态 CRT（/MT）：MSVC 默认 /MD 会让 parakeet-cli.exe 依赖
+          # VCRUNTIME140.dll / MSVCP140.dll（来自 VC++ Redistributable，干净系统上不保证存在）
+          MSVC_RUNTIME_FLAG: ${{ runner.os == 'Windows' && '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded' || '' }}
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DGGML_VULKAN=ON -DBUILD_SHARED_LIBS=OFF -DWHISPER_BUILD_EXAMPLES=ON -DWHISPER_BUILD_TESTS=OFF $MSVC_RUNTIME_FLAG
+      - name: Configure (Metal)
+        if: matrix.gpu == 'metal'
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DGGML_METAL_USE_BF16=ON -DGGML_METAL_EMBED_LIBRARY=ON -DCMAKE_OSX_ARCHITECTURES=${{ contains(matrix.name, 'arm64') && 'arm64' || 'x86_64' }} -DBUILD_SHARED_LIBS=OFF -DWHISPER_BUILD_EXAMPLES=ON -DWHISPER_BUILD_TESTS=OFF
+      - name: Build
+        run: cmake --build build --config Release --target parakeet-cli -j 4
+      - name: Package
+        # 资产名契约：scripts/download.mjs 的 whisperRuntimeAssetName() 按同一套
+        # whisper-cpp-<platform>-<arch>.{tar.gz,zip} 规则拼下载地址，改名必须两边同步
+        shell: bash
+        run: |
+          mkdir -p stage
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp build/bin/Release/parakeet-cli.exe stage/parakeet-cli.exe
+            (cd stage && 7z a "../whisper-cpp-${{ matrix.name }}.zip" parakeet-cli.exe)
+          else
+            cp build/bin/parakeet-cli stage/parakeet-cli
+            (cd stage && tar czf "../whisper-cpp-${{ matrix.name }}.tar.gz" parakeet-cli)
+          fi
+      - name: Upload to release
+        # workflow_call 链路用传入的 release_tag；tag push 链路用当前 ref。
+        # 手动触发（无 tag、无发版）时仅验证构建，不上传
+        if: inputs.release_tag != '' || github.ref_type == 'tag'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          TAG="${{ inputs.release_tag || github.ref_name }}"
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            ASSET="whisper-cpp-${{ matrix.name }}.zip"
+          else
+            ASSET="whisper-cpp-${{ matrix.name }}.tar.gz"
+          fi
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1 || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes
+          gh release upload "$TAG" "$ASSET" --repo "$GITHUB_REPOSITORY" --clobber
   build:
+    # needs 只为保证运行时资产先上传再被 yarn run download 拉取；
+    # 配合 !cancelled() 让运行时任务失败时其余平台照常构建；
+    # runtime_only 给手动干跑用：app 构建会 electron-forge publish 到当前版本的已发布
+    # Release，所以只验运行时矩阵时必须能整体跳过它
+    needs: whisper-cpp-runtime
+    if: ${{ !cancelled() && !inputs.runtime_only }}
     strategy:
       # 某个平台构建失败时，其他平台继续构建发布，不互相拖累
       fail-fast: false

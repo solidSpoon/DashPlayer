@@ -11,10 +11,13 @@ import { concurrency } from '@/backend/utils/concurrency';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import type RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
 import type LocalMtService from '@/backend/services/LocalMtService';
+import { probeReachableDownloadUrl } from '@/backend/utils/probeDownloadUrl';
 import {
     LOCAL_MT_MODEL_FILES,
     LOCAL_MT_MODEL_ID,
+    LOCAL_MT_REPO_SOURCES,
     LOCAL_MT_TOTAL_BYTES,
+    LocalMtModelFile,
     LocalMtStatus,
 } from '@/common/contracts/local-mt';
 
@@ -48,10 +51,10 @@ export class LocalMtRuntime implements LocalMtService {
         @inject(TYPES.RendererGateway) private readonly rendererGateway: RendererGateway,
     ) {}
 
-    /** 模型安装目录：本地 AI 资源目录下的 mt/<模型 id>。 */
+    /** 模型安装目录：媒体库 models 目录下的 <模型 id>，与其它模型同级。 */
     private async modelPath(): Promise<string> {
-        const directory = await this.directories.provideDirectory(StorageDirectoryTarget.LOCAL_AI);
-        return path.join(directory, 'mt', LOCAL_MT_MODEL_ID);
+        const modelsRoot = await this.directories.provideDirectory(StorageDirectoryTarget.MODELS);
+        return path.join(modelsRoot, LOCAL_MT_MODEL_ID);
     }
 
     /** 推送节流后的下载快照；阶段变化和终态始终立即发出。 */
@@ -69,6 +72,26 @@ export class LocalMtRuntime implements LocalMtService {
     /** 返回单个文件的完整安装路径。 */
     private filePathFor(modelPath: string, relativePath: string): string {
         return path.join(modelPath, relativePath);
+    }
+
+    /** 按仓库基址拼出单个文件的下载地址（resolve 基址已含分支名）。 */
+    private fileUrl(resolveBase: string, file: LocalMtModelFile): string {
+        return `${resolveBase}/${file.path}`;
+    }
+
+    /**
+     * 选定本次下载使用的仓库基址：多候选时先并行探测可达性，按声明顺序取第一个可达的
+     * （国内镜像在前）；全部不可达时仍按首个基址发起，失败原因由真实下载给出并展示在模型卡上。
+     *
+     * 逐个文件的 SHA256 校验是跨源下载的安全兜底：镜像与官方是同一仓库的
+     * 逐字节镜像，内容不一致会被校验拒绝；已有 .part 续传同理。
+     */
+    private async resolveBaseUrl(signal: AbortSignal): Promise<string> {
+        const probeFile = LOCAL_MT_MODEL_FILES[0];
+        const candidates = LOCAL_MT_REPO_SOURCES.map((source) => this.fileUrl(source.resolveBase, probeFile));
+        const reachable = await probeReachableDownloadUrl(candidates, signal);
+        if (!reachable) return LOCAL_MT_REPO_SOURCES[0].resolveBase;
+        return LOCAL_MT_REPO_SOURCES[candidates.indexOf(reachable)].resolveBase;
     }
 
     /** 查询文件大小；不存在返回 0，其余错误显式抛出。 */
@@ -123,6 +146,7 @@ export class LocalMtRuntime implements LocalMtService {
             downloaded: downloading ? this.downloaded : await this.settledBytes(modelPath),
             total: LOCAL_MT_TOTAL_BYTES,
             modelPath,
+            downloadUrls: LOCAL_MT_REPO_SOURCES.map((source) => source.pageUrl),
             error: this.downloadError,
         };
     }
@@ -168,16 +192,22 @@ export class LocalMtRuntime implements LocalMtService {
         this.downloaded = await this.settledBytes(modelPath);
         this.logger.info('local mt model download started', { downloaded: this.downloaded });
 
+        // 手动放好全部文件后只需校验：惰性探测，避免为纯校验白等一轮网络探测。
+        let baseUrl: string | null = null;
         for (const file of LOCAL_MT_MODEL_FILES) {
             const finalPath = this.filePathFor(modelPath, file.path);
             if (await this.fileSize(finalPath) === file.bytes) continue;
+            if (baseUrl === null) {
+                baseUrl = await this.resolveBaseUrl(signal);
+                this.logger.info('local mt download base url selected', { baseUrl });
+            }
             const partialPath = `${finalPath}.part`;
             await fs.promises.mkdir(path.dirname(finalPath), { recursive: true });
             const existing = await this.fileSize(partialPath);
             if (existing > file.bytes) {
                 throw new Error(`未完成文件大小异常，请删除模型后重新下载：${file.path}`);
             }
-            const response = await axios.get(file.url, {
+            const response = await axios.get(this.fileUrl(baseUrl, file), {
                 // Node adapter 下 timeout 是 socket 空闲超时而非总时长，慢速连接不会误断。
                 responseType: 'stream', signal, timeout: 60_000,
                 headers: existing > 0 ? { Range: `bytes=${existing}-` } : {},

@@ -4,6 +4,7 @@ import path from 'path';
 import { clearDB } from '@/backend/infrastructure/db/db';
 import { WindowState } from '@/common/types/Types';
 import { checkUpdate } from '@/backend/services/CheckUpdate';
+import { readSystemInfo } from '@/backend/utils/systemInfo';
 import { inject, injectable } from 'inversify';
 import Controller from '@/backend/controllers/Controller';
 import StrUtil from '@/common/utils/str-util';
@@ -44,11 +45,13 @@ export default class SystemController implements Controller {
 
     public async info() {
         const platform = process.platform;
+        const hardware = await readSystemInfo();
         return {
             isWindows: platform === 'win32',
             isMac: platform === 'darwin',
             isLinux: platform === 'linux',
             pathSeparator: path.sep,
+            ...hardware,
         };
     }
 
@@ -156,6 +159,14 @@ export default class SystemController implements Controller {
         return app.getVersion();
     }
 
+    public async getSystemConfig(key: string): Promise<string | null> {
+        return this.systemConfigService.getValue(key);
+    }
+
+    public async setSystemConfig(params: { key: string; value: string }): Promise<void> {
+        await this.systemConfigService.setValue(params.key, params.value);
+    }
+
     /**
      * 打开当前媒体库根目录。
      *
@@ -182,5 +193,7 @@ export default class SystemController implements Controller {
         registerRoute('system/check-update', (p) => this.checkUpdate(p));
         registerRoute('system/open-url', (p) => this.openUrl(p));
         registerRoute('system/app-version', () => this.appVersion());
+        registerRoute('system/config/get', (key) => this.getSystemConfig(key));
+        registerRoute('system/config/set', (p) => this.setSystemConfig(p));
     }
 }

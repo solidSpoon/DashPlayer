@@ -24,7 +24,7 @@
     --destructive-foreground: 60 9.1% 97.8%;
     --border: 20 5.9% 90%;
     --input: 20 5.9% 90%;
-    --ring: 20 14.3% 4.1%;
+    --ring: 20 5.9% 55%;
     --radius: 0.5rem;
     --sidebar-background: 0 0% 98%;
     --sidebar-foreground: 240 5.3% 26.1%;
@@ -211,3 +211,38 @@
 }
 
 
+
+
+@layer base {
+  /*
+   * Radix Select 会额外渲染一个隐藏的原生 <select>（内联 position: absolute）用于表单值同步。
+   * 它没有定位祖先时会以视口为包含块，把文档撑高，导致整页出现滚动条、滚动时整屏位移。
+   * 固定定位后不再参与文档滚动区域计算。
+   */
+  select[aria-hidden='true'] {
+    position: fixed !important;
+  }
+}
+
+/* 引导页下载步骤的点阵涟漪背景：只做透明度与缩放，避免大面积模糊。 */
+@keyframes dot-ripple {
+  0%, 100% {
+    opacity: 0.1;
+    transform: scale(0.9);
+  }
+  50% {
+    opacity: 0.42;
+    transform: scale(1.9);
+  }
+}
+
+.dot-ripple {
+  animation: dot-ripple 3.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dot-ripple {
+    animation: none;
+    opacity: 0.25;
+  }
+}
