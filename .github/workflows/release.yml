@@ -4,8 +4,15 @@ on:
   workflow_dispatch:
     inputs:
       # 只构建 whisper.cpp 运行时矩阵、跳过 app 构建：用于发版前干跑验证
-      # Vulkan/Metal 工具链。手动触发时运行时任务本身也跳过上传，不碰 Release 资产
+      # Vulkan/Metal 工具链。app 构建会 publish 到当前版本的已发布 Release，
+      # 所以只验运行时矩阵时必须能整体跳过它
       runtime_only:
+        type: boolean
+        required: false
+        default: false
+      # 只打包不上传（electron-forge make，而非 publish）：用于在分支上验证完整
+      # 打包链路（含运行内产物注入的 whisper 运行时），不碰 Release
+      package_only:
         type: boolean
         required: false
         default: false
@@ -24,15 +31,21 @@ on:
         type: boolean
         required: false
         default: false
+      # 同上：发版链路固定不传（false），只给手动干跑用
+      package_only:
+        type: boolean
+        required: false
+        default: false
   push:
     tags: ['v*']
 permissions:
   contents: write
 jobs:
-  # whisper.cpp 核显运行时先行构建并挂到 Release，供后续 publish 中的
-  # `yarn run download` 取用。矩阵 fail-fast: false：单个目标失败不阻塞其余目标，
-  # 也不阻塞其他平台的 app 构建；但缺了自家平台资产的平台会构建失败
-  # （download.mjs 在 CI 下不编译兜底、不静默跳过），避免发出一个默认识别引擎不可用的包
+  # whisper.cpp 核显运行时先行构建，作为本次运行的临时产物（artifact）交给 app 构建，
+  # 由 download.mjs 从 DASHPLAYER_WHISPER_RUNTIME_DIR 就地安装——不再“先挂 Release 再下载”。
+  # 矩阵 fail-fast: false：单个目标失败不阻塞其余目标，也不阻塞其他平台的 app 构建；
+  # 但缺了自家平台运行时的平台会构建失败（download.mjs 在 CI 下不编译兜底、不静默跳过），
+  # 避免发出一个默认识别引擎不可用的包。挂到 Release 由末尾的 publish-runtime 统一做
   whisper-cpp-runtime:
     strategy:
       fail-fast: false
@@ -104,27 +117,20 @@ jobs:
             cp build/bin/parakeet-cli stage/parakeet-cli
             (cd stage && tar czf "../whisper-cpp-${{ matrix.name }}.tar.gz" parakeet-cli)
           fi
-      - name: Upload to release
-        # workflow_call 链路用传入的 release_tag；tag push 链路用当前 ref。
-        # 手动触发（无 tag、无发版）时仅验证构建，不上传
-        if: inputs.release_tag != '' || github.ref_type == 'tag'
-        env:
-          GH_TOKEN: ${{ github.token }}
-        shell: bash
-        run: |
-          TAG="${{ inputs.release_tag || github.ref_name }}"
-          if [ "${{ runner.os }}" = "Windows" ]; then
-            ASSET="whisper-cpp-${{ matrix.name }}.zip"
-          else
-            ASSET="whisper-cpp-${{ matrix.name }}.tar.gz"
-          fi
-          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1 || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes
-          gh release upload "$TAG" "$ASSET" --repo "$GITHUB_REPOSITORY" --clobber
+      - name: Upload runtime artifact
+        # 只留在本次运行内：app 构建要的就是同一份二进制，直接递过去，
+        # 既不用等 Release 先存在，也不会在构建失败时留下“有运行时、没安装包”的半成品 Release
+        uses: actions/upload-artifact@v7
+        with:
+          name: whisper-runtime-${{ matrix.name }}
+          path: whisper-cpp-${{ matrix.name }}.*
+          if-no-files-found: error
+          retention-days: 7
   build:
-    # needs 只为保证运行时资产先上传再被 yarn run download 拉取；
-    # 配合 !cancelled() 让运行时任务失败时其余平台照常构建；
-    # runtime_only 给手动干跑用：app 构建会 electron-forge publish 到当前版本的已发布
-    # Release，所以只验运行时矩阵时必须能整体跳过它
+    # needs 只为保证运行内产物先产出再被下载（download.mjs 从
+    # DASHPLAYER_WHISPER_RUNTIME_DIR 就地安装，不再依赖 Release 资产）；
+    # 配合 !cancelled() 让运行时任务失败时其余平台照常构建（缺自家平台运行时的那一平台
+    # 会在安装步骤显式失败）；runtime_only 给手动干跑用，理由同上
     needs: whisper-cpp-runtime
     if: ${{ !cancelled() && !inputs.runtime_only }}
     strategy:
@@ -164,17 +170,54 @@ jobs:
         if: matrix.os.name == 'windows'
         shell: cmd
         run: call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64 && yarn install --frozen-lockfile
+      - name: Download whisper runtime artifacts
+        # 某个平台运行时没构建出来时不在这里报错：下载不到与产物缺失都会落到
+        # download.mjs 的安装步骤，由它在 CI 下带原因显式失败
+        continue-on-error: true
+        uses: actions/download-artifact@v8
+        with:
+          pattern: whisper-runtime-*
+          path: .ci-runtime
+          merge-multiple: true
       - name: Publish app
         if: matrix.os.name != 'windows'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # 主进程 bundle 已大过 V8 默认 ~2GB 堆上限，构建时 OOM（v6.7.0 arm64 dmg 缺失的直接原因）
           NODE_OPTIONS: --max-old-space-size=4096
-        run: npm run publish
+          # 运行时由本次运行的产物提供，download.mjs 直接就地安装
+          DASHPLAYER_WHISPER_RUNTIME_DIR: ${{ github.workspace }}/.ci-runtime
+        # package_only：只跑 make 验证打包，不做 GitHub 发布
+        run: npm run ${{ inputs.package_only && 'make' || 'publish' }}
       - name: Publish app with Visual Studio (Windows only)
         if: matrix.os.name == 'windows'
         shell: cmd
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NODE_OPTIONS: --max-old-space-size=4096
-        run: call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64 && npm run publish
+          DASHPLAYER_WHISPER_RUNTIME_DIR: ${{ github.workspace }}\.ci-runtime
+        run: call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64 && npm run ${{ inputs.package_only && 'make' || 'publish' }}
+
+  # 运行内产物用完后再挂到 Release：本地开发 `yarn run download` 从 Release 取资产，
+  # 而这里等 app 构建全部成功才上传，避免出现“Release 上只有运行时、没有安装包”的半成品
+  publish-runtime:
+    needs: [whisper-cpp-runtime, build]
+    if: ${{ success() && !inputs.runtime_only && !inputs.package_only && (inputs.release_tag != '' || github.ref_type == 'tag') }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download runtime artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: whisper-runtime-*
+          path: runtime
+          merge-multiple: true
+      - name: Upload to release
+        # workflow_call 链路用传入的 release_tag；tag push 链路用当前 ref
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          TAG="${{ inputs.release_tag || github.ref_name }}"
+          ls -l runtime
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1 || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes
+          gh release upload "$TAG" runtime/* --repo "$GITHUB_REPOSITORY" --clobber
