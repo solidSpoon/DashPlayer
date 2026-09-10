@@ -55,14 +55,30 @@ jobs:
           ref: ${{ env.WHISPER_CPP_REF }}
       - name: Install Vulkan toolchain (Linux only)
         if: matrix.gpu == 'vulkan' && runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libvulkan-dev glslang-tools
+        run: |
+          # ggml 的 ggml-vulkan 要的是 glslc（find_package(Vulkan COMPONENTS glslc REQUIRED)）
+          # 与 SPIRV-Headers 的 cmake config，Ubuntu 自带的 glslang-tools 只提供
+          # glslangValidator，装完仍然找不到 glslc；与 llama.cpp 一致，
+          # 从 LunarG 的 jammy 源装完整 SDK（源码里两处硬依赖都在里面）
+          sudo mkdir -p /etc/apt/keyrings
+          wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/keyrings/lunarg.asc > /dev/null
+          echo "deb [signed-by=/etc/apt/keyrings/lunarg.asc] https://packages.lunarg.com/vulkan jammy main" | sudo tee /etc/apt/sources.list.d/lunarg-vulkan-jammy.list > /dev/null
+          sudo apt-get update -y
+          sudo apt-get install -y vulkan-sdk
       - name: Install Vulkan SDK (Windows only)
         if: matrix.gpu == 'vulkan' && runner.os == 'Windows'
         shell: pwsh
+        env:
+          # 必须用 1.4.x：1.3.290 的 SDK 不带 SPIRV-Headers 的 cmake config，
+          # 而 ggml 的 ggml-vulkan 是 find_package(SPIRV-Headers CONFIG REQUIRED)
+          # （实测 1.3.290 报 Could not find a package configuration file
+          # provided by "SPIRV-Headers"）；与 llama.cpp 的版本保持一致
+          VULKAN_VERSION: 1.4.357.0
         run: |
-          curl.exe -L -o "$env:RUNNER_TEMP\VulkanSDK-Installer.exe" "https://sdk.lunarg.com/sdk/download/1.3.290.0/windows/VulkanSDK-1.3.290.0-Installer.exe"
+          curl.exe -L -o "$env:RUNNER_TEMP\VulkanSDK-Installer.exe" "https://sdk.lunarg.com/sdk/download/$env:VULKAN_VERSION/windows/vulkansdk-windows-X64-$env:VULKAN_VERSION.exe"
           & "$env:RUNNER_TEMP\VulkanSDK-Installer.exe" --accept-licenses --default-answer --confirm-command install
-          Add-Content $env:GITHUB_ENV "VULKAN_SDK=C:\VulkanSDK\1.3.290.0"
+          Add-Content $env:GITHUB_ENV "VULKAN_SDK=C:\VulkanSDK\$env:VULKAN_VERSION"
+          Add-Content $env:GITHUB_PATH "C:\VulkanSDK\$env:VULKAN_VERSION\bin"
       - name: Configure (Vulkan)
         if: matrix.gpu == 'vulkan'
         env:
