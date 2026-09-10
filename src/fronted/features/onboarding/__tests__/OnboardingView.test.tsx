@@ -12,7 +12,6 @@ vi.mock('@/fronted/features/onboarding/onboardingApi', () => ({
 
 vi.mock('@/fronted/features/settings/settingsApi', () => ({
     settingsApi: {
-        getTranscriptionEngine: vi.fn(),
         getStorageStatus: vi.fn(),
         selectStorageFolder: vi.fn(),
         saveStorage: vi.fn(),
@@ -20,18 +19,16 @@ vi.mock('@/fronted/features/settings/settingsApi', () => ({
         openFolderForFile: vi.fn(),
         getSherpaTtsModelStatus: vi.fn(),
         getWhisperCppModelStatus: vi.fn(),
-        getParakeetModelStatus: vi.fn(),
         downloadSherpaTtsModel: vi.fn(),
         downloadWhisperCppModel: vi.fn(),
-        downloadParakeetModel: vi.fn(),
         cancelSherpaTtsModelDownload: vi.fn(),
         cancelWhisperCppModelDownload: vi.fn(),
-        cancelParakeetModelDownload: vi.fn(),
         getLocalMtStatus: vi.fn(),
         downloadLocalMt: vi.fn(),
         cancelLocalMtDownload: vi.fn(),
         getEngineSelection: vi.fn(),
         saveEngineSelection: vi.fn(),
+        saveTranscriptionEngine: vi.fn(),
     },
 }));
 
@@ -57,6 +54,9 @@ const NOT_READY = {
     missingFiles: [],
 };
 
+/** 已下载就绪的模型状态。 */
+const READY = { ...NOT_READY, ready: true };
+
 /** 未下载完成的轻量翻译模型状态。 */
 function localMtStatus(ready: boolean): LocalMtStatus {
     return {
@@ -74,7 +74,7 @@ describe('OnboardingView Component', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         vi.mocked(markOnboardingCompleted).mockResolvedValue();
-        vi.mocked(settingsApi.getTranscriptionEngine).mockResolvedValue('whisper-cpp');
+        vi.mocked(settingsApi.saveTranscriptionEngine).mockResolvedValue();
         vi.mocked(settingsApi.getStorageStatus).mockResolvedValue({
             configuredPath: '',
             resolvedPath: '/Users/test/DashPlayer',
@@ -88,7 +88,6 @@ describe('OnboardingView Component', () => {
         });
         vi.mocked(settingsApi.getSherpaTtsModelStatus).mockResolvedValue(NOT_READY);
         vi.mocked(settingsApi.getWhisperCppModelStatus).mockResolvedValue(NOT_READY);
-        vi.mocked(settingsApi.getParakeetModelStatus).mockResolvedValue(NOT_READY);
         vi.mocked(settingsApi.getLocalMtStatus).mockResolvedValue(localMtStatus(false));
         vi.mocked(settingsApi.getEngineSelection).mockResolvedValue({
             openai: {
@@ -123,11 +122,17 @@ describe('OnboardingView Component', () => {
         });
     });
 
-    it('下载会依次处理三项资源，全部完成后保存配置并进入完成页', async () => {
-        // 模拟真实时序：下载完成后本地轻量模型状态变为就绪
+    it('下载会依次处理三项资源，全部完成后保存配置并切到核显引擎', async () => {
+        // 模拟真实时序：下载完成后对应模型状态变为就绪
         let mtReady = false;
+        let whisperReady = false;
         vi.mocked(settingsApi.getLocalMtStatus).mockImplementation(async () => localMtStatus(mtReady));
         vi.mocked(settingsApi.downloadLocalMt).mockImplementation(async () => { mtReady = true; });
+        vi.mocked(settingsApi.getWhisperCppModelStatus).mockImplementation(async () => (whisperReady ? READY : NOT_READY));
+        vi.mocked(settingsApi.downloadWhisperCppModel).mockImplementation(async () => {
+            whisperReady = true;
+            return { success: true, message: '' };
+        });
 
         render(<OnboardingView />);
 
@@ -146,6 +151,8 @@ describe('OnboardingView Component', () => {
                     }),
                 })
             );
+            // 核显模型已就绪，识别引擎切到 whisper.cpp（GPU 优先）
+            expect(settingsApi.saveTranscriptionEngine).toHaveBeenCalledWith('whisper-cpp');
             expect(markOnboardingCompleted).toHaveBeenCalledWith(CURRENT_ONBOARDING_VERSION);
         });
         // 进入完成页
@@ -167,7 +174,7 @@ describe('OnboardingView Component', () => {
         expect(markOnboardingCompleted).not.toHaveBeenCalled();
     });
 
-    it('跳过下载时仍然保存保守配置并进入完成页', async () => {
+    it('跳过下载时保存保守配置，不切换识别引擎', async () => {
         render(<OnboardingView />);
         fireEvent.click(screen.getByText('nextStep'));
         fireEvent.click(screen.getByText('steps.download.skip'));
@@ -182,6 +189,8 @@ describe('OnboardingView Component', () => {
                     }),
                 })
             );
+            // 核显模型未就绪，保留当前引擎（老用户为 sherpa-onnx），不存指向缺失模型的引擎
+            expect(settingsApi.saveTranscriptionEngine).not.toHaveBeenCalled();
             expect(markOnboardingCompleted).toHaveBeenCalledWith(CURRENT_ONBOARDING_VERSION);
         });
     });
@@ -215,6 +224,8 @@ describe('OnboardingView Component', () => {
         fireEvent.click(await screen.findByText('steps.download.finish'));
 
         expect(await screen.findByText('startUsing')).toBeDefined();
+        // 资源全部就绪时完成引导，识别引擎随之切到核显引擎
+        expect(settingsApi.saveTranscriptionEngine).toHaveBeenCalledWith('whisper-cpp');
         fireEvent.click(screen.getByText('startUsing'));
         expect(onCompleted).toHaveBeenCalled();
     });

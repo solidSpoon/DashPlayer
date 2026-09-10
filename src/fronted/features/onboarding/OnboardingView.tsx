@@ -23,7 +23,6 @@ import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import { markOnboardingCompleted } from '@/fronted/features/onboarding/onboardingApi';
 import type { ModelInstallationStatusVO } from '@/common/types/vo/model-installation-vo';
 import type { ModelDownloadPhase } from '@/common/contracts/model-download-phase';
-import type { TranscriptionEngine } from '@/common/contracts/transcription-engine';
 import type { LocalMtStatus } from '@/common/contracts/local-mt';
 import toast from 'react-hot-toast';
 
@@ -197,8 +196,7 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
     const [storageAvailable, setStorageAvailable] = useState(true);
     const [choosingStorage, setChoosingStorage] = useState(false);
 
-    // 资源包内三项资源的状态
-    const [transcriptionEngine, setTranscriptionEngine] = useState<TranscriptionEngine>('whisper-cpp');
+    // 资源包内三项资源的状态（识别一项固定检测 whisper.cpp 核显引擎，GPU 优先）
     const [ttsStatus, setTtsStatus] = useState<ModelInstallationStatusVO | null>(null);
     const [transcriptionStatus, setTranscriptionStatus] = useState<ModelInstallationStatusVO | null>(null);
     const [localMtStatus, setLocalMtStatus] = useState<LocalMtStatus | null>(null);
@@ -222,15 +220,10 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
     /** 拉取存储位置与资源包内三项资源的状态。 */
     const refreshAllStatuses = React.useCallback(async () => {
         try {
-            const engine = await settingsApi.getTranscriptionEngine().catch(() => 'whisper-cpp' as const);
-            setTranscriptionEngine(engine);
             const [storageStatus, tts, transcription, localMt] = await Promise.all([
                 settingsApi.getStorageStatus().catch(() => null),
                 settingsApi.getSherpaTtsModelStatus().catch(() => null),
-                (engine === 'whisper-cpp'
-                    ? settingsApi.getWhisperCppModelStatus()
-                    : settingsApi.getParakeetModelStatus()
-                ).catch(() => null),
+                settingsApi.getWhisperCppModelStatus().catch(() => null),
                 settingsApi.getLocalMtStatus().catch(() => null),
             ]);
             if (storageStatus) {
@@ -314,12 +307,10 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
 
         window.addEventListener('sherpa-tts-model-download-progress', handleArchiveProgress);
         window.addEventListener('whisper-cpp-model-download-progress', handleArchiveProgress);
-        window.addEventListener('parakeet-model-download-progress', handleArchiveProgress);
         window.addEventListener('local-mt-download-progress', handleLocalMtProgress);
         return () => {
             window.removeEventListener('sherpa-tts-model-download-progress', handleArchiveProgress);
             window.removeEventListener('whisper-cpp-model-download-progress', handleArchiveProgress);
-            window.removeEventListener('parakeet-model-download-progress', handleArchiveProgress);
             window.removeEventListener('local-mt-download-progress', handleLocalMtProgress);
         };
     }, [refreshAllStatuses, trackProgress]);
@@ -382,25 +373,15 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
             cancel: async () => { await settingsApi.cancelSherpaTtsModelDownload(); },
         },
         {
+            // 字幕识别固定走 whisper.cpp 核显引擎（GPU 优先）；老用户的 sherpa-onnx
+            // 只是升级初期的过渡，完成后设置页仍可手动切回。
             key: 'transcription',
             title: t('steps.models.transcriptionTitle'),
             ready: transcriptionStatus?.ready ?? false,
             urls: transcriptionStatus?.downloadUrls ?? null,
             targetPath: transcriptionStatus?.archivePath ?? null,
-            run: async () => {
-                if (transcriptionEngine === 'whisper-cpp') {
-                    await settingsApi.downloadWhisperCppModel();
-                } else {
-                    await settingsApi.downloadParakeetModel();
-                }
-            },
-            cancel: async () => {
-                if (transcriptionEngine === 'whisper-cpp') {
-                    await settingsApi.cancelWhisperCppModelDownload();
-                } else {
-                    await settingsApi.cancelParakeetModelDownload();
-                }
-            },
+            run: async () => { await settingsApi.downloadWhisperCppModel(); },
+            cancel: async () => { await settingsApi.cancelWhisperCppModelDownload(); },
         },
         {
             key: 'mt',
@@ -439,15 +420,18 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
     /**
      * 保存引导结果并进入完成页。
      *
+     * 识别引擎 GPU 优先：whisper.cpp 模型就绪时切到核显引擎；未就绪时保留当前
+     * 引擎（走过老版本迁移的用户为 sherpa-onnx CPU），避免存下指向缺失模型的引擎。
      * 字幕翻译只在轻量模型确实就绪时才指向它，否则关闭：避免存下一个指向未下载模型的引擎。
      * 词典固定走内置词库（引擎关闭），超出词库的查询留到设置页再配。
      */
     const finishOnboarding = async () => {
         setFinishing(true);
         try {
-            const [current, localMt] = await Promise.all([
+            const [current, localMt, whisperCpp] = await Promise.all([
                 settingsApi.getEngineSelection(),
                 settingsApi.getLocalMtStatus(),
+                settingsApi.getWhisperCppModelStatus(),
             ]);
             await settingsApi.saveEngineSelection({
                 ...current,
@@ -457,6 +441,9 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
                     dictionaryEngine: 'none',
                 },
             });
+            if (whisperCpp.ready) {
+                await settingsApi.saveTranscriptionEngine('whisper-cpp');
+            }
             await markOnboardingCompleted(CURRENT_ONBOARDING_VERSION);
             setScreen('done');
         } catch (error) {
