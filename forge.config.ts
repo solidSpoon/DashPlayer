@@ -111,7 +111,10 @@ const config: ForgeConfig = {
             return true;
         },
         asar: {
-            unpack: '**/*.{wasm,node}',
+            // 原生库必须解到 app.asar.unpacked：dyld/ld.so 读不了 asar 内部，
+            // 例如 onnxruntime 的 binding.node 会按 @rpath（自身目录）找
+            // libonnxruntime.*，只解包 .node 会导致 dlopen 报 Library not loaded。
+            unpack: '**/*.{wasm,node,dylib,so,so.*}',
         },
         icon: './assets/icons/icon',
         extraResource: ['./drizzle', './lib', './scripts', './resources'],
