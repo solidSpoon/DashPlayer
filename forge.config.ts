@@ -90,10 +90,20 @@ const config: ForgeConfig = {
                 '/node_modules/tar',
                 '/node_modules/type-fest',
                 '/node_modules/undici-types',
-                '/node_modules/yallist',            ];
+                '/node_modules/yallist',
+            ];
 
+            // ignore 返回 true 时 electron-packager 会连整棵子树一起跳过，
+            // 所以除了白名单路径自身，还必须放行它的所有祖先目录：
+            // 只写 `/node_modules/@huggingface/transformers` 而漏掉父目录
+            // `/node_modules/@huggingface` 时，scoped 依赖会整体丢包
+            // （打包版启动即 Cannot find module '@huggingface/transformers'）。
             for (const prefix of keptNodeModulePrefixes) {
-                if (file === prefix || file.startsWith(`${prefix}/`)) {
+                // 兼容 `/node_modules/@img/` 这类带结尾斜杠的写法
+                const normalized = prefix.replace(/\/+$/, '');
+                if (file === normalized
+                    || file.startsWith(`${normalized}/`)
+                    || normalized.startsWith(`${file}/`)) {
                     return false;
                 }
             }
