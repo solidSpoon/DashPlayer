@@ -100,6 +100,13 @@ if (!Element.prototype.scrollIntoView) {
   Element.prototype.scrollIntoView = () => undefined
 }
 
+// jsdom 未实现 requestIdleCallback（首页列表用它做延迟加载），补一个立即执行的回调。
+if (!globalThis.requestIdleCallback) {
+  globalThis.requestIdleCallback = ((callback: IdleRequestCallback) =>
+    window.setTimeout(() => callback({ didTimeout: false, timeRemaining: () => 50 }), 0)) as typeof globalThis.requestIdleCallback
+  globalThis.cancelIdleCallback = ((handle: number) => window.clearTimeout(handle)) as typeof globalThis.cancelIdleCallback
+}
+
 // jsdom 未实现 canvas 2D 上下文（getContext 返回 null 并抛 Not implemented），
 // 引导页完成页的撒花动画（canvas-confetti）在卸载时会因空上下文报错。
 // 这里补一个只接受调用、不做真实绘制的上下文替身。
