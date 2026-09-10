@@ -18,8 +18,9 @@ permissions:
   contents: write
 jobs:
   # whisper.cpp 核显运行时先行构建并挂到 Release，供后续 publish 中的
-  # `yarn run download` 取用；单个目标失败不阻塞其余目标与 app 构建，
-  # 缺失资产在下载时跳过并在识别时显式报错
+  # `yarn run download` 取用。矩阵 fail-fast: false：单个目标失败不阻塞其余目标，
+  # 也不阻塞其他平台的 app 构建；但缺了自家平台资产的平台会构建失败
+  # （download.mjs 在 CI 下不编译兜底、不静默跳过），避免发出一个默认识别引擎不可用的包
   whisper-cpp-runtime:
     strategy:
       fail-fast: false
@@ -59,6 +60,8 @@ jobs:
       - name: Build
         run: cmake --build build --config Release --target parakeet-cli -j 4
       - name: Package
+        # 资产名契约：scripts/download.mjs 的 whisperRuntimeAssetName() 按同一套
+        # whisper-cpp-<platform>-<arch>.{tar.gz,zip} 规则拼下载地址，改名必须两边同步
         shell: bash
         run: |
           mkdir -p stage
@@ -86,6 +89,8 @@ jobs:
           gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1 || gh release create "$TAG" --repo "$GITHUB_REPOSITORY" --title "$TAG" --generate-notes
           gh release upload "$TAG" "$ASSET" --repo "$GITHUB_REPOSITORY" --clobber
   build:
+    # needs 只为保证运行时资产先上传再被 yarn run download 拉取；
+    # 配合 !cancelled() 让运行时任务失败时其余平台照常构建
     needs: whisper-cpp-runtime
     if: ${{ !cancelled() }}
     strategy:
