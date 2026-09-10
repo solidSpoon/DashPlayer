@@ -13,6 +13,79 @@ import packageJson from './package.json';
 import path from 'node:path';
 import fs from 'node:fs/promises';
 
+/**
+ * 判断路径是否存在（fs/promises 没有 exists）。
+ *
+ * @param target 待检查的绝对路径。
+ * @returns 路径存在时返回 true。
+ */
+const pathExists = async (target: string): Promise<boolean> => {
+    try {
+        await fs.access(target);
+        return true;
+    } catch {
+        return false;
+    }
+};
+
+/**
+ * 打包时裁掉非目标平台/架构的原生库变体。
+ *
+ * 背景：onnxruntime-node 会把 darwin/linux/win32 × x64/arm64 六套预编译库
+ * （约 208MB）一起装进 node_modules，其中 5/6 对当前产物毫无用处；这些异架构
+ * ELF 还会让 Linux RPM 打包阶段的 brp-strip 报 "Unable to recognise the
+ * format" 而整包失败。sharp 的平台包、better-sqlite3 的预编译目录同理。
+ *
+ * @param buildPath 打包暂存目录（应用根目录）。
+ * @param platform 目标平台（darwin/linux/win32/mas）。
+ * @param arch 目标架构（x64/arm64/ia32）。
+ */
+const pruneForeignNativeVariants = async (buildPath: string, platform: string, arch: string): Promise<void> => {
+    // mac App Store 构建的原生库目录名与 darwin 一致
+    const nativePlatform = platform === 'mas' ? 'darwin' : platform;
+
+    const drop = async (target: string): Promise<void> => {
+        if (!await pathExists(target)) return;
+        await fs.rm(target, { recursive: true, force: true });
+        console.log(`[prune-native] 移除 ${path.relative(buildPath, target)}`);
+    };
+
+    // onnxruntime-node：bin/napi-v3/<platform>/<arch> 只保留目标组合
+    const variantsRoot = path.join(buildPath, 'node_modules/onnxruntime-node/bin/napi-v3');
+    if (await pathExists(variantsRoot)) {
+        for (const variantPlatform of await fs.readdir(variantsRoot)) {
+            const platformDir = path.join(variantsRoot, variantPlatform);
+            if (variantPlatform !== nativePlatform) {
+                await drop(platformDir);
+                continue;
+            }
+            for (const variantArch of await fs.readdir(platformDir)) {
+                if (variantArch !== arch) {
+                    await drop(path.join(platformDir, variantArch));
+                }
+            }
+        }
+    }
+
+    // sharp：@img/sharp-<platform>-<arch>、@img/sharp-libvips-<platform>-<arch>
+    const imgRoot = path.join(buildPath, 'node_modules/@img');
+    if (await pathExists(imgRoot)) {
+        for (const pkg of await fs.readdir(imgRoot)) {
+            if (!pkg.startsWith('sharp-') || pkg.includes(`-${nativePlatform}-${arch}`)) continue;
+            await drop(path.join(imgRoot, pkg));
+        }
+    }
+
+    // better-sqlite3：bin/<platform>-<arch>-<abi> 只保留目标组合
+    const sqliteBinRoot = path.join(buildPath, 'node_modules/better-sqlite3/bin');
+    if (await pathExists(sqliteBinRoot)) {
+        for (const variant of await fs.readdir(sqliteBinRoot)) {
+            if (variant.startsWith(`${nativePlatform}-${arch}-`)) continue;
+            await drop(path.join(sqliteBinRoot, variant));
+        }
+    }
+};
+
 
 const config: ForgeConfig = {
     packagerConfig: {
@@ -208,6 +281,10 @@ const config: ForgeConfig = {
         },
     ],
     hooks: {
+        // 在 asar 打包前裁掉异平台/异架构原生库（同时避免 Linux RPM 的 brp-strip 失败）
+        packageAfterCopy: async (_forgeConfig, buildPath, _electronVersion, platform, arch) => {
+            await pruneForeignNativeVariants(buildPath, platform, arch);
+        },
         postMake: async (_forgeConfig, makeResults) => {
             const version = packageJson.version;
             for (const result of makeResults) {
