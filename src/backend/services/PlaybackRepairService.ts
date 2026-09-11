@@ -323,6 +323,11 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
             return { groupKey: '', addedFiles: [] };
         }
 
+        // 入队时就拒绝失效路径，避免名单进入无法探测且会持续轮询的坏记录。
+        for (const filePath of filePaths) {
+            await this.assertRepairableSource(filePath);
+        }
+
         const groupKey = buildGroupKey(request.source, request.path, filePaths);
         const existing = new Set(
             (await this.repairGroupRepository.listMemberships())
@@ -593,6 +598,9 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
      * @param inputFile 待修复媒体绝对路径。
      */
     private async assertRepairableSource(inputFile: string): Promise<void> {
+        if (!MediaUtil.isMedia(inputFile)) {
+            throw new Error(`不支持修复的媒体格式：${inputFile}`);
+        }
         if (!await this.fileSystemGateway.fileExists(inputFile)) {
             throw new Error(`待修复的媒体文件不存在：${inputFile}`);
         }

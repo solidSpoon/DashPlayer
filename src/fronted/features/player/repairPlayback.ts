@@ -84,15 +84,33 @@ function parseProgress(result: string | null): number | null {
  */
 function watchTask(taskId: number, onUpdate: (task: DpTask) => void): Promise<DpTask> {
     return new Promise((resolve) => {
-        void registerDpTask(async () => taskId, {
-            onUpdated: (task) => onUpdate(task),
-            onFinish: (task) => resolve(task),
+        let settled = false;
+        const finish = (task: DpTask): void => {
+            if (!settled) {
+                settled = true;
+                resolve(task);
+            }
+        };
+        void (async () => {
+            await registerDpTask(async () => taskId, {
+                onUpdated: (task) => onUpdate(task),
+                onFinish: finish,
+            });
+            // 注册完成后再次检查，覆盖任务已在订阅建立前结束的竞态窗口。
+            const current = useDpTaskCenter.getState().tasks.get(taskId);
+            if (current && current !== 'init' && isFinalTask(current)) {
+                finish(current);
+            }
+        })().catch(() => {
+            finish({
+                id: taskId,
+                status: DpTaskState.FAILED,
+                progress: '读取修复任务状态失败',
+                result: null,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+            });
         });
-        // 订阅建立前任务可能已经结束，这里补一次当前状态判断，避免永久等待。
-        const current = useDpTaskCenter.getState().tasks.get(taskId);
-        if (current && current !== 'init' && isFinalTask(current)) {
-            resolve(current);
-        }
     });
 }
 
