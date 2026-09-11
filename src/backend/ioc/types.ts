@@ -52,6 +52,7 @@ const TYPES = {
     WordsRepository: Symbol('WordsRepository'),
     DpTaskRepository: Symbol('DpTaskRepository'),
     TranscriptionTaskRepository: Symbol('TranscriptionTaskRepository'),
+    RepairTaskRepository: Symbol('RepairTaskRepository'),
     VideoLearningClipRepository: Symbol('VideoLearningClipRepository'),
     VideoLearningClipWordRepository: Symbol('VideoLearningClipWordRepository'),
     WatchHistoryRepository: Symbol('WatchHistoryRepository'),

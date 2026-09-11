@@ -13,10 +13,7 @@ import {
     ContextMenuTrigger
 } from '@/fronted/components/ui/context-menu';
 import { Button } from '@/fronted/components/ui/button';
-import useRepair from '../repairStore';
-import { useShallow } from 'zustand/react/shallow';
-import { emptyFunc } from '@/common/utils/Util';
-import { RepairTaskResult } from '@/common/contracts/playback-repair';
+import { RepairTask, RepairTaskResult, RepairTaskState } from '@/common/contracts/playback-repair';
 import { DpTaskState } from '@/common/contracts/dp-task';
 import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
 import StrUtil from '@/common/utils/str-util';
@@ -24,14 +21,20 @@ import UrlUtil from '@/common/utils/UrlUtil';
 import { repairApi } from '../repairApi';
 import i18n from '@/fronted/i18n';
 
-const RepairItem = ({ file, onSelected, className, buttonVariant, onDeleted }: {
-    file: string,
+/**
+ * 展示一条修复记录：缩略图、时长、状态与操作按钮。
+ *
+ * 状态读记录表；正在修复时用后台任务的实时进度渲染进度条与百分比。
+ */
+const RepairItem = ({ task, className, buttonVariant, onRepair, onRemove }: {
+    task: RepairTask,
     className?: string,
-    onSelected: () => void;
     buttonVariant?: 'default' | 'small';
-    onDeleted?: () => void;
+    onRepair: () => void;
+    onRemove: () => void;
 }) => {
     const { t } = useI18nTranslation('pages');
+    const file = task.file;
     const { data: url } = useSWR(file ?
             [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, file, 5] : null,
         async ([, path, time]) => {
@@ -41,36 +44,44 @@ const RepairItem = ({ file, onSelected, className, buttonVariant, onDeleted }: {
     const { data: videoLength } = useSWR(file ? ['duration', file] : null, async ([, f]) => {
         return await repairApi.getDuration(f);
     }, { revalidateOnFocus: false });
-    const {
-        taskId,
-        repair
-    } = useRepair(useShallow(s => ({
-        taskId: s.tasks.get(file),
-        repair: s.repair
-    })));
-    const { task: dpTask } = useDpTaskViewer(taskId);
+    const { task: dpTask } = useDpTaskViewer(task.taskId);
     const resultJson = dpTask?.result;
     const progress = StrUtil.isNotBlank(resultJson) ? JSON.parse(resultJson) : {
         progress: 0,
         path: file
     } as RepairTaskResult;
 
+    const isRunning = task.status === RepairTaskState.IN_PROGRESS
+        || dpTask?.status === DpTaskState.IN_PROGRESS;
 
-    const isRunning = dpTask?.status === DpTaskState.IN_PROGRESS;
+    /**
+     * 生成状态文案：完成态用诊断原因区分「已修复」与「本来就无需修复」。
+     *
+     * @returns 状态文案。
+     */
+    const statusText = (): string => {
+        switch (task.status) {
+            case RepairTaskState.IN_PROGRESS:
+                return t('playbackRepair.status.inProgress');
+            case RepairTaskState.DONE:
+                return task.reason === 'playable'
+                    ? t('playbackRepair.status.playable')
+                    : t('playbackRepair.status.done');
+            case RepairTaskState.CANCELLED:
+                return t('playbackRepair.status.cancelled');
+            case RepairTaskState.FAILED:
+                return t('playbackRepair.status.failed');
+            case RepairTaskState.DISCARDED:
+                return t('playbackRepair.status.discarded');
+            default:
+                return t('playbackRepair.status.init');
+        }
+    };
 
     return (
         <ContextMenu>
             <ContextMenuTrigger asChild>
                 <div
-                    onClick={onSelected}
-                    role="button"
-                    tabIndex={0}
-                    onKeyDown={(e) => {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            onSelected();
-                        }
-                    }}
                     className={cn(
                         'group flex gap-4 p-3.5 relative rounded-xl overflow-hidden transition-all text-foreground select-none',
                         className
@@ -100,29 +111,24 @@ const RepairItem = ({ file, onSelected, className, buttonVariant, onDeleted }: {
                             <span className="text-xs font-medium text-foreground line-clamp-2 break-all leading-snug" title={file}>
                                 {file.split(/[/\\]/).pop() || file}
                             </span>
-                            <span className="text-[11px] text-muted-foreground truncate" title={file}>
-                                {file}
+                            <span className="text-[11px] text-muted-foreground truncate" title={task.error ?? file}>
+                                {task.error ?? file}
                             </span>
                         </div>
 
                         <div className="w-full flex items-center justify-between mt-2 pt-1">
-                            {/* 进度/状态简述 */}
-                            <div className="text-[11px] font-mono text-muted-foreground">
-                                {isRunning && progress.progress !== undefined ? `${Math.round(progress.progress)}%` : ''}
+                            {/* 状态与进度 */}
+                            <div className="text-[11px] font-mono text-muted-foreground truncate" title={statusText()}>
+                                {isRunning && progress.progress !== undefined
+                                    ? `${statusText()} ${Math.round(progress.progress)}%`
+                                    : statusText()}
                             </div>
 
                             <div className="flex items-center gap-1.5">
                                 <Button
-                                    onClick={async (e) => {
+                                    onClick={(e) => {
                                         e.stopPropagation();
-                                        if (isRunning) {
-                                            if (taskId === undefined) {
-                                                throw new Error(`转换任务缺少任务编号：${file}`);
-                                            }
-                                            await repairApi.cancelTask(taskId);
-                                        } else {
-                                            onDeleted?.();
-                                        }
+                                        onRemove();
                                     }}
                                     className={cn(
                                         buttonVariant === 'small' ? 'px-2 py-0 text-xs h-6.5' : 'h-7 px-2.5 text-xs'
@@ -135,7 +141,7 @@ const RepairItem = ({ file, onSelected, className, buttonVariant, onDeleted }: {
                                 <Button
                                     onClick={(e) => {
                                         e.stopPropagation();
-                                        repair(file);
+                                        onRepair();
                                     }}
                                     disabled={isRunning}
                                     className={cn(
@@ -170,13 +176,6 @@ const RepairItem = ({ file, onSelected, className, buttonVariant, onDeleted }: {
             </ContextMenuContent>
         </ContextMenu>
     );
-
-
-};
-RepairItem.defaultProps = {
-    buttonVariant: 'default',
-    className: '',
-    onDeleted: emptyFunc
 };
 
 export default RepairItem;

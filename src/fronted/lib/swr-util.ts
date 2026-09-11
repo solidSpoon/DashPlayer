@@ -11,6 +11,7 @@ export const SWR_KEY = {
     SPLIT_VIDEO_THUMBNAIL: 'SPLIT_VIDEO_THUMBNAIL_SWR',
     WINDOW_SIZE: 'WINDOW_SIZE_SWR',
     TRANSCRIPTION_TASKS: 'TRANSCRIPTION_TASKS_SWR',
+    REPAIR_TASKS: 'REPAIR_TASKS_SWR',
 }
 
 export const swrMutate = async (swrKey: string) => {

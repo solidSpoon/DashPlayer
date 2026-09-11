@@ -360,7 +360,7 @@ async function verifyOutput(diagnosis: PlaybackRepairDiagnosis): Promise<boolean
     }
 
     try {
-        await repairApi.discard(outputPath);
+        await repairApi.discard({ filePath: diagnosis.filePath, outputPath });
     } catch (error) {
         logger.error('discard unplayable repair output failed', {
             outputPath,

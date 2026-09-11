@@ -49,7 +49,16 @@
         },
         "fix": "修复",
         "cancel": "取消",
-        "delete": "删除"
+        "delete": "删除",
+        "status": {
+            "init": "待修复",
+            "inProgress": "修复中",
+            "done": "已修复",
+            "playable": "无需修复",
+            "cancelled": "已中断",
+            "failed": "修复失败",
+            "discarded": "已丢弃"
+        }
     },
     "sentenceSplitter": {
         "title": "切分长视频",

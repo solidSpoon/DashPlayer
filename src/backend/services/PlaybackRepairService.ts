@@ -4,9 +4,11 @@ import {
     FolderVideos,
     Mp3BitrateMode,
     PlaybackRepairDiagnosis,
+    PlaybackRepairDiscardRequest,
     PlaybackRepairStartResult,
     RepairRecipe,
-    RunningRepair,
+    RepairTask,
+    RepairTaskState,
 } from '@/common/contracts/playback-repair';
 import MediaUtil from '@/common/utils/MediaUtil';
 import { CancelByUserError } from '@/backend/utils/errors/errors';
@@ -19,6 +21,7 @@ import TYPES from '@/backend/ioc/types';
 import { decideRepair, isCopyableAudioCodec, isCopyableVideoCodec, PlaybackFacts } from '@/backend/services/playback-repair-rules';
 import { getHtml5VariantPath, getRepairTempPath, isHtml5VariantFileName } from '@/backend/services/watch-history-file-rules';
 import { getMainLogger } from '@/backend/infrastructure/logger';
+import RepairTaskRepository from '@/backend/services/repositories/RepairTaskRepository';
 import PlaybackCapabilityService from '@/backend/services/PlaybackCapabilityService';
 
 /** 判定 MP3 码率模式需要读取的文件头部字节数；约覆盖 200 帧。 */
@@ -48,25 +51,16 @@ interface RepairOutputPaths {
  * 实例先构造、再登记进运行表，因此「诊断还没返回时第二次发起」也能命同一条修复。
  */
 class RunningRepairEntry {
-    /** 后台任务编号；诊断完成、任务创建之前为 `null`。 */
-    public taskId: number | null = null;
-
     /** 启动结果；同一媒体重复发起时直接复用这次修复。 */
     public readonly started: Promise<PlaybackRepairStartResult>;
 
     /**
-     * 创建运行中的修复记录并立即开始诊断。
+     * 创建运行记录并立即开始诊断。
      *
-     * @param filePath 待修复的源媒体绝对路径。
-     * @param outputPath 修复产物绝对路径。
      * @param start 启动函数；由外部传入服务实例的回调，避开构造期循环引用。
      */
-    constructor(
-        public readonly filePath: string,
-        public readonly outputPath: string,
-        start: (entry: RunningRepairEntry) => Promise<PlaybackRepairStartResult>,
-    ) {
-        this.started = start(this);
+    constructor(start: () => Promise<PlaybackRepairStartResult>) {
+        this.started = start();
     }
 }
 
@@ -92,13 +86,32 @@ export default interface PlaybackRepairService {
     startRepair(filePath: string): Promise<PlaybackRepairStartResult>;
 
     /**
-     * 列出正在运行的修复任务。
+     * 列出全部修复记录。
      *
-     * 供修复页面打开时接管从播放页发起的修复，避免两个入口各维护一份队列。
-     *
-     * @returns 正在修复的媒体；诊断尚未完成、还未创建任务的不包含在内。
+     * @returns 按入队顺序排列的修复记录。
      */
-    listRunningRepairs(): RunningRepair[];
+    listRepairTasks(): Promise<RepairTask[]>;
+
+    /**
+     * 把媒体加入修复名单。
+     *
+     * @param filePaths 媒体绝对路径列表；已存在的记录保留原状态。
+     */
+    enqueueRepairTasks(filePaths: string[]): Promise<void>;
+
+    /**
+     * 删除修复记录。
+     *
+     * 只删记录，不动已经生成的修复产物。
+     *
+     * @param filePath 媒体绝对路径。
+     */
+    removeRepairTask(filePath: string): Promise<void>;
+
+    /**
+     * 清理应用重启前遗留的进行中记录。
+     */
+    recoverInterruptedTasks(): Promise<void>;
 
     /**
      * 扫描文件夹并返回尚未生成修复产物的媒体文件。
@@ -114,11 +127,11 @@ export default interface PlaybackRepairService {
      * 用于修复产物在真机试播验收中仍不可播的场景：产物留着会被后续播放优先选中，
      * 因此必须删掉并回到原始文件。
      *
-     * @param filePath 原媒体或产物绝对路径。
+     * @param request 源媒体与产物绝对路径。
      * @returns 产物存在并被删除时返回 `true`；产物不存在时返回 `false`。
-     * @throws 传入路径不是修复产物命名时直接抛错，避免误删源文件。
+     * @throws 传入产物路径不是修复产物命名时直接抛错，避免误删源文件。
      */
-    discardRepairOutput(filePath: string): Promise<boolean>;
+    discardRepairOutput(request: PlaybackRepairDiscardRequest): Promise<boolean>;
 }
 
 /**
@@ -131,14 +144,14 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
     private logger = getMainLogger('PlaybackRepairService');
 
     /**
-     * 正在修复的产物路径到运行记录。
+     * 正在修复的产物路径到启动结果。
      *
      * 修复产物固定写在源文件旁边，同一文件的两次修复会写到同一份临时文件上，
      * 因此从播放页与修复页两个入口同时发起时必须合并成同一次修复。守护放在服务层，
      * 因为两个入口调用的是同一个 IPC 路由，而修复任务只存活在当前主进程内
-     * （进程重启时 DpTaskService 会把活动任务标为已取消）。
+     * （进程重启时数据库里的进行中记录会被标成已中断）。
      */
-    private readonly runningRepairs = new Map<string, RunningRepairEntry>();
+    private readonly runningRepairs = new Map<string, Promise<PlaybackRepairStartResult>>();
 
     /**
      * 创建播放修复用例服务。
@@ -147,6 +160,7 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
      * @param storageDirectoryProvider 外部路径权限恢复服务。
      * @param fileSystemGateway 文件系统访问入口。
      * @param playbackCapabilityService 播放能力学习缓存，提供本机实测的编码结论。
+     * @param repairTaskRepository 修复记录仓储。
      */
     constructor(
         @inject(TYPES.DpTaskService) private readonly dpTaskService: DpTaskService,
@@ -154,6 +168,7 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
         @inject(TYPES.StorageDirectoryProvider) private readonly storageDirectoryProvider: StorageDirectoryProvider,
         @inject(TYPES.FileSystemGateway) private readonly fileSystemGateway: FileSystemGateway,
         @inject(TYPES.PlaybackCapabilityService) private readonly playbackCapabilityService: PlaybackCapabilityService,
+        @inject(TYPES.RepairTaskRepository) private readonly repairTaskRepository: RepairTaskRepository,
     ) {}
 
     /**
@@ -224,50 +239,78 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
         const running = this.runningRepairs.get(outputPath);
         if (running) {
             this.logger.info('reuse running repair', { filePath, outputPath });
-            return running.started;
+            return running;
         }
 
-        const entry = new RunningRepairEntry(filePath, outputPath, (self) => this.beginRepair(self));
-        this.runningRepairs.set(outputPath, entry);
+        const entry = new RunningRepairEntry(() => this.beginRepair(filePath));
+        this.runningRepairs.set(outputPath, entry.started);
         return entry.started;
     }
 
     /**
-     * 列出正在运行的修复任务。
+     * 列出全部修复记录。
      *
-     * @returns 正在修复的媒体；诊断尚未完成、任务还没创建的不包含在内。
+     * @returns 按入队顺序排列的修复记录。
      */
-    public listRunningRepairs(): RunningRepair[] {
-        const running: RunningRepair[] = [];
-        for (const entry of this.runningRepairs.values()) {
-            if (entry.taskId !== null) {
-                running.push({
-                    taskId: entry.taskId,
-                    filePath: entry.filePath,
-                    outputPath: entry.outputPath,
-                });
-            }
+    public listRepairTasks(): Promise<RepairTask[]> {
+        return this.repairTaskRepository.list();
+    }
+
+    /**
+     * 把媒体加入修复名单。
+     *
+     * @param filePaths 媒体绝对路径列表；已有记录保留原状态。
+     */
+    public async enqueueRepairTasks(filePaths: string[]): Promise<void> {
+        for (const filePath of filePaths) {
+            await this.repairTaskRepository.createIfAbsent({ filePath });
         }
-        return running;
+    }
+
+    /**
+     * 删除修复记录，不动已经生成的修复产物。
+     *
+     * @param filePath 媒体绝对路径。
+     */
+    public removeRepairTask(filePath: string): Promise<void> {
+        return this.repairTaskRepository.deleteByFilePath(filePath);
+    }
+
+    /**
+     * 清理应用重启前遗留的进行中记录。
+     */
+    public recoverInterruptedTasks(): Promise<void> {
+        return this.repairTaskRepository.markActiveAsInterrupted();
     }
 
     /**
      * 执行诊断并创建修复任务；无论成功失败都会释放占位。
      *
-     * @param entry 运行中的修复记录。
+     * @param filePath 待修复媒体绝对路径。
      * @returns 任务编号与诊断结论。
      */
-    private async beginRepair(entry: RunningRepairEntry): Promise<PlaybackRepairStartResult> {
-        const { filePath, outputPath } = entry;
+    private async beginRepair(filePath: string): Promise<PlaybackRepairStartResult> {
+        const outputPath = getHtml5VariantPath(filePath);
         try {
             const diagnosis = await this.diagnose(filePath);
             if (!diagnosis.needsRepair) {
                 this.runningRepairs.delete(outputPath);
+                await this.recordRepairResult(filePath, {
+                    status: RepairTaskState.DONE,
+                    reason: diagnosis.reason,
+                    outputPath: diagnosis.outputPath ?? null,
+                });
                 return { taskId: null, diagnosis };
             }
 
             const taskId = await this.dpTaskService.create();
-            entry.taskId = taskId;
+            await this.recordRepairResult(filePath, {
+                status: RepairTaskState.IN_PROGRESS,
+                recipe: diagnosis.recipe ?? null,
+                outputPath: diagnosis.outputPath ?? null,
+                reason: diagnosis.reason,
+                taskId,
+            });
             void this.executeRepair(taskId, filePath, diagnosis)
                 .catch((error: unknown) => {
                     // executeRepair 自己只处理修复过程中的异常，这里兜住它启动前的早期失败。
@@ -323,22 +366,27 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
     /**
      * 丢弃某个媒体的修复产物。
      *
-     * @param filePath 原媒体或产物绝对路径。
+     * @param request 源媒体与产物绝对路径。
      * @returns 产物存在并被删除时返回 `true`。
-     * @throws 传入路径不是修复产物命名时直接抛错，避免误删源文件。
+     * @throws 传入产物路径不是修复产物命名时直接抛错，避免误删源文件。
      */
-    public async discardRepairOutput(filePath: string): Promise<boolean> {
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(filePath);
-        if (!isHtml5VariantFileName(path.basename(filePath))) {
-            throw new Error(`拒绝删除非修复产物：${filePath}`);
+    public async discardRepairOutput(request: PlaybackRepairDiscardRequest): Promise<boolean> {
+        const { filePath, outputPath } = request;
+        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(outputPath);
+        if (!isHtml5VariantFileName(path.basename(outputPath))) {
+            throw new Error(`拒绝删除非修复产物：${outputPath}`);
         }
         // 写入过程中的临时产物一并清理：只删正式产物名会留下 `.part` 残留文件。
-        await this.fileSystemGateway.removeFileIfExists(getRepairTempPath(filePath));
-        if (!await this.fileSystemGateway.fileExists(filePath)) {
-            return false;
+        await this.fileSystemGateway.removeFileIfExists(getRepairTempPath(outputPath));
+        const discarded = await this.fileSystemGateway.fileExists(outputPath);
+        if (discarded) {
+            await this.fileSystemGateway.removeFileIfExists(outputPath);
         }
-        await this.fileSystemGateway.removeFileIfExists(filePath);
-        return true;
+        await this.recordRepairResult(filePath, {
+            status: RepairTaskState.DISCARDED,
+            outputPath,
+        });
+        return discarded;
     }
 
     /**
@@ -429,8 +477,17 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
                 progress: subtitleExtracted ? '修复完成' : '修复完成，未提取到字幕',
                 result: JSON.stringify({ progress: 100, path: outputPath }),
             });
+            await this.recordRepairResult(inputFile, {
+                status: RepairTaskState.DONE,
+                recipe,
+                outputPath,
+            });
         } catch (error) {
             if (this.confirmUserCancellation(taskId, error)) {
+                await this.recordRepairResult(inputFile, {
+                    status: RepairTaskState.CANCELLED,
+                    error: '已取消修复',
+                });
                 return;
             }
 
@@ -439,7 +496,33 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
                 progress: `修复失败：${message}`,
                 result: JSON.stringify({ progress: 0, path: outputPath }),
             });
+            await this.recordRepairResult(inputFile, {
+                status: RepairTaskState.FAILED,
+                recipe,
+                outputPath,
+                error: message,
+            });
         }
+    }
+
+    /**
+     * 写入修复记录。
+     *
+     * 修复可以从播放页发起，那时表里可能还没有这个媒体的行，因此先补建再写入。
+     * 记录只描述修复历史，不得反过来影响修复与播放流程。
+     *
+     * @param filePath 媒体绝对路径。
+     * @param patch 待写入状态。
+     */
+    private async recordRepairResult(
+        filePath: string,
+        patch: Parameters<RepairTaskRepository['updateByFilePath']>[1],
+    ): Promise<void> {
+        const existing = await this.repairTaskRepository.findByFilePath(filePath);
+        if (!existing) {
+            await this.repairTaskRepository.createIfAbsent({ filePath });
+        }
+        await this.repairTaskRepository.updateByFilePath(filePath, patch);
     }
 
     /**

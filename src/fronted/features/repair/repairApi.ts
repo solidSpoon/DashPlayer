@@ -1,5 +1,5 @@
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
-import { PlaybackEvidenceInput } from '@/common/contracts/playback-repair';
+import { PlaybackEvidenceInput, PlaybackRepairDiscardRequest } from '@/common/contracts/playback-repair';
 
 export const repairApi = {
     /**
@@ -26,11 +26,28 @@ export const repairApi = {
     scanFolders: (folders: string[]) => backendClient.call('repair/scan-folders', folders),
 
     /**
-     * 查询正在运行的修复任务。
+     * 查询全部修复记录。
      *
-     * @returns 当前正在修复的媒体；用于接管从播放页发起的修复。
+     * 记录是「哪个媒体修过、结果如何」的历史，播放页发起的修复同样会写进来，
+     * 因此无论从哪个入口发起，本页都能看到同一份进度。
+     *
+     * @returns 按入队顺序排列的修复记录。
      */
-    listRunningRepairs: () => backendClient.call('repair/running'),
+    listTasks: () => backendClient.call('repair/tasks'),
+
+    /**
+     * 把媒体加入修复名单。
+     *
+     * @param filePaths 媒体绝对路径列表。
+     */
+    enqueueTasks: (filePaths: string[]) => backendClient.call('repair/enqueue', filePaths),
+
+    /**
+     * 删除修复记录。
+     *
+     * @param file 媒体绝对路径。
+     */
+    removeTask: (file: string) => backendClient.call('repair/remove-task', file),
 
     /**
      * 诊断单个媒体文件是否需要修复。
@@ -53,10 +70,10 @@ export const repairApi = {
      *
      * 用于产物在真机试播验收中仍不可播的场景：产物留着会被后续播放优先选中。
      *
-     * @param file 原媒体或产物绝对路径。
+     * @param request 源媒体与产物绝对路径。
      * @returns 产物存在并被删除时返回 true。
      */
-    discard: (file: string) => backendClient.call('repair/discard', file),
+    discard: (request: PlaybackRepairDiscardRequest) => backendClient.call('repair/discard', request),
 
     /**
      * 查询是否还需要对这两个编码做真机能力探测。

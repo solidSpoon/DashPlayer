@@ -49,7 +49,16 @@
         },
         "fix": "Fix",
         "cancel": "Cancel",
-        "delete": "Delete"
+        "delete": "Delete",
+        "status": {
+            "init": "Pending",
+            "inProgress": "Repairing",
+            "done": "Repaired",
+            "playable": "No repair needed",
+            "cancelled": "Interrupted",
+            "failed": "Repair failed",
+            "discarded": "Discarded"
+        }
     },
     "sentenceSplitter": {
         "title": "Split Long Videos",

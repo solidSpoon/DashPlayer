@@ -48,6 +48,81 @@ export type RepairReason =
     | 'mp3-seek-imprecise';
 
 /**
+ * 修复记录状态。
+ *
+ * 取值与 db 的 DpTaskState 保持一致，额外增加 `discarded`：用户主动丢弃了修复产物。
+ * 状态只描述「这个媒体修过什么」，不代表产物现在还在或能不能播——那些一律看磁盘上的文件。
+ */
+export enum RepairTaskState {
+    /** 已入队、还没开始修复。 */
+    INIT = 'init',
+    /** 正在修复。 */
+    IN_PROGRESS = 'in_progress',
+    /** 修复完成或本来无需修复。 */
+    DONE = 'done',
+    /** 被取消（含应用重启导致的中断）。 */
+    CANCELLED = 'cancelled',
+    /** 修复失败。 */
+    FAILED = 'failed',
+    /** 用户已经丢弃了修复产物。 */
+    DISCARDED = 'discarded',
+}
+
+/**
+ * 修复记录的更新内容。
+ */
+export interface RepairTaskUpdatePatch {
+    /** 新状态。 */
+    status: RepairTaskState;
+    /** 本次采用的配方。 */
+    recipe?: RepairRecipe | null;
+    /** 修复产物路径。 */
+    outputPath?: string | null;
+    /** 诊断原因。 */
+    reason?: RepairReason | null;
+    /** 后台任务编号。 */
+    taskId?: number | null;
+    /** 失败原因。 */
+    error?: string | null;
+}
+
+/**
+ * 丢弃修复产物的请求。
+ *
+ * 两个路径都要带上：产物路径决定删哪个文件，源媒体路径决定更新哪条记录。
+ */
+export interface PlaybackRepairDiscardRequest {
+    /** 被丢弃的修复产物绝对路径。 */
+    outputPath: string;
+    /** 该产物对应的源媒体绝对路径。 */
+    filePath: string;
+}
+
+/**
+ * 一条播放修复记录。
+ */
+export interface RepairTask {
+    /** 被修复的媒体绝对路径。 */
+    file: string;
+    /** 修复状态；缺省表示尚未开始。 */
+    status?: RepairTaskState;
+    /** 本次采用的修复配方。 */
+    recipe?: RepairRecipe;
+    /** 修复产物路径。 */
+    outputPath?: string;
+    /** 诊断原因，用于区分「本来就无需修复」与「已修复」。 */
+    reason?: RepairReason;
+    /** 正在运行的后台任务编号；无任务时为 `null`。 */
+    taskId: number | null;
+    /** 失败原因。 */
+    error?: string;
+    /** 入队时间（UTC 数据库时间字符串）。 */
+    created_at: string;
+    /** 最近更新时间（UTC 数据库时间字符串）。 */
+    updated_at: string;
+}
+
+/**
  * 单个媒体文件的播放修复诊断结果。
  */
 export interface PlaybackRepairDiagnosis {
@@ -71,21 +146,6 @@ export interface PlaybackRepairDiagnosis {
     hasAudioStream: boolean;
     /** MP3 的码率模式；非 MP3 文件为空。 */
     mp3BitrateMode?: Mp3BitrateMode;
-}
-
-/**
- * 正在运行的修复任务。
- *
- * 修复可以从播放页与修复页两个入口发起，页面打开时需要能看到同一批正在跑的修复，
- * 因此后端把运行中的修复暴露出来，而不是让每个入口各自维护一份。
- */
-export interface RunningRepair {
-    /** 后台任务编号。 */
-    taskId: number;
-    /** 待修复的源媒体绝对路径。 */
-    filePath: string;
-    /** 修复产物绝对路径。 */
-    outputPath: string;
 }
 
 /**

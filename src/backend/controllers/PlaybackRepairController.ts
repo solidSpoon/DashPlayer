@@ -3,8 +3,9 @@ import {
     FolderVideos,
     PlaybackEvidenceInput,
     PlaybackRepairDiagnosis,
+    PlaybackRepairDiscardRequest,
     PlaybackRepairStartResult,
-    RunningRepair,
+    RepairTask,
 } from '@/common/contracts/playback-repair';
 import Controller from '@/backend/controllers/Controller';
 import { inject, injectable } from 'inversify';
@@ -55,20 +56,36 @@ export default class PlaybackRepairController implements Controller {
     }
 
     /**
-     * 列出正在运行的修复任务。
-     * @returns 正在修复的媒体列表。
+     * 列出全部修复记录。
+     * @returns 按入队顺序排列的修复记录。
      */
-    public async listRunningRepairs(): Promise<RunningRepair[]> {
-        return this.playbackRepairService.listRunningRepairs();
+    public async listRepairTasks(): Promise<RepairTask[]> {
+        return this.playbackRepairService.listRepairTasks();
+    }
+
+    /**
+     * 把媒体加入修复名单。
+     * @param filePaths 媒体绝对路径列表。
+     */
+    public async enqueueRepairTasks(filePaths: string[]): Promise<void> {
+        return this.playbackRepairService.enqueueRepairTasks(filePaths);
+    }
+
+    /**
+     * 删除修复记录。
+     * @param filePath 媒体绝对路径。
+     */
+    public async removeRepairTask(filePath: string): Promise<void> {
+        return this.playbackRepairService.removeRepairTask(filePath);
     }
 
     /**
      * 丢弃某个媒体的修复产物。
-     * @param file 原媒体或产物绝对路径。
+     * @param request 源媒体与产物绝对路径。
      * @returns 产物存在并被删除时返回 true。
      */
-    public async discard(file: string): Promise<boolean> {
-        return this.playbackRepairService.discardRepairOutput(file);
+    public async discard(request: PlaybackRepairDiscardRequest): Promise<boolean> {
+        return this.playbackRepairService.discardRepairOutput(request);
     }
 
     /**
@@ -99,7 +116,9 @@ export default class PlaybackRepairController implements Controller {
         registerRoute('repair/diagnose', (p) => this.diagnose(p));
         registerRoute('repair/start', (p) => this.startRepair(p));
         registerRoute('repair/scan-folders', (p) => this.scanFolders(p));
-        registerRoute('repair/running', () => this.listRunningRepairs());
+        registerRoute('repair/tasks', () => this.listRepairTasks());
+        registerRoute('repair/enqueue', (p) => this.enqueueRepairTasks(p));
+        registerRoute('repair/remove-task', (p) => this.removeRepairTask(p));
         registerRoute('repair/discard', (p) => this.discard(p));
         registerRoute('repair/should-probe-capability', (p) => this.shouldProbeCapability(p));
         registerRoute('repair/record-playback-evidence', (p) => this.recordPlaybackEvidence(p));
