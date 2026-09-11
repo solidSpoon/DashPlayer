@@ -1,5 +1,5 @@
 import { cn } from '@/fronted/lib/utils';
-import React from 'react';
+import React, { useEffect } from 'react';
 import RepairFileSelector from './components/RepairFileSelector';
 import RepairFolderSelector from './components/RepairFolderSelector';
 import RepairItem from './components/RepairItem';
@@ -27,7 +27,8 @@ const RepairPage = () => {
         taskStats,
         repairFolder,
         deleteFolder,
-        deleteFile
+        deleteFile,
+        adoptRunningRepairs
     } = useRepair(useShallow(s => ({
         files: s.files,
         folders: s.folders,
@@ -36,8 +37,22 @@ const RepairPage = () => {
         deleteFolder: s.deleteFolder,
         deleteFile: s.deleteFile,
         taskStats: s.taskStats,
-        repairFolder: s.repairFolder
+        repairFolder: s.repairFolder,
+        adoptRunningRepairs: s.adoptRunningRepairs
     })));
+
+    // 进入页面时接管正在运行的修复：从播放页发起的修复也会出现在这里的名单上。
+    useEffect(() => {
+        void (async () => {
+            try {
+                await adoptRunningRepairs(await repairApi.listRunningRepairs());
+            } catch (error) {
+                logger.error('adopt running repairs failed', {
+                    error: error instanceof Error ? error.message : String(error)
+                });
+            }
+        })();
+    }, [adoptRunningRepairs]);
 
     const isEmpty = files.length === 0 && folders.length === 0;
 

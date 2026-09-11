@@ -17,6 +17,7 @@ import {
     PlaybackEvidenceInput,
     PlaybackRepairDiagnosis,
     PlaybackRepairStartResult,
+    RunningRepair,
 } from '@/common/contracts/playback-repair';
 
 import {Tag} from '@/common/contracts/tag';
@@ -328,6 +329,7 @@ interface PlaybackRepairDef {
     'repair/diagnose': { params: string, return: PlaybackRepairDiagnosis };
     'repair/start': { params: string, return: PlaybackRepairStartResult };
     'repair/scan-folders': { params: string[], return: FolderVideos[] };
+    'repair/running': { params: void, return: RunningRepair[] };
     'repair/discard': { params: string, return: boolean };
     'repair/should-probe-capability': { params: { videoCodec: string | null; audioCodec: string | null }, return: boolean };
     'repair/record-playback-evidence': { params: PlaybackEvidenceInput, return: void };

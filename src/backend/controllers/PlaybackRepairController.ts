@@ -4,6 +4,7 @@ import {
     PlaybackEvidenceInput,
     PlaybackRepairDiagnosis,
     PlaybackRepairStartResult,
+    RunningRepair,
 } from '@/common/contracts/playback-repair';
 import Controller from '@/backend/controllers/Controller';
 import { inject, injectable } from 'inversify';
@@ -54,6 +55,14 @@ export default class PlaybackRepairController implements Controller {
     }
 
     /**
+     * 列出正在运行的修复任务。
+     * @returns 正在修复的媒体列表。
+     */
+    public async listRunningRepairs(): Promise<RunningRepair[]> {
+        return this.playbackRepairService.listRunningRepairs();
+    }
+
+    /**
      * 丢弃某个媒体的修复产物。
      * @param file 原媒体或产物绝对路径。
      * @returns 产物存在并被删除时返回 true。
@@ -90,6 +99,7 @@ export default class PlaybackRepairController implements Controller {
         registerRoute('repair/diagnose', (p) => this.diagnose(p));
         registerRoute('repair/start', (p) => this.startRepair(p));
         registerRoute('repair/scan-folders', (p) => this.scanFolders(p));
+        registerRoute('repair/running', () => this.listRunningRepairs());
         registerRoute('repair/discard', (p) => this.discard(p));
         registerRoute('repair/should-probe-capability', (p) => this.shouldProbeCapability(p));
         registerRoute('repair/record-playback-evidence', (p) => this.recordPlaybackEvidence(p));

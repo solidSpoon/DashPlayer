@@ -6,6 +6,7 @@ import {
     PlaybackRepairDiagnosis,
     PlaybackRepairStartResult,
     RepairRecipe,
+    RunningRepair,
 } from '@/common/contracts/playback-repair';
 import MediaUtil from '@/common/utils/MediaUtil';
 import { CancelByUserError } from '@/backend/utils/errors/errors';
@@ -42,6 +43,34 @@ interface RepairOutputPaths {
 }
 
 /**
+ * 一次正在进行的修复。
+ *
+ * 实例先构造、再登记进运行表，因此「诊断还没返回时第二次发起」也能命同一条修复。
+ */
+class RunningRepairEntry {
+    /** 后台任务编号；诊断完成、任务创建之前为 `null`。 */
+    public taskId: number | null = null;
+
+    /** 启动结果；同一媒体重复发起时直接复用这次修复。 */
+    public readonly started: Promise<PlaybackRepairStartResult>;
+
+    /**
+     * 创建运行中的修复记录并立即开始诊断。
+     *
+     * @param filePath 待修复的源媒体绝对路径。
+     * @param outputPath 修复产物绝对路径。
+     * @param start 启动函数；由外部传入服务实例的回调，避开构造期循环引用。
+     */
+    constructor(
+        public readonly filePath: string,
+        public readonly outputPath: string,
+        start: (entry: RunningRepairEntry) => Promise<PlaybackRepairStartResult>,
+    ) {
+        this.started = start(this);
+    }
+}
+
+/**
  * 播放修复的业务契约：诊断媒体在当前播放器上会不会出问题，并按配方生成修复产物。
  */
 export default interface PlaybackRepairService {
@@ -61,6 +90,15 @@ export default interface PlaybackRepairService {
      * @returns 任务编号与诊断结论；无需修复时任务编号为 `null`（调用方据此提示用户）。
      */
     startRepair(filePath: string): Promise<PlaybackRepairStartResult>;
+
+    /**
+     * 列出正在运行的修复任务。
+     *
+     * 供修复页面打开时接管从播放页发起的修复，避免两个入口各维护一份队列。
+     *
+     * @returns 正在修复的媒体；诊断尚未完成、还未创建任务的不包含在内。
+     */
+    listRunningRepairs(): RunningRepair[];
 
     /**
      * 扫描文件夹并返回尚未生成修复产物的媒体文件。
@@ -93,14 +131,14 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
     private logger = getMainLogger('PlaybackRepairService');
 
     /**
-     * 正在修复的产物路径到启动结果。
+     * 正在修复的产物路径到运行记录。
      *
      * 修复产物固定写在源文件旁边，同一文件的两次修复会写到同一份临时文件上，
      * 因此从播放页与修复页两个入口同时发起时必须合并成同一次修复。守护放在服务层，
      * 因为两个入口调用的是同一个 IPC 路由，而修复任务只存活在当前主进程内
      * （进程重启时 DpTaskService 会把活动任务标为已取消）。
      */
-    private readonly runningRepairs = new Map<string, Promise<PlaybackRepairStartResult>>();
+    private readonly runningRepairs = new Map<string, RunningRepairEntry>();
 
     /**
      * 创建播放修复用例服务。
@@ -186,22 +224,41 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
         const running = this.runningRepairs.get(outputPath);
         if (running) {
             this.logger.info('reuse running repair', { filePath, outputPath });
-            return running;
+            return running.started;
         }
 
-        const started = this.beginRepair(filePath);
-        this.runningRepairs.set(outputPath, started);
-        return started;
+        const entry = new RunningRepairEntry(filePath, outputPath, (self) => this.beginRepair(self));
+        this.runningRepairs.set(outputPath, entry);
+        return entry.started;
+    }
+
+    /**
+     * 列出正在运行的修复任务。
+     *
+     * @returns 正在修复的媒体；诊断尚未完成、任务还没创建的不包含在内。
+     */
+    public listRunningRepairs(): RunningRepair[] {
+        const running: RunningRepair[] = [];
+        for (const entry of this.runningRepairs.values()) {
+            if (entry.taskId !== null) {
+                running.push({
+                    taskId: entry.taskId,
+                    filePath: entry.filePath,
+                    outputPath: entry.outputPath,
+                });
+            }
+        }
+        return running;
     }
 
     /**
      * 执行诊断并创建修复任务；无论成功失败都会释放占位。
      *
-     * @param filePath 待修复媒体绝对路径。
+     * @param entry 运行中的修复记录。
      * @returns 任务编号与诊断结论。
      */
-    private async beginRepair(filePath: string): Promise<PlaybackRepairStartResult> {
-        const outputPath = getHtml5VariantPath(filePath);
+    private async beginRepair(entry: RunningRepairEntry): Promise<PlaybackRepairStartResult> {
+        const { filePath, outputPath } = entry;
         try {
             const diagnosis = await this.diagnose(filePath);
             if (!diagnosis.needsRepair) {
@@ -210,6 +267,7 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
             }
 
             const taskId = await this.dpTaskService.create();
+            entry.taskId = taskId;
             void this.executeRepair(taskId, filePath, diagnosis)
                 .catch((error: unknown) => {
                     // executeRepair 自己只处理修复过程中的异常，这里兜住它启动前的早期失败。

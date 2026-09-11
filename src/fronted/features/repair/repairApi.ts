@@ -26,6 +26,13 @@ export const repairApi = {
     scanFolders: (folders: string[]) => backendClient.call('repair/scan-folders', folders),
 
     /**
+     * 查询正在运行的修复任务。
+     *
+     * @returns 当前正在修复的媒体；用于接管从播放页发起的修复。
+     */
+    listRunningRepairs: () => backendClient.call('repair/running'),
+
+    /**
      * 诊断单个媒体文件是否需要修复。
      *
      * @param file 待诊断媒体绝对路径。

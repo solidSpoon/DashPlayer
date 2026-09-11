@@ -74,6 +74,21 @@ export interface PlaybackRepairDiagnosis {
 }
 
 /**
+ * 正在运行的修复任务。
+ *
+ * 修复可以从播放页与修复页两个入口发起，页面打开时需要能看到同一批正在跑的修复，
+ * 因此后端把运行中的修复暴露出来，而不是让每个入口各自维护一份。
+ */
+export interface RunningRepair {
+    /** 后台任务编号。 */
+    taskId: number;
+    /** 待修复的源媒体绝对路径。 */
+    filePath: string;
+    /** 修复产物绝对路径。 */
+    outputPath: string;
+}
+
+/**
  * 启动修复的返回结果。
  */
 export interface PlaybackRepairStartResult {

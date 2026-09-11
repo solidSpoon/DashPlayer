@@ -3,7 +3,7 @@
  */
 import { create } from 'zustand';
 import { persist, subscribeWithSelector } from 'zustand/middleware';
-import { FolderVideos } from '@/common/contracts/playback-repair';
+import { FolderVideos, RunningRepair } from '@/common/contracts/playback-repair';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';
 import { DpTaskState } from '@/common/contracts/dp-task';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
@@ -29,6 +29,10 @@ export type UseRepairAction = {
     deleteFolder: (folder: string, file?: string) => void;
     repair: (file: string) => void;
     repairFolder: (folder: string) => void;
+    /** 把某个文件的修复任务接入本页状态，让列表显示它的进度。 */
+    trackTask: (file: string, taskId: number) => Promise<void>;
+    /** 接管后端正在运行的修复：播放页发起的修复也会出现在本页名单里。 */
+    adoptRunningRepairs: (running: RunningRepair[]) => Promise<void>;
 };
 
 const useRepair = create(
@@ -82,6 +86,21 @@ const useRepair = create(
                     set({ taskStats: new Map([...get().taskStats, [file, DpTaskState.DONE]]) });
                     return;
                 }
+                await get().trackTask(file, taskId);
+            },
+            /**
+             * 接入一条修复任务的进度。
+             *
+             * 先乐观标记为进行中，避免接管时短暂显示成「待修复」；真实状态由任务中心回报修正。
+             *
+             * @param file 被修复的媒体绝对路径。
+             * @param taskId 后端任务编号。
+             */
+            trackTask: async (file, taskId) => {
+                set({
+                    taskStats: new Map([...get().taskStats, [file, DpTaskState.IN_PROGRESS]]),
+                    tasks: new Map([...get().tasks, [file, taskId]])
+                });
                 await useDpTaskCenter.getState()
                     .register(async () => taskId, {
                         onUpdated: (t) => {
@@ -91,7 +110,28 @@ const useRepair = create(
                             set({ taskStats: new Map([...get().taskStats, [file, t.status as DpTaskState]]) });
                         }
                     });
-                set({ tasks: new Map([...get().tasks, [file, taskId]]) });
+            },
+            /**
+             * 接管后端正在运行的修复任务。
+             *
+             * 修复可以从播放页发起，那条任务不在本页队列里；打开页面时把不在名单中的运行任务
+             * 补进来，两个入口看到的就是同一批进度，且不会重复启动修复。
+             *
+             * @param running 后端正在运行的修复任务。
+             */
+            adoptRunningRepairs: async (running) => {
+                const known = new Set([
+                    ...get().files,
+                    ...get().folders.flatMap((folder) => folder.videos)
+                ]);
+                const adopted = running.filter((item) => !known.has(item.filePath));
+                if (adopted.length === 0) {
+                    return;
+                }
+                set({ files: [...get().files, ...adopted.map((item) => item.filePath)] });
+                for (const item of adopted) {
+                    await get().trackTask(item.filePath, item.taskId);
+                }
             },
             repairFolder: async (folder) => {
                 const folderEntry = get().folders.find(f => f.folder === folder);
