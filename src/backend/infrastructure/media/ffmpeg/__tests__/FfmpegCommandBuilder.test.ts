@@ -96,6 +96,7 @@ describe('DefaultFfmpegCommandBuilder', () => {
             '-i', '/in.mkv',
             '-map', '0:2',
             '-c:s', 'srt',
+            '-f', 'srt',
             '/out.srt',
         ]);
     });
@@ -147,6 +148,7 @@ describe('DefaultFfmpegCommandBuilder', () => {
             '-c:a', 'aac',
             '-b:a', '128k',
             '-movflags', '+faststart',
+            '-f', 'mp4',
             '/out.mp4',
         ]);
     });
@@ -165,6 +167,7 @@ describe('DefaultFfmpegCommandBuilder', () => {
             '-map', '0:a:0?',
             '-c', 'copy',
             '-movflags', '+faststart',
+            '-f', 'mp4',
             '/out.mp4',
         ]);
     });
@@ -198,6 +201,8 @@ describe('DefaultFfmpegCommandBuilder', () => {
             '-c:a', 'aac',
             '-b:a', '128k',
             '-movflags', '+faststart',
+            // 修复产物先写临时名，扩展名无法推断封装格式，因此显式指定 m4a 对应的 ipod 封装器。
+            '-f', 'ipod',
             '/out.html5.m4a',
         ]);
     });

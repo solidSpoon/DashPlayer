@@ -191,6 +191,8 @@ export class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
 
     /**
      * 构建字幕提取命令参数；只映射探测选定的单条字幕流，避免多流写单文件报错。
+     *
+     * 显式指定输出封装格式：产物先写到不带扩展名的临时文件，无法由扩展名推断格式。
      */
     public buildExtractSubtitle(args: ExtractSubtitleCommandArgs): string[] {
         return [
@@ -198,12 +200,17 @@ export class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
             '-i', args.inputFile,
             '-map', `0:${args.streamIndex}`,
             '-c:s', 'srt',
+            '-f', 'srt',
             args.outputFile,
         ];
     }
 
     /**
      * 构建播放修复命令参数。
+     *
+     * 输出封装格式显式声明：修复产物先写到不带媒体扩展名的临时文件（避免写在中途的
+     * 产物被播放与元数据探测选中），ffmpeg 无法再按扩展名推断格式。
+     * 音频产物用 `ipod`（即 `.m4a` 扩展名对应的封装器），实测与按扩展名推断的字节一致。
      */
     public buildRepair(args: RepairArgs): string[] {
         const { inputFile, outputFile, recipe } = args;
@@ -216,6 +223,7 @@ export class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
                     '-map', '0:a:0?',
                     '-c', 'copy',
                     '-movflags', '+faststart',
+                    '-f', 'mp4',
                     outputFile,
                 ];
             case 'video-copy-audio-transcode':
@@ -227,6 +235,7 @@ export class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
                     '-c:v', 'copy',
                     ...AUDIO_TRANSCODE_ARGS,
                     '-movflags', '+faststart',
+                    '-f', 'mp4',
                     outputFile,
                 ];
             case 'full-transcode':
@@ -244,6 +253,7 @@ export class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
                     '-profile:v', 'high',
                     ...AUDIO_TRANSCODE_ARGS,
                     '-movflags', '+faststart',
+                    '-f', 'mp4',
                     outputFile,
                 ];
             case 'audio-transcode':
@@ -253,6 +263,7 @@ export class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
                     '-map', '0:a:0',
                     ...AUDIO_TRANSCODE_ARGS,
                     '-movflags', '+faststart',
+                    '-f', 'ipod',
                     outputFile,
                 ];
             default:

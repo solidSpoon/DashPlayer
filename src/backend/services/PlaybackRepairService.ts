@@ -16,7 +16,7 @@ import DpTaskService from '@/backend/services/DpTaskService';
 import FfmpegService from '@/backend/services/FfmpegService';
 import TYPES from '@/backend/ioc/types';
 import { decideRepair, isCopyableAudioCodec, isCopyableVideoCodec, PlaybackFacts } from '@/backend/services/playback-repair-rules';
-import { getHtml5VariantPath, isHtml5VariantFileName } from '@/backend/services/watch-history-file-rules';
+import { getHtml5VariantPath, getRepairTempPath, isHtml5VariantFileName } from '@/backend/services/watch-history-file-rules';
 import PlaybackCapabilityService from '@/backend/services/PlaybackCapabilityService';
 
 /** 判定 MP3 码率模式需要读取的文件头部字节数；约覆盖 200 帧。 */
@@ -222,6 +222,8 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
         if (!isHtml5VariantFileName(path.basename(filePath))) {
             throw new Error(`拒绝删除非修复产物：${filePath}`);
         }
+        // 写入过程中的临时产物一并清理：只删正式产物名会留下 `.part` 残留文件。
+        await this.fileSystemGateway.removeFileIfExists(getRepairTempPath(filePath));
         if (!await this.fileSystemGateway.fileExists(filePath)) {
             return false;
         }
@@ -333,6 +335,10 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
     /**
      * 执行修复命令并验收产物；任一步失败都清理产物，避免留下半成品或不可播文件。
      *
+     * 产物先写入临时名，验收通过后才改名为正式产物名：正式产物名一旦出现就会被
+     * 「有修复产物就优先用产物」的播放与元数据探测逻辑选中，而写到一半的 mp4 系容器
+     * 无法解析，会让正在播放的媒体与观看历史列表一起报错。
+     *
      * @param taskId 修复任务 ID。
      * @param inputFile 待修复媒体绝对路径。
      * @param outputFile 修复产物路径。
@@ -348,22 +354,32 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
         diagnosis: PlaybackRepairDiagnosis,
         onProgress: (progress: number) => void,
     ): Promise<void> {
+        const tempPath = getRepairTempPath(outputFile);
+        // 上一轮异常退出可能留下临时文件，先清掉，避免 ffmpeg 接着旧内容写。
+        await this.fileSystemGateway.removeFileIfExists(tempPath);
+        let published = false;
         try {
             await this.ffmpegService.repair({
                 taskId,
                 inputFile,
-                outputFile,
+                outputFile: tempPath,
                 recipe,
                 onProgress,
             });
 
-            if (!await this.hasNonEmptyFile(outputFile)) {
+            if (!await this.hasNonEmptyFile(tempPath)) {
                 throw new Error(`修复未生成有效文件：${outputFile}`);
             }
 
-            await this.verifyRepairedMedia(inputFile, outputFile, diagnosis);
+            await this.verifyRepairedMedia(inputFile, tempPath, diagnosis);
+            // 通过校验后才用正式产物名发布：写在中途的产物不能被播放与探测看见。
+            await this.fileSystemGateway.moveFile(tempPath, outputFile);
+            published = true;
         } catch (error) {
-            await this.fileSystemGateway.removeFileIfExists(outputFile);
+            await this.fileSystemGateway.removeFileIfExists(tempPath);
+            if (published) {
+                await this.fileSystemGateway.removeFileIfExists(outputFile);
+            }
             throw error;
         }
     }
@@ -440,22 +456,26 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
             return true;
         }
 
+        const tempPath = getRepairTempPath(subtitleFile);
         try {
+            await this.fileSystemGateway.removeFileIfExists(tempPath);
             const extracted = await this.ffmpegService.extractSubtitles({
                 taskId,
                 inputFile,
-                outputFile: subtitleFile,
+                outputFile: tempPath,
                 onProgress,
             });
 
-            if (extracted && await this.hasNonEmptyFile(subtitleFile)) {
+            if (extracted && await this.hasNonEmptyFile(tempPath)) {
+                // 同样先写临时名再改名，避免播放时的字幕匹配读到写了一半的字幕。
+                await this.fileSystemGateway.moveFile(tempPath, subtitleFile);
                 return true;
             }
 
-            await this.fileSystemGateway.removeFileIfExists(subtitleFile);
+            await this.fileSystemGateway.removeFileIfExists(tempPath);
             return false;
         } catch (error) {
-            await this.fileSystemGateway.removeFileIfExists(subtitleFile);
+            await this.fileSystemGateway.removeFileIfExists(tempPath);
             if (error instanceof CancelByUserError) {
                 throw error;
             }

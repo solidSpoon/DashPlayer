@@ -7,6 +7,9 @@ import MediaUtil from '@/common/utils/MediaUtil';
 /** 修复产物在文件名中的固定中缀。 */
 const HTML5_SUFFIX = '.html5';
 
+/** 修复产物写入过程中的临时后缀。 */
+const PART_SUFFIX = '.part';
+
 /**
  * 判断文件名是否为修复产物。
  *
@@ -42,6 +45,23 @@ export function getHtml5VariantPath(filePath: string): string {
     const baseName = removeHtml5Suffix(parsed.name);
     const extension = MediaUtil.isAudio(parsed.base) ? '.m4a' : '.mp4';
     return path.join(parsed.dir, `${baseName}${HTML5_SUFFIX}${extension}`);
+}
+
+/**
+ * 获取修复产物在写入过程中的临时路径。
+ *
+ * 产物先落到临时名，写完并通过校验后才改名为正式产物名。原因是正式产物名一旦出现，
+ * 就会被「有修复产物就优先用产物」的播放与元数据探测逻辑选中，而 mp4 系容器在写完
+ * moov 之前无法解析：ffprobe 报 `moov atom not found`、播放器报
+ * `DEMUXER_ERROR_COULD_NOT_OPEN`，于是正在播放的媒体和观看历史列表会一起失败。
+ *
+ * 临时名以 `.part` 结尾、不带媒体扩展名，因此文件夹扫描与字幕匹配都不会把它当作媒体。
+ *
+ * @param outputPath 最终产物绝对路径。
+ * @returns 同目录下的临时文件绝对路径。
+ */
+export function getRepairTempPath(outputPath: string): string {
+    return `${outputPath}${PART_SUFFIX}`;
 }
 
 /**
