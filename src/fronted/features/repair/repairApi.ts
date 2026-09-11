@@ -84,7 +84,8 @@ export const repairApi = {
      * 诊断并启动单个媒体的修复任务。
      *
      * @param request 待修复媒体与可选的强制配方。
-     * @returns 任务编号与诊断结论；无需修复时任务编号为 null。
+     * @returns 是否已启动修复与诊断结论；无需修复时未启动。
+     * 进度与终态经 `repair-task-update` 事件按媒体路径推送。
      */
     startRepair: (request: PlaybackRepairStartRequest) => backendClient.call('repair/start', request),
 
@@ -137,12 +138,13 @@ export const repairApi = {
     getDuration: (file: string) => backendClient.call('media/duration', file),
 
     /**
-     * 取消正在执行的后端任务。
+     * 取消正在运行的修复任务。
      *
-     * @param taskId 后端任务编号。
-     * @returns 任务取消完成后结束。
+     * 没有修复在运行时是无操作：界面上的「进行中」可能只是尚未刷新的旧记录。
+     *
+     * @param file 待取消修复的媒体绝对路径。
      */
-    cancelTask: (taskId: number) => backendClient.call('dp-task/cancel', taskId),
+    cancel: (file: string) => backendClient.call('repair/cancel', file),
 
     /**
      * 在系统文件管理器中显示指定路径。

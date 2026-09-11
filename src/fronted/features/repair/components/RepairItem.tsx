@@ -19,10 +19,8 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/fronted/components/ui/dropdown-menu';
-import { RepairRecipe, RepairTask, RepairTaskResult, RepairTaskState } from '@/common/contracts/playback-repair';
-import { DpTaskState } from '@/common/contracts/dp-task';
-import useDpTaskViewer from '@/fronted/hooks/useDpTaskViewer';
-import StrUtil from '@/common/utils/str-util';
+import { RepairRecipe, RepairTask, RepairTaskState } from '@/common/contracts/playback-repair';
+import useRepairEventStore from '@/fronted/features/repair/repairEvents';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { repairApi } from '../repairApi';
 import i18n from '@/fronted/i18n';
@@ -72,7 +70,7 @@ const previewSource = (task: RepairTask): string | null => {
 /**
  * 展示一条修复记录：缩略图（悬停时就地静音预览）、状态、原因与操作按钮。
  *
- * 状态读记录表；正在修复时用后台任务的实时进度渲染进度条与百分比。
+ * 状态读记录表；正在修复时用修复事件的实时进度渲染进度条与百分比。
  */
 const RepairItem = ({ task, className, buttonVariant, onRepair, onForceRepair, onRemove }: {
     task: RepairTask,
@@ -99,12 +97,9 @@ const RepairItem = ({ task, className, buttonVariant, onRepair, onForceRepair, o
     const { data: videoLength } = useSWR(file ? ['duration', file] : null, async ([, f]) => {
         return await repairApi.getDuration(f);
     }, { revalidateOnFocus: false });
-    const { task: dpTask } = useDpTaskViewer(task.taskId);
-    const resultJson = dpTask?.result;
-    const progress = StrUtil.isNotBlank(resultJson) ? JSON.parse(resultJson) : {
-        progress: 0,
-        path: file
-    } as RepairTaskResult;
+    // 实时进度来自修复事件缓存；还没收到事件（如刚刷新页面）时不显示百分比。
+    const event = useRepairEventStore((state) => state.events.get(file));
+    const progress = event?.progress ?? 0;
 
     const isProbing = task.status === RepairTaskState.INIT;
     // 已经得出结论的行（无需修复 / 已修复）不再走自动配方：重复点只会被判成「无需修复」，
@@ -118,7 +113,7 @@ const RepairItem = ({ task, className, buttonVariant, onRepair, onForceRepair, o
             { recipe: 'full-transcode', label: t('playbackRepair.recipe.fullTranscode') },
         ];
     const isRunning = task.status === RepairTaskState.IN_PROGRESS
-        || dpTask?.status === DpTaskState.IN_PROGRESS;
+        || event?.status === RepairTaskState.IN_PROGRESS;
     const preview = previewSource(task);
 
     /**
@@ -242,8 +237,8 @@ const RepairItem = ({ task, className, buttonVariant, onRepair, onForceRepair, o
                             >
                                 <span className={cn('w-1.5 h-1.5 rounded-full shrink-0', STATUS_DOT[statusKey()] ?? STATUS_DOT.init)} />
                                 <span className="truncate">
-                                    {isRunning && progress.progress !== undefined
-                                        ? `${statusText()} ${Math.round(progress.progress)}%`
+                                    {isRunning && event?.status === RepairTaskState.IN_PROGRESS
+                                        ? `${statusText()} ${Math.round(progress)}%`
                                         : statusText()}
                                 </span>
                             </div>
@@ -311,7 +306,7 @@ const RepairItem = ({ task, className, buttonVariant, onRepair, onForceRepair, o
                     {isRunning && (
                         <Progress
                             className="absolute bottom-0 left-0 w-full rounded-none h-1 bg-muted/40 [&>*]:transition-transform [&>*]:duration-500"
-                            value={progress.progress}
+                            value={progress}
                         />
                     )}
                 </div>

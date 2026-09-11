@@ -50,7 +50,7 @@ export type RepairReason =
 /**
  * 修复记录状态。
  *
- * 取值与 db 的 DpTaskState 保持一致，额外增加 `discarded`：用户主动丢弃了修复产物。
+ * 额外增加 `discarded`：用户主动丢弃了修复产物。
  * 状态只描述「这个媒体修过什么」，不代表产物现在还在或能不能播——那些一律看磁盘上的文件。
  */
 export enum RepairTaskState {
@@ -82,10 +82,25 @@ export interface RepairTaskUpdatePatch {
     outputPath?: string | null;
     /** 诊断原因。 */
     reason?: RepairReason | null;
-    /** 后台任务编号。 */
-    taskId?: number | null;
     /** 失败原因。 */
     error?: string | null;
+}
+
+/**
+ * 修复任务推送给渲染端的实时事件。
+ *
+ * 媒体路径是事件与修复记录的关联键。进度只存在于事件里，不落库：页面重开后
+ * 进行中的记录只显示「正在修复」，不带百分比。
+ */
+export interface RepairTaskEvent {
+    /** 媒体绝对路径。 */
+    file: string;
+    /** 当前修复状态。 */
+    status: RepairTaskState;
+    /** 当前进度（0 到 100）；仅进行中事件有意义。 */
+    progress?: number;
+    /** 失败或取消原因。 */
+    error?: string;
 }
 
 /**
@@ -179,8 +194,6 @@ export interface RepairTask {
     outputPath?: string;
     /** 诊断原因，用于区分「本来就无需修复」与「已修复」。 */
     reason?: RepairReason;
-    /** 正在运行的后台任务编号；无任务时为 `null`。 */
-    taskId: number | null;
     /** 失败原因。 */
     error?: string;
     /** 入队时间（UTC 数据库时间字符串）。 */
@@ -220,12 +233,12 @@ export interface PlaybackRepairDiagnosis {
  */
 export interface PlaybackRepairStartResult {
     /**
-     * 后台任务编号；无需修复时为 `null`。
+     * 修复是否已在本进程内运行；无需修复时为 `false`。
      *
-     * 同一媒体已有修复在运行时返回的是那条正在运行的任务，调用方接管它的进度即可，
-     * 不要再启动新的修复（产物路径固定，两次修复会互相覆盖）。
+     * 同一媒体已有修复在运行时返回的是那条正在运行的修复，调用方按媒体路径订阅
+     * `RepairTaskEvent` 接管进度即可，不要再启动新的修复（产物路径固定，两次修复会互相覆盖）。
      */
-    taskId: number | null;
+    started: boolean;
     /** 本次诊断结果，界面据此展示「已修复 / 无需修复」文案。 */
     diagnosis: PlaybackRepairDiagnosis;
 }
@@ -238,16 +251,6 @@ export interface FolderVideos {
     folder: string;
     /** 该文件夹内待修复的媒体文件绝对路径。 */
     videos: string[];
-}
-
-/**
- * 修复任务向渲染端暴露的进度结果。
- */
-export interface RepairTaskResult {
-    /** 当前修复进度，取值范围为 0 到 100。 */
-    progress: number;
-    /** 修复产物文件绝对路径。 */
-    path: string;
 }
 
 /**

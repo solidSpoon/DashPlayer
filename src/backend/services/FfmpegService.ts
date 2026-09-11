@@ -3,7 +3,6 @@ import { WithSemaphore } from '@/backend/utils/concurrency/decorators';
 import { randomUUID } from 'crypto';
 import path from 'path';
 import TYPES from '@/backend/ioc/types';
-import DpTaskService from '@/backend/services/DpTaskService';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { VideoInfo } from '@/common/types/video-info';
 import { CancelByUserError } from '@/backend/utils/errors/errors';
@@ -63,35 +62,50 @@ export default interface FfmpegService {
 
     /**
      * 按配方修复媒体文件，返回修复产物路径。
+     *
+     * @param args.job 日志检索键，把一次修复的子进程日志串起来。
+     * @param args.inputFile 输入媒体绝对路径。
+     * @param args.outputFile 修复产物绝对路径。
+     * @param args.recipe 修复配方。
+     * @param args.onProgress ffmpeg 进度回调，单位为百分比。
+     * @param args.registerCancel 取消句柄注册回调；调用方收到 cancel 后可终止本次执行。
+     * @returns 修复产物路径。
      */
     repair({
-               taskId,
+               job,
                inputFile,
                outputFile,
                recipe,
-               onProgress
+               onProgress,
+               registerCancel
            }: {
-        taskId: number,
+        job: string,
         inputFile: string,
         outputFile: string,
         recipe: RepairRecipe,
-        onProgress?: (progress: number) => void
+        onProgress?: (progress: number) => void,
+        registerCancel?: (cancel: () => void) => void
     }): Promise<string>;
 
     /**
      * 提取文本字幕；英语学习场景优先英文字幕轨，无匹配时回退第一条文本字幕。
+     *
+     * @param args.job 日志检索键，与所属修复任务共用。
+     * @param args.registerCancel 取消句柄注册回调；调用方收到 cancel 后可终止本次执行。
      * @returns 成功提取时返回 true；源媒体没有可转 srt 的文本字幕时返回 false。
      */
     extractSubtitles({
-                         taskId,
+                         job,
                          inputFile,
                          outputFile,
-                         onProgress
+                         onProgress,
+                         registerCancel
                      }: {
-        taskId: number,
+        job: string,
         inputFile: string,
         outputFile?: string,
-        onProgress?: (progress: number) => void
+        onProgress?: (progress: number) => void,
+        registerCancel?: (cancel: () => void) => void
     }): Promise<boolean>;
 
     trimVideo(inputPath: string, startTime: number, endTime: number, outputPath: string, job?: string): Promise<void>;
@@ -124,22 +138,10 @@ export default interface FfmpegService {
 
 
 /**
- * 把 dp_task ID 转成统一日志检索键，用于把一次后台任务的子进程日志串起来。
- * @param taskId 任务 ID；缺失时不伪造身份。
- * @returns `dp_task:<id>` 形式的 job 值，或 undefined。
- */
-function dpTaskJob(taskId?: number): string | undefined {
-    return taskId ? `dp_task:${taskId}` : undefined;
-}
-
-/**
  * FFmpeg 业务服务实现。
  */
 @injectable()
 export class FfmpegServiceImpl implements FfmpegService {
-    @inject(TYPES.DpTaskService)
-    private dpTaskService!: DpTaskService;
-
     @inject(TYPES.FfmpegGateway)
     private ffmpegGateway!: FfmpegGateway;
 
@@ -275,37 +277,40 @@ export class FfmpegServiceImpl implements FfmpegService {
     /**
      * 按配方修复媒体文件。
      *
-     * @param args.taskId 后台任务 ID，用于进度、取消与日志归因。
+     * @param args.job 日志检索键，把一次修复的子进程日志串起来。
      * @param args.inputFile 输入媒体绝对路径。
      * @param args.outputFile 修复产物绝对路径。
      * @param args.recipe 修复配方。
      * @param args.onProgress ffmpeg 进度回调，单位为百分比。
+     * @param args.registerCancel 取消句柄注册回调；调用方收到 cancel 后可终止本次执行。
      * @returns 修复产物路径。
      */
     @WithSemaphore('ffmpeg')
     public async repair({
-                            taskId,
+                            job,
                             inputFile,
                             outputFile,
                             recipe,
                             onProgress,
+                            registerCancel,
                         }: {
-        taskId: number,
+        job: string,
         inputFile: string,
         outputFile: string,
         recipe: RepairRecipe,
         onProgress?: (progress: number) => void,
+        registerCancel?: (cancel: () => void) => void,
     }): Promise<string> {
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputFile);
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(outputFile);
 
-        await this.runCancelableTask(taskId, async (onCancelable) => {
+        await this.runCancelableTask(job, registerCancel, async (onCancelable) => {
             await this.ffmpegGateway.repair(
                 { inputFile, outputFile, recipe },
                 {
                     onProgress,
                     onCancelable,
-                    job: dpTaskJob(taskId),
+                    job,
                 },
             );
         });
@@ -318,22 +323,24 @@ export class FfmpegServiceImpl implements FfmpegService {
      */
     @WithSemaphore('ffmpeg')
     public async extractSubtitles({
-                                      taskId,
+                                      job,
                                       inputFile,
                                       outputFile,
                                       onProgress,
+                                      registerCancel,
                                   }: {
-        taskId: number,
+        job: string,
         inputFile: string,
         outputFile?: string,
         onProgress?: (progress: number) => void,
+        registerCancel?: (cancel: () => void) => void,
     }): Promise<boolean> {
         const finalOutputFile = outputFile ?? inputFile.replace(path.extname(inputFile), '.srt');
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputFile);
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(finalOutputFile);
 
         let extracted = false;
-        await this.runCancelableTask(taskId, async (onCancelable) => {
+        await this.runCancelableTask(job, registerCancel, async (onCancelable) => {
             extracted = await this.ffmpegGateway.extractSubtitles(
                 {
                     inputFile,
@@ -344,7 +351,7 @@ export class FfmpegServiceImpl implements FfmpegService {
                 {
                     onProgress,
                     onCancelable,
-                    job: dpTaskJob(taskId),
+                    job,
                 },
             );
         });
@@ -457,25 +464,23 @@ export class FfmpegServiceImpl implements FfmpegService {
 
     /**
      * 执行支持取消的任务，并统一处理取消异常。
-     * @param taskId dp_task ID；缺失时无法注册取消回调也不参与 job 归因。
+     * @param job 日志检索键，用于异常日志归因。
+     * @param registerCancel 调用方的取消句柄注册回调；收到 cancel 即代表用户请求取消。
      * @param runner 接收取消注册回调的任务体。
      */
     private async runCancelableTask(
-        taskId: number | undefined,
+        job: string,
+        registerCancel: ((cancel: () => void) => void) | undefined,
         runner: (onCancelable: (cancel: () => void) => void) => Promise<void>,
     ): Promise<void> {
-        const job = dpTaskJob(taskId);
         let cancelledByUser = false;
         let hasCancelable = false;
 
         const onCancelable = (cancel: () => void): void => {
             hasCancelable = true;
-            if (!taskId) return;
-            this.dpTaskService.registerTask(taskId, {
-                cancel(): void {
-                    cancelledByUser = true;
-                    cancel();
-                },
+            registerCancel?.(() => {
+                cancelledByUser = true;
+                cancel();
             });
         };
 
@@ -493,7 +498,7 @@ export class FfmpegServiceImpl implements FfmpegService {
             }
             throw this.processError(normalized, cancelledByUser);
         } finally {
-            if (taskId && !hasCancelable) {
+            if (!hasCancelable) {
                 this.logger.debug('ffmpeg task finished without cancel handle', { job });
             }
         }

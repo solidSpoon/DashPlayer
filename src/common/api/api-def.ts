@@ -332,6 +332,7 @@ interface MediaDef {
 interface PlaybackRepairDef {
     'repair/diagnose': { params: string, return: PlaybackRepairDiagnosis };
     'repair/start': { params: PlaybackRepairStartRequest, return: PlaybackRepairStartResult };
+    'repair/cancel': { params: string, return: void };
     'repair/list-folder-videos': { params: string[], return: FolderVideos[] };
     'repair/enqueue': { params: RepairEnqueueRequest, return: RepairEnqueueResult };
     'repair/groups': { params: void, return: RepairGroup[] };

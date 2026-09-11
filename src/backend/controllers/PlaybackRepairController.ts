@@ -43,10 +43,18 @@ export default class PlaybackRepairController implements Controller {
     /**
      * 诊断并启动修复任务。
      * @param request 待修复媒体与可选的强制配方。
-     * @returns 任务编号与诊断结论。
+     * @returns 是否已启动修复与诊断结论。
      */
     public async startRepair(request: PlaybackRepairStartRequest): Promise<PlaybackRepairStartResult> {
         return this.playbackRepairService.startRepair(request);
+    }
+
+    /**
+     * 取消正在运行的修复任务。
+     * @param filePath 待取消修复的媒体绝对路径。
+     */
+    public async cancelRepair(filePath: string): Promise<void> {
+        await this.playbackRepairService.cancelRepair(filePath);
     }
 
     /**
@@ -135,6 +143,7 @@ export default class PlaybackRepairController implements Controller {
     public registerRoutes(): void {
         registerRoute('repair/diagnose', (p) => this.diagnose(p));
         registerRoute('repair/start', (p) => this.startRepair(p));
+        registerRoute('repair/cancel', (p) => this.cancelRepair(p));
         registerRoute('repair/list-folder-videos', (p) => this.listFolderVideos(p));
         registerRoute('repair/groups', () => this.listRepairGroups());
         registerRoute('repair/probe', (p) => this.probeRepairTask(p));
