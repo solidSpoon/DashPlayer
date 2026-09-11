@@ -29,8 +29,53 @@ export interface PlaybackVerificationResult {
     ok: boolean;
     /** 试播是否真的跑起来了；为 false 时计数不可信，不能据此判定文件有问题。 */
     conclusive: boolean;
+    /** 未通过的维度；用于把证据归因到具体编码。 */
+    failedDimensions?: Array<'video' | 'audio'>;
     /** 未通过时的简短原因，用于日志与提示。 */
     detail?: string;
+}
+
+/**
+ * 解码字节计数快照。
+ *
+ * null 表示当前平台未提供该计数器，与「计数为 0（确实没解出）」是两回事，必须区分。
+ */
+export interface DecodedByteSignals {
+    video: number | null;
+    audio: number | null;
+}
+
+/** 真机探测到的解码信号快照。 */
+export interface PlaybackSignalSnapshot {
+    /** 实际解出的画面宽度；0 表示没有画面。 */
+    videoWidth: number;
+    /** 解码字节计数。 */
+    decoded: DecodedByteSignals;
+}
+
+/**
+ * 依据真机解码信号判定画面/声音是否如预期解出。
+ *
+ * 计数器缺失（null）按「无法度量」处理而不是按 0 处理：这类平台没有更细的证据可用，
+ * 宁可放行也不把好产物误判为不可播（产物结构已由后端 ffprobe 验收过）。
+ *
+ * @param target 预期要有的流。
+ * @param snapshot 真机信号。
+ * @returns 是否全部通过，以及未通过的维度。
+ */
+export function assessPlaybackVerification(
+    target: PlaybackVerificationTarget,
+    snapshot: PlaybackSignalSnapshot,
+): { ok: boolean; failedDimensions: Array<'video' | 'audio'> } {
+    const failedDimensions: Array<'video' | 'audio'> = [];
+    // videoWidth 与视频计数是互相独立的信号：进度在走的黑屏靠计数拆穿，计数缺失时靠画面尺寸兑底。
+    if (target.expectVideo && (!(snapshot.videoWidth > 0) || snapshot.decoded.video === 0)) {
+        failedDimensions.push('video');
+    }
+    if (target.expectAudio && snapshot.decoded.audio === 0) {
+        failedDimensions.push('audio');
+    }
+    return { ok: failedDimensions.length === 0, failedDimensions };
 }
 
 /**
@@ -70,16 +115,17 @@ export async function verifyRepairedPlayback(
         }
 
         const progressed = await playBriefly(element);
-        const decoded = readDecodedBytes(element);
-        if (target.expectVideo && (!(element.videoWidth > 0) || decoded.video === 0)) {
+        const assessment = assessPlaybackVerification(target, {
+            videoWidth: element.videoWidth,
+            decoded: readDecodedBytes(element),
+        });
+        if (!assessment.ok) {
             return {
                 ok: false,
                 conclusive: progressed,
-                detail: `video-not-decoded:${element.videoWidth}x${element.videoHeight}:${decoded.video}`,
+                failedDimensions: assessment.failedDimensions,
+                detail: `not-decoded:${assessment.failedDimensions.join('+')}:${element.videoWidth}x${element.videoHeight}`,
             };
-        }
-        if (target.expectAudio && decoded.audio === 0) {
-            return { ok: false, conclusive: progressed, detail: 'audio-not-decoded' };
         }
         return { ok: true, conclusive: true };
     } finally {
@@ -132,15 +178,15 @@ async function playBriefly(element: HTMLMediaElement): Promise<boolean> {
  * 读取 Chromium 的解码字节计数。
  *
  * @param element 用于试播的媒体元素。
- * @returns 视频与音频的累计解码字节数；浏览器不提供该计数时返回 0。
+ * @returns 视频与音频的累计解码字节数；平台不提供该计数器时对应字段为 null，绝不冒充 0。
  */
-function readDecodedBytes(element: HTMLMediaElement): { video: number; audio: number } {
+function readDecodedBytes(element: HTMLMediaElement): DecodedByteSignals {
     const probe = element as HTMLMediaElement & {
         webkitVideoDecodedByteCount?: number;
         webkitAudioDecodedByteCount?: number;
     };
     return {
-        video: probe.webkitVideoDecodedByteCount ?? 0,
-        audio: probe.webkitAudioDecodedByteCount ?? 0,
+        video: typeof probe.webkitVideoDecodedByteCount === 'number' ? probe.webkitVideoDecodedByteCount : null,
+        audio: typeof probe.webkitAudioDecodedByteCount === 'number' ? probe.webkitAudioDecodedByteCount : null,
     };
 }
