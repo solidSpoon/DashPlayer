@@ -27,6 +27,7 @@ const TYPES = {
     FfmpegService: Symbol('FfmpegService'),
     SplitVideoService: Symbol('SplitVideoService'),
     PlaybackRepairService: Symbol('PlaybackRepairService'),
+    PlaybackCapabilityService: Symbol('PlaybackCapabilityService'),
     MediaService: Symbol('MediaService'),
     TranslateService: Symbol('TranslateService'),
     SubtitleTranslationService: Symbol('SubtitleTranslationService'),

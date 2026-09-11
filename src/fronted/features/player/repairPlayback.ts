@@ -236,6 +236,98 @@ async function switchToRepairedMedia(args: {
 }
 
 /**
+ * 预检阶段能给出的学习结论原因。
+ */
+type LearnedRepairReason = Extract<RepairReason, 'undecodable-video' | 'unsupported-audio'>;
+
+/**
+ * 对诊断结论为「可直接播放」的媒体做一次真机探测，把结论性证据写入学习能力缓存。
+ *
+ * 目的是封住静态白名单的跨平台误判（如无硬解机器上的 HEVC）：白名单说能播但实测
+ * 解不出画面/声音时，把该编码记为不可解，之后的诊断会据此收紧配方，当前文件也
+ * 能拿到修复提示而不是「无需修复 → 播放黑屏」的死胡同。
+ *
+ * 探测是静默的（隐藏元素、静音），且后端保证每个编码每台机器最多探测一次。
+ *
+ * @param diagnosis 已完成的诊断结论，提供编码名与预期流。
+ * @returns 实测出不可解时返回建议的提示原因；其余情况返回 null。
+ */
+export async function probeAndRecordPlaybackCapability(
+    diagnosis: PlaybackRepairDiagnosis,
+): Promise<LearnedRepairReason | null> {
+    // 已经判定要修的文件不需要探测：修复本身会给出正确配方。
+    if (diagnosis.reason !== 'playable') {
+        return null;
+    }
+    const videoCodec = diagnosis.videoCodec ?? null;
+    const audioCodec = diagnosis.audioCodec ?? null;
+    if (!videoCodec && !audioCodec) {
+        return null;
+    }
+
+    try {
+        const shouldProbe = await repairApi.shouldProbeCapability({ videoCodec, audioCodec });
+        if (!shouldProbe) {
+            return null;
+        }
+        const result = await verifyRepairedPlayback(diagnosis.filePath, {
+            expectVideo: diagnosis.hasVideoStream,
+            expectAudio: diagnosis.hasAudioStream,
+        });
+        if (!result.conclusive) {
+            // 试播没跑起来时计数不可信：不下任何结论，也不打断用户。
+            logger.debug('capability probe inconclusive', { filePath: diagnosis.filePath });
+            return null;
+        }
+
+        if (result.ok) {
+            await recordEvidence(diagnosis, 'video', true);
+            await recordEvidence(diagnosis, 'audio', true);
+            return null;
+        }
+
+        const failedDimensions = result.failedDimensions ?? [];
+        for (const dimension of failedDimensions) {
+            await recordEvidence(diagnosis, dimension, false);
+        }
+        // 画面和声音都没解出时按视频问题提示（配方同为整片重编码）。
+        return failedDimensions.includes('video') ? 'undecodable-video' : 'unsupported-audio';
+    } catch (error) {
+        // 探测是锦上添花的能力：失败只记日志，不影响打开文件的正常流程。
+        logger.debug('capability probe failed', {
+            filePath: diagnosis.filePath,
+            error: error instanceof Error ? error.message : String(error),
+        });
+        return null;
+    }
+}
+
+/**
+ * 把单个维度的证据上报给学习缓存。
+ *
+ * @param diagnosis 诊断结论，提供编码名与源文件路径。
+ * @param dimension 证据所属维度。
+ * @param playable 是否实测解出。
+ */
+async function recordEvidence(
+    diagnosis: PlaybackRepairDiagnosis,
+    dimension: 'video' | 'audio',
+    playable: boolean,
+): Promise<void> {
+    const codec = dimension === 'video' ? diagnosis.videoCodec : diagnosis.audioCodec;
+    if (!codec) {
+        return;
+    }
+    await repairApi.recordPlaybackEvidence({
+        codec,
+        kind: dimension,
+        playable,
+        conclusive: true,
+        sourceFile: diagnosis.filePath,
+    });
+}
+
+/**
  * 对修复产物做真机试播验收，未通过时删掉产物。
  *
  * @param diagnosis 本次诊断结论，提供产物路径与源文件的流信息。

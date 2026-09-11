@@ -25,7 +25,7 @@ import {
 } from '@/fronted/components/shared/toasts/PlaybackRepairToast';
 import useSystem from '@/fronted/hooks/useSystem';
 import { playerApi } from '@/fronted/features/player/playerApi';
-import { diagnosePlayback, repairPlayback } from '@/fronted/features/player/repairPlayback';
+import { diagnosePlayback, probeAndRecordPlaybackCapability, repairPlayback } from '@/fronted/features/player/repairPlayback';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import useSubtitleTranslation from '@/fronted/features/player/translationStore';
 import { playerActions } from '@/fronted/features/player/components/PlayerActions';
@@ -210,6 +210,12 @@ const PlayerWithControlsPage = () => {
                     try {
                         const diagnosis = await diagnosePlayback(videoPath);
                         if (!diagnosis.needsRepair) {
+                            // 白名单认为可直接播放：对从未实测过的编码做一次静默探测；
+                            // 实测解不出时学习该结论并直接给出修复提示，避免「无需修复 → 播放黑屏」死胡同。
+                            const learnedReason = await probeAndRecordPlaybackCapability(diagnosis);
+                            if (learnedReason) {
+                                showRepairToast(videoPath, learnedReason);
+                            }
                             return;
                         }
                         showRepairToast(videoPath, diagnosis.reason);

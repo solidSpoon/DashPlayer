@@ -102,3 +102,41 @@ export interface RepairTaskResult {
     /** 修复产物文件绝对路径。 */
     path: string;
 }
+
+/**
+ * 单个编码的实测结论。
+ *
+ * - `playable`：真机探测确认解出了画面/声音，只用于避免重复探测；
+ * - `unplayable`：真机探测确认解不出，诊断据此收紧修复配方。
+ *
+ * 学习层只收紧不放松：`playable` 永远不会把白名单外的编码变成可搬。
+ */
+export type LearnedCodecVerdict = 'playable' | 'unplayable';
+
+/**
+ * 渲染端上报的一次结论性播放证据。
+ */
+export interface PlaybackEvidenceInput {
+    /** ffprobe 报告的编码名（如 hevc、aac）。 */
+    codec: string;
+    /** 证据所属的流类型。 */
+    kind: 'video' | 'audio';
+    /** 实测该编码是否解出了画面/声音。 */
+    playable: boolean;
+    /** 证据是否结论性：容器已解析且播放确实推进；非结论性证据会被忽略。 */
+    conclusive: boolean;
+    /** 产生证据的媒体文件绝对路径，用于排障与将来的同源去重。 */
+    sourceFile: string;
+}
+
+/**
+ * 诊断时可用的学习覆盖层：只包含本次诊断涉及编码的实测结论。
+ *
+ * 字段缺省表示该编码没有学习结论，诊断完全回落静态白名单。
+ */
+export interface LearnedCapabilityOverlay {
+    /** 视频编码的实测结论。 */
+    video?: LearnedCodecVerdict;
+    /** 音频编码的实测结论。 */
+    audio?: LearnedCodecVerdict;
+}

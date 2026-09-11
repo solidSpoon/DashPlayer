@@ -50,6 +50,7 @@ import ChatSessionStore, { InMemoryChatSessionStore } from '@/backend/services/c
 import AiProviderService, { AiProviderServiceImpl } from '@/backend/services/AiProviderService';
 import ModelRoutingService, { ModelRoutingServiceImpl } from '@/backend/services/ModelRoutingService';
 import PlaybackRepairService, { PlaybackRepairServiceImpl } from '@/backend/services/PlaybackRepairService';
+import PlaybackCapabilityService, { PlaybackCapabilityServiceImpl } from '@/backend/services/PlaybackCapabilityService';
 import SplitVideoService, { SplitVideoServiceImpl } from '@/backend/services/SplitVideoService';
 import MediaService, { MediaServiceImpl } from '@/backend/services/MediaService';
 import ClientProviderService from '@/backend/services/ClientProviderService';
@@ -232,6 +233,7 @@ container.bind<ChatService>(TYPES.ChatService).to(ChatServiceImpl).inSingletonSc
 container.bind<ChatSessionStore>(TYPES.ChatSessionStore).to(InMemoryChatSessionStore).inSingletonScope();
 container.bind<ChatSessionService>(TYPES.ChatSessionService).to(ChatSessionServiceImpl).inSingletonScope();
 container.bind<PlaybackRepairService>(TYPES.PlaybackRepairService).to(PlaybackRepairServiceImpl).inSingletonScope();
+container.bind<PlaybackCapabilityService>(TYPES.PlaybackCapabilityService).to(PlaybackCapabilityServiceImpl).inSingletonScope();
 container.bind<SplitVideoService>(TYPES.SplitVideoService).to(SplitVideoServiceImpl).inSingletonScope();
 container.bind<MediaService>(TYPES.MediaService).to(MediaServiceImpl).inSingletonScope();
 container.bind<TranslateService>(TYPES.TranslateService).to(TranslateServiceImpl).inSingletonScope();

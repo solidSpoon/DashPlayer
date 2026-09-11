@@ -17,6 +17,7 @@ import FfmpegService from '@/backend/services/FfmpegService';
 import TYPES from '@/backend/ioc/types';
 import { decideRepair, isCopyableAudioCodec, isCopyableVideoCodec, PlaybackFacts } from '@/backend/services/playback-repair-rules';
 import { getHtml5VariantPath, isHtml5VariantFileName } from '@/backend/services/watch-history-file-rules';
+import PlaybackCapabilityService from '@/backend/services/PlaybackCapabilityService';
 
 /** 判定 MP3 码率模式需要读取的文件头部字节数；约覆盖 200 帧。 */
 const MP3_HEADER_BYTES = 128 * 1024;
@@ -94,12 +95,14 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
      * @param ffmpegService FFmpeg 基础能力服务。
      * @param storageDirectoryProvider 外部路径权限恢复服务。
      * @param fileSystemGateway 文件系统访问入口。
+     * @param playbackCapabilityService 播放能力学习缓存，提供本机实测的编码结论。
      */
     constructor(
         @inject(TYPES.DpTaskService) private readonly dpTaskService: DpTaskService,
         @inject(TYPES.FfmpegService) private readonly ffmpegService: FfmpegService,
         @inject(TYPES.StorageDirectoryProvider) private readonly storageDirectoryProvider: StorageDirectoryProvider,
         @inject(TYPES.FileSystemGateway) private readonly fileSystemGateway: FileSystemGateway,
+        @inject(TYPES.PlaybackCapabilityService) private readonly playbackCapabilityService: PlaybackCapabilityService,
     ) {}
 
     /**
@@ -137,7 +140,10 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
         }
 
         const facts = await this.collectFacts(filePath);
-        const decision = decideRepair(facts);
+        // 叠加本机实测的学习结论：静态白名单有跨平台误判的可能（如无硬解机器上的 HEVC），
+        // 实测「不可解」的编码会让配方收紧到重编码。
+        const learned = await this.playbackCapabilityService.getOverlay(facts.videoCodec, facts.audioCodec);
+        const decision = decideRepair(facts, learned);
         return {
             filePath,
             needsRepair: decision.needsRepair,

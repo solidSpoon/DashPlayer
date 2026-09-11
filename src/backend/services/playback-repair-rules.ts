@@ -1,5 +1,5 @@
 import path from 'path';
-import { Mp3BitrateMode, RepairReason, RepairRecipe } from '@/common/contracts/playback-repair';
+import { Mp3BitrateMode, LearnedCapabilityOverlay, RepairReason, RepairRecipe } from '@/common/contracts/playback-repair';
 import MediaUtil from '@/common/utils/MediaUtil';
 
 /**
@@ -89,10 +89,24 @@ export interface RepairDecision {
     recipe?: RepairRecipe;
 }
 
-export function decideRepair(facts: PlaybackFacts): RepairDecision {
+/**
+ * 判定修复配方；静态白名单为基础，叠加本机实测的学习结论。
+ *
+ * 学习覆盖层只收紧不放松：实测「不可解」的编码会被视同白名单外，
+ * 但白名单外的编码不会因为实测可解而免修——能否搬运是「编码 + 容器」的联合属性，
+ * 单靠编码证据覆盖不了。这样学习层的任何误判最多让修复更保守（多转码），
+ * 不会放行坏产物。
+ *
+ * @param facts 判定所需事实。
+ * @param learned 本机实测结论；无证据时传空，完全回落静态白名单。
+ * @returns 判定结论。
+ */
+export function decideRepair(facts: PlaybackFacts, learned?: LearnedCapabilityOverlay): RepairDecision {
     const extension = path.extname(facts.fileName).toLowerCase();
 
     if (MediaUtil.isAudio(facts.fileName)) {
+        // 纯音频分支没有编码探测事实（mp3 之外不作 ffprobe），学习层无从介入；
+        // VBR MP3 的 seek 问题也不存在「解码失败」信号，只能靠码率模式判定。
         if (UNSUPPORTED_AUDIO_CONTAINERS.has(extension)) {
             return { needsRepair: true, reason: 'unsupported-container', recipe: 'audio-transcode' };
         }
@@ -112,10 +126,12 @@ export function decideRepair(facts: PlaybackFacts): RepairDecision {
 
     const videoCodec = (facts.videoCodec ?? '').toLowerCase();
     const audioCodec = (facts.audioCodec ?? '').toLowerCase();
+    // 学习结论只对已探测到的编码生效。
+    const audioUnplayable = audioCodec !== '' && learned?.audio === 'unplayable';
 
     // 只有音轨的文件（例如只装了音乐的 MKV）：没有视频流，整片重编码没有意义。
     if (!facts.hasVideoStream) {
-        if (audioCodec !== '' && !isCopyableAudioCodec(audioCodec)) {
+        if ((audioCodec !== '' && !isCopyableAudioCodec(audioCodec)) || audioUnplayable) {
             return { needsRepair: true, reason: 'unsupported-audio', recipe: 'audio-transcode' };
         }
         if (CONTAINER_SWAP_CONTAINERS.has(extension)) {
@@ -124,10 +140,10 @@ export function decideRepair(facts: PlaybackFacts): RepairDecision {
         return { needsRepair: false, reason: 'playable' };
     }
 
-    if (videoCodec === '' || !isCopyableVideoCodec(videoCodec)) {
+    if (videoCodec === '' || !isCopyableVideoCodec(videoCodec) || learned?.video === 'unplayable') {
         return { needsRepair: true, reason: 'undecodable-video', recipe: 'full-transcode' };
     }
-    if (audioCodec !== '' && !isCopyableAudioCodec(audioCodec)) {
+    if ((audioCodec !== '' && !isCopyableAudioCodec(audioCodec)) || audioUnplayable) {
         return { needsRepair: true, reason: 'unsupported-audio', recipe: 'video-copy-audio-transcode' };
     }
     if (CONTAINER_SWAP_CONTAINERS.has(extension)) {

@@ -1,4 +1,5 @@
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { PlaybackEvidenceInput } from '@/common/contracts/playback-repair';
 
 export const repairApi = {
     /**
@@ -49,6 +50,27 @@ export const repairApi = {
      * @returns 产物存在并被删除时返回 true。
      */
     discard: (file: string) => backendClient.call('repair/discard', file),
+
+    /**
+     * 查询是否还需要对这两个编码做真机能力探测。
+     *
+     * 探测约耗 1.6s 隐藏试播，后端只在编码从未有过实测结论时返回 true。
+     *
+     * @param payload 待探测的视频/音频编码；无对应流时传 null。
+     * @returns 需要探测时返回 true。
+     */
+    shouldProbeCapability: (payload: { videoCodec: string | null; audioCodec: string | null }) =>
+        backendClient.call('repair/should-probe-capability', payload),
+
+    /**
+     * 上报一次结论性播放证据到学习缓存。
+     *
+     * 非结论性证据（试播没跑起来）会被后端忽略。
+     *
+     * @param payload 证据内容。
+     */
+    recordPlaybackEvidence: (payload: PlaybackEvidenceInput) =>
+        backendClient.call('repair/record-playback-evidence', payload),
 
     /**
      * 获取媒体指定时间点的缩略图。

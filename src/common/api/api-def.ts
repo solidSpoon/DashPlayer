@@ -14,6 +14,7 @@ import {SubtitleTimestampAdjustmentInput} from '@/common/contracts/subtitle-time
 import { UpdateCheckResult } from '@/common/types/update-check';
 import {
     FolderVideos,
+    PlaybackEvidenceInput,
     PlaybackRepairDiagnosis,
     PlaybackRepairStartResult,
 } from '@/common/contracts/playback-repair';
@@ -328,6 +329,8 @@ interface PlaybackRepairDef {
     'repair/start': { params: string, return: PlaybackRepairStartResult };
     'repair/scan-folders': { params: string[], return: FolderVideos[] };
     'repair/discard': { params: string, return: boolean };
+    'repair/should-probe-capability': { params: { videoCodec: string | null; audioCodec: string | null }, return: boolean };
+    'repair/record-playback-evidence': { params: PlaybackEvidenceInput, return: void };
 }
 
 interface FavoriteClipsDef {
