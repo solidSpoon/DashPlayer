@@ -1,4 +1,5 @@
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { requestVideoThumbnail } from '@/fronted/lib/video-thumbnail';
 import { PlaybackEvidenceInput, PlaybackRepairDiscardRequest } from '@/common/contracts/playback-repair';
 
 export const repairApi = {
@@ -103,7 +104,7 @@ export const repairApi = {
      * @param time 截图时间，单位为秒。
      * @returns 缩略图文件路径。
      */
-    getThumbnail: (filePath: string, time: number) => backendClient.call('media/thumbnail', { filePath, time }),
+    getThumbnail: (filePath: string, time: number) => requestVideoThumbnail({ filePath, time }),
 
     /**
      * 获取媒体时长。

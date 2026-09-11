@@ -36,14 +36,14 @@ const RepairItem = ({ task, className, buttonVariant, onRepair, onRemove }: {
 }) => {
     const { t } = useI18nTranslation('pages');
     const file = task.file;
-    // 纯音频没有画面，请求缩略图只会让 ffmpeg 报「输出不含任何流」。这里直接不请求，
-    // 也不重试：失败重试会每几秒拉起一个必然失败的 ffmpeg 进程。
+    // 纯音频不请求缩略图（判定收口在 requestVideoThumbnail），这里只负责显示音符图标。
     const isAudio = MediaUtil.isAudio(file);
-    const { data: url } = useSWR(file && !isAudio ?
-            [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, file, 5] : null,
+    const { data: url } = useSWR(
+        file ? [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, file, 5] : null,
         async ([, path, time]) => {
             return await repairApi.getThumbnail(path, time);
         },
+        // 记录可能指向已被改名或删除的文件，反复重试只会持续刷日志。
         { shouldRetryOnError: false }
     );
     const { data: videoLength } = useSWR(file ? ['duration', file] : null, async ([, f]) => {

@@ -1,4 +1,5 @@
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { requestVideoThumbnail } from '@/fronted/lib/video-thumbnail';
 import { SubtitleTimestampAdjustmentInput } from '@/common/contracts/subtitle-timestamp-adjustment';
 
 /**
@@ -130,7 +131,7 @@ export const playerApi = {
         quality?: 'low' | 'medium' | 'high' | 'ultra';
         width?: number;
         format?: 'jpg' | 'png';
-    }) => backendClient.call('media/thumbnail', params),
+    }) => requestVideoThumbnail(params),
 
     /**
      * 解析字幕为句子。
