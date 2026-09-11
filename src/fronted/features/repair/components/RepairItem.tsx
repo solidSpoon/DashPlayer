@@ -77,7 +77,7 @@ const RepairItem = ({ task, className, buttonVariant, onRepair, onForceRepair, o
     className?: string,
     buttonVariant?: 'default' | 'small';
     onRepair: () => void;
-    /** 指定配方强制重做，用于已判定「无需修复 / 已修复」的文件。 */
+    /** 指定配方强制重做；不想走自动配方的记录（已取消、失败、已丢弃、已判定无需修复）都可选用。 */
     onForceRepair: (recipe: RepairRecipe) => void;
     onRemove: () => void;
 }) => {
@@ -103,7 +103,7 @@ const RepairItem = ({ task, className, buttonVariant, onRepair, onForceRepair, o
 
     const isProbing = task.status === RepairTaskState.INIT;
     // 已经得出结论的行（无需修复 / 已修复）不再走自动配方：重复点只会被判成「无需修复」，
-    // 所以主按钮禁用，改由左侧「强制修复」让用户自己选做法。
+    // 所以主按钮禁用，改由「强制修复」让用户自己选做法。
     const isSettled = task.status === RepairTaskState.DONE;
     const forceRecipes: Array<{ recipe: RepairRecipe; label: string }> = isAudio
         ? [{ recipe: 'audio-transcode', label: t('playbackRepair.recipe.audioTranscode') }]
@@ -114,6 +114,9 @@ const RepairItem = ({ task, className, buttonVariant, onRepair, onForceRepair, o
         ];
     const isRunning = task.status === RepairTaskState.IN_PROGRESS
         || event?.status === RepairTaskState.IN_PROGRESS;
+    // 强制修复入口对一切可发起修复的行开放：取消（含应用重启中断）、失败或丢弃之后，
+    // 用户可能想换个配方重做，而不是重复刚才那条路径。
+    const canForceRepair = !isRunning && !isProbing;
     const preview = previewSource(task);
 
     /**
@@ -161,12 +164,13 @@ const RepairItem = ({ task, className, buttonVariant, onRepair, onForceRepair, o
     };
 
     /**
-     * 生成第二行说明：失败显示错误，待修复显示原因，其余显示路径。
+     * 生成第二行说明：失败显示错误，取消显示原因（如「应用重启导致修复中断」），
+     * 待修复显示原因，其余显示路径。
      *
      * @returns 说明文案。
      */
     const detailText = (): string => {
-        if (task.status === RepairTaskState.FAILED && task.error) {
+        if ((task.status === RepairTaskState.FAILED || task.status === RepairTaskState.CANCELLED) && task.error) {
             return task.error;
         }
         if (task.status === RepairTaskState.TODO && task.reason) {
@@ -244,7 +248,7 @@ const RepairItem = ({ task, className, buttonVariant, onRepair, onForceRepair, o
                             </div>
 
                             <div className="flex items-center gap-1.5">
-                                {isSettled && (
+                                {canForceRepair && (
                                     <DropdownMenu>
                                         <DropdownMenuTrigger asChild>
                                             <Button
