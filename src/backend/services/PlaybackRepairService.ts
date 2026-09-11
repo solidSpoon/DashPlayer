@@ -17,6 +17,7 @@ import FfmpegService from '@/backend/services/FfmpegService';
 import TYPES from '@/backend/ioc/types';
 import { decideRepair, isCopyableAudioCodec, isCopyableVideoCodec, PlaybackFacts } from '@/backend/services/playback-repair-rules';
 import { getHtml5VariantPath, getRepairTempPath, isHtml5VariantFileName } from '@/backend/services/watch-history-file-rules';
+import { getMainLogger } from '@/backend/infrastructure/logger';
 import PlaybackCapabilityService from '@/backend/services/PlaybackCapabilityService';
 
 /** 判定 MP3 码率模式需要读取的文件头部字节数；约覆盖 200 帧。 */
@@ -89,6 +90,18 @@ export default interface PlaybackRepairService {
  */
 @injectable()
 export class PlaybackRepairServiceImpl implements PlaybackRepairService {
+    private logger = getMainLogger('PlaybackRepairService');
+
+    /**
+     * 正在修复的产物路径到启动结果。
+     *
+     * 修复产物固定写在源文件旁边，同一文件的两次修复会写到同一份临时文件上，
+     * 因此从播放页与修复页两个入口同时发起时必须合并成同一次修复。守护放在服务层，
+     * 因为两个入口调用的是同一个 IPC 路由，而修复任务只存活在当前主进程内
+     * （进程重启时 DpTaskService 会把活动任务标为已取消）。
+     */
+    private readonly runningRepairs = new Map<string, Promise<PlaybackRepairStartResult>>();
+
     /**
      * 创建播放修复用例服务。
      * @param dpTaskService 后台任务状态服务。
@@ -161,18 +174,57 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
     /**
      * 诊断并启动修复任务。
      *
+     * 同一媒体的修复已在运行时不再重复创建任务，而是返回正在运行的任务编号，
+     * 调用方（播放页、修复页）接管同一条进度，避免两个 ffmpeg 写同一份产物。
+     * 占位在方法内同步登记，因此即使两个入口几乎同时发起也只会启动一次。
+     *
      * @param filePath 待修复媒体绝对路径。
      * @returns 任务编号与诊断结论；无需修复时任务编号为 `null`。
      */
-    public async startRepair(filePath: string): Promise<PlaybackRepairStartResult> {
-        const diagnosis = await this.diagnose(filePath);
-        if (!diagnosis.needsRepair) {
-            return { taskId: null, diagnosis };
+    public startRepair(filePath: string): Promise<PlaybackRepairStartResult> {
+        const outputPath = getHtml5VariantPath(filePath);
+        const running = this.runningRepairs.get(outputPath);
+        if (running) {
+            this.logger.info('reuse running repair', { filePath, outputPath });
+            return running;
         }
 
-        const taskId = await this.dpTaskService.create();
-        void this.executeRepair(taskId, filePath, diagnosis);
-        return { taskId, diagnosis };
+        const started = this.beginRepair(filePath);
+        this.runningRepairs.set(outputPath, started);
+        return started;
+    }
+
+    /**
+     * 执行诊断并创建修复任务；无论成功失败都会释放占位。
+     *
+     * @param filePath 待修复媒体绝对路径。
+     * @returns 任务编号与诊断结论。
+     */
+    private async beginRepair(filePath: string): Promise<PlaybackRepairStartResult> {
+        const outputPath = getHtml5VariantPath(filePath);
+        try {
+            const diagnosis = await this.diagnose(filePath);
+            if (!diagnosis.needsRepair) {
+                this.runningRepairs.delete(outputPath);
+                return { taskId: null, diagnosis };
+            }
+
+            const taskId = await this.dpTaskService.create();
+            void this.executeRepair(taskId, filePath, diagnosis)
+                .catch((error: unknown) => {
+                    // executeRepair 自己只处理修复过程中的异常，这里兜住它启动前的早期失败。
+                    this.logger.error('repair task crashed', { taskId, filePath, error });
+                    this.dpTaskService.fail(taskId, {
+                        progress: `修复失败：${error instanceof Error ? error.message : String(error)}`,
+                        result: JSON.stringify({ progress: 0, path: outputPath }),
+                    });
+                })
+                .finally(() => this.runningRepairs.delete(outputPath));
+            return { taskId, diagnosis };
+        } catch (error) {
+            this.runningRepairs.delete(outputPath);
+            throw error;
+        }
     }
 
     /**

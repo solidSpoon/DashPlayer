@@ -77,7 +77,12 @@ export interface PlaybackRepairDiagnosis {
  * 启动修复的返回结果。
  */
 export interface PlaybackRepairStartResult {
-    /** 创建的后台任务编号；无需修复时为 `null`。 */
+    /**
+     * 后台任务编号；无需修复时为 `null`。
+     *
+     * 同一媒体已有修复在运行时返回的是那条正在运行的任务，调用方接管它的进度即可，
+     * 不要再启动新的修复（产物路径固定，两次修复会互相覆盖）。
+     */
     taskId: number | null;
     /** 本次诊断结果，界面据此展示「已修复 / 无需修复」文案。 */
     diagnosis: PlaybackRepairDiagnosis;
