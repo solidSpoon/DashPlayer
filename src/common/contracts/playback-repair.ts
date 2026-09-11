@@ -54,8 +54,10 @@ export type RepairReason =
  * 状态只描述「这个媒体修过什么」，不代表产物现在还在或能不能播——那些一律看磁盘上的文件。
  */
 export enum RepairTaskState {
-    /** 已入队、还没开始修复。 */
+    /** 已加入名单，等待探测（还没判断出需不需要修）。 */
     INIT = 'init',
+    /** 探测完成，已确认需要修复；`reason` 说明问题类型。 */
+    TODO = 'todo',
     /** 正在修复。 */
     IN_PROGRESS = 'in_progress',
     /** 修复完成或本来无需修复。 */
@@ -96,6 +98,71 @@ export interface PlaybackRepairDiscardRequest {
     outputPath: string;
     /** 该产物对应的源媒体绝对路径。 */
     filePath: string;
+}
+
+/**
+ * 修复名单分组的来源类型。
+ *
+ * 组只是标记：界面按来源渲染标题（文件夹路径 / 「手动添加的 N 个」），不把界面文案写进数据库。
+ */
+export type RepairGroupSource = 'folder' | 'files';
+
+/**
+ * 一组修复名单（纯标记）。
+ *
+ * 文件状态只有一份，所以同一个文件可以同时属于多个组；在任意组里修复它，
+ * 其它组都会显示同一条最新状态。
+ */
+export interface RepairGroup {
+    /** 组标识；空字符串表示未归组（例如从播放页发起的修复）。 */
+    key: string;
+    /** 组来源；未归组时为 `files`。 */
+    source: RepairGroupSource;
+    /** 文件夹来源时对应的目录绝对路径。 */
+    path?: string;
+    /** 组内媒体的当前修复记录。 */
+    tasks: RepairTask[];
+}
+
+/**
+ * 把媒体加入修复名单的请求。
+ */
+export interface RepairEnqueueRequest {
+    /** 组来源类型。 */
+    source: RepairGroupSource;
+    /** 文件夹来源时的目录绝对路径。 */
+    path?: string;
+    /** 组内媒体绝对路径列表。 */
+    filePaths: string[];
+}
+
+/**
+ * 启动修复的请求。
+ */
+export interface PlaybackRepairStartRequest {
+    /** 待修复媒体绝对路径。 */
+    filePath: string;
+    /**
+     * 强制使用指定配方，跳过「需不需要修」的判断。
+     *
+     * 用于用户认为文件仍有问题、而诊断判定「无需修复」的场景（如卡顿、音画不同步）。
+     * 不传时按诊断结果自动选配方。
+     */
+    forceRecipe?: RepairRecipe;
+}
+
+/**
+ * 加入修复名单的结果。
+ */
+export interface RepairEnqueueResult {
+    /** 后端算出的组标识。 */
+    groupKey: string;
+    /**
+     * 本次真正新加入这一组的媒体。
+     *
+     * 为空表示这批文件已经全在名单里（完全重复的选择），界面据此提示一句而不是再造一张卡片。
+     */
+    addedFiles: string[];
 }
 
 /**

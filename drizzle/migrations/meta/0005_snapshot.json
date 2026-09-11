@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "d68018fc-7541-4852-80b0-8c25e7faf0d9",
+  "id": "4f55024c-a43c-49bb-a3dd-6ab8b94895af",
   "prevId": "b2dce096-c64c-43d8-b250-d6b0c72f8e9d",
   "tables": {
     "dp_clip_tag_relation": {
@@ -154,6 +154,76 @@
           "name": "dp_kvs_key_unique",
           "columns": [
             "key"
+          ],
+          "isUnique": true
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "dp_repair_group_file": {
+      "name": "dp_repair_group_file",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": true
+        },
+        "group_key": {
+          "name": "group_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "group_source": {
+          "name": "group_source",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "group_path": {
+          "name": "group_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "file_path": {
+          "name": "file_path",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "CURRENT_TIMESTAMP"
+        }
+      },
+      "indexes": {
+        "dp_repair_group_file_unique": {
+          "name": "dp_repair_group_file_unique",
+          "columns": [
+            "group_key",
+            "file_path"
           ],
           "isUnique": true
         }

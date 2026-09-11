@@ -1,13 +1,18 @@
 import path from 'path';
+import { createHash } from 'crypto';
 import { inject, injectable } from 'inversify';
 import {
     FolderVideos,
     Mp3BitrateMode,
     PlaybackRepairDiagnosis,
     PlaybackRepairDiscardRequest,
+    PlaybackRepairStartRequest,
     PlaybackRepairStartResult,
+    RepairEnqueueRequest,
+    RepairEnqueueResult,
+    RepairGroup,
+    RepairGroupSource,
     RepairRecipe,
-    RepairTask,
     RepairTaskState,
 } from '@/common/contracts/playback-repair';
 import MediaUtil from '@/common/utils/MediaUtil';
@@ -22,18 +27,11 @@ import { decideRepair, isCopyableAudioCodec, isCopyableVideoCodec, PlaybackFacts
 import { getHtml5VariantPath, getRepairTempPath, isHtml5VariantFileName } from '@/backend/services/watch-history-file-rules';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import RepairTaskRepository from '@/backend/services/repositories/RepairTaskRepository';
+import RepairGroupRepository from '@/backend/services/repositories/RepairGroupRepository';
 import PlaybackCapabilityService from '@/backend/services/PlaybackCapabilityService';
 
 /** 判定 MP3 码率模式需要读取的文件头部字节数；约覆盖 200 帧。 */
 const MP3_HEADER_BYTES = 128 * 1024;
-
-/**
- * 文件夹扫描中仅凭扩展名即可判定需要修复的容器。
- *
- * 其他容器（mp4/mov/webm）是否需要修复取决于内部编码，逐个 ffprobe 会让大目录扫描变得很慢，
- * 因此扫描阶段不处理它们，交给用户打开文件时的单文件诊断。
- */
-const ALWAYS_REPAIRABLE_EXTENSIONS = new Set(['.mkv', '.avi', '.wmv', '.flv']);
 
 /**
  * 修复产物路径。
@@ -43,6 +41,42 @@ interface RepairOutputPaths {
     outputPath: string;
     /** 从产物中提取的字幕路径；仅视频产物会产生。 */
     subtitlePath: string;
+}
+
+/** 文件夹来源的组标识前缀。 */
+const GROUP_KEY_FOLDER_PREFIX = 'folder:';
+
+/** 手动多选来源的组标识前缀。 */
+const GROUP_KEY_FILES_PREFIX = 'files:';
+
+/**
+ * 计算组标识。
+ *
+ * - 文件夹来源用目录路径：重新扫描同一个目录会落回同一组，新出现的文件自然补进这张卡片；
+ * - 手动多选来源用「文件集合的哈希」：只有选的文件完全一样才算同一批，重复选择不会多出卡片，
+ *   差一个文件就是新的一批。
+ *
+ * 路径先排序再去重，保证同一批文件无论以什么顺序传入都得到同一个标识。
+ *
+ * @param source 组来源类型。
+ * @param groupPath 文件夹来源的目录绝对路径。
+ * @param filePaths 组内媒体绝对路径（已去重）。
+ * @returns 组标识。
+ */
+function buildGroupKey(
+    source: RepairGroupSource,
+    groupPath: string | undefined,
+    filePaths: string[],
+): string {
+    if (source === 'folder') {
+        if (!groupPath) {
+            throw new Error('按文件夹加入修复名单时必须提供文件夹路径');
+        }
+        return `${GROUP_KEY_FOLDER_PREFIX}${groupPath}`;
+    }
+    const sorted = [...filePaths].sort();
+    const digest = createHash('sha1').update(sorted.join('\n')).digest('hex');
+    return `${GROUP_KEY_FILES_PREFIX}${digest}`;
 }
 
 /**
@@ -80,24 +114,49 @@ export default interface PlaybackRepairService {
     /**
      * 诊断并启动修复任务。
      *
-     * @param filePath 待修复媒体绝对路径。
+     * @param request 待修复媒体与可选的强制配方。
      * @returns 任务编号与诊断结论；无需修复时任务编号为 `null`（调用方据此提示用户）。
      */
-    startRepair(filePath: string): Promise<PlaybackRepairStartResult>;
-
-    /**
-     * 列出全部修复记录。
-     *
-     * @returns 按入队顺序排列的修复记录。
-     */
-    listRepairTasks(): Promise<RepairTask[]>;
+    startRepair(request: PlaybackRepairStartRequest): Promise<PlaybackRepairStartResult>;
 
     /**
      * 把媒体加入修复名单。
      *
-     * @param filePaths 媒体绝对路径列表；已存在的记录保留原状态。
+     * 记录是「文件」级的，组只是标记：同一个文件重复加入不会产生第二条记录，
+     * 但会挂上新的组标记。
+     *
+     * @param request 分组信息与媒体路径列表；已存在的记录保留原状态。
+     * @returns 组标识与真正新加入的媒体。
      */
-    enqueueRepairTasks(filePaths: string[]): Promise<void>;
+    enqueueRepairTasks(request: RepairEnqueueRequest): Promise<RepairEnqueueResult>;
+
+    /**
+     * 查询修复名单，按组返回。
+     *
+     * @returns 各组及其媒体；未归组的记录归入 `key` 为空字符串的组。
+     */
+    listRepairGroups(): Promise<RepairGroup[]>;
+
+    /**
+     * 探测单个媒体：判断需不需要修复，并把结论写进记录。
+     *
+     * 需要修复时状态变为「待修复」并记录原因；不需要时直接标为完成（界面显示「无需修复」）。
+     * 已经在修复或已有结论的记录不会被探测结果降级。
+     *
+     * @param filePath 媒体绝对路径。
+     * @returns 本次诊断结论。
+     */
+    probeRepairTask(filePath: string): Promise<PlaybackRepairDiagnosis>;
+
+    /**
+     * 删除整组标记。
+     *
+     * 只在这组的文件不再属于其它组时才连记录一起删除：文件状态是全局的，
+     * 别的组还看着它的时候不能把它删掉。
+     *
+     * @param groupKey 组标识。
+     */
+    removeRepairGroup(groupKey: string): Promise<void>;
 
     /**
      * 删除修复记录。
@@ -114,12 +173,15 @@ export default interface PlaybackRepairService {
     recoverInterruptedTasks(): Promise<void>;
 
     /**
-     * 扫描文件夹并返回尚未生成修复产物的媒体文件。
+     * 列出文件夹里的全部媒体文件。
+     *
+     * 这里不做任何「需不需要修复」的判断：判断必须逐个探测（按扩展名猜会得出错误结论，
+     * 例如「MP4 一定能播」——而带 AC3 音轨的 MP4 画面正常但完全无声）。
      *
      * @param folders 待扫描的文件夹绝对路径。
-     * @returns 每个文件夹对应的待修复媒体集合。
+     * @returns 每个文件夹对应的媒体集合。
      */
-    listRepairableVideos(folders: string[]): Promise<FolderVideos[]>;
+    listFolderVideos(folders: string[]): Promise<FolderVideos[]>;
 
     /**
      * 丢弃某个媒体的修复产物。
@@ -161,6 +223,7 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
      * @param fileSystemGateway 文件系统访问入口。
      * @param playbackCapabilityService 播放能力学习缓存，提供本机实测的编码结论。
      * @param repairTaskRepository 修复记录仓储。
+     * @param repairGroupRepository 修复名单组标记仓储。
      */
     constructor(
         @inject(TYPES.DpTaskService) private readonly dpTaskService: DpTaskService,
@@ -169,6 +232,7 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
         @inject(TYPES.FileSystemGateway) private readonly fileSystemGateway: FileSystemGateway,
         @inject(TYPES.PlaybackCapabilityService) private readonly playbackCapabilityService: PlaybackCapabilityService,
         @inject(TYPES.RepairTaskRepository) private readonly repairTaskRepository: RepairTaskRepository,
+        @inject(TYPES.RepairGroupRepository) private readonly repairGroupRepository: RepairGroupRepository,
     ) {}
 
     /**
@@ -231,10 +295,11 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
      * 调用方（播放页、修复页）接管同一条进度，避免两个 ffmpeg 写同一份产物。
      * 占位在方法内同步登记，因此即使两个入口几乎同时发起也只会启动一次。
      *
-     * @param filePath 待修复媒体绝对路径。
+     * @param request 待修复媒体与可选的强制配方。
      * @returns 任务编号与诊断结论；无需修复时任务编号为 `null`。
      */
-    public startRepair(filePath: string): Promise<PlaybackRepairStartResult> {
+    public startRepair(request: PlaybackRepairStartRequest): Promise<PlaybackRepairStartResult> {
+        const { filePath, forceRecipe } = request;
         const outputPath = getHtml5VariantPath(filePath);
         const running = this.runningRepairs.get(outputPath);
         if (running) {
@@ -242,38 +307,144 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
             return running;
         }
 
-        const entry = new RunningRepairEntry(() => this.beginRepair(filePath));
+        const entry = new RunningRepairEntry(() => this.beginRepair(filePath, forceRecipe));
         this.runningRepairs.set(outputPath, entry.started);
         return entry.started;
     }
 
     /**
-     * 列出全部修复记录。
-     *
-     * @returns 按入队顺序排列的修复记录。
-     */
-    public listRepairTasks(): Promise<RepairTask[]> {
-        return this.repairTaskRepository.list();
-    }
-
-    /**
      * 把媒体加入修复名单。
      *
-     * @param filePaths 媒体绝对路径列表；已有记录保留原状态。
+     * @param request 分组信息与媒体路径列表；已有记录保留原状态。
      */
-    public async enqueueRepairTasks(filePaths: string[]): Promise<void> {
+    public async enqueueRepairTasks(request: RepairEnqueueRequest): Promise<RepairEnqueueResult> {
+        const filePaths = [...new Set(request.filePaths)];
+        if (filePaths.length === 0) {
+            return { groupKey: '', addedFiles: [] };
+        }
+
+        const groupKey = buildGroupKey(request.source, request.path, filePaths);
+        const existing = new Set(
+            (await this.repairGroupRepository.listMemberships())
+                .filter((membership) => membership.groupKey === groupKey)
+                .map((membership) => membership.filePath),
+        );
+
         for (const filePath of filePaths) {
             await this.repairTaskRepository.createIfAbsent({ filePath });
         }
+        await this.repairGroupRepository.addMemberships(filePaths.map((filePath) => ({
+            groupKey,
+            source: request.source,
+            path: request.path,
+            filePath,
+        })));
+        return {
+            groupKey,
+            addedFiles: filePaths.filter((filePath) => !existing.has(filePath)),
+        };
+    }
+
+    /**
+     * 查询修复名单，按组返回；未归组的记录归入 `key` 为空字符串的组。
+     *
+     * @returns 各组及其媒体。
+     */
+    public async listRepairGroups(): Promise<RepairGroup[]> {
+        const [tasks, memberships] = await Promise.all([
+            this.repairTaskRepository.list(),
+            this.repairGroupRepository.listMemberships(),
+        ]);
+        const taskByFile = new Map(tasks.map((task) => [task.file, task]));
+        const groups = new Map<string, RepairGroup>();
+        const grouped = new Set<string>();
+
+        for (const membership of memberships) {
+            const task = taskByFile.get(membership.filePath);
+            if (!task) {
+                // 记录被单独删掉后组标记会变成孤儿，这里顺手忽略，由删除动作负责清理。
+                this.logger.warn('orphan repair group membership', {
+                    groupKey: membership.groupKey,
+                    filePath: membership.filePath,
+                });
+                continue;
+            }
+            const group = groups.get(membership.groupKey) ?? {
+                key: membership.groupKey,
+                source: membership.source,
+                path: membership.path,
+                tasks: [],
+            };
+            group.tasks.push(task);
+            groups.set(membership.groupKey, group);
+            grouped.add(membership.filePath);
+        }
+
+        const ungrouped = tasks.filter((task) => !grouped.has(task.file));
+        if (ungrouped.length > 0) {
+            groups.set('', { key: '', source: 'files', tasks: ungrouped });
+        }
+        return [...groups.values()];
+    }
+
+    /**
+     * 探测单个媒体：判断需不需要修复，并把结论写进记录。
+     *
+     * @param filePath 媒体绝对路径。
+     * @returns 本次诊断结论。
+     */
+    public async probeRepairTask(filePath: string): Promise<PlaybackRepairDiagnosis> {
+        const diagnosis = await this.diagnose(filePath);
+        const existing = await this.repairTaskRepository.findByFilePath(filePath);
+        // 探测只是补充结论：正在修复或已经修出产物的记录不允许被改写。
+        // 例外是「探测结论说能播」的行——那种结论可以被本机真机实测推翻，需要允许重探。
+        const updatable = !existing
+            || existing.status === RepairTaskState.INIT
+            || existing.status === RepairTaskState.TODO
+            || (existing.status === RepairTaskState.DONE && existing.reason === 'playable');
+        if (!updatable) {
+            return diagnosis;
+        }
+
+        await this.recordRepairResult(filePath, {
+            status: diagnosis.needsRepair ? RepairTaskState.TODO : RepairTaskState.DONE,
+            reason: diagnosis.reason,
+            recipe: diagnosis.recipe ?? null,
+            outputPath: diagnosis.outputPath ?? null,
+        });
+        return diagnosis;
     }
 
     /**
      * 删除修复记录，不动已经生成的修复产物。
      *
+     * 记录是文件级的，删除时连同它所属的全部组标记一起清掉，避免留下孤儿标记。
+     *
      * @param filePath 媒体绝对路径。
      */
-    public removeRepairTask(filePath: string): Promise<void> {
-        return this.repairTaskRepository.deleteByFilePath(filePath);
+    public async removeRepairTask(filePath: string): Promise<void> {
+        await this.repairGroupRepository.removeFileFromAllGroups(filePath);
+        await this.repairTaskRepository.deleteByFilePath(filePath);
+    }
+
+    /**
+     * 删除整组标记。
+     *
+     * @param groupKey 组标识。
+     */
+    public async removeRepairGroup(groupKey: string): Promise<void> {
+        const memberships = await this.repairGroupRepository.listMemberships();
+        const files = memberships
+            .filter((membership) => membership.groupKey === groupKey)
+            .map((membership) => membership.filePath);
+        await this.repairGroupRepository.removeGroup(groupKey);
+
+        for (const filePath of files) {
+            const remaining = await this.repairGroupRepository.listGroupKeysOfFile(filePath);
+            if (remaining.length === 0) {
+                await this.repairTaskRepository.deleteByFilePath(filePath);
+            }
+        }
     }
 
     /**
@@ -287,12 +458,18 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
      * 执行诊断并创建修复任务；无论成功失败都会释放占位。
      *
      * @param filePath 待修复媒体绝对路径。
+     * @param forceRecipe 用户指定的配方；传入时跳过「需不需要修」的判断。
      * @returns 任务编号与诊断结论。
      */
-    private async beginRepair(filePath: string): Promise<PlaybackRepairStartResult> {
+    private async beginRepair(
+        filePath: string,
+        forceRecipe?: RepairRecipe,
+    ): Promise<PlaybackRepairStartResult> {
         const outputPath = getHtml5VariantPath(filePath);
         try {
-            const diagnosis = await this.diagnose(filePath);
+            const diagnosis = forceRecipe
+                ? await this.buildForcedDiagnosis(filePath, forceRecipe)
+                : await this.diagnose(filePath);
             if (!diagnosis.needsRepair) {
                 this.runningRepairs.delete(outputPath);
                 await this.recordRepairResult(filePath, {
@@ -329,35 +506,19 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
     }
 
     /**
-     * 扫描文件夹并返回尚未生成修复产物的媒体文件。
+     * 列出文件夹里的全部媒体文件。
      *
      * @param folders 待扫描的文件夹绝对路径。
-     * @returns 每个文件夹对应的待修复媒体集合。
+     * @returns 每个文件夹对应的媒体集合。
      */
-    public async listRepairableVideos(folders: string[]): Promise<FolderVideos[]> {
+    public async listFolderVideos(folders: string[]): Promise<FolderVideos[]> {
         const result: FolderVideos[] = [];
         for (const folder of folders) {
             await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(folder);
             const fileNames = await this.fileSystemGateway.listFileNames(folder);
-            const videos: string[] = [];
-
-            for (const fileName of fileNames) {
-                const extension = path.extname(fileName).toLowerCase();
-                if (!ALWAYS_REPAIRABLE_EXTENSIONS.has(extension) && extension !== '.mp3') {
-                    continue;
-                }
-
-                const videoPath = path.join(folder, fileName);
-                if (await this.hasNonEmptyFile(this.buildOutputPaths(videoPath).outputPath)) {
-                    continue;
-                }
-                // 定长码率的 MP3 可以直接播放，扫描阶段只读文件头判定，不做逐个 ffprobe。
-                if (extension === '.mp3' && await this.detectBitrateMode(videoPath) === 'cbr') {
-                    continue;
-                }
-                videos.push(videoPath);
-            }
-
+            const videos = fileNames
+                .filter((fileName) => MediaUtil.isMedia(fileName))
+                .map((fileName) => path.join(folder, fileName));
             result.push({ folder, videos });
         }
         return result;
@@ -503,6 +664,40 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
                 error: message,
             });
         }
+    }
+
+    /**
+     * 构造「用户强制修复」用的诊断结论。
+     *
+     * 跳过「需不需要修」的判断（用户认为文件仍有问题，例如卡顿、音画不同步），但仍要拿到
+     * 真实流信息：产物验收要据此判断该有画面还是该有声音。配方与媒体类型不匹配时直接报错，
+     * 避免出现「视频被悄悄剥成纯音频」这类结果。
+     *
+     * @param filePath 待修复媒体绝对路径。
+     * @param recipe 用户指定的配方。
+     * @returns 供修复流程使用的诊断结论。
+     */
+    private async buildForcedDiagnosis(filePath: string, recipe: RepairRecipe): Promise<PlaybackRepairDiagnosis> {
+        await this.assertRepairableSource(filePath);
+        const facts = await this.collectFacts(filePath);
+        if (facts.hasVideoStream && recipe === 'audio-transcode') {
+            throw new Error('视频文件不能只保留音频，请改用换容器或重编码视频');
+        }
+        if (!facts.hasVideoStream && recipe !== 'audio-transcode') {
+            throw new Error('纯音频文件只能选择转成 AAC/M4A');
+        }
+        return {
+            filePath,
+            needsRepair: true,
+            reason: 'playable',
+            recipe,
+            outputPath: getHtml5VariantPath(filePath),
+            videoCodec: facts.videoCodec,
+            audioCodec: facts.audioCodec,
+            hasVideoStream: facts.hasVideoStream,
+            hasAudioStream: facts.hasAudioStream,
+            mp3BitrateMode: facts.mp3BitrateMode,
+        };
     }
 
     /**

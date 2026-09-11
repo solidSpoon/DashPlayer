@@ -140,7 +140,7 @@ async function runRepair(filePath: string): Promise<PlaybackRepairOutcome> {
     let taskId: number | null;
     let diagnosis: PlaybackRepairDiagnosis;
     try {
-        const started = await repairApi.startRepair(filePath);
+        const started = await repairApi.startRepair({ filePath });
         taskId = started.taskId;
         diagnosis = started.diagnosis;
     } catch (error) {

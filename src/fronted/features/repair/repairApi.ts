@@ -1,6 +1,11 @@
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { requestVideoThumbnail } from '@/fronted/lib/video-thumbnail';
-import { PlaybackEvidenceInput, PlaybackRepairDiscardRequest } from '@/common/contracts/playback-repair';
+import {
+    PlaybackEvidenceInput,
+    PlaybackRepairDiscardRequest,
+    PlaybackRepairStartRequest,
+    RepairEnqueueRequest,
+} from '@/common/contracts/playback-repair';
 
 export const repairApi = {
     /**
@@ -19,29 +24,39 @@ export const repairApi = {
     selectFolders: () => backendClient.call('system/select-folder', {}),
 
     /**
-     * 扫描目录并找出需要修复的媒体文件。
+     * 列出目录里的全部媒体文件。
+     *
+     * 不做「需不需要修复」的判断：那要逐个探测（按扩展名猜会得出错误结论）。
      *
      * @param folders 待扫描的文件夹绝对路径。
-     * @returns 按文件夹分组的待修复文件。
+     * @returns 按文件夹分组的媒体文件。
      */
-    scanFolders: (folders: string[]) => backendClient.call('repair/scan-folders', folders),
+    listFolderVideos: (folders: string[]) => backendClient.call('repair/list-folder-videos', folders),
 
     /**
-     * 查询全部修复记录。
+     * 查询修复名单，按组返回。
      *
-     * 记录是「哪个媒体修过、结果如何」的历史，播放页发起的修复同样会写进来，
-     * 因此无论从哪个入口发起，本页都能看到同一份进度。
+     * 组只是标记：同一个文件可以出现在多个组里，状态只有一份，因此播放页发起的修复
+     * 也在这里按同一条记录显示。
      *
-     * @returns 按入队顺序排列的修复记录。
+     * @returns 各组及其媒体。
      */
-    listTasks: () => backendClient.call('repair/tasks'),
+    listGroups: () => backendClient.call('repair/groups'),
 
     /**
      * 把媒体加入修复名单。
      *
-     * @param filePaths 媒体绝对路径列表。
+     * @param request 分组信息与媒体路径列表。
      */
-    enqueueTasks: (filePaths: string[]) => backendClient.call('repair/enqueue', filePaths),
+    enqueueTasks: (request: RepairEnqueueRequest) => backendClient.call('repair/enqueue', request),
+
+    /**
+     * 探测单个媒体是否需要修复，并把结论写进记录。
+     *
+     * @param file 媒体绝对路径。
+     * @returns 诊断结论。
+     */
+    probe: (file: string) => backendClient.call('repair/probe', file),
 
     /**
      * 删除修复记录。
@@ -49,6 +64,13 @@ export const repairApi = {
      * @param file 媒体绝对路径。
      */
     removeTask: (file: string) => backendClient.call('repair/remove-task', file),
+
+    /**
+     * 删除整组标记。
+     *
+     * @param groupKey 组标识。
+     */
+    removeGroup: (groupKey: string) => backendClient.call('repair/remove-group', groupKey),
 
     /**
      * 诊断单个媒体文件是否需要修复。
@@ -61,10 +83,10 @@ export const repairApi = {
     /**
      * 诊断并启动单个媒体的修复任务。
      *
-     * @param file 待修复媒体绝对路径。
+     * @param request 待修复媒体与可选的强制配方。
      * @returns 任务编号与诊断结论；无需修复时任务编号为 null。
      */
-    startRepair: (file: string) => backendClient.call('repair/start', file),
+    startRepair: (request: PlaybackRepairStartRequest) => backendClient.call('repair/start', request),
 
     /**
      * 丢弃某个媒体的修复产物。

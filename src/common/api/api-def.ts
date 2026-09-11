@@ -17,8 +17,11 @@ import {
     PlaybackEvidenceInput,
     PlaybackRepairDiagnosis,
     PlaybackRepairDiscardRequest,
+    PlaybackRepairStartRequest,
     PlaybackRepairStartResult,
-    RepairTask,
+    RepairEnqueueRequest,
+    RepairEnqueueResult,
+    RepairGroup,
 } from '@/common/contracts/playback-repair';
 
 import {Tag} from '@/common/contracts/tag';
@@ -328,10 +331,12 @@ interface MediaDef {
 
 interface PlaybackRepairDef {
     'repair/diagnose': { params: string, return: PlaybackRepairDiagnosis };
-    'repair/start': { params: string, return: PlaybackRepairStartResult };
-    'repair/scan-folders': { params: string[], return: FolderVideos[] };
-    'repair/tasks': { params: void, return: RepairTask[] };
-    'repair/enqueue': { params: string[], return: void };
+    'repair/start': { params: PlaybackRepairStartRequest, return: PlaybackRepairStartResult };
+    'repair/list-folder-videos': { params: string[], return: FolderVideos[] };
+    'repair/enqueue': { params: RepairEnqueueRequest, return: RepairEnqueueResult };
+    'repair/groups': { params: void, return: RepairGroup[] };
+    'repair/probe': { params: string, return: PlaybackRepairDiagnosis };
+    'repair/remove-group': { params: string, return: void };
     'repair/remove-task': { params: string, return: void };
     'repair/discard': { params: PlaybackRepairDiscardRequest, return: boolean };
     'repair/should-probe-capability': { params: { videoCodec: string | null; audioCodec: string | null }, return: boolean };

@@ -51,14 +51,45 @@
         "cancel": "Cancel",
         "delete": "Delete",
         "status": {
-            "init": "Pending",
+            "init": "Checking",
+            "todo": "Needs repair",
             "inProgress": "Repairing",
             "done": "Repaired",
             "playable": "No repair needed",
             "cancelled": "Interrupted",
             "failed": "Repair failed",
             "discarded": "Discarded"
-        }
+        },
+        "reason": {
+            "already-repaired": "Already repaired",
+            "playable": "No repair needed",
+            "unsupported-container": "Container cannot be opened",
+            "undecodable-video": "Video cannot be decoded",
+            "unsupported-audio": "Audio cannot be decoded",
+            "mp3-seek-imprecise": "Seeking lands off by seconds"
+        },
+        "probing": "Checking",
+        "group": {
+            "ungrouped": "Started from the player",
+            "manual": "{{count}} files added manually",
+            "probing": "Checking {{done}}/{{total}}",
+            "running": "{{count}} repairing",
+            "todo": "{{count}} need repair",
+            "settled": "All handled",
+            "duplicate": "These files are already in the list"
+        },
+        "forceFix": "Force repair",
+        "fixDisabled": "Judged as playable; use “Force repair” on the left to redo it with a chosen recipe",
+        "recipe": {
+            "remuxCopy": "Remux only (fastest)",
+            "videoCopyAudioTranscode": "Re-encode audio only",
+            "fullTranscode": "Re-encode everything (slowest, most compatible)",
+            "audioTranscode": "Convert to AAC/M4A"
+        },
+        "fixNeeded": "Repair needed only",
+        "fixNeededHint": "Only repairs files judged to need repair; playable and already repaired ones are skipped",
+        "forceApplied": "Force repaired {{count}} file(s)",
+        "forceAppliedPartial": "Force repaired {{done}}; {{skipped}} file(s) do not support this recipe and were skipped"
     },
     "sentenceSplitter": {
         "title": "Split Long Videos",

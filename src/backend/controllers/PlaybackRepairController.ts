@@ -4,8 +4,11 @@ import {
     PlaybackEvidenceInput,
     PlaybackRepairDiagnosis,
     PlaybackRepairDiscardRequest,
+    PlaybackRepairStartRequest,
     PlaybackRepairStartResult,
-    RepairTask,
+    RepairEnqueueRequest,
+    RepairEnqueueResult,
+    RepairGroup,
 } from '@/common/contracts/playback-repair';
 import Controller from '@/backend/controllers/Controller';
 import { inject, injectable } from 'inversify';
@@ -39,36 +42,53 @@ export default class PlaybackRepairController implements Controller {
 
     /**
      * 诊断并启动修复任务。
-     * @param file 待修复媒体绝对路径。
+     * @param request 待修复媒体与可选的强制配方。
      * @returns 任务编号与诊断结论。
      */
-    public async startRepair(file: string): Promise<PlaybackRepairStartResult> {
-        return this.playbackRepairService.startRepair(file);
+    public async startRepair(request: PlaybackRepairStartRequest): Promise<PlaybackRepairStartResult> {
+        return this.playbackRepairService.startRepair(request);
     }
 
     /**
-     * 扫描文件夹中的待修复媒体。
+     * 列出文件夹里的全部媒体文件。
      * @param folders 待扫描的文件夹绝对路径。
-     * @returns 每个文件夹对应的待修复媒体集合。
+     * @returns 每个文件夹对应的媒体集合。
      */
-    public async scanFolders(folders: string[]): Promise<FolderVideos[]> {
-        return this.playbackRepairService.listRepairableVideos(folders);
-    }
-
-    /**
-     * 列出全部修复记录。
-     * @returns 按入队顺序排列的修复记录。
-     */
-    public async listRepairTasks(): Promise<RepairTask[]> {
-        return this.playbackRepairService.listRepairTasks();
+    public async listFolderVideos(folders: string[]): Promise<FolderVideos[]> {
+        return this.playbackRepairService.listFolderVideos(folders);
     }
 
     /**
      * 把媒体加入修复名单。
-     * @param filePaths 媒体绝对路径列表。
+     * @param request 分组信息与媒体路径列表。
      */
-    public async enqueueRepairTasks(filePaths: string[]): Promise<void> {
-        return this.playbackRepairService.enqueueRepairTasks(filePaths);
+    public async enqueueRepairTasks(request: RepairEnqueueRequest): Promise<RepairEnqueueResult> {
+        return this.playbackRepairService.enqueueRepairTasks(request);
+    }
+
+    /**
+     * 查询修复名单，按组返回。
+     * @returns 各组及其媒体。
+     */
+    public async listRepairGroups(): Promise<RepairGroup[]> {
+        return this.playbackRepairService.listRepairGroups();
+    }
+
+    /**
+     * 探测单个媒体是否需要修复，并把结论写进记录。
+     * @param filePath 媒体绝对路径。
+     * @returns 诊断结论。
+     */
+    public async probeRepairTask(filePath: string): Promise<PlaybackRepairDiagnosis> {
+        return this.playbackRepairService.probeRepairTask(filePath);
+    }
+
+    /**
+     * 删除整组修复名单标记。
+     * @param groupKey 组标识。
+     */
+    public async removeRepairGroup(groupKey: string): Promise<void> {
+        return this.playbackRepairService.removeRepairGroup(groupKey);
     }
 
     /**
@@ -115,8 +135,10 @@ export default class PlaybackRepairController implements Controller {
     public registerRoutes(): void {
         registerRoute('repair/diagnose', (p) => this.diagnose(p));
         registerRoute('repair/start', (p) => this.startRepair(p));
-        registerRoute('repair/scan-folders', (p) => this.scanFolders(p));
-        registerRoute('repair/tasks', () => this.listRepairTasks());
+        registerRoute('repair/list-folder-videos', (p) => this.listFolderVideos(p));
+        registerRoute('repair/groups', () => this.listRepairGroups());
+        registerRoute('repair/probe', (p) => this.probeRepairTask(p));
+        registerRoute('repair/remove-group', (p) => this.removeRepairGroup(p));
         registerRoute('repair/enqueue', (p) => this.enqueueRepairTasks(p));
         registerRoute('repair/remove-task', (p) => this.removeRepairTask(p));
         registerRoute('repair/discard', (p) => this.discard(p));
