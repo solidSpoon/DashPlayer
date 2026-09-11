@@ -95,6 +95,17 @@ export class MemoryFileSystemGateway implements FileSystemGateway {
     }
 
     /**
+     * 读取文件头部指定长度的字节。
+     * @param filePath 文件绝对路径。
+     * @param length 期望读取的最大字节数。
+     * @returns 文件头部字节。
+     */
+    public async readBinaryFileSlice(filePath: string, length: number): Promise<Buffer> {
+        const buffer = await this.readBinaryFile(filePath);
+        return buffer.subarray(0, length);
+    }
+
+    /**
      * 计算目录内所有普通文件的总大小。
      * @param directoryPath 目录绝对路径。
      * @returns 文件总大小，单位为字节。

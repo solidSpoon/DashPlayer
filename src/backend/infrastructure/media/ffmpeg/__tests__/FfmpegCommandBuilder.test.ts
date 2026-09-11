@@ -96,6 +96,7 @@ describe('DefaultFfmpegCommandBuilder', () => {
             '-i', '/in.mkv',
             '-map', '0:2',
             '-c:s', 'srt',
+            '-f', 'srt',
             '/out.srt',
         ]);
     });
@@ -125,27 +126,85 @@ describe('DefaultFfmpegCommandBuilder', () => {
         expect(args).not.toContain('-q:v');
     });
 
-    it('构建转 mp4 参数时应包含浏览器兼容所需的像素格式与 faststart', () => {
-        const args = builder.buildToMp4('/in.mkv', '/out.mp4');
+    it('整片重编码配方应降码率加速、限定 1080p 并强制 8bit yuv420p', () => {
+        const args = builder.buildRepair({
+            inputFile: '/in.mkv',
+            outputFile: '/out.mp4',
+            recipe: 'full-transcode',
+        });
 
         expect(args).toEqual([
             '-y',
             '-i', '/in.mkv',
+            '-map', '0:v:0',
+            '-map', '0:a:0?',
             '-c:v', 'libx264',
+            '-preset', 'veryfast',
+            '-crf', '23',
+            '-vf', 'scale=min(1920\\,iw):-2',
             '-pix_fmt', 'yuv420p',
+            '-profile:v', 'high',
+            '-ac', '2',
             '-c:a', 'aac',
+            '-b:a', '128k',
             '-movflags', '+faststart',
+            '-f', 'mp4',
             '/out.mp4',
         ]);
     });
 
-    it('构建 mkv 转 mp4 参数时应包含 map 策略', () => {
-        const args = builder.buildMkvToMp4('/in.mkv', '/out.mp4');
+    it('只换容器配方应原样搬运音视频流', () => {
+        const args = builder.buildRepair({
+            inputFile: '/in.mkv',
+            outputFile: '/out.mp4',
+            recipe: 'remux-copy',
+        });
 
-        expect(args).toContain('-map');
-        expect(args).toContain('0:v:0?');
-        expect(args).toContain('0:a:0?');
-        expect(args).toContain('+faststart');
+        expect(args).toEqual([
+            '-y',
+            '-i', '/in.mkv',
+            '-map', '0:v:0',
+            '-map', '0:a:0?',
+            '-c', 'copy',
+            '-movflags', '+faststart',
+            '-f', 'mp4',
+            '/out.mp4',
+        ]);
+    });
+
+    it('视频原样、音频重编码配方应只对音频使用 AAC', () => {
+        const args = builder.buildRepair({
+            inputFile: '/in.mkv',
+            outputFile: '/out.mp4',
+            recipe: 'video-copy-audio-transcode',
+        });
+
+        expect(args).toContain('-c:v');
+        expect(args).toContain('copy');
+        expect(args).toContain('-c:a');
+        expect(args).toContain('aac');
+        expect(args).not.toContain('libx264');
+    });
+
+    it('纯音频修复应只映射第一条音轨、降为立体声并输出 m4a', () => {
+        const args = builder.buildRepair({
+            inputFile: '/in.mp3',
+            outputFile: '/out.html5.m4a',
+            recipe: 'audio-transcode',
+        });
+
+        expect(args).toEqual([
+            '-y',
+            '-i', '/in.mp3',
+            '-map', '0:a:0',
+            '-ac', '2',
+            '-c:a', 'aac',
+            '-b:a', '128k',
+            '-movflags', '+faststart',
+            // 修复产物先写临时名，扩展名无法推断封装格式，因此显式指定 m4a 对应的 ipod 封装器。
+            '-f', 'ipod',
+            '/out.html5.m4a',
+        ]);
     });
 
     it('构建 wav 参数时应写入采样率与声道', () => {

@@ -1,4 +1,5 @@
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { requestVideoThumbnail } from '@/fronted/lib/video-thumbnail';
 import { SubtitleTimestampAdjustmentInput } from '@/common/contracts/subtitle-timestamp-adjustment';
 
 /**
@@ -111,14 +112,6 @@ export const playerApi = {
         backendClient.call('system/window-buttons/visibility', visible),
 
     /**
-     * 建议将视频转换为 HTML5 可播放格式。
-     *
-     * @param videoPath 视频文件路径。
-     * @returns 建议的视频路径。
-     */
-    suggestHtml5Video: (videoPath: string) => backendClient.call('convert/suggest-html5-video', videoPath),
-
-    /**
      * 获取媒体信息。
      *
      * @param videoPath 视频文件路径。
@@ -138,7 +131,7 @@ export const playerApi = {
         quality?: 'low' | 'medium' | 'high' | 'ultra';
         width?: number;
         format?: 'jpg' | 'png';
-    }) => backendClient.call('media/thumbnail', params),
+    }) => requestVideoThumbnail(params),
 
     /**
      * 解析字幕为句子。

@@ -19,10 +19,13 @@ import MediaUtil from '@/common/utils/MediaUtil';
 import {getRendererLogger} from '@/fronted/log/simple-logger';
 import toast, { Toast } from 'react-hot-toast';
 import {ModeSwitchToast} from '@/fronted/components/shared/toasts/ModeSwitchToast';
-import {PlaybackIssueToast} from '@/fronted/components/shared/toasts/PlaybackIssueToast';
+import {
+    PlaybackRepairToast,
+    RepairToastVariant,
+} from '@/fronted/components/shared/toasts/PlaybackRepairToast';
 import useSystem from '@/fronted/hooks/useSystem';
-import useConvert from '@/fronted/features/convert/convertStore';
 import { playerApi } from '@/fronted/features/player/playerApi';
+import { diagnosePlayback, probeAndRecordPlaybackCapability, repairPlayback } from '@/fronted/features/player/repairPlayback';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import useSubtitleTranslation from '@/fronted/features/player/translationStore';
 import { playerActions } from '@/fronted/features/player/components/PlayerActions';
@@ -31,19 +34,17 @@ import {Button} from "@/fronted/components/ui/button";
 
 const logger = getRendererLogger('PlayerWithControlsPage');
 const MODE_SWITCH_TOAST_ID = 'mode-switch-toast';
-const AUDIO_COMPAT_TOAST_ID = 'audio-compat-toast';
 const PLAYBACK_ISSUE_TOAST_ID = 'playback-issue-toast';
-// 疑似播放器不支持的音频编码：命中时视频可能"能播但无声"（DTS 可能显示为 dts/dca，TrueHD 可能显示为 truehd/mlp）
-const SUSPICIOUS_AUDIO_CODECS = new Set([
-    'dts',
-    'dca',
-    'truehd',
-    'mlp',
-    'eac3',
-    'ac3',
-    'opus',
-    'vorbis',
-]);
+
+/**
+ * 生成播放修复提示的 toast ID：同一条提示只允许存在一个，不同场景互不覆盖。
+ *
+ * @param variant 触发场景。
+ * @returns toast ID。
+ */
+function playbackRepairToastId(variant: RepairToastVariant): string {
+    return `playback-repair-toast-${variant}`;
+}
 const PlayerWithControlsPage = () => {
     const { t } = useI18nTranslation('player');
     const {videoId} = useParams();
@@ -70,8 +71,8 @@ const PlayerWithControlsPage = () => {
     const referrer = location.state && location.state.referrer;
     logger.debug('page referrer', {referrer});
     const windowButtonsVisibleRef = useRef<boolean | null>(null);
-    // 疑似无声的音频兼容提示去重：同文件只提示一次
-    const audioCompatToastShownRef = useRef<Set<string>>(new Set());
+    // 播放问题提示去重：同一文件同一场景只提示一次
+    const repairToastShownRef = useRef<Set<string>>(new Set());
     // 音频兼容预检去重：会话内每个文件只探测一次
     const audioProbeDoneRef = useRef<Set<string>>(new Set());
     // 卡死提示的"暂时忽略"：记录被忽略的视频 id，本次运行内该视频不再提示（不持久化）
@@ -79,40 +80,35 @@ const PlayerWithControlsPage = () => {
     const mediaErrorCode = usePlayer((s) => s.mediaErrorCode);
     const playbackStallCount = usePlayer((s) => s.playbackStallCount);
     /**
-     * 弹出音频无声的兼容性引导 toast（按文件去重），按钮会把视频加入待转换列表并跳转转码页。
-     * @param videoPath 视频绝对路径
+     * 弹出播放问题提示（按「文件 + 场景」去重），按钮直接启动一键修复。
+     * @param videoPath 媒体绝对路径
+     * @param variant 触发场景，决定提示文案
      */
-    const showAudioCompatToast = useCallback((videoPath: string) => {
-        if (audioCompatToastShownRef.current.has(videoPath)) {
+    const showRepairToast = useCallback((videoPath: string, variant: RepairToastVariant) => {
+        const dedupeKey = `${videoPath}::${variant}`;
+        if (repairToastShownRef.current.has(dedupeKey)) {
             return;
         }
-        audioCompatToastShownRef.current.add(videoPath);
+        repairToastShownRef.current.add(dedupeKey);
         toast(
             (tState: Toast) => (
-                <div className="flex items-center gap-3 text-sm">
-                    <div className="flex flex-col gap-0.5">
-                        <span className="font-semibold text-xs">{t('compatToastAudioTitle')}</span>
-                        <span className="text-xs text-muted-foreground">{t('compatToastAudioDescription')}</span>
-                    </div>
-                    <Button
-                        size="sm"
-                        className="h-7 px-3 text-xs shrink-0"
-                        onClick={() => {
-                            toast.dismiss(tState.id);
-                            useConvert.getState().addFiles([videoPath]);
-                            navigate('/convert');
-                        }}
-                    >
-                        {t('compatToastAction')}
-                    </Button>
-                </div>
+                <PlaybackRepairToast
+                    variant={variant}
+                    onRepair={() => {
+                        toast.dismiss(tState.id);
+                        void repairPlayback(videoPath);
+                    }}
+                    onIgnore={() => {
+                        toast.dismiss(tState.id);
+                    }}
+                />
             ),
             {
-                id: AUDIO_COMPAT_TOAST_ID,
-                duration: 8000,
+                id: playbackRepairToastId(variant),
+                duration: 10000,
             }
         );
-    }, [navigate, t]);
+    }, []);
     useEffect(() => {
         if (!isMac) {
             return;
@@ -203,7 +199,7 @@ const PlayerWithControlsPage = () => {
                 useFile.getState().updateFile(videoPath);
             }
 
-            // 音频兼容预检：音频编码可疑时视频会"能播但无声"，播放错误检测发现不了，只能提前探测
+            // 播放兼容预检：容器/编码层面能提前看出来的问题，等播放报错就太晚了
             setTimeout(() => {
                 (async () => {
                     if (!videoPath || audioProbeDoneRef.current.has(videoPath)) {
@@ -212,16 +208,17 @@ const PlayerWithControlsPage = () => {
                     // 先登记再探测，保证会话内每个文件只探测一次
                     audioProbeDoneRef.current.add(videoPath);
                     try {
-                        const suggested = await playerApi.suggestHtml5Video(videoPath);
-                        if (suggested) {
+                        const diagnosis = await diagnosePlayback(videoPath);
+                        if (!diagnosis.needsRepair) {
+                            // 白名单认为可直接播放：对从未实测过的编码做一次静默探测；
+                            // 实测解不出时学习该结论并直接给出修复提示，避免「无需修复 → 播放黑屏」死胡同。
+                            const learnedReason = await probeAndRecordPlaybackCapability(diagnosis);
+                            if (learnedReason) {
+                                showRepairToast(videoPath, learnedReason);
+                            }
                             return;
                         }
-                        const info = await playerApi.getMediaInfo(videoPath);
-                        const audioCodec = (info?.audioCodec ?? '').toLowerCase();
-                        if (audioCodec.length > 0 && !SUSPICIOUS_AUDIO_CODECS.has(audioCodec)) {
-                            return;
-                        }
-                        showAudioCompatToast(videoPath);
+                        showRepairToast(videoPath, diagnosis.reason);
                     } catch (error) {
                         logger.debug('compat probe failed', { error: error instanceof Error ? error.message : String(error) });
                     }
@@ -284,7 +281,7 @@ const PlayerWithControlsPage = () => {
             }
         };
         runEffect();
-    }, [video, showAudioCompatToast]);
+    }, [video, showRepairToast]);
     useEffect(() => {
         // 卡死提示 / 播放错误提示：媒体报错或看门狗判定卡死触发
         if (mediaErrorCode === null && playbackStallCount === 0) {
@@ -300,11 +297,11 @@ const PlayerWithControlsPage = () => {
 
         toast(
             (tState: Toast) => (
-                <PlaybackIssueToast
-                    onConvert={() => {
+                <PlaybackRepairToast
+                    variant="stall"
+                    onRepair={() => {
                         toast.dismiss(tState.id);
-                        useConvert.getState().addFiles([videoPath]);
-                        navigate('/convert');
+                        void repairPlayback(videoPath);
                     }}
                     onIgnore={() => {
                         stallIgnoreVideoIdRef.current = videoId;
@@ -317,7 +314,7 @@ const PlayerWithControlsPage = () => {
                 duration: 8000,
             }
         );
-    }, [mediaErrorCode, playbackStallCount, navigate, t]);
+    }, [mediaErrorCode, playbackStallCount]);
     useEffect(() => {
         let cancelled = false;
 

@@ -86,7 +86,7 @@ const HomePage = () => {
         { title: t('savedMoments'), path: '/favorite', icon: Star },
         { title: t('subtitleWorkspace'), path: '/transcript', icon: Captions },
         { title: t('sentenceSplitter'), path: '/split', icon: Scissors },
-        { title: t('formatConverter'), path: '/convert', icon: Rotate3D },
+        { title: t('playbackRepair'), path: '/repair', icon: Rotate3D },
         { title: t('vocabularyStudio'), path: '/vocabulary', icon: BookOpen },
         { title: t('settingsCenter'), path: '/settings', icon: Settings },
     ];

@@ -3,17 +3,17 @@ import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/fronte
 import {cn} from "@/fronted/lib/utils";
 import {Button} from "@/fronted/components/ui/button";
 import { UnsupportedVideoFormats } from '@/common/utils/MediaUtil';
-import { convertApi } from '../convertApi';
+import { repairApi } from '../repairApi';
 import { useTranslation } from 'react-i18next';
 
-export default function ConvertFileSelector({
+export default function RepairFileSelector({
                                          onSelected
                                      }: {
     onSelected: (ps: string[]) => Promise<void>;
 }) {
     const { t } = useTranslation('common');
     const handleClick = async () => {
-        const ps = await convertApi.selectFiles(UnsupportedVideoFormats);
+        const ps = await repairApi.selectFiles(UnsupportedVideoFormats);
         if (ps.length > 0) {
             await onSelected(ps);
         }

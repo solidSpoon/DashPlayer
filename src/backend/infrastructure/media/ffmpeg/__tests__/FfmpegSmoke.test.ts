@@ -205,22 +205,22 @@ describe.skipIf(!binariesReady)('ffmpeg 网关冒烟测试（真实执行）', (
         expect(Number(probe.format.duration)).toBeLessThan(1.3);
     });
 
-    it('toMp4 重封装转码后应仍可探测出音视频流', { timeout: 60_000 }, async () => {
+    it('full-transcode 配方应转出含音视频流的 mp4', { timeout: 60_000 }, async () => {
         const outputFile = path.join(workDir, 'to-mp4.mp4');
 
-        await gateway.toMp4(sampleVideo, outputFile);
+        await gateway.repair({ inputFile: sampleVideo, outputFile, recipe: 'full-transcode' });
 
         const probe = await probeJson(outputFile);
         expect(probe.streams.some(stream => stream.codec_type === 'video')).toBe(true);
         expect(probe.streams.some(stream => stream.codec_type === 'audio')).toBe(true);
     });
 
-    it('mkvToMp4 应把 mkv 转出含音视频流的 mp4', { timeout: 60_000 }, async () => {
+    it('remux-copy 配方应把 mkv 原样搬成含音视频流的 mp4', { timeout: 60_000 }, async () => {
         const mkvFile = path.join(workDir, 'plain.mkv');
         await exec(ffmpegPath, ['-y', '-i', sampleVideo, '-c', 'copy', mkvFile]);
         const outputFile = path.join(workDir, 'mkv-to-mp4.mp4');
 
-        await gateway.mkvToMp4(mkvFile, outputFile);
+        await gateway.repair({ inputFile: mkvFile, outputFile, recipe: 'remux-copy' });
 
         const probe = await probeJson(outputFile);
         expect(probe.streams.some(stream => stream.codec_type === 'video')).toBe(true);

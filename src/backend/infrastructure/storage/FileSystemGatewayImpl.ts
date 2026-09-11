@@ -90,6 +90,23 @@ export default class FileSystemGatewayImpl implements FileSystemGateway {
     }
 
     /**
+     * 读取文件头部指定长度的字节。
+     * @param filePath 文件绝对路径。
+     * @param length 期望读取的最大字节数。
+     * @returns 文件头部字节；文件比 length 短时返回实际内容。
+     */
+    public async readBinaryFileSlice(filePath: string, length: number): Promise<Buffer> {
+        const handle = await fs.open(filePath, 'r');
+        try {
+            const buffer = Buffer.alloc(length);
+            const { bytesRead } = await handle.read(buffer, 0, length, 0);
+            return buffer.subarray(0, bytesRead);
+        } finally {
+            await handle.close();
+        }
+    }
+
+    /**
      * 计算目录内所有普通文件的总大小。
      * @param directoryPath 目录绝对路径。
      * @returns 文件总大小，单位为字节。

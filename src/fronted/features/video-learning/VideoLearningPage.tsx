@@ -350,7 +350,10 @@ export default function VideoLearningPage() {
         try {
           const startTime = clip.clipContent.find((c) => c.isClip)?.start || 0;
           const thumbnailPathOrUrl = await videoLearningApi.getThumbnail(clip.videoPath, startTime);
-          newThumbnailUrls[clip.key] = thumbnailPathOrUrl;
+          // 纯音频片段没有画面，拿不到缩略图属于正常情况，跳过即可。
+          if (thumbnailPathOrUrl) {
+            newThumbnailUrls[clip.key] = thumbnailPathOrUrl;
+          }
         } catch (error) {
           logger.error('Failed to generate thumbnail for clip', { error });
         } finally {
