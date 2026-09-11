@@ -40,7 +40,7 @@
             "empty": "暂无视频片段"
         }
     },
-    "formatConverter": {
+    "playbackRepair": {
         "title": "修复播放问题",
         "description": "自动转换视频编码格式，解决无声、卡顿或黑屏等兼容性问题",
         "empty": {
@@ -49,7 +49,47 @@
         },
         "fix": "修复",
         "cancel": "取消",
-        "delete": "删除"
+        "delete": "删除",
+        "status": {
+            "init": "待检查",
+            "todo": "待修复",
+            "inProgress": "修复中",
+            "done": "已修复",
+            "playable": "无需修复",
+            "cancelled": "已中断",
+            "failed": "修复失败",
+            "discarded": "已丢弃"
+        },
+        "reason": {
+            "already-repaired": "已经修过了",
+            "playable": "无需修复",
+            "unsupported-container": "容器打不开",
+            "undecodable-video": "画面解不出来",
+            "unsupported-audio": "音频放不出声",
+            "mp3-seek-imprecise": "逐句跳转不准"
+        },
+        "probing": "检查中",
+        "group": {
+            "ungrouped": "从播放页发起的修复",
+            "manual": "手动添加的 {{count}} 个文件",
+            "probing": "正在检查 {{done}}/{{total}}",
+            "running": "{{count}} 个正在修复",
+            "todo": "{{count}} 个需要修复",
+            "settled": "已全部处理",
+            "duplicate": "这些文件已经在名单里了，没有重复添加"
+        },
+        "forceFix": "强制修复",
+        "fixDisabled": "已判定无需修复；需要重做请用左侧「强制修复」选择做法",
+        "recipe": {
+            "remuxCopy": "只换容器（最快）",
+            "videoCopyAudioTranscode": "只重编码音频",
+            "fullTranscode": "整片重编码（最慢，最兼容）",
+            "audioTranscode": "转成 AAC/M4A"
+        },
+        "fixNeeded": "只修复需要修复的",
+        "fixNeededHint": "只处理本组里判定需要修复的文件，无需修复与已修复的会跳过",
+        "forceApplied": "已强制重做 {{count}} 个文件",
+        "forceAppliedPartial": "已强制重做 {{done}} 个；另有 {{skipped}} 个不支持这种做法，未处理"
     },
     "sentenceSplitter": {
         "title": "切分长视频",

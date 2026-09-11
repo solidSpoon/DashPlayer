@@ -35,7 +35,7 @@ const PlaybackEmptyState: React.FC<PlaybackEmptyStateProps> = ({className}) => {
     const isNearEnd = featured && featured.duration !== undefined && featured.current_position !== undefined ?
         (featured.duration - featured.current_position) <= 5 : false;
 
-    const {data: thumbnail} = useSWR<string>(
+    const {data: thumbnail} = useSWR<string | null>(
         featured && !isAudio
             ? [
                 SWR_KEY.SPLIT_VIDEO_THUMBNAIL,

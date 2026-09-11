@@ -5,6 +5,7 @@ import FfmpegGateway, {
     ExtractSubtitleArgs,
     FfmpegExecutionError,
     FfmpegRunOptions,
+    RepairArgs,
     SplitVideoByTimesArgs,
     SplitVideoRangeArgs,
     TrimAudioArgs,
@@ -216,23 +217,12 @@ export default class FfmpegGatewayImpl implements FfmpegGateway {
     }
 
     /**
-     * 转换为 MP4。
+     * 按配方修复媒体文件。
      */
-    public async toMp4(inputFile: string, outputFile: string, options: FfmpegRunOptions = {}): Promise<void> {
+    public async repair(args: RepairArgs, options: FfmpegRunOptions = {}): Promise<void> {
         await this.runCommand(
-            { inputFile, outputFile },
-            (a) => this.commandBuilder.buildToMp4(a.inputFile, a.outputFile),
-            options,
-        );
-    }
-
-    /**
-     * MKV 转 MP4。
-     */
-    public async mkvToMp4(inputFile: string, outputFile: string, options: FfmpegRunOptions = {}): Promise<void> {
-        await this.runCommand(
-            { inputFile, outputFile },
-            (a) => this.commandBuilder.buildMkvToMp4(a.inputFile, a.outputFile),
+            args,
+            (a) => this.commandBuilder.buildRepair(a),
             options,
         );
     }

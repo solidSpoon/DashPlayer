@@ -7,6 +7,7 @@ import DpTaskService from '@/backend/services/DpTaskService';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { VideoInfo } from '@/common/types/video-info';
 import { CancelByUserError } from '@/backend/utils/errors/errors';
+import { RepairRecipe } from '@/common/contracts/playback-repair';
 import FfmpegGateway, { FfmpegExecutionError, VideoSegment } from '@/backend/services/gateways/media/FfmpegGateway';
 import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
 import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
@@ -60,23 +61,20 @@ export default interface FfmpegService {
         }
     }): Promise<void>;
 
-    toMp4({
-              inputFile,
-              onProgress
-          }: {
-        inputFile: string,
-        onProgress?: (progress: number) => void
-    }): Promise<string>;
-
-    mkvToMp4({
-                 taskId,
-                 inputFile,
-                 outputFile,
-                 onProgress
-             }: {
+    /**
+     * 按配方修复媒体文件，返回修复产物路径。
+     */
+    repair({
+               taskId,
+               inputFile,
+               outputFile,
+               recipe,
+               onProgress
+           }: {
         taskId: number,
         inputFile: string,
-        outputFile?: string,
+        outputFile: string,
+        recipe: RepairRecipe,
         onProgress?: (progress: number) => void
     }): Promise<string>;
 
@@ -275,56 +273,44 @@ export class FfmpegServiceImpl implements FfmpegService {
     }
 
     /**
-     * 转换为 MP4。
+     * 按配方修复媒体文件。
+     *
+     * @param args.taskId 后台任务 ID，用于进度、取消与日志归因。
+     * @param args.inputFile 输入媒体绝对路径。
+     * @param args.outputFile 修复产物绝对路径。
+     * @param args.recipe 修复配方。
+     * @param args.onProgress ffmpeg 进度回调，单位为百分比。
+     * @returns 修复产物路径。
      */
     @WithSemaphore('ffmpeg')
-    public async toMp4({
-                           inputFile,
-                           onProgress,
-                       }: {
-        inputFile: string,
-        onProgress?: (progress: number) => void,
-    }): Promise<string> {
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputFile);
-        const outputFile = path.join(
-            path.dirname(inputFile),
-            `${path.basename(inputFile, path.extname(inputFile))}.mp4`,
-        );
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(outputFile);
-
-        await this.ffmpegGateway.toMp4(inputFile, outputFile, { onProgress });
-
-        return outputFile;
-    }
-
-    /**
-     * MKV 转 MP4。
-     */
-    @WithSemaphore('ffmpeg')
-    public async mkvToMp4({
-                              taskId,
-                              inputFile,
-                              outputFile,
-                              onProgress,
-                          }: {
+    public async repair({
+                            taskId,
+                            inputFile,
+                            outputFile,
+                            recipe,
+                            onProgress,
+                        }: {
         taskId: number,
         inputFile: string,
-        outputFile?: string,
+        outputFile: string,
+        recipe: RepairRecipe,
         onProgress?: (progress: number) => void,
     }): Promise<string> {
-        const finalOutputFile = outputFile ?? inputFile.replace(path.extname(inputFile), '.mp4');
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(inputFile);
-        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(finalOutputFile);
+        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(outputFile);
 
         await this.runCancelableTask(taskId, async (onCancelable) => {
-            await this.ffmpegGateway.mkvToMp4(inputFile, finalOutputFile, {
-                onProgress,
-                onCancelable,
-                job: dpTaskJob(taskId),
-            });
+            await this.ffmpegGateway.repair(
+                { inputFile, outputFile, recipe },
+                {
+                    onProgress,
+                    onCancelable,
+                    job: dpTaskJob(taskId),
+                },
+            );
         });
 
-        return finalOutputFile;
+        return outputFile;
     }
 
     /**

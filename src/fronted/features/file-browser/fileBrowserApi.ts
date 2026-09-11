@@ -1,4 +1,5 @@
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { requestVideoThumbnail } from '@/fronted/lib/video-thumbnail';
 
 /**
  * 文件浏览功能调用的后端接口。
@@ -92,7 +93,7 @@ export const fileBrowserApi = {
      * @param time 截图时间，单位为秒。
      * @returns 缩略图路径。
      */
-    getThumbnail: (filePath: string, time: number) => backendClient.call('media/thumbnail', { filePath, time }),
+    getThumbnail: (filePath: string, time: number) => requestVideoThumbnail({ filePath, time }),
 
     /**
      * 查询指定路径下的基础观看记录。

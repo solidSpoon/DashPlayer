@@ -3,11 +3,28 @@ import type {
     ConvertToWavArgs,
     CreateThumbnailArgs,
     ExtractSubtitleCommandArgs,
+    RepairArgs,
     SplitVideoByTimesArgs,
     SplitVideoRangeArgs,
     TrimAudioArgs,
     TrimVideoArgs,
 } from '@/backend/services/gateways/media/FfmpegGateway';
+
+/**
+ * 音频重编码参数。
+ *
+ * 修复目标只是「能正常播放」：统一降为立体声 128k，
+ * 既避开多声道 AAC 在部分设备上的兼容问题，也避开低码率语音源转码后体积翻倍。
+ */
+const AUDIO_TRANSCODE_ARGS = ['-ac', '2', '-c:a', 'aac', '-b:a', '128k'];
+
+/**
+ * 整片重编码保留的最高宽度。
+ *
+ * 超过 1080p 的旧编码素材降到 1080p：像素量下降后编解码量大幅减少，修复更快；
+ * 原本就不超过时，scale 表达式等于原尺寸，不做实际缩放。
+ */
+const MAX_TRANSCODE_WIDTH = 1920;
 
 /**
  * FFmpeg 命令构建器接口。
@@ -41,14 +58,14 @@ export interface FfmpegCommandBuilder {
     buildExtractSubtitle(args: ExtractSubtitleCommandArgs): string[];
 
     /**
-     * 构建转 MP4 命令参数。
+     * 构建播放修复命令参数。
+     *
+     * 各配方的取舍：
+     * - `remux-copy` / `video-copy-audio-transcode` 只搬流，不重编码视频；
+     * - `full-transcode` 强制 8bit yuv420p，避免在无硬解的设备上出现黑屏；
+     * - `audio-transcode` 只映射第一条音轨，顺带丢弃 MP3 的封面图视频流。
      */
-    buildToMp4(inputFile: string, outputFile: string): string[];
-
-    /**
-     * 构建 MKV 转 MP4 命令参数。
-     */
-    buildMkvToMp4(inputFile: string, outputFile: string): string[];
+    buildRepair(args: RepairArgs): string[];
 
     /**
      * 构建音频转 WAV 命令参数。
@@ -174,6 +191,8 @@ export class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
 
     /**
      * 构建字幕提取命令参数；只映射探测选定的单条字幕流，避免多流写单文件报错。
+     *
+     * 显式指定输出封装格式：产物先写到不带扩展名的临时文件，无法由扩展名推断格式。
      */
     public buildExtractSubtitle(args: ExtractSubtitleCommandArgs): string[] {
         return [
@@ -181,40 +200,75 @@ export class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
             '-i', args.inputFile,
             '-map', `0:${args.streamIndex}`,
             '-c:s', 'srt',
+            '-f', 'srt',
             args.outputFile,
         ];
     }
 
     /**
-     * 构建转 MP4 命令参数。
+     * 构建播放修复命令参数。
+     *
+     * 输出封装格式显式声明：修复产物先写到不带媒体扩展名的临时文件（避免写在中途的
+     * 产物被播放与元数据探测选中），ffmpeg 无法再按扩展名推断格式。
+     * 音频产物用 `ipod`（即 `.m4a` 扩展名对应的封装器），实测与按扩展名推断的字节一致。
      */
-    public buildToMp4(inputFile: string, outputFile: string): string[] {
-        return [
-            '-y',
-            '-i', inputFile,
-            '-c:v', 'libx264',
-            // 强制 8bit yuv420p，保证产出在任何浏览器可播；与 mkvToMp4 一致补 faststart 便于流式播放。
-            '-pix_fmt', 'yuv420p',
-            '-c:a', 'aac',
-            '-movflags', '+faststart',
-            outputFile,
-        ];
-    }
-
-    /**
-     * 构建 MKV 转 MP4 命令参数。
-     */
-    public buildMkvToMp4(inputFile: string, outputFile: string): string[] {
-        return [
-            '-y',
-            '-i', inputFile,
-            '-map', '0:v:0?',
-            '-map', '0:a:0?',
-            '-c:v', 'copy',
-            '-c:a', 'aac',
-            '-movflags', '+faststart',
-            outputFile,
-        ];
+    public buildRepair(args: RepairArgs): string[] {
+        const { inputFile, outputFile, recipe } = args;
+        switch (recipe) {
+            case 'remux-copy':
+                return [
+                    '-y',
+                    '-i', inputFile,
+                    '-map', '0:v:0',
+                    '-map', '0:a:0?',
+                    '-c', 'copy',
+                    '-movflags', '+faststart',
+                    '-f', 'mp4',
+                    outputFile,
+                ];
+            case 'video-copy-audio-transcode':
+                return [
+                    '-y',
+                    '-i', inputFile,
+                    '-map', '0:v:0',
+                    '-map', '0:a:0',
+                    '-c:v', 'copy',
+                    ...AUDIO_TRANSCODE_ARGS,
+                    '-movflags', '+faststart',
+                    '-f', 'mp4',
+                    outputFile,
+                ];
+            case 'full-transcode':
+                return [
+                    '-y',
+                    '-i', inputFile,
+                    '-map', '0:v:0',
+                    '-map', '0:a:0?',
+                    // veryfast + crf 23：修复场景优先让用户少等，画质仍明显优于源素材。
+                    '-c:v', 'libx264',
+                    '-preset', 'veryfast',
+                    '-crf', '23',
+                    '-vf', `scale=min(${MAX_TRANSCODE_WIDTH}\\,iw):-2`,
+                    '-pix_fmt', 'yuv420p',
+                    '-profile:v', 'high',
+                    ...AUDIO_TRANSCODE_ARGS,
+                    '-movflags', '+faststart',
+                    '-f', 'mp4',
+                    outputFile,
+                ];
+            case 'audio-transcode':
+                return [
+                    '-y',
+                    '-i', inputFile,
+                    '-map', '0:a:0',
+                    ...AUDIO_TRANSCODE_ARGS,
+                    '-movflags', '+faststart',
+                    '-f', 'ipod',
+                    outputFile,
+                ];
+            default:
+                throw new Error(`未知的修复配方：${recipe satisfies never}`);
+        }
     }
 
     /**

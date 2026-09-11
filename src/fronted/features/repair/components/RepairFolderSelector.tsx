@@ -3,7 +3,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fron
 import { emptyFunc } from '@/common/utils/Util';
 import { cn } from '@/fronted/lib/utils';
 import { Button } from '@/fronted/components/ui/button';
-import { convertApi } from '../convertApi';
+import { repairApi } from '../repairApi';
 import { useTranslation } from 'react-i18next';
 
 /** 转码文件夹选择器的输入属性。 */
@@ -14,10 +14,10 @@ export interface FolderSelectorProps {
     className?: string;
 }
 
-const ConvertFolderSelector = ({ onSelected, className }: FolderSelectorProps) => {
+const RepairFolderSelector = ({ onSelected, className }: FolderSelectorProps) => {
     const { t } = useTranslation('common');
     const handleClick = async () => {
-        const ps = await convertApi.selectFolders();
+        const ps = await repairApi.selectFolders();
         if (ps.length > 0) {
             onSelected?.(ps);
         }
@@ -41,9 +41,9 @@ const ConvertFolderSelector = ({ onSelected, className }: FolderSelectorProps) =
     );
 };
 
-ConvertFolderSelector.defaultProps = {
+RepairFolderSelector.defaultProps = {
     onSelected: emptyFunc,
     className: ''
 };
 
-export default ConvertFolderSelector;
+export default RepairFolderSelector;

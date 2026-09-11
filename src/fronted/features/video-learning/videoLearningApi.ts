@@ -1,6 +1,7 @@
 import { SimpleClipQuery } from '@/common/api/dto';
 import { ClipMeta } from '@/common/types/clipMeta';
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import { requestVideoThumbnail } from '@/fronted/lib/video-thumbnail';
 
 /**
  * 视频学习功能调用的后端接口。
@@ -108,7 +109,7 @@ export const videoLearningApi = {
      * @param time 截图时间，单位为秒。
      * @returns 缩略图路径。
      */
-    getThumbnail: (filePath: string, time: number) => backendClient.call('media/thumbnail', { filePath, time }),
+    getThumbnail: (filePath: string, time: number) => requestVideoThumbnail({ filePath, time }),
 
     /**
      * 将片段中的词汇解析为带词形信息的条目。

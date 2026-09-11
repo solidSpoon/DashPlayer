@@ -12,7 +12,17 @@ import {SentenceStruct} from '@/common/types/SentenceStruct';
 import {WindowState} from '@/common/types/Types';
 import {SubtitleTimestampAdjustmentInput} from '@/common/contracts/subtitle-timestamp-adjustment';
 import { UpdateCheckResult } from '@/common/types/update-check';
-import { FolderVideos } from '@/common/contracts/convert';
+import {
+    FolderVideos,
+    PlaybackEvidenceInput,
+    PlaybackRepairDiagnosis,
+    PlaybackRepairDiscardRequest,
+    PlaybackRepairStartRequest,
+    PlaybackRepairStartResult,
+    RepairEnqueueRequest,
+    RepairEnqueueResult,
+    RepairGroup,
+} from '@/common/contracts/playback-repair';
 
 import {Tag} from '@/common/contracts/tag';
 import {ClipQuery, SimpleClipQuery} from '@/common/api/dto';
@@ -319,11 +329,18 @@ interface MediaDef {
     'media/info': { params: string, return: VideoInfo };
 }
 
-interface ConvertDef {
-    'convert/to-mp4': { params: string, return: number };
-    'convert/from-folder': { params: string[], return: FolderVideos[] };
-    'convert/suggest-html5-video': { params: string, return: string | null };
-
+interface PlaybackRepairDef {
+    'repair/diagnose': { params: string, return: PlaybackRepairDiagnosis };
+    'repair/start': { params: PlaybackRepairStartRequest, return: PlaybackRepairStartResult };
+    'repair/list-folder-videos': { params: string[], return: FolderVideos[] };
+    'repair/enqueue': { params: RepairEnqueueRequest, return: RepairEnqueueResult };
+    'repair/groups': { params: void, return: RepairGroup[] };
+    'repair/probe': { params: string, return: PlaybackRepairDiagnosis };
+    'repair/remove-group': { params: string, return: void };
+    'repair/remove-task': { params: string, return: void };
+    'repair/discard': { params: PlaybackRepairDiscardRequest, return: boolean };
+    'repair/should-probe-capability': { params: { videoCodec: string | null; audioCodec: string | null }, return: boolean };
+    'repair/record-playback-evidence': { params: PlaybackEvidenceInput, return: void };
 }
 
 interface FavoriteClipsDef {
@@ -442,7 +459,7 @@ export type ApiDefinitions = ApiDefinition
     & SettingsDef
     & ParakeetModelDef
     & WhisperCppModelDef
-    & ConvertDef
+    & PlaybackRepairDef
     & FavoriteClipsDef
     & TagDef
     & VocabularyDef
