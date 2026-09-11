@@ -1,8 +1,6 @@
 import React from 'react';
-import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/fronted/components/ui/tooltip';
-import {cn} from "@/fronted/lib/utils";
-import {Button} from "@/fronted/components/ui/button";
-import { UnsupportedVideoFormats } from '@/common/utils/MediaUtil';
+import {Button} from '@/fronted/components/ui/button';
+import { MediaFormats } from '@/common/utils/MediaUtil';
 import { repairApi } from '../repairApi';
 import { useTranslation } from 'react-i18next';
 
@@ -13,26 +11,18 @@ export default function RepairFileSelector({
 }) {
     const { t } = useTranslation('common');
     const handleClick = async () => {
-        const ps = await repairApi.selectFiles(UnsupportedVideoFormats);
+        // 需不需要修复要靠探测，不能按扩展名筛：常见扩展名也可能带着放不出的音轨/编码。
+        const ps = await repairApi.selectFiles(MediaFormats);
         if (ps.length > 0) {
             await onSelected(ps);
         }
     };
 
     return (
-        <TooltipProvider>
-            <Tooltip>
-                <TooltipTrigger asChild>
-                    <Button
-                        onClick={() => handleClick()}
-                        variant={'outline'}
-                        className={cn('w-28')}
-                    >{t('addFile')}</Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                    可以同时选择一个视频文件及其对应的字幕文件
-                </TooltipContent>
-            </Tooltip>
-        </TooltipProvider>
+        <Button
+            onClick={() => handleClick()}
+            variant={'outline'}
+            className="w-28"
+        >{t('addFile')}</Button>
     );
 }
