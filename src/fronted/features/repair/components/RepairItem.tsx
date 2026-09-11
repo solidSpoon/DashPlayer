@@ -3,7 +3,7 @@ import { cn } from '@/fronted/lib/utils';
 import React from 'react';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { SWR_KEY } from '@/fronted/lib/swr-util';
-import { Film } from 'lucide-react';
+import { Film, Music } from 'lucide-react';
 import TimeUtil from '@/common/utils/TimeUtil';
 import { Progress } from '@/fronted/components/ui/progress';
 import {
@@ -20,6 +20,7 @@ import StrUtil from '@/common/utils/str-util';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { repairApi } from '../repairApi';
 import i18n from '@/fronted/i18n';
+import MediaUtil from '@/common/utils/MediaUtil';
 
 /**
  * 展示一条修复记录：缩略图、时长、状态与操作按钮。
@@ -35,11 +36,15 @@ const RepairItem = ({ task, className, buttonVariant, onRepair, onRemove }: {
 }) => {
     const { t } = useI18nTranslation('pages');
     const file = task.file;
-    const { data: url } = useSWR(file ?
+    // 纯音频没有画面，请求缩略图只会让 ffmpeg 报「输出不含任何流」。这里直接不请求，
+    // 也不重试：失败重试会每几秒拉起一个必然失败的 ffmpeg 进程。
+    const isAudio = MediaUtil.isAudio(file);
+    const { data: url } = useSWR(file && !isAudio ?
             [SWR_KEY.SPLIT_VIDEO_THUMBNAIL, file, 5] : null,
         async ([, path, time]) => {
             return await repairApi.getThumbnail(path, time);
-        }
+        },
+        { shouldRetryOnError: false }
     );
     const { data: videoLength } = useSWR(file ? ['duration', file] : null, async ([, f]) => {
         return await repairApi.getDuration(f);
@@ -95,6 +100,8 @@ const RepairItem = ({ task, className, buttonVariant, onRepair, onRemove }: {
                                 className="w-full h-full object-cover"
                                 alt={file}
                             />
+                        ) : isAudio ? (
+                            <Music className="w-6 h-6 text-muted-foreground/60" />
                         ) : (
                             <Film className="w-6 h-6 text-muted-foreground/60" />
                         )}
