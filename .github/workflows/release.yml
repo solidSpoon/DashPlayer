@@ -86,20 +86,22 @@ jobs:
           Add-Content $env:GITHUB_PATH "C:\VulkanSDK\$env:VULKAN_VERSION\bin"
       - name: Configure (Vulkan)
         if: matrix.gpu == 'vulkan'
-        # Windows 上三个参数必须一起给，都是为了让 parakeet-cli.exe 在干净 Windows
+        # Windows 上两个参数必须一起给，都是为了让 parakeet-cli.exe 在干净 Windows
         # （未装 VC++ Redistributable）上能起来：
         # - CMAKE_POLICY_DEFAULT_CMP0091=NEW：whisper.cpp 顶层 cmake_minimum_required
         #   是 3.5（ggml 是 3.14），CMP0091 为 OLD 时 CMAKE_MSVC_RUNTIME_LIBRARY 会被
         #   静默忽略，/MT 不生效；
         # - CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded：静态 CRT，去掉
-        #   VCRUNTIME140.dll / MSVCP140.dll 依赖；
-        # - GGML_OPENMP=OFF：MSVC 的 OpenMP 运行时 vcomp140.dll 永远是动态链接、
-        #   不受 /MT 影响；关掉后 ggml 用自己的 std::thread 线程池，并行度不变。
+        #   VCRUNTIME140.dll / MSVCP140.dll 依赖。
+        # OpenMP 保持开启（不传 GGML_OPENMP=OFF）：MSVC 的 OpenMP 运行时只有 DLL 形式、
+        # 无法静态链接，但关掉它实测 encode 慢 ~30%、decode 慢一个量级（VM 内新旧二进制
+        # 交替跑对比），因此改为随包分发 vcomp140.dll（见 Package 步骤；该 DLL 只依赖
+        # KERNEL32，本身零外部依赖）。
         # 参数用 ${{ }} 表达式内联而不是步骤 env + $VAR：Windows 的 run 默认 shell 是
         # pwsh，POSIX 的 $VAR 语法不展开、参数会静默丢失（历史上 /MT 因此从未生效）。
         # Vulkan 必须留在链接期（ggml-vulkan 硬依赖 vulkan-1.dll，非 delay-load），
         # 由 Package 步骤把官方 loader 打进运行包
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DGGML_VULKAN=ON -DBUILD_SHARED_LIBS=OFF -DWHISPER_BUILD_EXAMPLES=ON -DWHISPER_BUILD_TESTS=OFF ${{ runner.os == 'Windows' && '-DCMAKE_POLICY_DEFAULT_CMP0091=NEW -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DGGML_OPENMP=OFF' || '' }}
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DGGML_VULKAN=ON -DBUILD_SHARED_LIBS=OFF -DWHISPER_BUILD_EXAMPLES=ON -DWHISPER_BUILD_TESTS=OFF ${{ runner.os == 'Windows' && '-DCMAKE_POLICY_DEFAULT_CMP0091=NEW -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded' || '' }}
       - name: Configure (Metal)
         if: matrix.gpu == 'metal'
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DGGML_METAL_USE_BF16=ON -DGGML_METAL_EMBED_LIBRARY=ON -DCMAKE_OSX_ARCHITECTURES=${{ contains(matrix.name, 'arm64') && 'arm64' || 'x86_64' }} -DBUILD_SHARED_LIBS=OFF -DWHISPER_BUILD_EXAMPLES=ON -DWHISPER_BUILD_TESTS=OFF
@@ -124,26 +126,41 @@ jobs:
             7z x -y vkrt-download/vulkan-runtime-components.zip -ovkrt-extract > /dev/null
             cp "$(find vkrt-extract -path '*/x64/vulkan-1.dll' -print -quit)" stage/vulkan-1.dll
             cp "$(find vkrt-extract -name 'VulkanRT-License.txt' -print -quit)" stage/VulkanRT-License.txt
-            (cd stage && 7z a "../whisper-cpp-${{ matrix.name }}.zip" parakeet-cli.exe vulkan-1.dll VulkanRT-License.txt)
+            # OpenMP 运行时（vcomp140.dll）同理要跟着 exe 走：MSVC 的 OpenMP 只有 DLL 形式，
+            # /MT 也去不掉它，而关掉 OpenMP 实测 encode 慢 ~30%、decode 慢一个量级。
+            # 取 VS 自带的 Redist 副本（与 vc_redist 装到 system32 的是同一份文件，只依赖
+            # KERNEL32），不下载 vc_redist.x64.exe 再解包：版本与本次编译所用工具链一致；
+            # 路径里的 VC 版本号随 VS 更新变化，用通配匹配（只认 x64 的 OpenMP 目录）
+            VCOMP="$(find "/c/Program Files/Microsoft Visual Studio/2022" -path '*x64/Microsoft.VC14*.OpenMP/vcomp140.dll' -print -quit)"
+            [ -n "$VCOMP" ] || { echo "[FAIL] 在 VS Redist 目录里找不到 vcomp140.dll，检查 VS 安装是否完整"; exit 1; }
+            cp "$VCOMP" stage/vcomp140.dll
+            (cd stage && 7z a "../whisper-cpp-${{ matrix.name }}.zip" parakeet-cli.exe vulkan-1.dll vcomp140.dll VulkanRT-License.txt)
           else
             cp build/bin/parakeet-cli stage/parakeet-cli
             (cd stage && tar czf "../whisper-cpp-${{ matrix.name }}.tar.gz" parakeet-cli)
           fi
       - name: Verify Windows runtime dependencies (Windows only)
         # 干净 Windows 上起不来等于运行时废了（加载期 0xC0000135，stderr 为空、日志里只剩
-        # 一个退出码），所以在这里当场断言，而不是等用户报错：既拦住回归的 MSVC 运行库依赖，
-        # 也拦住漏带 vulkan-1.dll 的包
+        # 一个退出码），所以在这里当场断言，而不是等用户报错。断言的是完整契约：
+        #   - parakeet-cli.exe 的全部非系统依赖，恰好就是随包附带的两个 DLL；
+        #   - 这两个 DLL 自身只依赖系统 DLL（附带的 DLL 自己还带依赖就等于没修）；
+        #   - exe 确实导入了它们（拦住“参数静默丢失”这类回归：/MT 没生效、OpenMP 被关掉，
+        #     历史上 $VAR 在 pwsh 下不展开就出过这种事）。
+        # 模式串不用 /c:：findstr 的 /c: 是字面量，[0-9] 不会按正则解释
         if: runner.os == 'Windows'
         shell: cmd
         run: |
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
           dumpbin /dependents stage\parakeet-cli.exe > dependents.txt
           dumpbin /dependents stage\vulkan-1.dll >> dependents.txt
+          dumpbin /dependents stage\vcomp140.dll >> dependents.txt
           type dependents.txt
-          findstr /i /r /c:"MSVC[PR][0-9]" /c:"VCOMP[0-9]" dependents.txt > nul && (echo [FAIL] VC runtime dependency found: use static CRT and disable OpenMP & exit /b 1)
           if not exist stage\vulkan-1.dll (echo [FAIL] stage\vulkan-1.dll missing & exit /b 1)
+          if not exist stage\vcomp140.dll (echo [FAIL] stage\vcomp140.dll missing & exit /b 1)
+          findstr /i /r "MSVCP[0-9] VCRUNTIME[0-9] CONCRT[0-9] api-ms-win-crt UCRTBASE" dependents.txt > nul && (echo [FAIL] VC runtime dependency found: expect static CRT and vcomp140.dll only & exit /b 1)
           findstr /i /c:"vulkan-1.dll" dependents.txt > nul || (echo [FAIL] parakeet-cli.exe does not import vulkan-1.dll & exit /b 1)
-          echo [OK] parakeet-cli.exe and vulkan-1.dll depend on system DLLs only
+          findstr /i /c:"VCOMP140.DLL" dependents.txt > nul || (echo [FAIL] parakeet-cli.exe does not import VCOMP140.DLL & exit /b 1)
+          echo [OK] staged DLLs cover every non-system dependency of parakeet-cli.exe
       - name: Upload runtime artifact
         # 只留在本次运行内：app 构建要的就是同一份二进制，直接递过去，
         # 既不用等 Release 先存在，也不会在构建失败时留下“有运行时、没安装包”的半成品 Release

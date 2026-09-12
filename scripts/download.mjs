@@ -585,10 +585,10 @@ const WHISPER_CPP_REF = '52a939a2a762224e255d366c1182b2af4dd1a032';
 
 /**
  * 运行时配方版本：构建参数或“随包附带文件”一变就必须 +1。
- * 同一 ref 不同配方产出的二进制不可互换（r2 = Windows 静态 CRT + 关 OpenMP + 附带
- * vulkan-1.dll），标记里带上它，已装的旧配方运行时才会被重装而不是继续沿用。
+ * 同一 ref 不同配方产出的二进制不可互换（r3 = Windows 静态 CRT + OpenMP + 附带
+ * vulkan-1.dll/vcomp140.dll），标记里带上它，已装的旧配方运行时才会被重装而不是继续沿用。
  */
-const WHISPER_RUNTIME_RECIPE = 'r2';
+const WHISPER_RUNTIME_RECIPE = 'r3';
 
 /**
  * Windows 侧 ggml-vulkan 对 vulkan-1.dll 是硬链接依赖（非 delay-load）：干净系统
@@ -598,6 +598,12 @@ const WHISPER_RUNTIME_RECIPE = 'r2';
  */
 const VULKAN_RUNTIME_VERSION = '1.4.357.0';
 const VULKAN_RUNTIME_COMPONENTS_URL = `https://sdk.lunarg.com/sdk/download/${VULKAN_RUNTIME_VERSION}/windows/vulkan-runtime-components.zip`;
+
+/**
+ * MSVC 的 OpenMP 运行时文件名：只有 DLL 形式、/MT 也去不掉（见
+ * installOpenMpRuntimeForWindows），与 vulkan-1.dll 一样必须与 exe 同目录分发。
+ */
+const VCOMP_DLL_NAME = 'vcomp140.dll';
 
 /**
  * 运行时目录中的来源标记文件名：记录已安装的二进制来自哪个 Release 版本或哪个源码 ref。
@@ -663,16 +669,61 @@ async function installVulkanLoaderForWindows(targetDir) {
 }
 
 /**
- * 校验 Windows whisper.cpp 运行时是否与 exe 配套：缺 vulkan-1.dll 时在干净系统上
- * 加载期就失败（0xC0000135、stderr 为空），必须当场抛错，而不是留下一个默认
- * 识别引擎不可用的运行时。
+ * 从本机 Visual Studio 的 Redist 目录里取 vcomp140.dll 装到目标目录。
+ *
+ * MSVC 的 OpenMP 运行时只有 DLL 形式、无法静态链接，而关掉 OpenMP 实测 encode 慢
+ * ~30%、decode 慢一个量级（VM 内新旧二进制交替跑对比），因此与 vulkan-1.dll 同样
+ * 随 exe 分发。Redist 目录里的副本与 vc_redist 装进 system32 的是同一份文件，且版本
+ * 与本次编译所用工具链一致（该 DLL 只依赖 KERNEL32，本身零外部依赖）。
+ * 目录里的 “14.x” 会随 VS 更新变化，按通配查找；只认 x64 的 OpenMP 目录。
+ *
+ * @param {string} targetDir vcomp140.dll 的落地目录（exe 同级）。
+ * @returns {Promise<void>} 本机没有可用的 VS Redist 副本时抛出。
+ */
+async function installOpenMpRuntimeForWindows(targetDir) {
+    const { execSync } = await import('node:child_process');
+    const vswhere = path.join(
+        process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)',
+        'Microsoft Visual Studio',
+        'Installer',
+        'vswhere.exe'
+    );
+    if (!fs.existsSync(vswhere)) {
+        throw new Error(`找不到 ${vswhere}：Windows 本地构建 whisper.cpp 需要 Visual Studio 的“使用 C++ 的桌面开发”工作负载（同时提供编译工具与 ${VCOMP_DLL_NAME}）`);
+    }
+    const vsRoot = execSync(`"${vswhere}" -latest -products * -property installationPath`, {encoding: 'utf8'}).trim();
+    const redistRoot = path.join(vsRoot, 'VC', 'Redist', 'MSVC');
+    const dll = fs.existsSync(redistRoot)
+        ? findFirstFile(
+            redistRoot,
+            (p) => path.basename(p).toLowerCase() === VCOMP_DLL_NAME
+                && /^x64$/i.test(path.basename(path.dirname(path.dirname(p))))
+                && /^Microsoft\.VC14\d*\.OpenMP$/i.test(path.basename(path.dirname(p))),
+            8
+        )
+        : null;
+    if (!dll) {
+        throw new Error(`在 ${redistRoot} 下找不到 x64 的 ${VCOMP_DLL_NAME}：请修复 VS 安装（“使用 C++ 的桌面开发”工作负载）后重试`);
+    }
+    const dest = path.join(targetDir, VCOMP_DLL_NAME);
+    fs.copyFileSync(dll, dest);
+    console.info(chalk.green(`✅ openmp runtime: ${dll} -> ${dest}`));
+}
+
+/**
+ * 校验 Windows whisper.cpp 运行时是否与 exe 配套：exe 对 vulkan-1.dll（ggml-vulkan
+ * 硬依赖）与 vcomp140.dll（MSVC OpenMP 运行时，/MT 去不掉）都是硬链接依赖，缺任何一个
+ * 在干净系统上都是加载期直接失败（0xC0000135、stderr 为空），必须当场抛错，
+ * 而不是留下一个默认识别引擎不可用的运行时。
  * @param {string} basePath 运行时目录。
  */
 const assertWhisperWindowsRuntimeComplete = (basePath) => {
     if (platform !== 'win32') return;
-    const loaderPath = path.join(basePath, 'vulkan-1.dll');
-    if (!fs.existsSync(loaderPath)) {
-        throw new Error(`whisper.cpp Windows 运行时缺少 vulkan-1.dll：${loaderPath}，parakeet-cli 在无显卡驱动的系统上会直接起不来`);
+    for (const name of ['vulkan-1.dll', VCOMP_DLL_NAME]) {
+        const dllPath = path.join(basePath, name);
+        if (!fs.existsSync(dllPath)) {
+            throw new Error(`whisper.cpp Windows 运行时缺少 ${name}：${dllPath}，parakeet-cli 在干净系统上会直接起不来`);
+        }
     }
 };
 
@@ -758,17 +809,19 @@ async function buildWhisperCppFromSource({ basePath, exeName }) {
         ? ['-DGGML_METAL=ON', '-DGGML_METAL_USE_BF16=ON', '-DGGML_METAL_EMBED_LIBRARY=ON', `-DCMAKE_OSX_ARCHITECTURES=${arch === 'arm64' ? 'arm64' : 'x86_64'}`]
         : [
             '-DGGML_VULKAN=ON',
-            // Windows 三个参数与 release.yml 的 Configure (Vulkan) 步骤逐字对齐，缺一不可：
+            // Windows 两个参数与 release.yml 的 Configure (Vulkan) 步骤逐字对齐，缺一不可：
             // CMP0091 为 OLD 时 CMAKE_MSVC_RUNTIME_LIBRARY 会被静默忽略（whisper.cpp 顶层
             // cmake_minimum_required 只有 3.5），必须显式抬成 NEW；静态 CRT 去
-            // VCRUNTIME140.dll / MSVCP140.dll；关 OpenMP 去 vcomp140.dll（ggml 自带线程池）
+            // VCRUNTIME140.dll / MSVCP140.dll。OpenMP 保持开启（关掉实测 encode 慢 ~30%、
+            // decode 慢一个量级），vcomp140.dll 由 installOpenMpRuntimeForWindows 随包附带
             ...(platform === 'win32'
-                ? ['-DCMAKE_POLICY_DEFAULT_CMP0091=NEW', '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded', '-DGGML_OPENMP=OFF']
+                ? ['-DCMAKE_POLICY_DEFAULT_CMP0091=NEW', '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded']
                 : []),
         ];
     if (platform === 'win32') {
-        // 与 exe 配套的 loader 先落地：缺件要在开跑几分钟编译之前就暴露
+        // 与 exe 配套的两个 DLL 先落地：缺件要在开跑几分钟编译之前就暴露
         await installVulkanLoaderForWindows(basePath);
+        await installOpenMpRuntimeForWindows(basePath);
     }
     console.info(chalk.blue('=> Building whisper.cpp parakeet-cli (first build takes a few minutes)...'));
     try {
@@ -850,8 +903,8 @@ async function buildWhisperCppFromSource({ basePath, exeName }) {
                     archivePath: localArchivePath,
                     outputPath: exePath,
                     binaryNameCandidates: ['parakeet-cli', 'parakeet-cli.exe'],
-                    // Windows 归档里 exe 之外还有 loader 与许可证（release.yml 的 Package 步骤打包）
-                    extraCopyPatterns: platform === 'win32' ? [/^vulkan-1\.dll$/i, /^VulkanRT-License\.txt$/] : [],
+                    // Windows 归档里 exe 之外还有 loader、OpenMP 运行时与许可证（release.yml 的 Package 步骤打包）
+                    extraCopyPatterns: platform === 'win32' ? [/^vulkan-1\.dll$/i, /^vcomp140\.dll$/i, /^VulkanRT-License\.txt$/] : [],
                 });
                 assertWhisperWindowsRuntimeComplete(basePath);
                 fs.writeFileSync(markerPath, `${expectedMarker}\n`);
