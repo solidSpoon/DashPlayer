@@ -2,6 +2,57 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.12.0](https://github.com/solidSpoon/DashPlayer/compare/v6.11.2...v6.12.0) (2026-09-12)
+
+
+### Features
+
+* 云端 AI 接入支持厂商预设与多种 API 格式 ([5d45565](https://github.com/solidSpoon/DashPlayer/commit/5d4556520d3edc1617c791d697b7d0e60d582241))
+* 云端 AI 接入支持厂商预设与多种 API 格式 ([59a5bc2](https://github.com/solidSpoon/DashPlayer/commit/59a5bc24ecb764de20730183f177db9f99f31c4e))
+* 云端接口地址改为完整 base URL 直存并迁移历史配置 ([87b72fd](https://github.com/solidSpoon/DashPlayer/commit/87b72fd0129b5e6c4aa7fb47668ee23ef70dfaa8))
+* 修复名单持久化到数据库、按组展示、整批探测与强制修复 ([0ac29b0](https://github.com/solidSpoon/DashPlayer/commit/0ac29b07ca9e966e43df97b43d3f62fb9f188a70))
+* 修复记录持久化到 dp_repair_task，修复页面改为读记录表 ([61ad921](https://github.com/solidSpoon/DashPlayer/commit/61ad921ca1a1cc1cb87a0f6ccf4521db4fc3e192))
+* 修复页面接管从播放页发起的修复任务 ([b3b440a](https://github.com/solidSpoon/DashPlayer/commit/b3b440a5b9aebe5dc25b80997b336873d0b3c745))
+* 厂商预设改为弹窗选择且只回填接口地址与 API 类型 ([5f89854](https://github.com/solidSpoon/DashPlayer/commit/5f89854e6fd51639e3a8aa9b092ed12ceae55e8f))
+* 句型学习报错中文化并给出重配引导 ([37bdf5a](https://github.com/solidSpoon/DashPlayer/commit/37bdf5a92096ad42fdd69aa1f5f645783a5847a6))
+* 字幕可疑检测与生成字幕引导提示 ([a22c938](https://github.com/solidSpoon/DashPlayer/commit/a22c938dad22cdb6adac7a7a27f0853650f02bd8))
+* 字幕可疑检测与生成字幕引导提示 ([a9d1b4b](https://github.com/solidSpoon/DashPlayer/commit/a9d1b4bd3a3aa6c6cb9e458b569f0aac74ce0617))
+* 接口地址拆成基础地址与版本路径两个输入框 ([723cf91](https://github.com/solidSpoon/DashPlayer/commit/723cf91523404310684cea26b7891f2b2cb1dc2b))
+* 整句学习句带出中文译文，意群改用主舞台下划线标记 ([9c6c61b](https://github.com/solidSpoon/DashPlayer/commit/9c6c61b12b802d685e45809ca58c524f482d4999))
+* 整句学习页重做，解析按需触发并接入本地词典选词 ([e458713](https://github.com/solidSpoon/DashPlayer/commit/e458713bdcae8efb59c536e0e0e01fc2916c0efe))
+* 整句讲解不可用时置灰解析与对话入口 ([45e3299](https://github.com/solidSpoon/DashPlayer/commit/45e3299dc12e5d3954c5da1844035902d5ea8ebe))
+* 新增「修复播放问题」一键修复流程，并校验修复产物确实可播 ([b261b08](https://github.com/solidSpoon/DashPlayer/commit/b261b080e424ca73089bde9c0a20a92a31945cd9))
+* 新增「修复播放问题」一键修复流程，并校验修复产物确实可播 ([6979625](https://github.com/solidSpoon/DashPlayer/commit/697962562435e97ed784615603bb2f4ac3ce8277))
+* 新增云端接口地址迁移，把老版本的 /v1 写入用户配置 ([2760870](https://github.com/solidSpoon/DashPlayer/commit/27608702513aff7a46bbf03754a9d48cdc0034ba))
+* 新增播放能力学习缓存，跨平台白名单误判可自愈 ([a87625d](https://github.com/solidSpoon/DashPlayer/commit/a87625def031bbb505a5146f4ce2026475a44908))
+* 本地字幕翻译改为源文锚定填槽解码 ([9635460](https://github.com/solidSpoon/DashPlayer/commit/9635460d3b0ec977448b3aa7b31b38ab746b30dd))
+* 本地字幕翻译缓存键编入策略版本 ([a262ccf](https://github.com/solidSpoon/DashPlayer/commit/a262ccfc4d3a0c1e66ee14729f4331c636729a39))
+* 第二地址框改为完整请求路径覆盖 ([011d04c](https://github.com/solidSpoon/DashPlayer/commit/011d04c3d7b756e0633bc22a1e9cb72baf671ab6))
+
+
+### Bug Fixes
+
+* 云端模型占用改为按引擎配置现算并实时反馈 ([36a3e94](https://github.com/solidSpoon/DashPlayer/commit/36a3e942a686c185be7b3652ed4b5414603c9527))
+* 修复产物先写临时文件再改名，避免写在中途的产物被播放与探测选中 ([c6030ed](https://github.com/solidSpoon/DashPlayer/commit/c6030ed1307403836fc0efc3012769e67eeca971))
+* 修复名单添加文件时放行全部媒体格式，不再只让选 mkv ([ff4fbab](https://github.com/solidSpoon/DashPlayer/commit/ff4fbab242ebea484dd3a9681f11d13a007869bb))
+* 修复播放任务竞态并校验修复名单路径 ([2af11f7](https://github.com/solidSpoon/DashPlayer/commit/2af11f7ea6b4357f75b109c82576b4c84f407e40))
+* 修复播放任务竞态并校验修复名单路径 ([35b98a0](https://github.com/solidSpoon/DashPlayer/commit/35b98a09a55761b22543ecb6209c4a3934363e89))
+* 修复页面不再给纯音频文件请求缩略图 ([c96621e](https://github.com/solidSpoon/DashPlayer/commit/c96621e09608d2c4e6da385b86e53ae9b2ec3bcc))
+* 停止生成后丢弃迟到的流片段，避免写入已关闭的流 ([552d44e](https://github.com/solidSpoon/DashPlayer/commit/552d44ecb656c17663994cf011bf54dff22373ca))
+* 同一媒体的修复并发发起时合并为同一次任务 ([ee7e0bc](https://github.com/solidSpoon/DashPlayer/commit/ee7e0bc3488c7cc682e3b0e3d9a678d6067b96c6))
+* 圆点标记不再让转录按钮图标回退默认尺寸 ([d7911dd](https://github.com/solidSpoon/DashPlayer/commit/d7911dd6afbdd0178efe47e7aeedd467826dc32f))
+* 填槽译文槽排除控制字符并按源文推导槽上限 ([3213bc2](https://github.com/solidSpoon/DashPlayer/commit/3213bc2452f0d7e56cc5b55c0dc9a12c33108d4e))
+* 字幕文件已被删除时按无字幕处理，不再弹错误提示 ([b8e81b9](https://github.com/solidSpoon/DashPlayer/commit/b8e81b95ce4346042e55dde6e0f70b57ab2a92ac))
+* 小圆点改锚定按钮右上角，不再贴在图标上 ([532d485](https://github.com/solidSpoon/DashPlayer/commit/532d48520d8bbbb5b0306a77b238ff3238c31044))
+* 已取消/失败等记录恢复强制修复入口，取消原因在详情行展示 ([0687df2](https://github.com/solidSpoon/DashPlayer/commit/0687df283d0f296cf18c2d517670c8eb4d7735e8))
+* 已有排队或运行中转录任务时不再重复引导生成字幕 ([ab14799](https://github.com/solidSpoon/DashPlayer/commit/ab14799d805975536f58320397362d2e800d4c53))
+* 播放验收不再把缺失的解码计数器当作零解码 ([aa14b14](https://github.com/solidSpoon/DashPlayer/commit/aa14b1458f9900dea669a10935f31c24240bd14e))
+* 服务设置页开关与模型列表随表单变更即时刷新 ([ca109da](https://github.com/solidSpoon/DashPlayer/commit/ca109da8ac1cfba0583bba74ac5553139612ea73))
+* 版本路径输入框改为独占一行 ([f1d324c](https://github.com/solidSpoon/DashPlayer/commit/f1d324cdf3f5748ca39256e89882e5a2fb2e4029))
+* 迁移失败不再清空数据库，改为进入恢复模式交给用户决定 ([052be8d](https://github.com/solidSpoon/DashPlayer/commit/052be8dcf862596790b23dd063621d50e1c56399))
+* 迁移失败不再清空数据库，改为进入恢复模式交给用户决定 ([a1ab16d](https://github.com/solidSpoon/DashPlayer/commit/a1ab16dca23b3e9f9f8b7b29949157c8ee67d138))
+* 连通性测试为推理模型留出正文输出预算 ([2daa66f](https://github.com/solidSpoon/DashPlayer/commit/2daa66f2c48684500b602c71765339328184fc32))
+
 ## [6.11.2](https://github.com/solidSpoon/DashPlayer/compare/v6.11.1...v6.11.2) (2026-09-10)
 
 
