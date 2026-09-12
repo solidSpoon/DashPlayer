@@ -1,5 +1,5 @@
 import { storeGet } from '@/backend/infrastructure/settings/store';
-import { resolveAiBaseUrl } from '@/common/utils/openai-endpoint';
+import { AI_API_FORMATS, AiApiFormat } from '@/common/utils/openai-endpoint';
 import StrUtil from '@/common/utils/str-util';
 import { inject, injectable } from 'inversify';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
@@ -68,6 +68,9 @@ export class AiProviderServiceImpl implements AiProviderService {
      *   等厂商的 Anthropic 兼容端点同样适用。
      * - gemini：@ai-sdk/google 的 generateContent 路径。
      *
+     * endpoint 存储语义是完整 base URL（含 /v1 等版本路径），由各 SDK 直接
+     * 作为 baseURL 使用。
+     *
      * @param modelId 模型 ID（来自模型路由配置）。
      * @returns 可直接传给 generateText/streamText 的语言模型。
      */
@@ -75,16 +78,18 @@ export class AiProviderServiceImpl implements AiProviderService {
         const apiKey = storeGet('apiKeys.openAi.key');
         const endpoint = storeGet('apiKeys.openAi.endpoint');
         const apiFormat = storeGet('apiKeys.openAi.apiFormat');
-        const baseURL = resolveAiBaseUrl(endpoint, apiFormat, storeGet('apiKeys.openAi.autoAppendV1'));
+        if (!AI_API_FORMATS.includes(apiFormat as AiApiFormat)) {
+            throw new Error(`设置项 apiKeys.openAi.apiFormat 非法: ${apiFormat}`);
+        }
         if (apiFormat === 'anthropic') {
-            return createAnthropic({ baseURL, apiKey })(modelId);
+            return createAnthropic({ baseURL: endpoint, apiKey })(modelId);
         }
         if (apiFormat === 'gemini') {
-            return createGoogleGenerativeAI({ baseURL, apiKey })(modelId);
+            return createGoogleGenerativeAI({ baseURL: endpoint, apiKey })(modelId);
         }
         const provider = createOpenAICompatible({
             name: 'openai',
-            baseURL,
+            baseURL: endpoint,
             apiKey: apiKey,
         });
         return provider.chatModel(modelId);
