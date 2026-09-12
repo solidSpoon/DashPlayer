@@ -37,7 +37,7 @@ import { convertArrayToReadableStream, MockLanguageModelV4 } from 'ai/test';
 import type { LanguageModelV3, LanguageModelV4StreamPart } from '@ai-sdk/provider';
 
 import { loadAiSdkTestConfig } from '@/test/aiSdkTestConfig';
-import { joinUrl } from '@/common/utils/Util';
+import { resolveAiRequestBaseUrl } from '@/common/utils/openai-endpoint';
 import { splitSystemMessages } from '@/backend/services/chat/ChatPromptBuilder';
 import { ChatServiceImpl } from '../ChatService';
 import { ChatSessionServiceImpl } from '../ChatSessionService';
@@ -70,7 +70,7 @@ const describeLive = liveTestsEnabled && testConfig ? describe : describe.skip;
 const buildLiveModel = (modelId: string): LanguageModel => {
     const provider = createOpenAICompatible({
         name: 'openai',
-        baseURL: joinUrl(testConfig!.endpoint, testConfig!.versionPath),
+        baseURL: resolveAiRequestBaseUrl(testConfig!.endpoint, testConfig!.requestPath, 'openai'),
         apiKey: testConfig!.key,
     });
     return provider.chatModel(modelId);
@@ -85,7 +85,7 @@ const buildLiveModel = (modelId: string): LanguageModel => {
 const buildRawLiveModel = (modelId: string): LanguageModelV3 => {
     const provider = createOpenAICompatible({
         name: 'openai',
-        baseURL: joinUrl(testConfig!.endpoint, testConfig!.versionPath),
+        baseURL: resolveAiRequestBaseUrl(testConfig!.endpoint, testConfig!.requestPath, 'openai'),
         apiKey: testConfig!.key,
     });
     return provider.chatModel(modelId);
@@ -392,7 +392,7 @@ const runTests = (): void => {
                 const { storeSet } = await import('@/backend/infrastructure/settings/store');
                 storeSet('apiKeys.openAi.key', testConfig!.key);
                 storeSet('apiKeys.openAi.endpoint', testConfig!.endpoint);
-                storeSet('apiKeys.openAi.versionPath', testConfig!.versionPath);
+                storeSet('apiKeys.openAi.requestPath', testConfig!.requestPath);
                 if (testConfig!.availableModels.length > 0) {
                     storeSet('models.openai.available', testConfig!.availableModels.join('\n'));
                 }

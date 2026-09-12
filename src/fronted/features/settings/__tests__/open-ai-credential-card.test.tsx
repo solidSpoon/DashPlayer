@@ -31,7 +31,7 @@ const buildDefaultValues = (
     openai: {
         key: '',
         endpoint: '',
-        versionPath: '/v1',
+        requestPath: '',
         apiFormat: 'openai',
         models: [],
         ...openai,
@@ -68,13 +68,14 @@ describe('OpenAiCredentialCard', () => {
         expect(within(dialog).getByText('选择厂商预设')).toBeInTheDocument();
         for (const preset of CLOUD_AI_PROVIDER_PRESETS) {
             expect(within(dialog).getByText(preset.name)).toBeInTheDocument();
-            expect(within(dialog).getByText(`${preset.endpoint}${preset.versionPath}`)).toBeInTheDocument();
+            expect(within(dialog).getByText(preset.endpoint)).toBeInTheDocument();
         }
     });
 
     it('选择 DeepSeek 预设后回填完整接口地址，且不覆盖已有模型列表', async () => {
         const user = userEvent.setup();
         renderCard(buildDefaultValues({
+            requestPath: '/custom/chat/completions',
             models: [{ model: 'existing-model', inUseBy: [] }],
         }));
 
@@ -85,8 +86,9 @@ describe('OpenAiCredentialCard', () => {
         await user.click(useButtons[deepSeekIndex]);
 
         await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-        expect(screen.getByDisplayValue('https://api.deepseek.com')).toBeInTheDocument();
-        expect(screen.getByDisplayValue('/v1')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('https://api.deepseek.com/v1')).toBeInTheDocument();
+        const requestPathInput = screen.getByPlaceholderText('serviceCredentials.openai.requestPathPlaceholderOpenai');
+        expect(requestPathInput).toHaveValue('');
         expect(screen.getByText('existing-model')).toBeInTheDocument();
     });
 
@@ -101,7 +103,6 @@ describe('OpenAiCredentialCard', () => {
         await user.click(useButtons[anthropicIndex]);
 
         expect(await screen.findByText('Anthropic 兼容')).toBeInTheDocument();
-        expect(screen.getByDisplayValue('https://api.anthropic.com')).toBeInTheDocument();
-        expect(screen.getByDisplayValue('/v1')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('https://api.anthropic.com/v1')).toBeInTheDocument();
     });
 });

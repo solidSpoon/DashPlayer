@@ -12,10 +12,10 @@ import path from 'path';
 export type AiSdkTestConfig = {
     /** OpenAI 兼容接口的 API Key。 */
     key: string;
-    /** 云端接口基础地址（不含 /v1 等版本路径）。 */
+    /** 云端接口完整 base URL（含 /v1 等版本路径）。 */
     endpoint: string;
-    /** 版本路径（如 /v1）；配置文件未写时默认 /v1。 */
-    versionPath: string;
+    /** 请求路径覆盖（如 /v1/messages）；配置文件未写时为空串（标准路径）。 */
+    requestPath: string;
     /** 本次验证使用的模型 id。 */
     model: string;
     /** config.dev.json 的 models.openai.available 解析出的模型清单（可能为空）。 */
@@ -59,7 +59,7 @@ export const loadAiSdkTestConfig = (): AiSdkTestConfig | null => {
         return null;
     }
     const config = raw as {
-        apiKeys?: { openAi?: { key?: string; endpoint?: string; versionPath?: string } };
+        apiKeys?: { openAi?: { key?: string; endpoint?: string; requestPath?: string } };
         models?: { openai?: { sentenceLearning?: string; available?: string } };
     };
     const key = config.apiKeys?.openAi?.key?.trim() ?? '';
@@ -67,7 +67,7 @@ export const loadAiSdkTestConfig = (): AiSdkTestConfig | null => {
     if (!key || !endpoint) {
         return null;
     }
-    const versionPath = config.apiKeys?.openAi?.versionPath?.trim() ?? '/v1';
+    const requestPath = config.apiKeys?.openAi?.requestPath?.trim() ?? '';
     const sentenceModel = config.models?.openai?.sentenceLearning?.trim() ?? '';
     const availableModels = (config.models?.openai?.available ?? '')
         .split(/[\n,]/)
@@ -77,5 +77,5 @@ export const loadAiSdkTestConfig = (): AiSdkTestConfig | null => {
     const model = sentenceModel && availableModels.includes(sentenceModel)
         ? sentenceModel
         : (availableModels[0] ?? 'gpt-5.4-nano');
-    return { key, endpoint, versionPath, model, availableModels, sentenceLearningModel: sentenceModel };
+    return { key, endpoint, requestPath, model, availableModels, sentenceLearningModel: sentenceModel };
 };
