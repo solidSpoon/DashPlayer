@@ -31,7 +31,6 @@ const logger = getRendererLogger('LearningPage');
  */
 export default function LearningPage() {
     const { t } = useTranslation('common');
-    const hideLearning = useChatPanel((state) => state.hideLearning);
     const topicText = useChatPanel((state) => state.topicText);
     const topicTranslation = useChatPanel((state) => state.topicTranslation);
     const anchorIndex = useChatPanel((state) => state.anchorIndex);
@@ -195,7 +194,6 @@ export default function LearningPage() {
                 onToggleFavorite={(word, meaning) => {
                     void toggleFavorite(word, meaning);
                 }}
-                onBackToPlayer={hideLearning}
             />
         </div>
     );

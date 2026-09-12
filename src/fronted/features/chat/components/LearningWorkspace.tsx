@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { CornerDownLeft, Loader2, Pause, Search, Sparkles, Volume2, X } from 'lucide-react';
+import { CornerDownLeft, Loader2, Pause, Search, Sparkles, Volume2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/fronted/lib/utils';
 import Md from '@/fronted/components/shared/markdown/Markdown';
@@ -70,8 +70,6 @@ export type LearningWorkspaceProps = {
     isFavorite: (word: string) => boolean;
     /** 收藏 / 取消收藏某个生词。 */
     onToggleFavorite: (word: string, meaning: string) => void;
-    /** 返回播放画面（保留当前学习会话）。 */
-    onBackToPlayer: () => void;
 };
 
 const SECTION_TITLE = 'text-[11px] font-semibold uppercase tracking-wider text-muted-foreground';
@@ -678,7 +676,6 @@ const ConversationPane = ({
     onSubmit,
     onStop,
     onJumpToLine,
-    onBackToPlayer,
     quickPrompts,
     empty,
     stage,
@@ -700,8 +697,6 @@ const ConversationPane = ({
     onSubmit: (text: string) => void;
     onStop: () => void;
     onJumpToLine: (index: number) => void;
-    /** 返回播放画面（保留当前学习会话）。 */
-    onBackToPlayer: () => void;
     /** 输入框上方的快捷提问：点一下直接把问题发进对话。 */
     quickPrompts: { label: string; prompt: string }[];
     /** 对话为空时占据消息区的“预习”内容；未提供时回退到默认提示。 */
@@ -904,19 +899,6 @@ const ConversationPane = ({
                     </button>
                 </div>
             </div>
-
-            {/* 返回播放画面的出口钉在页面右下角：句子上只留朗读，两个按钮挨在一起容易误点 */}
-            <div className="flex shrink-0 justify-end px-6 pb-3">
-                <button
-                    type="button"
-                    onClick={onBackToPlayer}
-                    title={t('learning.backToPlayer')}
-                    aria-label={t('learning.backToPlayer')}
-                    className="flex h-6 w-6 items-center justify-center rounded-full text-muted-foreground transition-colors hover:bg-muted/60 hover:text-foreground"
-                >
-                    <X className="h-3.5 w-3.5" />
-                </button>
-            </div>
         </section>
     );
 };
@@ -952,7 +934,6 @@ export default function LearningWorkspace({
     onJumpToLine,
     isFavorite,
     onToggleFavorite,
-    onBackToPlayer,
 }: LearningWorkspaceProps) {
     const { t } = useTranslation('common');
     const isMac = useSystem((s) => s.isMac);
@@ -1023,7 +1004,6 @@ export default function LearningWorkspace({
                     onSubmit={onSubmit}
                     onStop={onStop}
                     onJumpToLine={onJumpToLine}
-                    onBackToPlayer={onBackToPlayer}
                     quickPrompts={quickPrompts}
                     empty={vocabWords.length > 0 ? (
                         <VocabPreview

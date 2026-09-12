@@ -49,6 +49,7 @@ import {
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useTrainingModeStore } from '@/fronted/features/player/trainingStore';
 import { TrainingSettingsDialog } from '@/fronted/features/player/components/TrainingSettingsDialog';
+import LearningModeButton, { CAPTION_CAPSULE_CLASS } from './LearningModeButton';
 
 export default function MainSubtitle() {
     const logger = getRendererLogger('MainSubtitle');
@@ -239,7 +240,7 @@ export default function MainSubtitle() {
 
                 {/* 右下角横向悬浮胶囊控制栏：与下方译文行同层右靠，完全不占垂直空间 */}
                 <div className="absolute right-3 bottom-2 z-20 pointer-events-auto">
-                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-stone-300/60 dark:bg-neutral-700/60 border border-black/5 dark:border-white/5 backdrop-blur-sm shadow-xs">
+                    <div className={CAPTION_CAPSULE_CLASS}>
                         <TooltipProvider delayDuration={300}>
                             {/* 上一句 */}
                             <Tooltip>
@@ -737,6 +738,9 @@ export default function MainSubtitle() {
                                     </DropdownMenuCheckboxItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
+
+                            {/* 整句学习开关：挂在胶囊最右侧，与学习界面右下角那颗是同一颗，位置不随视图变化 */}
+                            <LearningModeButton />
                         </TooltipProvider>
                     </div>
                 </div>

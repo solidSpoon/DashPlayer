@@ -389,7 +389,7 @@ const useChatPanel = create(
                             (sentence) => sentence.index === currentSentence.index && sentence.fileHash === currentSentence.fileHash
                         );
                         const precedingLines = position >= 0
-                            ? sentences.slice(Math.max(0, position - 2), position).map((sentence) => sentence.text ?? '')
+                            ? sentences.slice(Math.max(0, position - 5), position).map((sentence) => sentence.text ?? '')
                             : [];
                         const followingLines = position >= 0
                             ? sentences.slice(position + 1, position + 6).map((sentence) => sentence.text ?? '')

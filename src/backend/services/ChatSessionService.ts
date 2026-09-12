@@ -11,6 +11,10 @@ import {
     ChatSessionCreateResult,
     ChatSendMessageParams,
     ChatSendMessageResult,
+    GetSubtitleContextResult,
+    SearchSubtitlesResult,
+    SubtitleSearchHit,
+    SubtitleToolLine,
 } from '@/common/types/chat';
 import { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
 import { AiUnifiedAnalysisSchema } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
@@ -285,7 +289,7 @@ export class ChatSessionServiceImpl implements ChatSessionService {
 
     /**
      * 创建整句学习聊天可调用的字幕工具。
-     * 工具只暴露字幕索引和窗口大小，具体缓存定位由后端会话完成；所有结果都限制为精简字幕投影。
+     * 工具只暴露字幕索引与读取范围，具体缓存定位由后端会话完成；所有结果都限制为精简字幕投影。
      * @param sessionId 当前整句学习会话 ID。
      * @returns AI SDK 工具集合。
      */
@@ -304,7 +308,7 @@ export class ChatSessionServiceImpl implements ChatSessionService {
             start: number;
             end: number;
             text: string;
-        }) => ({
+        }): SubtitleToolLine => ({
             index: sentence.index,
             start: sentence.start,
             end: sentence.end,
@@ -313,7 +317,7 @@ export class ChatSessionServiceImpl implements ChatSessionService {
 
         return {
             search_subtitles: tool({
-                description: '在当前视频的完整字幕中搜索一个或多个关键词，返回命中字幕的索引、时间和文本。默认任意关键词命中即可。',
+                description: '在当前视频的完整字幕中搜索一个或多个关键词，返回命中字幕的索引、时间和文本。默认任意关键词命中即可；把 context 设为大于 0 可在每个命中行前后各附上若干行连续字幕，一次调用即可看清前后文。',
                 inputSchema: z.object({
                     queries: z.preprocess(
                         (val) => {
@@ -328,44 +332,54 @@ export class ChatSessionServiceImpl implements ChatSessionService {
                         z.array(z.string().min(1)).min(1)
                     ),
                     match: z.enum(['any', 'all']).default('any'),
+                    context: z.number().int().min(0).max(10).default(0),
                     limit: z.number().int().min(1).max(50).default(10),
                     skip: z.number().int().min(0).max(10000).default(0),
                 }),
-                execute: async ({ queries, match, limit, skip }) => {
+                execute: async ({ queries, match, context, limit, skip }): Promise<SearchSubtitlesResult> => {
+                    const sentences = getSentences();
                     const normalizedQueries = queries.map((query) => query.toLowerCase());
-                    const allMatches = getSentences()
-                        .map((sentence) => {
+                    const matched = sentences
+                        .map((sentence, position) => {
                             const text = sentence.text.toLowerCase();
                             const matchedQueries = normalizedQueries.filter((query) => text.includes(query));
                             return matchedQueries.length > 0 && (match === 'any' || matchedQueries.length === normalizedQueries.length)
-                                ? { ...projectSentence(sentence), matchedQueries }
+                                ? { sentence, position, matchedQueries }
                                 : null;
                         })
-                        .filter((sentence): sentence is NonNullable<typeof sentence> => sentence !== null);
+                        .filter((item): item is NonNullable<typeof item> => item !== null);
+                    const matches = matched.slice(skip, skip + limit).map(({ sentence, position, matchedQueries }) => {
+                        const hit: SubtitleSearchHit = { ...projectSentence(sentence), matchedQueries };
+                        if (context > 0) {
+                            hit.context = sentences
+                                .slice(Math.max(0, position - context), position + context + 1)
+                                .map(projectSentence);
+                        }
+                        return hit;
+                    });
                     return {
-                        matches: allMatches.slice(skip, skip + limit),
-                        total: allMatches.length,
+                        matches,
+                        total: matched.length,
                         skip,
                         limit,
                     };
                 },
             }),
             get_subtitle_context: tool({
-                description: '根据字幕索引读取该句附近的连续字幕。返回结果以目标索引为中心，limit 是返回总条数。',
+                description: '从指定字幕索引出发，向前 before 行、向后 after 行读取连续字幕；片头/片尾处不足则少给。想继续往后读时，把返回的 endIndex 作为下一次调用的 index。',
                 inputSchema: z.object({
                     index: z.number().int().min(0),
-                    limit: z.number().int().min(1).max(50).default(20),
+                    before: z.number().int().min(0).max(25).default(10),
+                    after: z.number().int().min(0).max(25).default(10),
                 }),
-                execute: async ({ index, limit }) => {
+                execute: async ({ index, before, after }): Promise<GetSubtitleContextResult> => {
                     const sentences = getSentences();
                     const anchorPosition = sentences.findIndex((sentence) => sentence.index === index);
                     if (anchorPosition < 0) {
                         throw new Error(`字幕索引不存在：${index}`);
                     }
-                    const size = Math.min(limit, sentences.length);
-                    const before = Math.floor((size - 1) / 2);
-                    const start = Math.max(0, Math.min(anchorPosition - before, sentences.length - size));
-                    const items = sentences.slice(start, start + size).map(projectSentence);
+                    const start = Math.max(0, anchorPosition - before);
+                    const items = sentences.slice(start, anchorPosition + after + 1).map(projectSentence);
                     return {
                         anchorIndex: index,
                         startIndex: items[0]?.index ?? index,
