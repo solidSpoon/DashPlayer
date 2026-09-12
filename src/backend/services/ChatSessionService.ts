@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify';
 import { randomUUID } from 'node:crypto';
-import { isStepCount, ModelMessage, Output, streamText, toUIMessageStream, tool, UIMessageChunk } from 'ai';
+import { APICallError, isStepCount, ModelMessage, Output, streamText, toUIMessageStream, tool, UIMessageChunk } from 'ai';
 import { z } from 'zod';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
@@ -25,6 +25,28 @@ import {
 } from '@/backend/services/chat/ChatPromptBuilder';
 import ChatSessionStore from '@/backend/services/chat/ChatSessionStore';
 import CacheService from '@/backend/services/CacheService';
+
+/** 云端模型未配置时推给用户的引导文案：说明去哪配、可以用预设。 */
+const CLOUD_AI_NOT_CONFIGURED_MESSAGE = '云端 AI 未配置：请到「设置 → 服务与资源」填写 API Key、接口地址与模型，或点「使用预设」快速填入';
+
+/**
+ * 把流内异常转成给用户看的错误文案。
+ *
+ * API 调用错误（鉴权失败、地址 404 等）统一带上 HTTP 状态码与服务器返回
+ * 片段；404 额外提示检查接口地址完整性，引导回设置页重配。
+ */
+const describeStreamError = (error: unknown): string => {
+    if (error instanceof APICallError) {
+        const status = error.statusCode ?? '未知';
+        const body = (error.responseBody ?? '').trim();
+        const bodyHint = body.length > 0 ? `：${body.slice(0, 200)}` : '';
+        const addressHint = error.statusCode === 404
+            ? '；接口地址可能不正确或不完整（应包含 /v1 等版本路径），请到「设置 → 服务与资源」检查或使用预设重新填写'
+            : '';
+        return `云端接口请求失败（HTTP ${status}）${bodyHint}${addressHint}`;
+    }
+    return error instanceof Error ? error.message : String(error);
+};
 
 export default interface ChatSessionService {
     create(params: ChatSessionCreateParams): ChatSessionCreateResult;
@@ -90,7 +112,7 @@ export class ChatSessionServiceImpl implements ChatSessionService {
         if (!model) {
             this.rendererGateway.fireAndForget('chat/stream', {
                 sessionId,
-                chunk: { type: 'error', errorText: 'OpenAI api key or endpoint is empty' },
+                chunk: { type: 'error', errorText: CLOUD_AI_NOT_CONFIGURED_MESSAGE },
             });
             return { messageId };
         }
@@ -127,7 +149,7 @@ export class ChatSessionServiceImpl implements ChatSessionService {
             this.rendererGateway.fireAndForget('chat/analysis/stream', {
                 sessionId,
                 messageId,
-                chunk: { type: 'error', errorText: 'OpenAI api key or endpoint is empty' },
+                chunk: { type: 'error', errorText: CLOUD_AI_NOT_CONFIGURED_MESSAGE },
             });
             return { messageId };
         }
@@ -168,7 +190,7 @@ export class ChatSessionServiceImpl implements ChatSessionService {
         if (!model) {
             this.rendererGateway.fireAndForget('chat/stream', {
                 sessionId,
-                chunk: { type: 'error', errorText: 'OpenAI api key or endpoint is empty' },
+                chunk: { type: 'error', errorText: CLOUD_AI_NOT_CONFIGURED_MESSAGE },
             });
             return { messageId };
         }
@@ -491,7 +513,7 @@ export class ChatSessionServiceImpl implements ChatSessionService {
         error: unknown,
     ): void {
         const cancelled = this.isCancellation(error);
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage = describeStreamError(error);
         if (!cancelled) {
             this.logger.error(`${runType} stream failed`, { error: errorMessage });
         }
@@ -509,7 +531,7 @@ export class ChatSessionServiceImpl implements ChatSessionService {
      */
     private handleAnalysisError(sessionId: string, messageId: string, error: unknown): void {
         const cancelled = this.isCancellation(error);
-        const errorMessage = error instanceof Error ? error.message : String(error);
+        const errorMessage = describeStreamError(error);
         if (!cancelled) {
             this.logger.error('analysis stream failed', { error: errorMessage });
         }
