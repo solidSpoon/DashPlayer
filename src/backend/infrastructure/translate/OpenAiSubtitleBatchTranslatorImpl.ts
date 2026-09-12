@@ -49,7 +49,6 @@ implements OpenAiSubtitleBatchTranslator {
         const result = await concurrency.withRateLimit('gpt', () =>
             generateText({
                 model,
-                reasoning: 'low',
                 output: Output.object({ schema }),
                 prompt,
                 maxRetries: 0,

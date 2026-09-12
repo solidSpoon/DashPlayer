@@ -605,7 +605,6 @@ export class VocabularyServiceImpl implements VocabularyService {
         const result = await concurrency.withRateLimit('gpt', () =>
             generateText({
                 model,
-                reasoning: 'low',
                 output: Output.object({ schema }),
                 prompt: this.buildDefinitionPrompt(word),
                 maxRetries: 0,

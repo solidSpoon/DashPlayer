@@ -34,7 +34,7 @@ import { z } from 'zod';
 import { Output, streamText, LanguageModel } from 'ai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { convertArrayToReadableStream, MockLanguageModelV4 } from 'ai/test';
-import type { LanguageModelV3, LanguageModelV4StreamPart } from '@ai-sdk/provider';
+import type { LanguageModelV4StreamPart } from '@ai-sdk/provider';
 
 import { loadAiSdkTestConfig } from '@/test/aiSdkTestConfig';
 import { splitSystemMessages } from '@/backend/services/chat/ChatPromptBuilder';
@@ -61,27 +61,12 @@ const describeLive = liveTestsEnabled && testConfig ? describe : describe.skip;
 /**
  * 构造一个与生产 getModel 完全一致的直连测试模型：
  * @ai-sdk/openai-compatible 的 chat 模型（只走 /chat/completions，避开官方 provider 默认的
- * Responses API，uniapi 代理对 deepseek 的 Responses 流式实现不完整）。推理强度由调用方传入。
+ * Responses API，uniapi 代理对 deepseek 的 Responses 流式实现不完整）。
  *
  * @param modelId 要使用的模型 id。
  * @returns 可直接传给 streamText 的 LanguageModel。
  */
 const buildLiveModel = (modelId: string): LanguageModel => {
-    const provider = createOpenAICompatible({
-        name: 'openai',
-        baseURL: testConfig!.endpoint,
-        apiKey: testConfig!.key,
-    });
-    return provider.chatModel(modelId);
-};
-
-/**
- * 构造一个不带推理注入的裸 chat 模型，仅用于枚举各模型支持的推理档位（档位由调用方显式传入）。
- *
- * @param modelId 要使用的模型 id。
- * @returns 可直接传给 streamText 的 LanguageModel。
- */
-const buildRawLiveModel = (modelId: string): LanguageModelV3 => {
     const provider = createOpenAICompatible({
         name: 'openai',
         baseURL: testConfig!.endpoint,
@@ -289,58 +274,6 @@ const runTests = (): void => {
     });
 
     describeLive('AI SDK 升级验证（ai v7 + @ai-sdk/openai-compatible）', () => {
-        describe('推理强度（reasoning effort）档位与模型兼容性', () => {
-            it('真实连接：生产 getModel 路径（按模型族注入 none 或保持默认）对每个可用模型都能流式产出文本', async () => {
-                expect(testConfig!.availableModels.length).toBeGreaterThan(0);
-                for (const modelId of testConfig!.availableModels) {
-                    // buildLiveModel 与生产 getModel 一致：兼容 provider + 仅对已知支持 none 的模型族注入最快档位
-                    const result = streamText({
-                        model: buildLiveModel(modelId),
-                        prompt: 'Reply with exactly: ok',
-                    });
-                    let text = '';
-                    for await (const chunk of result.textStream) {
-                        text += chunk;
-                    }
-                    expect(text.trim().length, `模型 ${modelId} 经生产 getModel 路径应能产出文本`).toBeGreaterThan(0);
-                }
-            }, 120000);
-
-            it('真实连接：枚举每个可用模型支持的推理档位', async () => {
-                // 基线（不设置推理）用于对照：某些代理端模型即使成功也会在流里带 error part
-                const efforts = ['（不设置）', 'low', 'medium', 'high'] as const;
-                const matrix: Record<string, string[]> = {};
-                for (const modelId of testConfig!.availableModels) {
-                    matrix[modelId] = [];
-                    for (const effort of efforts) {
-                        // 注意：提供方 400 不会让 textStream 抛错，而是以 error part 进入流；
-                        // 但 deepseek 等代理模型即使成功也会带“空 error part”，
-                        // 所以只把带具体信息的真实错误（如 AI_APICallError）视为档位不被支持。
-                        const result = streamText({
-                            model: buildRawLiveModel(modelId),
-                            // 推理档位直接传给 AI SDK 7 的 reasoning
-                            ...(effort === '（不设置）'
-                                ? {}
-                                : { reasoning: effort }),
-                            prompt: 'Reply with exactly: ok',
-                            onError: () => {},
-                        });
-                        let rejected = false;
-                        for await (const part of result.fullStream) {
-                            if (part.type === 'error' && part.error && (part.error as Error).message) {
-                                rejected = true;
-                            }
-                        }
-                        if (!rejected) {
-                            matrix[modelId].push(effort);
-                        }
-                    }
-                }
-                console.log('[推理档位兼容矩阵]', JSON.stringify(matrix));
-                expect(Object.keys(matrix)).toHaveLength(testConfig!.availableModels.length);
-            }, 120000);
-        });
-
         describe('streamText 文本流（聊天/欢迎语等通用路径）', () => {
             it('真实连接：messages 输入能流式产出文本并正常结束', async () => {
                 const result = streamText({
