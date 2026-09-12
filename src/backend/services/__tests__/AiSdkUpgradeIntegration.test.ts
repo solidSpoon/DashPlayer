@@ -134,8 +134,8 @@ const buildErrorModel = (error: Error): LanguageModel => {
 };
 
 const runTests = (): void => {
-    // 离线回归：不发真实请求，默认测试（yarn test）就能跑，守护整句学习面板的欢迎语句路径。
-    describe('整句学习欢迎语句（AI SDK v7 离线回归）', () => {
+    // 离线回归：不发真实请求，默认测试（yarn test）就能跑，守护整句学习面板的模型调用与流式回推路径。
+    describe('整句学习面板（AI SDK v7 离线回归）', () => {
         describe('splitSystemMessages（system 消息拆分）', () => {
             it('能把开头 system 消息拆出并保留剩余消息', () => {
                 const { system, messages } = splitSystemMessages([
@@ -169,12 +169,18 @@ const runTests = (): void => {
             });
         });
 
-        describe('ChatSessionServiceImpl.startWelcome（整句学习面板欢迎语路径）', () => {
-            it('system+user 消息能流式产出欢迎语并通过事件回推，而不是空流直接 done', async () => {
+        describe('ChatSessionServiceImpl.startAnalysis（打开面板时唯一一次模型调用）', () => {
+            it('结构化分析能流式回推开场导学并在 finish 结束，而不是空流直接 done', async () => {
                 const events: Array<{ event: string; payload: Record<string, unknown> }> = [];
+                const analyzed = JSON.stringify({
+                    opening: '这句话的口语感很强。',
+                    structure: { phraseGroups: ['Hello world'] },
+                    phrases: { hasPhrase: false, phrases: [] },
+                    grammar: { hasGrammar: false, grammarsMd: '' },
+                });
                 const provider: AiProviderService = {
-                    getModel: vi.fn(() => buildMockTextModel('你好，我们开始学习这句话。')),
-                    createModelById: vi.fn(() => buildMockTextModel('你好，我们开始学习这句话。')),
+                    getModel: vi.fn(() => buildMockTextModel(analyzed)),
+                    createModelById: vi.fn(() => buildMockTextModel(analyzed)),
                 };
                 const gateway: RendererGateway = {
                     call: vi.fn(),
@@ -184,41 +190,27 @@ const runTests = (): void => {
                     }) as RendererGateway['fireAndForget'],
                 };
                 const store = {
-                    get: vi.fn(() => ({
-                        originalTopic: 'Hello world',
-                        fullText: 'Hello world',
-                        paragraphLines: ['Hello world'],
-                        subtitleFileHash: 'hash',
-                        anchorSentenceIndex: 0,
-                    })),
-                    getBackground: vi.fn(() => ({})),
+                    get: vi.fn(() => ({ originalTopic: 'Hello world' })),
                     startRun: vi.fn(() => new AbortController().signal),
                     finishRun: vi.fn(),
-                    appendMessage: vi.fn(),
-                };
-                const cacheService = {
-                    get: vi.fn(() => ({
-                        sentences: [{ index: 0, start: 0, end: 1000, text: 'Hello world' }],
-                    })),
                 };
                 const sessionService = new ChatSessionServiceImpl();
                 (sessionService as unknown as { aiProviderService: AiProviderService }).aiProviderService = provider;
                 (sessionService as unknown as { rendererGateway: RendererGateway }).rendererGateway = gateway;
                 (sessionService as unknown as { chatSessionStore: typeof store }).chatSessionStore = store as never;
-                (sessionService as unknown as { cacheService: typeof cacheService }).cacheService = cacheService as never;
 
-                await sessionService.startWelcome({
-                    sessionId: 's-welcome',
-                });
-                // startWelcome 是 fire-and-forget 模式，流式结果在后台异步回推，轮询等待 done 事件。
+                await sessionService.startAnalysis({ sessionId: 's-analysis' });
+                // startAnalysis 是 fire-and-forget 模式，流式结果在后台异步回推，轮询等待 finish 事件。
                 const deadline = Date.now() + 10000;
                 while (!events.some((e) => e.event === 'finish') && Date.now() < deadline) {
                     await new Promise((resolve) => setTimeout(resolve, 10));
                 }
-                const chunks = events.filter((e) => e.event === 'text-delta');
+                const chunks = events.filter((e) => e.event === 'data-analysis');
                 const done = events.find((e) => e.event === 'finish');
                 expect(chunks.length).toBeGreaterThan(0);
-                expect(chunks.map((c) => String((c.payload.chunk as { delta?: string }).delta ?? '')).join('')).toContain('你好');
+                const lastChunk = chunks[chunks.length - 1];
+                const partial = (lastChunk.payload.chunk as { data?: { opening?: string } }).data;
+                expect(partial?.opening).toContain('口语感');
                 expect(done).toBeDefined();
             }, 15000);
         });
@@ -509,21 +501,6 @@ const runTests = (): void => {
                 expect(partial?.structure).toBeDefined();
             }, 60000);
 
-            it('真实连接：startWelcome() 能流式产出欢迎语并通过事件回推', async () => {
-                events.length = 0;
-                await sessionService.startWelcome({
-                    sessionId: 's2',
-                });
-                // startWelcome 是 fire-and-forget 模式，流式结果在后台异步回推，轮询等待 done 事件。
-                const deadline = Date.now() + 45000;
-                while (!events.some((e) => e.event === 'finish') && Date.now() < deadline) {
-                    await new Promise((resolve) => setTimeout(resolve, 100));
-                }
-                const chunks = events.filter((e) => e.event === 'text-delta');
-                const done = events.find((e) => e.event === 'finish');
-                expect(chunks.length).toBeGreaterThan(0);
-                expect(done).toBeDefined();
-            }, 60000);
         });
 
         describe('TranslateServiceImpl（词典路径）', () => {

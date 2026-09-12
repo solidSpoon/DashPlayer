@@ -1,4 +1,3 @@
-import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 import { UIMessageChunk } from 'ai';
 
 /**
@@ -23,27 +22,6 @@ export type Topic = {
         };
     };
 } | 'offscreen';
-
-export type ChatBackgroundContext = {
-    paragraphLines?: string[];
-    analysis?: Partial<AiUnifiedAnalysisRes>;
-    /** 当前会话字幕缓存的只读概览，不包含字幕正文。 */
-    subtitleOverview?: {
-        /** 字幕行数。 */
-        lineCount: number;
-        /** 所有字幕文本的单词数（按空格分词统计）。 */
-        wordCount: number;
-        /** 字幕索引的最小值。 */
-        minIndex: number;
-        /** 字幕索引的最大值。 */
-        maxIndex: number;
-        /** 当前学习句的字幕索引。 */
-        anchorIndex: number;
-    };
-};
-
-/** AI SDK 7 统一的模型推理强度；auto 表示不传 reasoning。 */
-export type ChatReasoningEffort = 'auto' | 'low' | 'medium' | 'high';
 
 /**
  * 创建整句学习会话所需的稳定上下文快照。
@@ -75,19 +53,10 @@ export type ChatSessionCreateResult = {
 export type ChatStartParams = {
     sessionId: string;
     content: string;
-    /** 本次回答使用的推理强度；auto 或未传时不发送 reasoning。 */
-    reasoningEffort?: ChatReasoningEffort;
 };
 
 export type ChatStartResult = {
     messageId: string;
-};
-
-export type ChatWelcomeParams = {
-    /** 已由 main 进程持有上下文的会话 ID。 */
-    sessionId: string;
-    /** 欢迎回答使用的推理强度；auto 或未传时不发送 reasoning。 */
-    reasoningEffort?: ChatReasoningEffort;
 };
 
 /**

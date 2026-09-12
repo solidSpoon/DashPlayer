@@ -1,5 +1,6 @@
 import { useShallow } from 'zustand/react/shallow';
 import { useHotkeys } from 'react-hotkeys-hook';
+import toast from 'react-hot-toast';
 
 import useSetting from '@/fronted/features/settings/settingsStore';
 import { useSubtitleScrollState } from '@/fronted/features/player/hooks/useSubtitleScroll';
@@ -60,10 +61,6 @@ export default function PlayerShortCut() {
         aiChat: s.values.get('shortcut.aiChat') ?? '',
         addClip: s.values.get('shortcut.addClip') ?? '',
     })));
-    const { createFromCurrent } = useChatPanel(useShallow((s) => ({
-        createFromCurrent: s.createFromCurrent
-    })));
-
     // 模式开关的写入统一走 PlayerActions，此处只订阅展示用的值
     const singleRepeat = usePlayer((s) => s.singleRepeat);
     const autoPause = usePlayer((s) => s.autoPause);
@@ -144,9 +141,11 @@ export default function PlayerShortCut() {
     useHotkeys(process(shortcuts.toggleWordLevelDisplay), changeShowWordLevel);
     useHotkeys(process(shortcuts.nextPlaybackRate), playerActions.cyclePlaybackRate.bind(playerActions));
     useHotkeys(process(shortcuts.aiChat), () => {
-        playerActions.pause();
-        createFromCurrent();
-    }, [createFromCurrent]);
+        // 同一个快捷键开关学习页：进入时学习页会自行暂停播放，返回时不动播放状态
+        useChatPanel.getState().toggleLearning().catch((error) => {
+            toast.error(error instanceof Error ? error.message : String(error));
+        });
+    }, []);
 
     useHotkeys(process(shortcuts.addClip), async () => {
         useFavouriteClip.getState().changeCurrentLineClip();

@@ -9,7 +9,6 @@ import {
     ChatSessionCreateResult,
     ChatStartParams,
     ChatStartResult,
-    ChatWelcomeParams,
 } from '@/common/types/chat';
 import { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
 
@@ -34,11 +33,7 @@ export default class ChatStreamController implements Controller {
         });
 
         registerRoute('chat/start', async (params: ChatStartParams): Promise<ChatStartResult> => {
-            return this.chatSessionService.start(params.sessionId, params.content, params.reasoningEffort);
-        });
-
-        registerRoute('chat/welcome', async (params: ChatWelcomeParams): Promise<ChatStartResult> => {
-            return this.chatSessionService.startWelcome(params);
+            return this.chatSessionService.start(params.sessionId, params.content);
         });
 
         registerRoute('chat/analysis/start', async (params: AnalysisStartParams): Promise<AnalysisStartResult> => {

@@ -1,8 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { injectable } from 'inversify';
 import { ModelMessage } from 'ai';
-import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
-import { ChatBackgroundContext, ChatSessionCreateParams } from '@/common/types/chat';
+import { ChatSessionCreateParams } from '@/common/types/chat';
 
 /**
  * 内存中的一次整句学习会话。
@@ -22,8 +21,6 @@ export type ChatSession = {
     anchorSentenceIndex: number;
     /** 已完成并可用于后续请求的模型消息历史。 */
     messages: ModelMessage[];
-    /** 已校验的最终句子分析结果。 */
-    analysis?: AiUnifiedAnalysisRes;
     /** 当前会话是否已关闭。 */
     closed: boolean;
     /** 当前仍在执行的生成请求。 */
@@ -37,8 +34,6 @@ export default interface ChatSessionStore {
     create(params: ChatSessionCreateParams): ChatSession;
     get(sessionId: string): ChatSession;
     appendMessage(sessionId: string, message: ModelMessage): void;
-    setAnalysis(sessionId: string, analysis: AiUnifiedAnalysisRes): void;
-    getBackground(sessionId: string): ChatBackgroundContext;
     startRun(sessionId: string, runId: string): AbortSignal;
     finishRun(sessionId: string, runId: string): void;
     stop(sessionId: string): void;
@@ -66,10 +61,8 @@ export class InMemoryChatSessionStore implements ChatSessionStore {
             paragraphLines: [...params.paragraphLines],
             subtitleFileHash: params.subtitleFileHash,
             anchorSentenceIndex: params.anchorSentenceIndex,
-            messages: [{
-                role: 'user',
-                content: `请帮我分析 "${params.originalTopic}"`,
-            }],
+            // 历史从首轮用户消息开始：面板打开时的结构化解析走独立调用，不占用对话历史。
+            messages: [],
             closed: false,
             runs: new Map(),
         };
@@ -98,28 +91,6 @@ export class InMemoryChatSessionStore implements ChatSessionStore {
     public appendMessage(sessionId: string, message: ModelMessage): void {
         const session = this.getOpenSession(sessionId);
         session.messages.push(message);
-    }
-
-    /**
-     * 保存通过 schema 校验的最终分析结果。
-     * @param sessionId 会话 ID。
-     * @param analysis 最终分析对象。
-     */
-    public setAnalysis(sessionId: string, analysis: AiUnifiedAnalysisRes): void {
-        this.getOpenSession(sessionId).analysis = analysis;
-    }
-
-    /**
-     * 构造后续聊天使用的冻结背景，不读取播放器的当前状态。
-     * @param sessionId 会话 ID。
-     * @returns 字幕与已完成分析组成的背景。
-     */
-    public getBackground(sessionId: string): ChatBackgroundContext {
-        const session = this.getOpenSession(sessionId);
-        return {
-            paragraphLines: [...session.paragraphLines],
-            analysis: session.analysis,
-        };
     }
 
     /**

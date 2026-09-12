@@ -10,17 +10,15 @@ import {
     ChatSessionCreateParams,
     ChatSessionCreateResult,
     ChatStartResult,
-    ChatWelcomeParams,
 } from '@/common/types/chat';
-import type { ChatReasoningEffort } from '@/common/types/chat';
-import { AnalysisStartParams, AnalysisStartResult, DeepPartial } from '@/common/types/analysis';
-import { AiUnifiedAnalysisRes, AiUnifiedAnalysisSchema } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
+import { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
+import { AiUnifiedAnalysisSchema } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 import { WithRateLimit } from '@/backend/utils/concurrency/decorators';
 import { isUserCancellation } from '@/common/utils/cancellation';
 import {
-    appendBackgroundMessage,
     buildAnalysisPrompt,
-    buildWelcomeMessages,
+    buildSubtitleContext,
+    ensureChatRoleMessage,
     splitSystemMessages,
 } from '@/backend/services/chat/ChatPromptBuilder';
 import ChatSessionStore from '@/backend/services/chat/ChatSessionStore';
@@ -30,8 +28,7 @@ export default interface ChatSessionService {
     create(params: ChatSessionCreateParams): ChatSessionCreateResult;
     close(sessionId: string): void;
     stop(sessionId: string): void;
-    start(sessionId: string, content: string, reasoningEffort?: ChatReasoningEffort): Promise<ChatStartResult>;
-    startWelcome(params: ChatWelcomeParams): Promise<ChatStartResult>;
+    start(sessionId: string, content: string): Promise<ChatStartResult>;
     startAnalysis(params: AnalysisStartParams): Promise<AnalysisStartResult>;
 }
 
@@ -78,38 +75,10 @@ export class ChatSessionServiceImpl implements ChatSessionService {
     }
 
     /**
-     * 根据会话创建时冻结的主题生成欢迎消息。
-     * @param sessionId 会话 ID。
-     * @returns 新 assistant 消息的 ID。
-     */
-    @WithRateLimit('gpt')
-    public async startWelcome(params: ChatWelcomeParams): Promise<ChatStartResult> {
-        const sessionId = params.sessionId;
-        const messageId = this.createMessageId();
-        const model = this.aiProviderService.getModel('sentenceLearning');
-        if (!model) {
-            this.rendererGateway.fireAndForget('chat/stream', {
-                sessionId,
-                chunk: { type: 'error', errorText: 'OpenAI api key or endpoint is empty' },
-            });
-            return { messageId };
-        }
-
-        const session = this.chatSessionStore.get(sessionId);
-        const messages = buildWelcomeMessages({
-            sessionId,
-            originalTopic: session.originalTopic,
-            fullText: session.paragraphLines.join(' '),
-            subtitleOverview: this.getSubtitleOverview(session.subtitleFileHash, session.anchorSentenceIndex),
-        });
-        this.startTextRun(sessionId, messageId, messages, 'welcome', params.reasoningEffort ?? 'auto');
-
-        return { messageId };
-    }
-
-    /**
      * 启动当前会话主题的结构化句子分析。
-     * @param params 会话 ID；text 仅保留在旧契约中，实际主题从会话快照读取。
+     *
+     * 说明：面板打开时只跑这一次模型调用，同时产出开场导学与结构化解析。
+     * @param params 会话 ID，主题从会话快照读取。
      * @returns 本次分析消息 ID。
      */
     @WithRateLimit('gpt')
@@ -143,27 +112,34 @@ export class ChatSessionServiceImpl implements ChatSessionService {
 
     /**
      * 向会话追加用户消息并基于 main 进程持有的历史启动回答。
+     *
+     * 说明：首轮把会话冻结的字幕参考材料并入用户消息，保持角色严格交替，
+     * 同时让参考材料固定落在历史最前端，后续轮次的提示词前缀完全不变。
+     *
      * @param sessionId 会话 ID。
      * @param content 新增的用户文本。
-     * @param reasoningEffort 本次回答的推理强度；auto 或未传时不发送 reasoning。
      * @returns 新 assistant 消息的 ID。
      */
     @WithRateLimit('gpt')
     public async start(
         sessionId: string,
         content: string,
-        reasoningEffort: ChatReasoningEffort = 'auto',
     ): Promise<ChatStartResult> {
         const messageId = this.createMessageId();
-        this.chatSessionStore.appendMessage(sessionId, { role: 'user', content });
         const session = this.chatSessionStore.get(sessionId);
-        const enrichedMessages = appendBackgroundMessage(
-            [...session.messages],
-            {
-                ...this.chatSessionStore.getBackground(sessionId),
+        const isFirstTurn = session.messages.length === 0;
+        const contextText = isFirstTurn
+            ? buildSubtitleContext({
+                originalTopic: session.originalTopic,
+                paragraphLines: session.paragraphLines,
                 subtitleOverview: this.getSubtitleOverview(session.subtitleFileHash, session.anchorSentenceIndex),
-            },
-        );
+            })
+            : null;
+        this.chatSessionStore.appendMessage(sessionId, {
+            role: 'user',
+            content: contextText ? `${contextText}\n\n${content}` : content,
+        });
+
         const model = this.aiProviderService.getModel('sentenceLearning');
         if (!model) {
             this.rendererGateway.fireAndForget('chat/stream', {
@@ -173,7 +149,8 @@ export class ChatSessionServiceImpl implements ChatSessionService {
             return { messageId };
         }
 
-        this.startTextRun(sessionId, messageId, enrichedMessages, 'chat', reasoningEffort);
+        const enrichedMessages = ensureChatRoleMessage([...this.chatSessionStore.get(sessionId).messages]);
+        this.startTextRun(sessionId, messageId, enrichedMessages);
 
         return { messageId };
     }
@@ -183,18 +160,15 @@ export class ChatSessionServiceImpl implements ChatSessionService {
      * @param sessionId 会话 ID。
      * @param messageId assistant 消息 ID。
      * @param messages 本次发送给模型的消息。
-     * @param runType 日志中的运行类型。
      */
     private startTextRun(
         sessionId: string,
         messageId: string,
         messages: ModelMessage[],
-        runType: 'welcome' | 'chat',
-        reasoningEffort: ChatReasoningEffort,
     ): void {
         const abortSignal = this.chatSessionStore.startRun(sessionId, messageId);
-        this.runStream(sessionId, messageId, messages, abortSignal, reasoningEffort)
-            .catch((error) => this.handleTextError(sessionId, messageId, runType, error))
+        this.runStream(sessionId, messageId, messages, abortSignal)
+            .catch((error) => this.handleTextError(sessionId, messageId, error))
             .finally(() => this.chatSessionStore.finishRun(sessionId, messageId));
     }
 
@@ -204,14 +178,12 @@ export class ChatSessionServiceImpl implements ChatSessionService {
      * @param messageId assistant 消息 ID。
      * @param messages 本次模型消息。
      * @param abortSignal 会话生命周期对应的取消信号。
-     * @param reasoningEffort 本次回答的推理强度。
      */
     private async runStream(
         sessionId: string,
         messageId: string,
         messages: ModelMessage[],
         abortSignal: AbortSignal,
-        reasoningEffort: ChatReasoningEffort,
     ): Promise<void> {
         const model = this.aiProviderService.getModel('sentenceLearning');
         if (!model) {
@@ -226,7 +198,6 @@ export class ChatSessionServiceImpl implements ChatSessionService {
             model,
             system,
             messages: promptMessages,
-            ...(reasoningEffort === 'auto' ? {} : { reasoning: reasoningEffort }),
             tools: this.buildSubtitleTools(sessionId),
             stopWhen: isStepCount(20),
             abortSignal,
@@ -452,7 +423,7 @@ export class ChatSessionServiceImpl implements ChatSessionService {
                 chunk: {
                     type: 'data-analysis',
                     id: messageId,
-                    data: this.normalizeAnalysisPartial(partial),
+                    data: partial,
                 },
             });
         }
@@ -463,7 +434,6 @@ export class ChatSessionServiceImpl implements ChatSessionService {
             durationMs: Date.now() - startedAt,
         });
         const finalObject = await result.output;
-        this.chatSessionStore.setAnalysis(sessionId, finalObject);
         streamLogger.debug('analysis stream done', { sessionId, messageId });
         this.rendererGateway.fireAndForget('chat/analysis/stream', {
             sessionId,
@@ -481,19 +451,17 @@ export class ChatSessionServiceImpl implements ChatSessionService {
      * 将文本生成失败区分为主动取消和真实错误，并发送对应生命周期事件。
      * @param sessionId 会话 ID。
      * @param messageId 消息 ID。
-     * @param runType 运行类型。
      * @param error 捕获到的异常。
      */
     private handleTextError(
         sessionId: string,
         messageId: string,
-        runType: 'welcome' | 'chat',
         error: unknown,
     ): void {
         const cancelled = this.isCancellation(error);
         const errorMessage = error instanceof Error ? error.message : String(error);
         if (!cancelled) {
-            this.logger.error(`${runType} stream failed`, { error: errorMessage });
+            this.logger.error('chat stream failed', { error: errorMessage });
         }
         const chunk: UIMessageChunk = cancelled
             ? { type: 'abort', reason: '用户已取消生成' }
@@ -531,62 +499,5 @@ export class ChatSessionServiceImpl implements ChatSessionService {
      */
     private isCancellation(error: unknown): boolean {
         return isUserCancellation(error);
-    }
-
-    private normalizeAnalysisPartial(
-        partial: DeepPartial<AiUnifiedAnalysisRes>
-    ): DeepPartial<AiUnifiedAnalysisRes> {
-        const examples = partial.examples;
-        const sentences = examples?.sentences;
-        if (!examples || !Array.isArray(sentences)) {
-            return partial;
-        }
-
-        const shouldNormalize = sentences.some((sentence) => typeof sentence === 'string');
-        if (!shouldNormalize) {
-            return partial;
-        }
-
-        const points = (examples as { points?: unknown }).points;
-        const pointsList = Array.isArray(points) ? points : [];
-        const normalizedSentences = sentences.map(
-            (sentence: unknown, index): DeepPartial<AiUnifiedAnalysisRes['examples']['sentences'][number]> => {
-                if (sentence && typeof sentence === 'object' && 'sentence' in sentence) {
-                    const sentenceObj = sentence as {
-                        sentence?: unknown;
-                        meaning?: unknown;
-                        points?: unknown;
-                    };
-                    const pointsValue = Array.isArray(sentenceObj.points)
-                        ? sentenceObj.points.filter((point): point is string => typeof point === 'string')
-                        : undefined;
-                    return {
-                        sentence: typeof sentenceObj.sentence === 'string' ? sentenceObj.sentence : undefined,
-                        meaning: typeof sentenceObj.meaning === 'string' ? sentenceObj.meaning : undefined,
-                        points: pointsValue,
-                    };
-                }
-                const sentencePoints = Array.isArray(pointsList[index])
-                    ? pointsList[index].filter((point): point is string => typeof point === 'string')
-                    : [];
-                return {
-                    sentence: typeof sentence === 'string' ? sentence : '',
-                    meaning: '',
-                    points: sentencePoints,
-                };
-            }
-        );
-
-        const { points: _ignoredPoints, ...restExamples } = examples as {
-            points?: unknown;
-        };
-
-        return {
-            ...partial,
-            examples: {
-                ...restExamples,
-                sentences: normalizedSentences,
-            },
-        };
     }
 }

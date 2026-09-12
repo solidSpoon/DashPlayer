@@ -1,6 +1,5 @@
 import { ChatTransport, UIMessage, UIMessageChunk } from 'ai';
 import { chatApi } from '@/fronted/features/chat/chatApi';
-import type { ChatReasoningEffort } from '@/common/types/chat';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 /**
@@ -61,7 +60,7 @@ export class ElectronChatTransport<CHAT_MESSAGE extends UIMessage = UIMessage>
     implements ChatTransport<CHAT_MESSAGE> {
     /**
      * 把 useChat 最新一条用户消息发送给 main，并返回标准 UIMessageChunk 流。
-     * @param options AI SDK 提供的发送参数；body.mode=welcome 时启动欢迎消息。
+     * @param options AI SDK 提供的发送参数。
      * @returns 可由 useChat 直接消费的标准消息流。
      */
     public async sendMessages(
@@ -73,8 +72,6 @@ export class ElectronChatTransport<CHAT_MESSAGE extends UIMessage = UIMessage>
             .filter((part) => part.type === 'text')
             .map((part) => part.text)
             .join('') ?? '';
-        const mode = (options.body as { mode?: unknown } | undefined)?.mode;
-        const reasoningEffort = (options.body as { reasoningEffort?: ChatReasoningEffort } | undefined)?.reasoningEffort;
 
         return new ReadableStream<UIMessageChunk>({
             start: (controller) => {
@@ -89,12 +86,9 @@ export class ElectronChatTransport<CHAT_MESSAGE extends UIMessage = UIMessage>
                     firstReasoningAt: null,
                     firstTextAt: null,
                 });
-                logger.info('chat stream request started', { sessionId, mode: mode ?? 'chat' });
+                logger.info('chat stream request started', { sessionId });
 
-                const request = mode === 'welcome'
-                    ? chatApi.getWelcome({ sessionId, reasoningEffort })
-                    : chatApi.start({ sessionId, content, reasoningEffort });
-                request.catch((error) => {
+                chatApi.start({ sessionId, content }).catch((error) => {
                     const active = activeStreams.get(sessionId);
                     if (!active) {
                         return;

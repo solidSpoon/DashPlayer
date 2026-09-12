@@ -30,6 +30,7 @@ import {ClipMeta, OssBaseMeta} from '@/common/types/clipMeta';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import {VideoLearningClipPage} from '@/common/types/vo/VideoLearningClipVO';
 import { GlobalVideoLearningClipQueueStatusVO, VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
+import { SentenceVocabularyVO } from '@/common/types/vo/SentenceVocabularyVO';
 import {
     ChatSessionCloseParams,
     ChatSessionCreateParams,
@@ -37,7 +38,6 @@ import {
     ChatSessionStopParams,
     ChatStartParams,
     ChatStartResult,
-    ChatWelcomeParams,
 } from '@/common/types/chat';
 import { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
 import {
@@ -195,7 +195,6 @@ interface ChatDef {
     'chat/session/close': { params: ChatSessionCloseParams, return: void };
     'chat/session/stop': { params: ChatSessionStopParams, return: void };
     'chat/start': { params: ChatStartParams, return: ChatStartResult };
-    'chat/welcome': { params: ChatWelcomeParams, return: ChatStartResult };
 }
 
 interface ChatAnalysisDef {
@@ -398,6 +397,10 @@ interface VocabularyDef {
     'vocabulary/generate-definition': {
         params: { word: string },
         return: { success: boolean; data?: string; error?: string }
+    };
+    'vocabulary/pick-sentence': {
+        params: { text: string },
+        return: SentenceVocabularyVO
     };
 }
 

@@ -1,9 +1,8 @@
 /**
- * 管理播放器聊天面板的会话、消息流、分析结果和上下文操作。
+ * 管理播放器整句学习面板的会话、分析结果和上下文操作。
  */
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
-import UndoRedo from '@/common/utils/UndoRedo';
 import { engEqual, p } from '@/common/utils/Util';
 import { usePlayer } from '@/fronted/features/player/playerStore';
 import useFile from '@/fronted/features/file-browser/fileStore';
@@ -13,12 +12,11 @@ import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { TypeGuards } from '@/common/utils/TypeGuards';
 import { chatApi } from '@/fronted/features/chat/chatApi';
 import { Topic } from '@/common/types/chat';
+import { Sentence } from '@/common/types/SentenceC';
 import { AnalysisStreamEvent, DeepPartial } from '@/common/types/analysis';
 import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 
-const undoRedo = new UndoRedo<ChatPanelState>();
-
-/** 整句学习面板中需要跨组件共享和撤销恢复的状态。 */
+/** 整句学习面板中需要跨组件共享的状态。 */
 export type ChatPanelState = {
     /** 仅供右键菜单在短时间内读取的内部上下文。 */
     internal: {
@@ -46,10 +44,10 @@ export type ChatPanelState = {
     analysisError: string | null;
     /** 当前学习主题的字幕位置或直接文本。 */
     topic: Topic
-    /** 是否可以撤销到上一个学习主题。 */
-    canUndo: boolean;
-    /** 是否可以重做到下一个学习主题。 */
-    canRedo: boolean;
+    /** 学习页是否显示；为 false 时只隐藏，不卸载。 */
+    learningVisible: boolean;
+    /** 创建会话时冻结的学习句字幕索引，用于避免重复创建会话。 */
+    anchorIndex: number | null;
     /** 右键菜单打开时冻结的操作上下文。 */
     context: string | null;
     /** 受控聊天输入框文本。 */
@@ -58,10 +56,12 @@ export type ChatPanelState = {
 
 /** 整句学习面板对外暴露的状态操作。 */
 export type ChatPanelActions = {
-    backward: () => void;
-    forward: () => void;
     createFromSelect: (text?: string) => Promise<void>;
-    createFromCurrent: () => void;
+    createFromCurrent: () => Promise<void>;
+    /** 切换学习页：已打开则返回播放画面，未打开则进入当前句的学习页。 */
+    toggleLearning: () => Promise<void>;
+    /** 返回播放画面，只隐藏学习页，不销毁会话。 */
+    hideLearning: () => void;
     clear: () => void;
     sent: (msg: string) => void;
     receiveAnalysisStream: (event: AnalysisStreamEvent) => void;
@@ -73,36 +73,8 @@ export type ChatPanelActions = {
     ctxMenuPolish: () => void;
     ctxMenuQuote: () => void;
     ctxMenuCopy: () => void;
-    retry: (type: 'analysis' | 'topic') => void;
     setInput: (input: string) => void;
     consumeQueuedMessage: (id: number) => void;
-};
-
-/**
- * 创建可交给撤销栈保存的状态副本。
- * @param state 当前面板状态。
- * @returns 与外部可变引用隔离的状态副本。
- */
-const copy = (state: ChatPanelState): ChatPanelState => {
-    return {
-        internal: {
-            context: {
-                ...state.internal.context
-            },
-        },
-        chatSessionId: state.chatSessionId,
-        topicText: state.topicText,
-        queuedMessage: state.queuedMessage,
-        analysis: state.analysis,
-        analysisMessageId: state.analysisMessageId,
-        analysisStatus: state.analysisStatus,
-        analysisError: state.analysisError,
-        topic: state.topic,
-        canUndo: state.canUndo,
-        canRedo: state.canRedo,
-        context: state.context,
-        input: state.input
-    };
 };
 
 /**
@@ -125,50 +97,129 @@ const empty = (): ChatPanelState => {
         analysisStatus: 'idle',
         analysisError: null,
         topic: 'offscreen',
-        canUndo: false,
-        canRedo: false,
+        learningVisible: false,
+        anchorIndex: null,
         context: null,
         input: ''
     };
 };
 
+const chatLogger = getRendererLogger('useChatPanel');
+
 /**
- * 在新建主题后启动分析请求。
- * 这里显式限制为“创建新会话”场景触发，避免前进/后退恢复历史状态时重复请求。
+ * 进入学习页：暂停当前播放并显示学习页。
+ *
+ * 说明：学习页不承载播放控制，进来就应该停下来，用户看完点「返回播放画面」再继续。
  */
-const startAnalysisForTopic = async () => {
-    await useChatPanel.getState().startAnalysis();
+const enterLearning = () => {
+    usePlayer.getState().pause();
+    useChatPanel.setState({ learningVisible: true });
 };
 
-const chatLogger = getRendererLogger('useChatPanel');
+/**
+ * 判断当前存活的会话是否已经就是这条学习主题。
+ *
+ * 说明：用户会在播放画面与学习页之间反复切换，命中的同一句不应该重新创建会话、
+ * 也就不应该重复消耗一次结构化分析调用。
+ *
+ * @param text 本次要学习的主题原文。
+ * @param anchorIndex 主题所在字幕索引。
+ * @returns 复用了现有会话时为 true。
+ */
+const reuseSessionIfSameTopic = (text: string, anchorIndex: number | null): boolean => {
+    const state = useChatPanel.getState();
+    if (!state.chatSessionId || state.anchorIndex !== anchorIndex) {
+        return false;
+    }
+    if (state.topicText.trim() !== text.trim()) {
+        return false;
+    }
+    enterLearning();
+    return true;
+};
 
 // 流式分析 chunk 计数：仅在收到 start 时归零，用于节流 chunk 级调试日志。
 let analysisStreamChunkCount = 0;
 // 防止快捷键重复触发时并发创建多个整句学习会话。
 let sessionCreationInFlight = false;
 
+/**
+ * 新建一次整句学习会话。
+ *
+ * 行为说明：
+ * - 主题文本、周边字幕与字幕锚点在后端会话中冻结，后续对话只追加用户追问；
+ * - 主题创建成功后立即启动结构化分析，这是打开面板唯一的一次模型调用。
+ *
+ * @param text 本次学习的主题原文。
+ * @param anchor 主题所在字幕句，用于定位字幕缓存与周边段落。
+ * @param topic 主题在字幕中的定位；由选区创建时用于后续重新提取原文。
+ * @throws 缺少视频 ID 或字幕锚点时抛出，避免创建无法使用字幕工具的残废会话。
+ */
+const startSessionForTopic = async (text: string, anchor: Sentence, topic: Topic): Promise<void> => {
+    const videoId = useFile.getState().videoId;
+    if (!videoId) {
+        throw new Error('当前视频 ID 不存在，无法创建整句学习会话');
+    }
+    if (sessionCreationInFlight) {
+        chatLogger.warn('忽略重复的整句学习会话创建请求');
+        return;
+    }
+
+    const sentences = usePlayer.getState().sentences;
+    const anchorPosition = sentences.findIndex(
+        (sentence) => sentence.index === anchor.index && sentence.fileHash === anchor.fileHash
+    );
+    const paragraphLines = sentences
+        .slice(Math.max(0, anchorPosition - 5), Math.min(sentences.length, anchorPosition + 6))
+        .filter(TypeGuards.isNotNull)
+        .map((sentence) => sentence.text ?? '');
+
+    sessionCreationInFlight = true;
+    const previousSessionId = useChatPanel.getState().chatSessionId;
+    if (previousSessionId) {
+        chatApi.closeSession(previousSessionId).catch((error) => {
+            chatLogger.error('failed to close previous chat session', { error });
+        });
+    }
+
+    let sessionId: string;
+    try {
+        ({ sessionId } = await chatApi.createSession({
+            videoId,
+            originalTopic: text,
+            paragraphLines,
+            subtitleFileHash: anchor.fileHash,
+            anchorSentenceIndex: anchor.index,
+        }));
+    } catch (error) {
+        sessionCreationInFlight = false;
+        throw error;
+    }
+    chatLogger.info('sentence learning session created', {
+        sessionId,
+        topicLength: text.length,
+        paragraphLineCount: paragraphLines.length,
+        anchorSentenceIndex: anchor.index,
+    });
+
+    useChatPanel.setState({
+        ...empty(),
+        chatSessionId: sessionId,
+        topicText: text,
+        topic,
+        learningVisible: true,
+        anchorIndex: anchor.index,
+    });
+    // 进入学习页即暂停：学习界面不播放，也不承载播放控制
+    usePlayer.getState().pause();
+    sessionCreationInFlight = false;
+
+    // 解析改为按需触发：打开学习页只准备会话，用户点击左栏懒加载入口时才调 startAnalysis
+};
+
 const useChatPanel = create(
     subscribeWithSelector<ChatPanelState & ChatPanelActions>((set, get) => ({
         ...empty(),
-        backward: () => {
-            undoRedo.update(copy(get()));
-            if (!undoRedo.canUndo()) return;
-            set({
-                ...copy(undoRedo.undo()),
-                canUndo: undoRedo.canUndo(),
-                canRedo: undoRedo.canRedo()
-            });
-        },
-        forward: () => {
-            undoRedo.update(copy(get()));
-            if (!undoRedo.canRedo()) return;
-            set({
-                ...copy(undoRedo.redo()),
-                canUndo: undoRedo.canUndo(),
-                canRedo: undoRedo.canRedo()
-            });
-
-        },
         createFromSelect: async (str?: string) => {
             let text = str;
             if (StrUtil.isBlank(text)) {
@@ -176,156 +227,61 @@ const useChatPanel = create(
                 // 去除换行符
                 text = text?.replace(/\n/g, '');
                 if (StrUtil.isBlank(text)) {
-                    text = useChatPanel.getState().context ?? '';
+                    text = get().context ?? '';
                 }
                 if (StrUtil.isBlank(text)) {
                     return;
                 }
             }
-            undoRedo.update(copy(get()));
-            undoRedo.add(empty());
-            const topic = { content: text };
             const currentSentence = usePlayer.getState().currentSentence;
-            const sentences = usePlayer.getState().sentences;
-            const subtitles = (() => {
-                if (!currentSentence) return [] as typeof sentences;
-                const idx = sentences.findIndex(s => s.index === currentSentence.index && s.fileHash === currentSentence.fileHash);
-                const left = Math.max(0, idx - 5);
-                const right = Math.min(sentences.length - 1, idx + 5);
-                return sentences.slice(left, right + 1);
-            })();
-            const context: string[] = subtitles
-                .filter(TypeGuards.isNotNull)
-                .map(e => e.text ?? '');
-            const videoId = useFile.getState().videoId;
-            if (!videoId) {
-                throw new Error('当前视频 ID 不存在，无法创建整句学习会话');
-            }
             if (!currentSentence) {
                 throw new Error('当前字幕句不存在，无法创建带上下文工具的整句学习会话');
             }
-            if (sessionCreationInFlight) {
-                chatLogger.warn('忽略重复的整句学习会话创建请求');
+            if (reuseSessionIfSameTopic(text, currentSentence.index)) {
                 return;
             }
-            sessionCreationInFlight = true;
-            const previousSessionId = get().chatSessionId;
-            if (previousSessionId) {
-                chatApi.closeSession(previousSessionId).catch((error) => {
-                    getRendererLogger('useChatPanel').error('failed to close previous chat session', { error });
-                });
-            }
-            let sessionId: string;
-            try {
-                ({ sessionId } = await chatApi.createSession({
-                    videoId,
-                    originalTopic: text,
-                    paragraphLines: context,
-                    subtitleFileHash: currentSentence.fileHash,
-                    anchorSentenceIndex: currentSentence.index,
-                }));
-            } catch (error) {
-                sessionCreationInFlight = false;
-                throw error;
-            }
-            chatLogger.info('sentence learning session created', {
-                sessionId,
-                topicLength: text.length,
-                paragraphLineCount: context.length,
-                anchorSentenceIndex: currentSentence.index,
-            });
-            set({
-                ...empty(),
-                chatSessionId: sessionId,
-                topicText: text,
-                topic: topic,
-                canRedo: undoRedo.canRedo(),
-                canUndo: undoRedo.canUndo()
-            });
-            sessionCreationInFlight = false;
-            startAnalysisForTopic().catch((error) => {
-                getRendererLogger('useChatPanel').error('failed to start analysis for selected topic', { error });
-            });
+            await startSessionForTopic(text, currentSentence, { content: text });
         },
         createFromCurrent: async () => {
-            undoRedo.add(copy(get()));
-            const ct = usePlayer.getState().currentSentence;
-            if (!ct) return;
-            const topic = {
+            const currentSentence = usePlayer.getState().currentSentence;
+            if (!currentSentence) {
+                return;
+            }
+            if (reuseSessionIfSameTopic(currentSentence.text, currentSentence.index)) {
+                return;
+            }
+            const topic: Topic = {
                 content: {
                     start: {
-                        sIndex: ct.index,
+                        sIndex: currentSentence.index,
                         cIndex: 0
                     },
                     end: {
-                        sIndex: ct.index,
-                        cIndex: ct.text.length
+                        sIndex: currentSentence.index,
+                        cIndex: currentSentence.text.length
                     }
                 }
             };
-            const currentSentence = usePlayer.getState().currentSentence;
-            if (!currentSentence) return;
-            const sentences = usePlayer.getState().sentences;
-            const subtitles = (() => {
-                const idx = sentences.findIndex(s => s.index === currentSentence.index && s.fileHash === currentSentence.fileHash);
-                const left = Math.max(0, idx - 5);
-                const right = Math.min(sentences.length - 1, idx + 5);
-                return sentences.slice(left, right + 1);
-            })();
-            const videoId = useFile.getState().videoId;
-            if (!videoId) {
-                throw new Error('当前视频 ID 不存在，无法创建整句学习会话');
-            }
-            if (sessionCreationInFlight) {
-                chatLogger.warn('忽略重复的整句学习会话创建请求');
+            await startSessionForTopic(currentSentence.text, currentSentence, topic);
+        },
+        toggleLearning: async () => {
+            // 同一个快捷键开关学习页：已打开就返回播放画面（只隐藏，不销毁会话）
+            if (get().learningVisible) {
+                get().hideLearning();
                 return;
             }
-            sessionCreationInFlight = true;
-            const previousSessionId = get().chatSessionId;
-            if (previousSessionId) {
-                chatApi.closeSession(previousSessionId).catch((error) => {
-                    getRendererLogger('useChatPanel').error('failed to close previous chat session', { error });
-                });
-            }
-            const paragraphLines = subtitles.map(e => e.text);
-            let sessionId: string;
-            try {
-                ({ sessionId } = await chatApi.createSession({
-                    videoId,
-                    originalTopic: ct.text,
-                    paragraphLines,
-                    subtitleFileHash: ct.fileHash,
-                    anchorSentenceIndex: ct.index,
-                }));
-            } catch (error) {
-                sessionCreationInFlight = false;
-                throw error;
-            }
-            chatLogger.info('sentence learning session created', {
-                sessionId,
-                topicLength: ct.text.length,
-                paragraphLineCount: paragraphLines.length,
-                anchorSentenceIndex: ct.index,
-            });
-            set({
-                ...empty(),
-                chatSessionId: sessionId,
-                topicText: ct.text,
-                topic,
-            });
-            sessionCreationInFlight = false;
-            startAnalysisForTopic().catch((error) => {
-                getRendererLogger('useChatPanel').error('failed to start analysis for current topic', { error });
-            });
+            await get().createFromCurrent();
+        },
+        hideLearning: () => {
+            set({ learningVisible: false });
         },
         clear: () => {
             const sessionId = get().chatSessionId;
             if (sessionId) {
                 chatApi.closeSession(sessionId).catch((error) => {
-                    getRendererLogger('useChatPanel').error('failed to close chat session', { error });
+                    chatLogger.error('failed to close chat session', { error });
                 });
             }
-            undoRedo.clear();
             set(empty());
         },
         sent: async (msg: string) => {
@@ -363,14 +319,11 @@ const useChatPanel = create(
             if (event.chunk.type === 'data-analysis') {
                 const partial = event.chunk.data as DeepPartial<AiUnifiedAnalysisRes>;
                 analysisStreamChunkCount += 1;
-                const logger = getRendererLogger('useChatPanel');
-                const partialExamples = partial.examples;
-                // chunk 频率极高且带示例句全文，仅首 chunk 与每 20 个采样一次。
-                if (partialExamples && (analysisStreamChunkCount === 1 || analysisStreamChunkCount % 20 === 0)) {
-                    logger.debug('analysis examples chunk', {
+                // chunk 频率极高，仅首 chunk 与每 20 个采样一次。
+                if (analysisStreamChunkCount === 1 || analysisStreamChunkCount % 20 === 0) {
+                    chatLogger.debug('analysis chunk', {
                         chunkCount: analysisStreamChunkCount,
-                        sentencesCount: partialExamples.sentences?.length ?? 0,
-                        sampleSentence: partialExamples.sentences?.[0],
+                        keys: Object.keys(partial ?? {}),
                     });
                 }
                 set({
@@ -430,7 +383,7 @@ const useChatPanel = create(
         },
         ctxMenuOpened: () => {
             const internalContext = getInternalContext();
-            getRendererLogger('useChatPanel').debug('context menu opened', { context: internalContext });
+            chatLogger.debug('context menu opened', { context: internalContext });
             set({
                 context: internalContext
             });
@@ -467,11 +420,6 @@ const useChatPanel = create(
             if (StrUtil.isBlank(text)) return;
             await get().sent(`帮我把这句话改写得更地道一些：\n"""\n${text}\n"""`);
         },
-        retry: async (type: 'analysis' | 'topic') => {
-            if (type === 'analysis' || type === 'topic') {
-                get().startAnalysis();
-            }
-        },
         ctxMenuQuote: () => {
             let text: string | null = window.getSelection()?.toString() ?? '';
             if (StrUtil.isBlank(text)) {
@@ -485,7 +433,6 @@ const useChatPanel = create(
             set({
                 input: text
             });
-
         },
         ctxMenuCopy: async () => {
             let text: string | null = window.getSelection()?.toString() ?? '';
@@ -551,7 +498,7 @@ const mergeAnalysisPartial = (
 };
 
 const extractTopic = (t: Topic): string => {
-    getRendererLogger('useChatPanel').debug('extract topic', { topic: t });
+    chatLogger.debug('extract topic', { topic: t });
     if (t === 'offscreen') return 'offscreen';
     if (typeof t.content === 'string') return t.content;
     const content = t.content;

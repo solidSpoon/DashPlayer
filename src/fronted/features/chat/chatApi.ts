@@ -3,7 +3,6 @@ import { AnalysisStartParams } from '@/common/types/analysis';
 import {
     ChatSessionCreateParams,
     ChatStartParams,
-    ChatWelcomeParams,
 } from '@/common/types/chat';
 
 /**
@@ -51,10 +50,12 @@ export const chatApi = {
     startAnalysis: (params: AnalysisStartParams) => backendClient.call('chat/analysis/start', params),
 
     /**
-     * 获取聊天欢迎信息。
+     * 本地选词：返回句子里的生词与句内逐词释义。
      *
-     * @param params 欢迎信息请求参数。
-     * @returns 后端返回的欢迎信息。
+     * 说明：只读本地词典，不调用模型、不访问网络，因此可以在打开学习页时立即调用。
+     *
+     * @param text 目标句子原文。
+     * @returns 生词列表与句内逐词释义映射。
      */
-    getWelcome: (params: ChatWelcomeParams) => backendClient.call('chat/welcome', params),
+    pickSentenceVocabulary: (text: string) => backendClient.call('vocabulary/pick-sentence', { text }),
 };

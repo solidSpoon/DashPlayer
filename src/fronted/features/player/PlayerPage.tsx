@@ -1,4 +1,3 @@
-import {AnimatePresence} from 'framer-motion';
 import React, {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {useLocation, useNavigate, useParams, useSearchParams} from 'react-router-dom';
 import useLayout, {cpW} from '@/fronted/hooks/useLayout';
@@ -9,7 +8,6 @@ import ControlButton from '@/fronted/features/player/components/ControlButton';
 import useFile from '@/fronted/features/file-browser/fileStore';
 import PlayerShortcut from '@/fronted/features/player/components/PlayerShortcut';
 import SideBar from '@/fronted/components/layout/SideBar';
-import ChatPanel from '@/fronted/features/chat/ChatPanel';
 import useChatPanel from '@/fronted/features/chat/chatStore';
 import useSWR from 'swr';
 import PlaybackLayout from '@/fronted/features/player/components/srt-layout/Layout';
@@ -194,6 +192,8 @@ const PlayerWithControlsPage = () => {
                     srtHash: null,
                     subtitleSessionId: null,
                 });
+                // 整句学习会话绑定在具体视频与字幕缓存上，换片必须结束，否则会检索到上一部片的字幕
+                useChatPanel.getState().clear();
             }
             if (videoPath && vp !== videoPath) {
                 useFile.getState().updateFile(videoPath);
@@ -479,15 +479,9 @@ const PlayerWithControlsPage = () => {
                 >
                     <PlaybackLayout/>
                 </div>
-                {chatTopic === 'offscreen' && (
-                    <>
-                        <ControlButton/>
-                        <PlayerShortcut/>
-                    </>
-                )}
-                <AnimatePresence>
-                    {chatTopic !== 'offscreen' && <ChatPanel/>}
-                </AnimatePresence>
+                {/* 播放器控制与快捷键常驻：学习页只替换视频与主字幕区域，不应剥夺画面操作能力 */}
+                <ControlButton/>
+                <PlayerShortcut/>
 
             </div>
         </div>
