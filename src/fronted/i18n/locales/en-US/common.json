@@ -93,7 +93,7 @@
         "title": "Sentence study",
         "position": "Line {{index}} of {{total}}",
         "readSentence": "Read this sentence",
-        "backToPlayer": "Back to video (keep this session)",
+        "backToPlayer": "Back to video",
         "analysisRunning": "Analyzing…",
         "analysisFailed": "Analysis failed",
         "retry": "Retry",

@@ -93,7 +93,7 @@
         "title": "整句学习",
         "position": "第 {{index}} 句 / 共 {{total}} 句",
         "readSentence": "朗读本句",
-        "backToPlayer": "返回播放画面（保留本次学习）",
+        "backToPlayer": "返回播放画面",
         "analysisRunning": "正在解析…",
         "analysisFailed": "解析失败",
         "retry": "重试",

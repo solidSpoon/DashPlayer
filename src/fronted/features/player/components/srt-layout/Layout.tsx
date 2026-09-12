@@ -16,6 +16,7 @@ import { usePlayerState } from '@/fronted/features/player/playerState';
 import PlaybackEmptyState from './EmptyState';
 import LearningPage from '@/fronted/features/chat/LearningPage';
 import useChatPanel from '@/fronted/features/chat/chatStore';
+import LearningModeButton, { CAPTION_CAPSULE_CLASS } from './LearningModeButton';
 
 const logger = getRendererLogger('PlaybackLayout');
 
@@ -223,6 +224,13 @@ const PlaybackLayout = () => {
                         {learningMounted && (
                             <div className={cn('absolute inset-0 z-20', !learningVisible && 'invisible')}>
                                 <LearningPage/>
+                            </div>
+                        )}
+
+                        {/* 学习界面右下角的学习开关：外壳与播放画面胶囊同款、锚点相同，按钮落点因此不变 */}
+                        {learningVisible && (
+                            <div className={cn('absolute right-3 bottom-2 z-30 pointer-events-auto', CAPTION_CAPSULE_CLASS)}>
+                                <LearningModeButton/>
                             </div>
                         )}
                     </div>
