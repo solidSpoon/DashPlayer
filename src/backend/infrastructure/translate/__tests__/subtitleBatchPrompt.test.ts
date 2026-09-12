@@ -20,19 +20,21 @@ const buildSkeleton = (sources: string[]): string =>
 describe('本地填槽语法构造', () => {
     it('骨架字面量与译文自由段交替，槽数与源文逐字固定', () => {
         const grammar = buildLocalSubtitleFillGrammar(['hello world.', 'second line.']);
-        expect(grammar).toBe(
-            'root ::= "{\\"items\\":[{\\"source\\": \\"hello world.\\", \\"translation\\": \\"" tran '
-            + '"\\"},{\\"source\\": \\"second line.\\", \\"translation\\": \\"" tran "\\"}]}"\n'
-            + 'tran ::= [^"\\\\]{1,200}',
-        );
+        expect(grammar).toBe(String.raw`root ::= "{\"items\":[{\"source\": \"hello world.\", \"translation\": \"" tran0 "\"},{\"source\": \"second line.\", \"translation\": \"" tran1 "\"}]}"
+tran0 ::= [^"\\\x00-\x1f]{1,60}
+tran1 ::= [^"\\\x00-\x1f]{1,60}`);
     });
 
     it('单槽批次不产生槽间字面量', () => {
         const grammar = buildLocalSubtitleFillGrammar(['only line.']);
-        expect(grammar).toBe(
-            'root ::= "{\\"items\\":[{\\"source\\": \\"only line.\\", \\"translation\\": \\"" tran "\\"}]}"\n'
-            + 'tran ::= [^"\\\\]{1,200}',
-        );
+        expect(grammar).toBe(String.raw`root ::= "{\"items\":[{\"source\": \"only line.\", \"translation\": \"" tran0 "\"}]}"
+tran0 ::= [^"\\\x00-\x1f]{1,60}`);
+    });
+
+    it('槽上限按源文长度 2 倍推导，下限 60 兜住短句', () => {
+        const grammar = buildLocalSubtitleFillGrammar(['a'.repeat(100), 'ok.']);
+        expect(grammar).toContain(String.raw`tran0 ::= [^"\\\x00-\x1f]{1,200}`);
+        expect(grammar).toContain(String.raw`tran1 ::= [^"\\\x00-\x1f]{1,60}`);
     });
 
     it('源文转义后进入字面量，字面量解码序列可被解析侧按 JSON 回读', () => {
@@ -41,7 +43,7 @@ describe('本地填槽语法构造', () => {
         // GBNF 字符串字面量转义与 JSON 兼容，直接用 JSON.parse 还原固定文本。
         const literals = grammar.split('\n')[0]
             .replace(/^root ::= /, '')
-            .split(' tran ')
+            .split(/ tran\d+ /)
             .map((literal) => JSON.parse(literal) as string);
         // 字面量解码后拼上任意译文，即是解析侧期望的原始输出形状。
         const raw = literals[0] + '他说走。' + literals[1] + '现在。' + literals[2];
@@ -114,5 +116,11 @@ describe('本地填槽输出解析', () => {
     it('源文回显错位时显式报错，防御推理端未按约束解码', () => {
         const text = '{"items":[{"source": "错位的源文.", "translation": "甲"}]}';
         expect(() => parseLocalSubtitleFill(text, ['a.'])).toThrow('源文错位');
+    });
+
+    it('译文长度触到槽上限时显式报错，不让语法截断的文本静默进入字幕', () => {
+        const source = 'a'.repeat(40);
+        const text = JSON.stringify({ items: [{ source, translation: '译'.repeat(80) }] });
+        expect(() => parseLocalSubtitleFill(text, [source])).toThrow('译文触顶');
     });
 });

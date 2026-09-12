@@ -141,11 +141,25 @@ const gbnfLiteral = (raw: string): string =>
     '"' + raw.replace(/\\/g, '\\\\').replace(/"/g, '\\"') + '"';
 
 /**
- * 单条译文的自由段规则：排除 ASCII 双引号与反斜杠，保证拼回的 JSON 可直接
- * parse（中文引号为全角，不受影响）；下限 1 保证非空，上限 200 防止模型
- * 在槽内退化重复循环拖到 max_tokens（评测中观察到过 100 秒以上的循环）。
+ * 单条译文的自由段字符类：排除 ASCII 双引号与反斜杠，保证拼回的 JSON 可直接
+ * parse（中文引号为全角，不受影响）；同时排除 U+0000–U+001F 裸控制字符——
+ * JSON 字符串禁止它们裸出现，否则整批输出在解析层必然失败，必须在解码层堵死。
  */
-const FILL_TRANSLATION_RULE = 'tran ::= [^"\\\\]{1,200}';
+const FILL_TRANSLATION_CLASS = String.raw`[^"\\\x00-\x1f]`;
+
+/**
+ * 单槽译文的长度上限（按字符计）。
+ *
+ * 中英文特点：中文信息密度高，英译中的译文长度通常不超过源文一半；simple_en
+ * 与自定义是同语种改写，长度与源文相当。取「源文 2 倍、下限 60」给足正常
+ * 翻译的余量——触顶只可能是模型在槽内退化重复循环（评测中观察到过 100 秒
+ * 以上的循环），语法会在上限处强制闭引号，因此解析侧对触顶显式报错，
+ * 不让截断文本静默进入字幕。
+ *
+ * @param source 该槽的源文。
+ * @returns 该槽允许的最大译文长度。
+ */
+const subtitleFillSlotLimit = (source: string): number => Math.max(60, source.length * 2);
 
 /**
  * 构建源文锚定的填槽语法：源文预拼进 JSON 骨架字面量，GBNF 在解码层
@@ -155,7 +169,9 @@ const FILL_TRANSLATION_RULE = 'tran ::= [^"\\\\]{1,200}';
  * token 位置（局部条件性），既不需要模型自己推断跨行断句分组，也不可能
  * 出现合译后的行错位——行式方案在长行悬挂收尾的批次上稳定合译、再用
  * 回抄英文凑行数（真实失败案例见本地链路评测脚本），填槽在评测中
- * 全批次稳定通过。代价是输出要逐字回显源文，解码 token 约多一倍。
+ * 全批次稳定通过。代价是输出要逐字回显源文，解码 token 约多一倍。译文
+ * 自由段逐槽设长度上限（按源文长度推导），兜住槽内退化重复循环，且截断
+ * 在解析层可判定（触顶即报错），不会静默截断进字幕。
  *
  * @param sources 批次内各句源文，顺序即槽序，必须非空。
  * @returns 可直接传给 llama-server `grammar` 参数的 GBNF 文本。
@@ -165,15 +181,18 @@ export const buildLocalSubtitleFillGrammar = (sources: string[]): string => {
         throw new Error(`非法的字幕批次槽数：${sources.length}`);
     }
     const parts: string[] = [gbnfLiteral(`{"items":[{"source": ${JSON.stringify(sources[0])}, "translation": "`)];
+    const rules: string[] = [];
     for (const [index, source] of sources.entries()) {
         if (index > 0) {
             // 槽间字面量以上一槽译文的收尾引号开头。
             parts.push(gbnfLiteral(`"},{"source": ${JSON.stringify(source)}, "translation": "`));
         }
-        parts.push('tran');
+        // 逐槽独立规则：上限按各自源文推导，退化循环最多烧掉本槽的解码预算。
+        parts.push(`tran${index}`);
+        rules.push(`tran${index} ::= ${FILL_TRANSLATION_CLASS}{1,${subtitleFillSlotLimit(source)}}`);
     }
     parts.push(gbnfLiteral('"}]}'));
-    return `root ::= ${parts.join(' ')}\n${FILL_TRANSLATION_RULE}`;
+    return `root ::= ${parts.join(' ')}\n${rules.join('\n')}`;
 };
 
 /** 构建源文预填的 JSON 骨架（提示词展示用）：translation 字段全部留空，由模型填充。 */
@@ -226,8 +245,8 @@ export const buildLocalSubtitleFillPrompt = (
  * 解析本地模型返回的填槽 JSON。
  *
  * 结构由语法硬保证，这里的校验全是纯防御：JSON 可 parse、形状符合、
- * 槽数一致、源文逐字回显无错位。任一不满足都显式报错交调度器重试，
- * 不做静默对齐——它们同时是推理端未按约束解码的归因证据。
+ * 槽数一致、源文逐字回显无错位、译文未触槽上限。任一不满足都显式报错
+ * 交调度器重试，不做静默对齐——它们同时是推理端未按约束解码的归因证据。
  *
  * @param text 模型返回的原始文本。
  * @param sources 按槽序的源文，用于回显校验。
@@ -252,6 +271,10 @@ export const parseLocalSubtitleFill = (text: string, sources: string[]): string[
     for (const [index, item] of shape.data.items.entries()) {
         if (item.source !== sources[index]) {
             throw new Error(`本地模型填槽源文错位（第 ${index + 1} 槽）`);
+        }
+        const limit = subtitleFillSlotLimit(sources[index]);
+        if (item.translation.length >= limit) {
+            throw new Error(`本地模型译文触顶（第 ${index + 1} 槽，limit=${limit}）：语法强制闭引号截断，疑为槽内退化重复`);
         }
     }
     return shape.data.items.map((item) => item.translation.trim());
