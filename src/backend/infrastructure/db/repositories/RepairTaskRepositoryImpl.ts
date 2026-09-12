@@ -42,7 +42,6 @@ export default class RepairTaskRepositoryImpl implements RepairTaskRepository {
             recipe: (row.recipe ?? undefined) as RepairRecipe | undefined,
             outputPath: row.output_path ?? undefined,
             reason: (row.reason ?? undefined) as RepairReason | undefined,
-            taskId: row.task_id ?? null,
             error: row.error ?? undefined,
             created_at: row.created_at,
             updated_at: row.updated_at,
@@ -108,7 +107,6 @@ export default class RepairTaskRepositoryImpl implements RepairTaskRepository {
             recipe: patch.recipe ?? null,
             output_path: patch.outputPath ?? null,
             reason: patch.reason ?? null,
-            task_id: patch.taskId ?? null,
             error: patch.error ?? null,
             updated_at: new Date().toISOString(),
         }).where(eq(repairTask.file_path, filePath));
@@ -132,7 +130,6 @@ export default class RepairTaskRepositoryImpl implements RepairTaskRepository {
         await this.db.update(repairTask).set({
             status: RepairTaskState.CANCELLED,
             error: '应用重启导致修复中断',
-            task_id: null,
             updated_at: new Date().toISOString(),
         }).where(eq(repairTask.status, RepairTaskState.IN_PROGRESS));
     }

@@ -4,15 +4,16 @@ import {contextBridge, ipcRenderer, IpcRendererEvent} from 'electron';
 import {RuntimeSettingKey} from './common/contracts/runtime-settings';
 import {ApiDefinitions, ApiMap} from '@/common/api/api-def';
 import {DpTask} from '@/common/contracts/dp-task';
+import {RepairTaskEvent} from '@/common/contracts/playback-repair';
 import {RendererApiDefinitions, RendererApiMap} from '@/common/api/renderer-api-def';
 import type { SimpleEvent, TraceCarrier } from '@/common/log/simple-types';
 
 export type Channels =
-    | 'main-state'
     | 'store-update'
     | 'error-msg'
     | 'info-msg'
-    | 'dp-task-update';
+    | 'dp-task-update'
+    | 'repair-task-update';
 const on = (channel: Channels, func: (...args: unknown[]) => void) => {
     const subscription = (_event: IpcRendererEvent, ...args: unknown[]) =>
         func(...args);
@@ -43,6 +44,9 @@ const electronHandler = {
     },
     onTaskUpdate: (func: (task: DpTask) => void) => {
         return on('dp-task-update', func as never);
+    },
+    onRepairTaskUpdate: (func: (event: RepairTaskEvent) => void) => {
+        return on('repair-task-update', func as never);
     },
     /**
      * 调用 main 进程 API，并为本次调用附加独立 trace ID。
