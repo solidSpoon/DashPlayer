@@ -54,7 +54,6 @@ const PlayerWithControlsPage = () => {
     const showSideBar = useLayout((state) => state.showSideBar);
     const titleBarHeight = useLayout((state) => state.titleBarHeight);
     const uiFullScreen = useLayout((s) => s.fullScreen);
-    const chatTopic = useChatPanel(s => s.topic);
     const learningVisible = useChatPanel(s => s.learningVisible);
     const videoLoaded = useFile((s) => s.videoLoaded);
     const w = cpW.bind(
@@ -167,7 +166,7 @@ const PlayerWithControlsPage = () => {
             }
             setVisible(true);
         };
-    }, [chatTopic, isMac, showSideBar, uiFullScreen, video, windowState]);
+    }, [isMac, showSideBar, uiFullScreen, video, windowState]);
     useEffect(() => {
         /**
          * 应用轻量播放详情，并优先把视频源写入播放器状态。

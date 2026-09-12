@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { useChat } from '@ai-sdk/react';
 import { getToolName, isToolUIPart, type UIMessage } from 'ai';
 import useChatPanel from '@/fronted/features/chat/chatStore';
@@ -6,27 +6,18 @@ import { ElectronChatTransport } from '@/fronted/features/chat/chatTransport';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import type { LearningMessageBlock, LearningMessageView } from '@/fronted/features/chat/types';
 
-/** 整句学习聊天消息的 UI 元数据。 */
-export type SentenceLearningMessageMetadata = {
-    /** 首条主题消息与普通追问的展示类型。 */
-    kind: 'topic' | 'chat';
-};
-
-/** AI SDK useChat 使用的标准消息类型。 */
-export type SentenceLearningMessage = UIMessage<SentenceLearningMessageMetadata>;
-
 /** 获取消息中的正文长度，用于记录前端首屏响应进度。 */
-const getMessageTextLength = (message: SentenceLearningMessage): number => message.parts
+const getMessageTextLength = (message: UIMessage): number => message.parts
     .filter((part) => part.type === 'text')
     .reduce((length, part) => length + part.text.length, 0);
 
 /** 获取消息中的推理长度，用于区分模型思考和正文生成阶段。 */
-const getMessageReasoningLength = (message: SentenceLearningMessage): number => message.parts
+const getMessageReasoningLength = (message: UIMessage): number => message.parts
     .filter((part) => part.type === 'reasoning')
     .reduce((length, part) => length + part.text.length, 0);
 
 /** 获取当前消息的有序片段摘要，用于定位推理、工具和正文之间的空档。 */
-const getMessagePartSummary = (message: SentenceLearningMessage): string[] => message.parts.map((part) => {
+const getMessagePartSummary = (message: UIMessage): string[] => message.parts.map((part) => {
     if (part.type === 'reasoning') {
         return `reasoning:${part.state}:${part.text.length}`;
     }
@@ -49,7 +40,7 @@ const getMessagePartSummary = (message: SentenceLearningMessage): string[] => me
  * @param message 会话中的一条消息。
  * @returns 与片段顺序一致的展示块。
  */
-const toMessageBlocks = (message: SentenceLearningMessage): LearningMessageBlock[] => {
+const toMessageBlocks = (message: UIMessage): LearningMessageBlock[] => {
     const blocks: LearningMessageBlock[] = [];
     message.parts.forEach((part) => {
         if (part.type === 'text') {
@@ -96,7 +87,7 @@ const toMessageBlocks = (message: SentenceLearningMessage): LearningMessageBlock
 };
 
 /** 把 AI SDK 消息转换成页面视图模型。 */
-const toMessageView = (message: SentenceLearningMessage): LearningMessageView => ({
+const toMessageView = (message: UIMessage): LearningMessageView => ({
     id: message.id,
     role: message.role === 'user' ? 'user' : 'assistant',
     blocks: toMessageBlocks(message),
@@ -113,16 +104,18 @@ const toMessageView = (message: SentenceLearningMessage): LearningMessageView =>
  * @returns 对话消息视图、输入操作与流状态。
  */
 export const useSentenceLearningChat = () => {
-    const { chatSessionId, queuedMessage, consumeQueuedMessage, input, setInput } = useChatPanel();
+    const { chatSessionId, queuedMessage, consumeQueuedMessage, input, setInput, conversationEpoch } = useChatPanel();
     const logger = useMemo(() => getRendererLogger('SentenceLearningChat'), []);
-    const transport = useMemo(() => new ElectronChatTransport<SentenceLearningMessage>(), []);
-    const chat = useChat<SentenceLearningMessage>({
+    const transport = useMemo(() => new ElectronChatTransport(), []);
+    const chat = useChat({
         id: chatSessionId || 'inactive-chat-session',
         transport,
         throttle: 40,
     });
-    const { messages, sendMessage, status, stop } = chat;
+    const { messages, sendMessage, setMessages, status, stop } = chat;
     const isBusy = status === 'submitted' || status === 'streaming';
+    // 已经清到哪一代对话：只认比它更新的那一代，避免重复清空与清掉新问题
+    const appliedEpochRef = useRef(conversationEpoch);
 
     useEffect(() => {
         if (!chatSessionId) return;
@@ -140,13 +133,27 @@ export const useSentenceLearningChat = () => {
     }, [chatSessionId, logger, messages, status]);
 
     useEffect(() => {
+        // 同一句重新进入时不再重建会话（重建会掐断后台还在跑的解析），
+        // 改由这里把屏幕上的对话清空，回到初始的空白页；会话与后台生成都留着。
+        if (appliedEpochRef.current === conversationEpoch) {
+            return;
+        }
+        // 正在流式回答时先不清：等这次回答收尾再清，避免把流到一半的消息抹掉
+        if (isBusy) {
+            return;
+        }
+        appliedEpochRef.current = conversationEpoch;
+        setMessages([]);
+    }, [conversationEpoch, isBusy, setMessages]);
+
+    useEffect(() => {
         // 会话尚未建立时先留在队列里：等会话就绪再发，别丢问题也别发到空会话上
         if (!queuedMessage || !chatSessionId || status !== 'ready') {
             return;
         }
         const { id, content } = queuedMessage;
         consumeQueuedMessage(id);
-        sendMessage({ text: content, metadata: { kind: 'chat' } }).catch(() => undefined);
+        sendMessage({ text: content }).catch(() => undefined);
     }, [chatSessionId, consumeQueuedMessage, queuedMessage, sendMessage, status]);
 
     const messageViews = useMemo(() => messages.map(toMessageView), [messages]);
@@ -165,7 +172,7 @@ export const useSentenceLearningChat = () => {
             return;
         }
         setInput('');
-        await sendMessage({ text: trimmedInput, metadata: { kind: 'chat' } });
+        await sendMessage({ text: trimmedInput });
     };
 
     return {
