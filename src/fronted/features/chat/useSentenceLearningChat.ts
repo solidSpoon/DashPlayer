@@ -5,6 +5,7 @@ import useChatPanel from '@/fronted/features/chat/chatStore';
 import { ElectronChatTransport } from '@/fronted/features/chat/chatTransport';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import type { LearningMessageBlock, LearningMessageView } from '@/fronted/features/chat/types';
+import type { GetSubtitleContextResult, SearchSubtitlesResult } from '@/common/types/chat';
 
 /** 获取消息中的正文长度，用于记录前端首屏响应进度。 */
 const getMessageTextLength = (message: UIMessage): number => message.parts
@@ -61,7 +62,7 @@ const toMessageBlocks = (message: UIMessage): LearningMessageBlock[] => {
         const toolName = getToolName(part);
         if (toolName === 'search_subtitles') {
             const input = part.input as { queries?: string[] } | undefined;
-            const output = part.output as { matches?: { index: number; text: string }[]; total?: number } | undefined;
+            const output = part.output as SearchSubtitlesResult | undefined;
             const hits = output?.matches ?? [];
             blocks.push({
                 kind: 'search',
@@ -73,7 +74,7 @@ const toMessageBlocks = (message: UIMessage): LearningMessageBlock[] => {
             return;
         }
         if (toolName === 'get_subtitle_context') {
-            const output = part.output as { startIndex?: number; endIndex?: number } | undefined;
+            const output = part.output as GetSubtitleContextResult | undefined;
             blocks.push({
                 kind: 'context',
                 range: output?.startIndex !== undefined && output?.endIndex !== undefined

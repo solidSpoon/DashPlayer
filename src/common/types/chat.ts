@@ -84,3 +84,52 @@ export type CompleteSentenceResult = {
     /** 完整句的中文译文，学习页展示在句子下方。 */
     translation: string;
 };
+
+/**
+ * 字幕工具返回的单行字幕投影。
+ *
+ * 说明：既是模型读到的上下文，也是页面工具卡片点击跳转用的数据，因此这里是
+ * 后端工具出参与前端渲染的共同契约；字段改名时两侧必须一起改。
+ */
+export type SubtitleToolLine = {
+    /** 字幕稳定索引，可直接作为 get_subtitle_context 的入参。 */
+    index: number;
+    /** 起始秒。 */
+    start: number;
+    /** 结束秒。 */
+    end: number;
+    /** 字幕英文原文。 */
+    text: string;
+};
+
+/** search_subtitles 的单条命中。 */
+export type SubtitleSearchHit = SubtitleToolLine & {
+    /** 该行命中的查询词（已转小写）。 */
+    matchedQueries: string[];
+    /** 命中行前后各 context 行的连续字幕（含命中行本身）；未请求上下文时缺省。 */
+    context?: SubtitleToolLine[];
+};
+
+/** search_subtitles 的完整出参。 */
+export type SearchSubtitlesResult = {
+    /** 本页命中项。 */
+    matches: SubtitleSearchHit[];
+    /** 命中总条数，可能多于 matches。 */
+    total: number;
+    /** 本次跳过的命中条数。 */
+    skip: number;
+    /** 本次请求的返回上限。 */
+    limit: number;
+};
+
+/** get_subtitle_context 的完整出参。 */
+export type GetSubtitleContextResult = {
+    /** 请求的锚点索引。 */
+    anchorIndex: number;
+    /** 实际返回的首行索引；请求超出片头时由它体现真实起点。 */
+    startIndex: number;
+    /** 实际返回的末行索引；继续往后读时把它作为下一次的 index。 */
+    endIndex: number;
+    /** 连续字幕行。 */
+    items: SubtitleToolLine[];
+};
