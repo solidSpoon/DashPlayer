@@ -70,4 +70,13 @@ export const chatApi = {
      */
     completeSentence: (params: CompleteSentenceParams): Promise<CompleteSentenceResult> =>
         backendClient.call('chat/complete-sentence', params),
+
+    /**
+     * 查询整句讲解当前是否可用（功能已启用且云端模型已配好）。
+     *
+     * 说明：学习页据此决定解析与对话入口是否置灰，避免用户点下去才发现用不了。
+     *
+     * @returns 可发起解析与对话时为 true。
+     */
+    learningAvailable: (): Promise<boolean> => backendClient.call('chat/learning/available'),
 };

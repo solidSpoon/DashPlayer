@@ -124,6 +124,7 @@
         "noVocabWords": "No new words here — just ask away",
         "vocabFailed": "Failed to load new words: local dictionary unavailable",
         "sentenceResolveFailed": "Couldn't complete the sentence, showing the current subtitle line",
+        "cloudRequired": "Sentence study needs a cloud model — turn it on and configure it in Settings → Services & Models",
         "preparingSession": "Preparing the study session…",
         "beyondSyllabus": "Beyond syllabus"
     },

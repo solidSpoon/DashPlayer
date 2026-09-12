@@ -48,5 +48,9 @@ export default class ChatStreamController implements Controller {
             return this.chatSessionService.completeSentence(params);
         });
 
+        registerRoute('chat/learning/available', async (): Promise<boolean> => {
+            return this.chatSessionService.isLearningAvailable();
+        });
+
     }
 }

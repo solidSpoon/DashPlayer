@@ -25,10 +25,10 @@ const PlaybackLayout = () => {
     const fullScreen = useLayout((s) => s.fullScreen);
     const podcastMode = useLayout(s => s.podcastMode);
     const hasSource = usePlayerState((s) => !!s.src);
-    const chatTopic = useChatPanel((s) => s.topic);
+    const hasLearningContext = useChatPanel((s) => s.hasLearningContext);
     const learningVisible = useChatPanel((s) => s.learningVisible);
     // 有会话时保持挂载，切回播放画面只做隐藏，避免回来时对话与滚动状态丢失
-    const learningMounted = learningVisible || chatTopic !== 'offscreen';
+    const learningMounted = learningVisible || hasLearningContext;
     const [sizeOa, setSizeOa] = useLocalStorage<number>('split-size-oa', 75);
     const [sizeOb, setSizeOb] = useLocalStorage<number>('split-size-ob', 25);
     const [sizeIa, setSizeIa] = useLocalStorage<number>('split-size-ia', 80);

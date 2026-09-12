@@ -6,7 +6,7 @@ import toast from 'react-hot-toast';
 import useChatPanel from '@/fronted/features/chat/chatStore';
 import { chatApi } from '@/fronted/features/chat/chatApi';
 import { useSentenceLearningChat } from '@/fronted/features/chat/useSentenceLearningChat';
-import LearningWorkspace, { type LearningSentence, type LearningWordDetail } from '@/fronted/features/chat/components/LearningWorkspace';
+import LearningWorkspace, { type LearningSentence } from '@/fronted/features/chat/components/LearningWorkspace';
 import { usePlayerState } from '@/fronted/features/player/playerState';
 import { playerActions } from '@/fronted/features/player/components/PlayerActions';
 import useVocabulary from '@/fronted/features/player/vocabularyStore';
@@ -14,7 +14,7 @@ import { videoLearningApi } from '@/fronted/features/video-learning/videoLearnin
 import { getTtsUrl, playAudioUrl } from '@/fronted/infrastructure/audio/AudioPlayer';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import TimeUtil from '@/common/utils/TimeUtil';
-import type { SentenceVocabularyVO } from '@/common/types/vo/SentenceVocabularyVO';
+import type { SentenceVocabularyVO, SentenceWordEntry } from '@/common/types/vo/SentenceVocabularyVO';
 
 const logger = getRendererLogger('LearningPage');
 
@@ -37,6 +37,7 @@ export default function LearningPage() {
     const anchorIndex = useChatPanel((state) => state.anchorIndex);
     const chatSessionId = useChatPanel((state) => state.chatSessionId);
     const sentenceResolveError = useChatPanel((state) => state.sentenceResolveError);
+    const cloudAvailable = useChatPanel((state) => state.cloudAvailable);
     const analysis = useChatPanel((state) => state.analysis);
     const analysisStatus = useChatPanel((state) => state.analysisStatus);
     const analysisError = useChatPanel((state) => state.analysisError);
@@ -55,9 +56,11 @@ export default function LearningPage() {
     // 本地选词结果：生词卡与悬停取词共用同一份数据
     const [sentenceVocabulary, setSentenceVocabulary] = useState<SentenceVocabularyVO | null>(null);
 
-    const topicLine = anchorIndex === null
-        ? undefined
-        : sentences.find((sentence) => sentence.index === anchorIndex);
+    // 主题所在字幕行：句子信息与位置标签都从它取值，句子列表不变时不必重算
+    const topicLine = useMemo(
+        () => (anchorIndex === null ? undefined : sentences.find((sentence) => sentence.index === anchorIndex)),
+        [anchorIndex, sentences]
+    );
 
     const sentence: LearningSentence = useMemo(() => ({
         en: topicText,
@@ -103,7 +106,7 @@ export default function LearningPage() {
     const vocabWords = useMemo(() => sentenceVocabulary?.picks ?? [], [sentenceVocabulary]);
 
     const resolveWordDetail = useCallback(
-        (word: string): LearningWordDetail | null => sentenceVocabulary?.details[word] ?? null,
+        (word: string): SentenceWordEntry | null => sentenceVocabulary?.details[word] ?? null,
         [sentenceVocabulary]
     );
 
@@ -170,6 +173,7 @@ export default function LearningPage() {
                 analysisError={analysisError}
                 onRequestAnalysis={requestAnalysis}
                 sessionReady={sessionReady}
+                cloudAvailable={cloudAvailable}
                 vocabWords={vocabWords}
                 resolveWordDetail={resolveWordDetail}
                 messages={chat.messageViews}

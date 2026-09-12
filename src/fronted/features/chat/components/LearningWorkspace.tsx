@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CornerDownLeft, Loader2, Pause, Search, Sparkles, Volume2, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/fronted/lib/utils';
@@ -11,6 +11,7 @@ import { formatPhonetic } from '@/fronted/lib/phonetic';
 import { formatDictTag } from '@/fronted/lib/dict-tags';
 import useSystem from '@/fronted/hooks/useSystem';
 import type { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
+import type { SentenceWordEntry } from '@/common/types/vo/SentenceVocabularyVO';
 import type { AnalysisStatus, LearningMessageView } from '@/fronted/features/chat/types';
 
 /** 学习页顶部展示的学习句信息。 */
@@ -21,36 +22,6 @@ export type LearningSentence = {
     zh: string;
     /** 视频内位置标签，如 S01E03 · 12:41 – 12:46。 */
     position: string;
-};
-
-/**
- * 本句生词。
- *
- * 说明：由本地词典选词产生，不依赖模型解析，因此不参与懒加载。
- */
-export type LearningWord = {
-    /** 单词原形。 */
-    word: string;
-    /** 音标。 */
-    phonetic: string;
-    /** 中文释义。 */
-    meaning: string;
-    /** 命中的考试档位标签；空数组表示不在任何考纲内（即超纲词）。 */
-    tags: string[];
-    /** 该词在句中实际出现的词形（小写），用于在主舞台字幕上高亮。 */
-    surfaces: string[];
-};
-
-/** 悬停取词的释义结果。 */
-export type LearningWordDetail = {
-    /** 音标。 */
-    phonetic: string;
-    /** 中文释义。 */
-    meaning: string;
-    /** 命中的考试档位标签；空数组表示超纲词。 */
-    tags: string[];
-    /** 该词在句中实际出现的词形（小写）。 */
-    surfaces: string[];
 };
 
 export type LearningWorkspaceProps = {
@@ -70,13 +41,20 @@ export type LearningWorkspaceProps = {
      * 会话建立前没有主题快照可用，对话与解析入口先按住，避免发起注定失败的模型调用。
      */
     sessionReady: boolean;
+    /**
+     * 云端整句讲解当前是否可用（功能已启用且模型凭证齐备）。
+     *
+     * 说明：整句讲解只有云端这一条路，不可用时解析与对话入口一并置灰并说明原因，
+     * 用户不需要点下去才发现用不了；句子与本地生词不受影响，照常展示。
+     */
+    cloudAvailable: boolean;
     /** 本句生词；本地选词立即给结果，不参与解析懒加载。 */
-    vocabWords: LearningWord[];
+    vocabWords: SentenceWordEntry[];
     /**
      * 悬停主舞台单词时的取词：返回音标与释义，未收录返回 null。
      * 真实链路应查本地词典（与生词选词同一数据源），保证悬停是同步命中。
      */
-    resolveWordDetail: (word: string) => LearningWordDetail | null;
+    resolveWordDetail: (word: string) => SentenceWordEntry | null;
     messages: LearningMessageView[];
     /** 是否正在生成回答。 */
     isBusy: boolean;
@@ -151,9 +129,11 @@ const splitSentenceByGroups = (text: string, groups: string[]): { text: string; 
 };
 
 /**
- * 学习句主舞台：坐在对话输入框上方，让用户对照着句子提问。
+ * 学习句主舞台：作为一段正文浮在页面上（不铺底板、不划线），让用户对照着句子提问。
  *
- * 说明：作为通栏字幕带呈现，宽度不跟输入框对齐（句子是主角，不限宽更好读）；
+ * 说明：它是「一条特殊消息」而不是输入区的一部分——没有通栏底板与边框，
+ * 只在与输入区之间留出距离，因此不会被读成聊天框的一组；
+ * 宽度不跟输入框对齐（句子是主角，不限宽更好读）；
  * 悬停到具体单词时，会在句子上方的小区域里显示该词的音标与释义；
  * 原句进页面时就是当前字幕行，云端整句补全在后台把它换得更完整：
  * 补全期间在句子下方提示一句，用户知道自己在看的是待补全的版本。
@@ -174,7 +154,7 @@ const SentenceStrip = ({
     /** 云端整句补全进行中：此时展示的仍是字幕行原文。 */
     preparing: boolean;
     onSpeak: (text: string) => void;
-    resolveWordDetail: (word: string) => LearningWordDetail | null;
+    resolveWordDetail: (word: string) => SentenceWordEntry | null;
     /** 被选进生词卡的词形集合（小写），这些词在句子里要高亮。 */
     pickedForms: Set<string>;
 }) => {
@@ -220,6 +200,9 @@ const SentenceStrip = ({
             <div className="flex h-14 items-center justify-center gap-2.5 px-6 text-center">
                 {hoveredDetail && (
                     <>
+                        <span className="text-sm font-semibold tracking-tight text-foreground">
+                            {hoveredDetail.word}
+                        </span>
                         <span className="font-mono text-[11px] text-muted-foreground">
                             {formatPhonetic(hoveredDetail.phonetic)}
                         </span>
@@ -228,7 +211,7 @@ const SentenceStrip = ({
                 )}
             </div>
 
-            <section className="relative flex shrink-0 flex-col items-center justify-center border-t border-border/60 bg-muted/25 px-16 py-8 text-center">
+            <section className="relative flex shrink-0 flex-col items-center justify-center px-16 py-8 text-center">
                 <p className="mx-auto max-w-4xl text-2xl font-medium leading-relaxed tracking-tight text-foreground">
                     {segments.map((segment, index) => {
                         if (!segment.isGroup) {
@@ -291,7 +274,7 @@ const VocabPreview = ({
     isFavorite,
     onToggleFavorite,
 }: {
-    words: LearningWord[];
+    words: SentenceWordEntry[];
     isFavorite: (word: string) => boolean;
     onToggleFavorite: (word: string, meaning: string) => void;
 }) => {
@@ -385,7 +368,7 @@ const VocabList = ({
     onToggleFavorite,
     className,
 }: {
-    words: LearningWord[];
+    words: SentenceWordEntry[];
     isFavorite: (word: string) => boolean;
     onToggleFavorite: (word: string, meaning: string) => void;
     className?: string;
@@ -436,9 +419,18 @@ const VocabList = ({
  *
  * 说明：默认不预生成，避免用户只是看一眼句子就消耗一次模型调用；
  * 空状态里直接列出会得到什么，用户知道点下去会发生什么；
- * 会话尚未就绪时置灰不可点：解析要用会话冻结的主题，此时点下去必然失败。
+ * 入口不可点时置灰：会话尚未就绪，或云端整句讲解根本不可用（后者给出原因）。
  */
-const AnalysisPlaceholder = ({ onLoad, disabled }: { onLoad: () => void; disabled: boolean }) => {
+const AnalysisPlaceholder = ({
+    onLoad,
+    disabled,
+    disabledHint,
+}: {
+    onLoad: () => void;
+    disabled: boolean;
+    /** 持续不可用的原因；会话正在建立这类瞬时不可用传空，沿用原有提示。 */
+    disabledHint: string | null;
+}) => {
     const { t } = useTranslation('common');
     const items = [
         t('learning.phraseGroups'),
@@ -462,7 +454,9 @@ const AnalysisPlaceholder = ({ onLoad, disabled }: { onLoad: () => void; disable
                 <Sparkles className="h-5 w-5" />
             </span>
             <span className="text-sm font-medium text-foreground">{t('learning.loadAnalysis')}</span>
-            <span className="text-[11px] leading-relaxed text-muted-foreground">{t('learning.loadAnalysisHint')}</span>
+            <span className="text-[11px] leading-relaxed text-muted-foreground">
+                {disabled && disabledHint ? disabledHint : t('learning.loadAnalysisHint')}
+            </span>
             <span className="mt-1 flex flex-wrap justify-center gap-1.5">
                 {items.map((item) => (
                     <span
@@ -487,7 +481,8 @@ const AnalysisPane = ({
     status,
     error,
     onRequestAnalysis,
-    sessionReady,
+    entriesReady,
+    entriesDisabledHint,
     isFavorite,
     onToggleFavorite,
     showVocab,
@@ -498,14 +493,16 @@ const AnalysisPane = ({
     status: AnalysisStatus;
     error: string | null;
     onRequestAnalysis: () => void;
-    /** 后端会话是否已就绪；未就绪时懒加载入口不可点。 */
-    sessionReady: boolean;
+    /** 懒加载入口是否可点：会话已就绪且云端整句讲解可用。 */
+    entriesReady: boolean;
+    /** 入口因云端不可用而置灰时的说明；瞬时不可用为 null。 */
+    entriesDisabledHint: string | null;
     isFavorite: (word: string) => boolean;
     onToggleFavorite: (word: string, meaning: string) => void;
     /** 是否在左栏展示生词；对话为空时生词由对话列的预习块承担，此处不重复。 */
     showVocab: boolean;
     /** 本句生词；由本地选词提供，不参与模型解析的懒加载。 */
-    vocabWords: LearningWord[];
+    vocabWords: SentenceWordEntry[];
     className?: string;
 }) => {
     const { t } = useTranslation('common');
@@ -535,7 +532,13 @@ const AnalysisPane = ({
                 />
             )}
 
-            {status === 'idle' && <AnalysisPlaceholder onLoad={onRequestAnalysis} disabled={!sessionReady} />}
+            {status === 'idle' && (
+                <AnalysisPlaceholder
+                    onLoad={onRequestAnalysis}
+                    disabled={!entriesReady}
+                    disabledHint={entriesDisabledHint}
+                />
+            )}
 
             <div className={cn(
                 'space-y-5 px-5 pb-6',
@@ -656,11 +659,20 @@ const SearchEvidence = ({
     );
 };
 
-/** 对话列：消息流 + 学习句主舞台 + 快捷提问 + 输入框。 */
+/**
+ * 对话列：消息流 + 学习句主舞台 + 快捷提问 + 输入框。
+ *
+ * 说明：主舞台（学习句）就是内容流的第一条，只是比普通消息宽——内容不满一屏时整块贴着
+ * 输入区，所以空页时它落在最下面、生词卡片占满它上方；开始对话后新消息长在它下面把它顶上去，
+ * 对话再长就随消息一起滚出屏幕。位置全靠普通的消息流布局，不需要额外的位移逻辑。
+ *
+ * 消息区跟随最新内容，用户手动往上翻时暂停跟随，翻回底部附近再恢复。
+ */
 const ConversationPane = ({
     messages,
     isBusy,
-    sessionReady,
+    entriesReady,
+    entriesDisabledHint,
     input,
     onInputChange,
     onSubmit,
@@ -675,11 +687,14 @@ const ConversationPane = ({
     messages: LearningMessageView[];
     isBusy: boolean;
     /**
-     * 后端会话是否已就绪；未就绪时不允许发送。
+     * 对话入口是否可用：会话已就绪且云端整句讲解可用。
      *
-     * 说明：输入框仍可打字，只是发不出去——会话还没建立，发出去也无处作答。
+     * 说明：会话只是还没建立时，输入框仍可打字，只是发不出去；
+     * 云端整句讲解整体不可用时连输入框一起按住，此时 entriesDisabledHint 说明原因。
      */
-    sessionReady: boolean;
+    entriesReady: boolean;
+    /** 云端整句讲解不可用的说明；可用时为 null。 */
+    entriesDisabledHint: string | null;
     input: string;
     onInputChange: (value: string) => void;
     onSubmit: (text: string) => void;
@@ -691,11 +706,32 @@ const ConversationPane = ({
     quickPrompts: { label: string; prompt: string }[];
     /** 对话为空时占据消息区的“预习”内容；未提供时回退到默认提示。 */
     empty?: React.ReactNode;
-    /** 学习句主舞台；坐在输入框上方，方便对照句子提问。 */
+    /** 学习句主舞台：内容流的第一条，比普通消息宽；不满一屏时贴在输入区上方。 */
     stage?: React.ReactNode;
     className?: string;
 }) => {
     const { t } = useTranslation('common');
+    const hasMessages = messages.length > 0;
+    const scrollRef = useRef<HTMLDivElement | null>(null);
+    // 是否跟随最新内容：用户自己往上翻看旧内容时暂停跟随，滚回底部附近再恢复
+    const followBottomRef = useRef(true);
+
+    /** 记录用户是否停在底部附近，决定新内容到来时要不要跟着滚。 */
+    const handleScroll = () => {
+        const el = scrollRef.current;
+        if (el) {
+            followBottomRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 64;
+        }
+    };
+
+    // 新消息与流式片段到来自动跟到底部：学习句因此被顶上去、随对话滚出屏幕
+    useEffect(() => {
+        const el = scrollRef.current;
+        if (!el || !followBottomRef.current) {
+            return;
+        }
+        el.scrollTop = el.scrollHeight;
+    }, [isBusy, messages]);
 
     return (
         <section className={cn('flex min-h-0 flex-col', className)}>
@@ -703,14 +739,24 @@ const ConversationPane = ({
                 <span className={SECTION_TITLE}>{t('learning.conversationTitle')}</span>
             </div>
 
-            <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-4 scrollbar-thin">
-                {messages.length === 0 && (
-                    <div className="flex min-h-full items-center justify-center">
+            <div
+                ref={scrollRef}
+                onScroll={handleScroll}
+                className="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-4 scrollbar-thin"
+            >
+                {!hasMessages && (
+                    <div className="flex flex-1 items-center justify-center">
                         {empty ?? (
                             <p className="text-xs text-muted-foreground">{t('learning.noVocabWords')}</p>
                         )}
                     </div>
                 )}
+
+                {/* 学习句就是内容流的第一条（只是比普通消息宽）：mt-auto 让内容不满一屏时
+                    整块贴着输入区，空页时它因此落在最下面、上面留给生词卡片；
+                    发消息后新消息长在它下面把它顶上去，对话长了就随消息一起滚出屏幕。
+                    -mx-6 抵消滚动容器的左右内边距，让它保持通栏 */}
+                {stage && <div className="-mx-6 mt-auto shrink-0">{stage}</div>}
 
                 <div className="mx-auto flex w-full max-w-3xl flex-col gap-5">
                     {messages.map((message) => (
@@ -798,28 +844,31 @@ const ConversationPane = ({
                 </div>
             </div>
 
-            {/* 学习句主舞台：通栏字幕带，贴着输入框，方便对照句子提问 */}
-            {stage && <div className="shrink-0">{stage}</div>}
-
-            {/* 快捷提问：点一下直接把问题发进对话，省得手动打字 */}
+            {/* 快捷提问：点一下直接把问题发进对话，省得手动打字；云端整句讲解不可用时这里换成原因说明，别摆一排点不动的按钮 */}
             <div className="shrink-0 px-6 pt-2">
-                <div className="mx-auto flex w-full max-w-3xl flex-wrap gap-1.5">
-                    {quickPrompts.map((item) => (
-                        <button
-                            key={item.label}
-                            type="button"
-                            disabled={isBusy || !sessionReady}
-                            onClick={() => onSubmit(item.prompt)}
-                            className={cn(
-                                'rounded-full border border-border/60 bg-card px-2.5 py-1 text-[11px] text-muted-foreground transition-colors',
-                                'hover:border-primary/40 hover:text-foreground',
-                                'disabled:cursor-not-allowed disabled:opacity-50'
-                            )}
-                        >
-                            {item.label}
-                        </button>
-                    ))}
-                </div>
+                {entriesDisabledHint ? (
+                    <p className="mx-auto w-full max-w-3xl text-[11px] leading-snug text-muted-foreground">
+                        {entriesDisabledHint}
+                    </p>
+                ) : (
+                    <div className="mx-auto flex w-full max-w-3xl flex-wrap gap-1.5">
+                        {quickPrompts.map((item) => (
+                            <button
+                                key={item.label}
+                                type="button"
+                                disabled={isBusy || !entriesReady}
+                                onClick={() => onSubmit(item.prompt)}
+                                className={cn(
+                                    'rounded-full border border-border/60 bg-card px-2.5 py-1 text-[11px] text-muted-foreground transition-colors',
+                                    'hover:border-primary/40 hover:text-foreground',
+                                    'disabled:cursor-not-allowed disabled:opacity-50'
+                                )}
+                            >
+                                {item.label}
+                            </button>
+                        ))}
+                    </div>
+                )}
             </div>
 
             <div className="shrink-0 px-6 pb-2 pt-2">
@@ -834,15 +883,16 @@ const ConversationPane = ({
                             }
                         }}
                         rows={1}
-                        placeholder={t('learning.inputPlaceholder')}
-                        className="max-h-32 min-h-6 flex-1 resize-none bg-transparent text-sm leading-6 text-foreground outline-none placeholder:text-muted-foreground/70"
+                        disabled={!!entriesDisabledHint}
+                        placeholder={entriesDisabledHint ?? t('learning.inputPlaceholder')}
+                        className="max-h-32 min-h-6 flex-1 resize-none bg-transparent text-sm leading-6 text-foreground outline-none placeholder:text-muted-foreground/70 disabled:cursor-not-allowed"
                     />
                     <button
                         type="button"
                         onClick={isBusy ? onStop : () => onSubmit(input)}
                         aria-label={isBusy ? t('learning.stop') : t('learning.send')}
                         title={isBusy ? t('learning.stop') : t('learning.send')}
-                        disabled={!isBusy && (!sessionReady || input.trim().length === 0)}
+                        disabled={!isBusy && (!entriesReady || input.trim().length === 0)}
                         className={cn(
                             'mb-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full transition-colors',
                             'bg-primary text-primary-foreground disabled:bg-muted disabled:text-muted-foreground'
@@ -877,8 +927,8 @@ const ConversationPane = ({
  * 说明：本组件替换播放器的视频与主字幕区域，是纯展示层：
  * 所有数据与动作由外部注入，便于单独预览版式，也便于在播放页与原型页之间复用。
  * 左栏按需生成结构化解析（生词、词组、意群），语法讲解走输入框上方的
- * 快捷提问，由对话流统一作答。会话尚未就绪时（sessionReady 为 false）对话与解析
- * 入口先按住，句子与本地生词照常展示。
+ * 快捷提问，由对话流统一作答。会话尚未就绪、或云端整句讲解不可用时，
+ * 对话与解析入口先按住并说明原因，句子与本地生词照常展示。
  *
  * @param props 学习句、解析结果、对话视图与各类动作。
  */
@@ -889,6 +939,7 @@ export default function LearningWorkspace({
     analysisError,
     onRequestAnalysis,
     sessionReady,
+    cloudAvailable,
     vocabWords,
     resolveWordDetail,
     messages,
@@ -905,6 +956,9 @@ export default function LearningWorkspace({
 }: LearningWorkspaceProps) {
     const { t } = useTranslation('common');
     const isMac = useSystem((s) => s.isMac);
+    // 云端整体不可用时入口持续置灰，说明写进入口本身；只是会话还没建好则沿用原有提示
+    const entriesReady = sessionReady && cloudAvailable;
+    const entriesDisabledHint = cloudAvailable ? null : t('learning.cloudRequired');
     // 对话为空时，生词改由对话列的预习块承担（见 VocabPreview），左栏不再重复
     const hasMessages = messages.length > 0;
     // 卡片上的词在句子里同样标出来（按句内实际词形匹配，watch 也能对应到 watching）
@@ -951,7 +1005,8 @@ export default function LearningWorkspace({
                     status={analysisStatus}
                     error={analysisError}
                     onRequestAnalysis={onRequestAnalysis}
-                    sessionReady={sessionReady}
+                    entriesReady={entriesReady}
+                    entriesDisabledHint={entriesDisabledHint}
                     isFavorite={isFavorite}
                     onToggleFavorite={onToggleFavorite}
                     showVocab={hasMessages}
@@ -961,7 +1016,8 @@ export default function LearningWorkspace({
                 <ConversationPane
                     messages={messages}
                     isBusy={isBusy}
-                    sessionReady={sessionReady}
+                    entriesReady={entriesReady}
+                    entriesDisabledHint={entriesDisabledHint}
                     input={input}
                     onInputChange={onInputChange}
                     onSubmit={onSubmit}

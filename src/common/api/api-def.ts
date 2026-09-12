@@ -199,6 +199,8 @@ interface ChatDef {
     'chat/start': { params: ChatStartParams, return: ChatStartResult };
     /** 补全被换行截断的字幕为完整句；仅云端整句学习启用时可用。 */
     'chat/complete-sentence': { params: CompleteSentenceParams, return: CompleteSentenceResult };
+    /** 整句讲解当前是否可用（功能已启用且云端模型已配好），供学习页决定入口是否置灰。 */
+    'chat/learning/available': { params: void, return: boolean };
 }
 
 interface ChatAnalysisDef {

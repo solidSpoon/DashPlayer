@@ -1,29 +1,6 @@
 import { UIMessageChunk } from 'ai';
 
 /**
- * 聊天主题，可以是纯文本，也可以是字幕中的字符范围。
- */
-export type Topic = {
-    /** 主题文本或字幕范围。 */
-    content: string | {
-        /** 范围起点。 */
-        start: {
-            /** 字幕索引。 */
-            sIndex: number;
-            /** 字幕内字符索引。 */
-            cIndex: number;
-        };
-        /** 范围终点。 */
-        end: {
-            /** 字幕索引。 */
-            sIndex: number;
-            /** 字幕内字符索引。 */
-            cIndex: number;
-        };
-    };
-} | 'offscreen';
-
-/**
  * 创建整句学习会话所需的稳定上下文快照。
  */
 export type ChatSessionCreateParams = {

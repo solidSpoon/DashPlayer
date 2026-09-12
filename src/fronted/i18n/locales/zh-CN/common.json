@@ -124,6 +124,7 @@
         "noVocabWords": "本句没有生词，直接提问就行",
         "vocabFailed": "本句生词加载失败：本地词典不可用",
         "sentenceResolveFailed": "补全整句失败，已显示当前字幕行",
+        "cloudRequired": "整句讲解需要云端模型，请先在「设置 → 服务与模型」中开启并配置",
         "preparingSession": "正在准备学习会话…",
         "beyondSyllabus": "超纲"
     },

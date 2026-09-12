@@ -11,8 +11,6 @@ import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { TypeGuards } from '@/common/utils/TypeGuards';
 import { chatApi } from '@/fronted/features/chat/chatApi';
-import { settingsApi } from '@/fronted/features/settings/settingsApi';
-import { Topic } from '@/common/types/chat';
 import { AnalysisStreamEvent, DeepPartial } from '@/common/types/analysis';
 import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 import { Sentence } from '@/common/types/SentenceC';
@@ -37,14 +35,31 @@ export type ChatPanelState = {
     topicTranslation: string;
     /** 由上下文菜单排队、等待聊天组件发送的追问。 */
     queuedMessage: { id: number; content: string } | null;
-    /** 当前学习主题的字幕位置或直接文本。 */
-    topic: Topic
+    /**
+     * 是否已有学习上下文；含会话尚未建好的乐观阶段。
+     *
+     * 说明：学习页隐藏后靠它保持挂载，回来时对话与解析都还在。
+     */
+    hasLearningContext: boolean;
     /** 学习页是否显示；为 false 时只隐藏，不卸载。 */
     learningVisible: boolean;
     /** 整句补全失败信息；由 LearningPage 提示用户，新一轮补全开始时清空。 */
     sentenceResolveError: string | null;
+    /**
+     * 云端整句讲解当前是否可用；不可用时解析与对话入口置灰。
+     *
+     * 说明：取的是进学习页那一刻的实测结果，页面不为此再查一次后端。
+     */
+    cloudAvailable: boolean;
     /** 创建会话时冻结的学习句字幕索引，用于避免重复创建会话。 */
     anchorIndex: number | null;
+    /**
+     * 对话清空信号：同一句重新进入时自增一次。
+     *
+     * 说明：重新进入不再重建会话（重建会掐断后台还在跑的解析），
+     * 改由聊天组件看到这个信号后把屏幕上的消息清空，回到初始的空白页。
+     */
+    conversationEpoch: number;
     /**
      * 这次会话的判重依据，用于识别「又进了同一句」。
      *
@@ -107,10 +122,12 @@ const empty = (): ChatPanelState => {
         topicText: '',
         topicTranslation: '',
         queuedMessage: null,
-        topic: 'offscreen',
+        hasLearningContext: false,
         learningVisible: false,
         sentenceResolveError: null,
+        cloudAvailable: false,
         anchorIndex: null,
+        conversationEpoch: 0,
         topicKey: null,
         analysis: null,
         analysisMessageId: null,
@@ -154,59 +171,59 @@ const enterLearningOptimistically = (sentence: Sentence): void => {
         ...empty(),
         topicText: sentence.text,
         anchorIndex: sentence.index,
+        hasLearningContext: true,
     });
     enterLearning();
 };
 
 /**
- * 上一轮为同一句冻结下来的学习内容。
+ * 判断当前存活的会话是否就是这次要学的那一句。
  *
- * 说明：完整句与译文来自云端整句补全，重新进同一句不必再花一次模型调用；
- * 但对话记录属于上一轮的问答，不复用——重新进入要回到初始的空白页。
- */
-type ReusableTopic = {
-    /** 创建会话时冻结的主题原文；可能已被整句补全改写，不等于字幕行原文。 */
-    text: string;
-    /** 主题在字幕中的定位。 */
-    topic: Topic;
-    /** 主题的中文译文；未走云端整句补全时为空字符串。 */
-    translation: string;
-};
-
-/**
- * 取出上一轮为同一句冻结下来的学习内容。
- *
- * 说明：用户会在播放画面与学习页之间反复切换，命中的同一句不该再消耗一次云端整句补全，
- * 因此按「会话是怎么建的」比对判重依据：主题文本会被补全改写，
- * 只有记下来的那行原文/选区原文才认得出同一句。
+ * 说明：用户会在播放画面与学习页之间反复切换，命中的同一句不该重建会话：
+ * 重建会掐断后台还在跑的解析，也不该再消耗一次云端整句补全；
+ * 主题文本会被补全改写，只有记下来的那行原文/选区原文才认得出同一句。
  *
  * @param text 本次学习内容的判重依据：从当前字幕行进来的传那行原文，从选区进来的传选区原文。
  * @param anchorIndex 主题所在字幕索引。
- * @returns 命中同一句时返回可复用的主题文本、定位与译文；否则返回 null。
+ * @returns 当前会话就是这一句时为 true。
  */
-const takeReusableTopic = (text: string, anchorIndex: number | null): ReusableTopic | null => {
+const isSameLiveTopic = (text: string, anchorIndex: number | null): boolean => {
     const state = useChatPanel.getState();
-    if (!state.chatSessionId || state.anchorIndex !== anchorIndex || state.topicKey !== text) {
-        return null;
-    }
-    return { text: state.topicText, topic: state.topic, translation: state.topicTranslation };
+    return !!state.chatSessionId && state.anchorIndex === anchorIndex && state.topicKey === text;
 };
 
 /**
- * 读取云端整句学习功能开关，决定是否启用整句补全。
+ * 重新打开同一句的学习页：沿用现有会话，只把屏幕上的对话清回初始页。
  *
- * 说明：开关读取失败时按未启用处理并显式记录，不阻塞学习页进入；
- * 失败信息写入 sentenceResolveError，由页面提示用户。
- *
- * @returns 开关开启时为 true。
+ * 说明：会话不重建，后台还在跑的解析因此不会被掐断——用户生成一半离开、回来能接着看；
+ * 主题、译文与已生成的解析都在状态里原样留着，一个字都不用重问模型；
+ * 屏幕上的对话记录靠 conversationEpoch 自增通知聊天组件清空，回到初始的空白页。
  */
-const isSentenceLearningCloudEnabled = async (): Promise<boolean> => {
+const reopenLearning = (): void => {
+    enterLearning();
+    useChatPanel.setState({
+        // 上一轮的补全失败提示属于上一轮，重进时一并清掉
+        sentenceResolveError: null,
+        input: '',
+        conversationEpoch: useChatPanel.getState().conversationEpoch + 1,
+    });
+};
+
+/**
+ * 读取整句讲解当前是否可用，决定是否发起整句补全、入口是否置灰。
+ *
+ * 说明：补全、解析与对话都要用云端模型，因此进页时统一问一次可用性——
+ * 不可用就整块按住并提示去设置里开启，比让三处各自失败更省事；
+ * 读取失败按不可用处理并显式记录，不阻塞学习页进入（句子与本地生词照常展示）。
+ *
+ * @returns 云端模型可用时为 true。
+ */
+const isCloudLearningAvailable = async (): Promise<boolean> => {
     try {
-        const engineSelection = await settingsApi.getEngineSelection();
-        return engineSelection?.openai?.enableSentenceLearning === true;
+        return await chatApi.learningAvailable();
     } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        chatLogger.error('读取整句学习功能开关失败，本次跳过整句补全', { error: message });
+        chatLogger.error('读取整句讲解可用性失败，本次按不可用处理', { error: message });
         useChatPanel.setState({ sentenceResolveError: message });
         return false;
     }
@@ -226,24 +243,26 @@ let learningCloseRequested = false;
  * 新建一次整句学习会话。
  *
  * 行为说明：
- * - 每次调用都新建后端会话：会话 ID 一变，聊天记录即归零，重新进入同一句回到初始空白页；
+ * - 只在换一句学习内容时调用：内部会关闭上一个会话，上一句未跑完的生成随之取消；
+ *   同一句重进不走这里（见 reopenLearning），后台生成不会被打断；
+ * - 会话 ID 一变，聊天记录即归零，页面回到初始空白页；
  * - 主题文本、周边字幕与字幕锚点在后端会话中冻结，后续对话只追加用户追问；
  * - 会话就绪前页面上的对话与解析入口不可用（见 LearningWorkspace 的 sessionReady）；
  * - 结构化分析不由这里发起，由用户在学习页点入口时按需触发。
  *
- * @param text 本次学习的主题原文；复用上一轮补全结果时传冻结的完整句。
+ * @param text 本次学习的主题原文。
  * @param anchor 主题所在字幕句，用于定位字幕缓存与周边段落。
- * @param topic 主题在字幕中的定位；由选区创建时用于后续重新提取原文。
- * @param topicKey 本次学习内容的判重依据；下次再进同一句时凭它认出可复用的补全结果。
- * @param translation 学习句的中文译文；复用上一轮补全结果时传冻结的译文，没走补全时传空字符串。
+ * @param topicKey 本次学习内容的判重依据；下次再进同一句时凭它认出「还是这一句」。
+ * @param translation 学习句的中文译文；没走整句补全时传空字符串。
+ * @param cloudAvailable 本次进入时云端整句讲解是否可用；决定解析与对话入口是否置灰。
  * @throws 缺少视频 ID 或字幕锚点时抛出，避免创建无法使用字幕工具的残废会话。
  */
 const startSessionForTopic = async (
     text: string,
     anchor: Sentence,
-    topic: Topic,
     topicKey: string,
-    translation: string
+    translation: string,
+    cloudAvailable: boolean
 ): Promise<void> => {
     const videoId = useFile.getState().videoId;
     if (!videoId) {
@@ -271,15 +290,17 @@ const startSessionForTopic = async (
         });
     }
 
-    // 冻结内容先摆上页面：整句补全与译文此刻已经确定，等建会话返回再显示只会白等一次 IPC；
-    // 顺带清掉上一轮会话的对话与解析，重新进入同一句时不会挂着上一轮的聊天记录
+    // 冻结内容先摆上页面：整句补全与译文此刻已经确定，等建会话返回再显示只会白等一次 IPC。
+    // 这里会清掉上一句的解析与对话：换句子就是换一份学习内容，上一句的解析不再适用；
+    // 同一句重进不走这条路径（见 reopenLearning），解析与后台生成都不会被打断。
     useChatPanel.setState({
         ...empty(),
         topicText: text,
         topicTranslation: translation,
-        topic,
         topicKey,
+        hasLearningContext: true,
         learningVisible: true,
+        cloudAvailable,
         anchorIndex: anchor.index,
     });
 
@@ -329,17 +350,21 @@ const useChatPanel = create(
             if (!currentSentence) {
                 throw new Error('当前字幕句不存在，无法创建带上下文工具的整句学习会话');
             }
-            // 同一段选区：完整句与译文已经拿过，直接复用，不重复花模型调用
-            const reusable = takeReusableTopic(text, currentSentence.index);
-            if (reusable) {
-                await startSessionForTopic(reusable.text, currentSentence, reusable.topic, text, reusable.translation);
+            // 同一段选区：会话不重建，只把屏幕清回初始页，后台生成不打断
+            if (isSameLiveTopic(text, currentSentence.index)) {
+                reopenLearning();
                 return;
             }
-            await startSessionForTopic(text, currentSentence, { content: text }, text, '');
+            await startSessionForTopic(text, currentSentence, text, '', await isCloudLearningAvailable());
         },
         createFromCurrent: async () => {
             const currentSentence = usePlayer.getState().currentSentence;
             if (!currentSentence) {
+                return;
+            }
+            // 同一句：会话不重建，只把屏幕清回初始页——后台还在跑的解析因此不会被打断
+            if (isSameLiveTopic(currentSentence.text, currentSentence.index)) {
+                reopenLearning();
                 return;
             }
             if (learningEntryInFlight) {
@@ -348,20 +373,16 @@ const useChatPanel = create(
                 return;
             }
             learningEntryInFlight = true;
-            // 同一句：复用上次补全出的完整句与译文（不再花模型调用），但仍新建会话，
-            // 于是重新进来看到的是初始空白页而不是上一轮的聊天记录
-            const reusable = takeReusableTopic(currentSentence.text, currentSentence.index);
+            // 当前行先上主舞台：整句补全与会话创建都要等后端返回，等它们回来再显示页面会长时间空白
+            enterLearningOptimistically(currentSentence);
             try {
-                if (reusable) {
-                    await startSessionForTopic(reusable.text, currentSentence, reusable.topic, currentSentence.text, reusable.translation);
-                    return;
-                }
-                // 当前行先上主舞台：整句补全与会话创建都要等后端返回，等它们回来再显示页面会长时间空白
-                enterLearningOptimistically(currentSentence);
-                // 云端整句学习启用时，先把可能被换行截断的字幕补成完整句，再创建会话
+                // 云端整句讲解可用时，先把可能被换行截断的字幕补成完整句，再创建会话
                 let topicText = currentSentence.text;
                 let translation = '';
-                if (await isSentenceLearningCloudEnabled()) {
+                const cloudAvailable = await isCloudLearningAvailable();
+                // 立刻落状态：整句补全可能跑几秒，等它结束再落会让入口在这期间显示成「云端不可用」
+                useChatPanel.setState({ cloudAvailable });
+                if (cloudAvailable) {
                     try {
                         const sentences = usePlayer.getState().sentences;
                         const position = sentences.findIndex(
@@ -394,23 +415,14 @@ const useChatPanel = create(
                         useChatPanel.setState({ sentenceResolveError: message });
                     }
                 }
-                // 补全改变了原文时用纯文本主题：字符范围已无法指回单行字幕
-                const topic: Topic = topicText === currentSentence.text
-                    ? {
-                        content: {
-                            start: {
-                                sIndex: currentSentence.index,
-                                cIndex: 0
-                            },
-                            end: {
-                                sIndex: currentSentence.index,
-                                cIndex: currentSentence.text.length
-                            }
-                        }
-                    }
-                    : { content: topicText };
                 // 判重依据是这行原文而非补全后的主题：下次再进同一句要能认出会话
-                await startSessionForTopic(topicText, currentSentence, topic, currentSentence.text, translation);
+                await startSessionForTopic(
+                    topicText,
+                    currentSentence,
+                    currentSentence.text,
+                    translation,
+                    cloudAvailable
+                );
             } finally {
                 learningEntryInFlight = false;
                 if (!useChatPanel.getState().chatSessionId) {
@@ -525,20 +537,35 @@ const useChatPanel = create(
                 });
             }
         },
+        /**
+         * 按需生成结构化解析。
+         *
+         * 说明：解析用会话冻结的主题，没有会话就没有可解析的内容；
+         * 失败落到分析错误态（面板上有重试入口），不让调用方拿到未处理的 Promise 拒绝。
+         */
         startAnalysis: async () => {
-            const text = extractTopic(get().topic);
-            if (StrUtil.isBlank(text) || text === 'offscreen') {
+            const sessionId = get().chatSessionId;
+            if (!sessionId) {
                 return;
             }
-            const { messageId } = await chatApi.startAnalysis({
-                sessionId: get().chatSessionId,
-            });
-            set({
-                analysis: {},
-                analysisMessageId: messageId,
-                analysisStatus: 'streaming',
-                analysisError: null,
-            });
+            try {
+                const { messageId } = await chatApi.startAnalysis({ sessionId });
+                set({
+                    analysis: {},
+                    analysisMessageId: messageId,
+                    analysisStatus: 'streaming',
+                    analysisError: null,
+                });
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                chatLogger.error('failed to start analysis', { sessionId, error: message });
+                set({
+                    analysis: {},
+                    analysisMessageId: null,
+                    analysisStatus: 'error',
+                    analysisError: message,
+                });
+            }
         },
         updateInternalContext: (value: string) => {
             get().internal.context.value = value;
@@ -668,47 +695,6 @@ const mergeAnalysisPartial = (
     };
 
     return mergeValue(current, partial) as Partial<AiUnifiedAnalysisRes>;
-};
-
-/**
- * 从学习主题中提取纯文本：选区主题按字幕范围截取，纯文本主题原样返回。
- *
- * @param t 当前学习主题。
- * @returns 主题纯文本；主题为 offscreen 时原样返回。
- */
-const extractTopic = (t: Topic): string => {
-    chatLogger.debug('extract topic', { topic: t });
-    if (t === 'offscreen') return 'offscreen';
-    if (typeof t.content === 'string') return t.content;
-    const content = t.content;
-    const subtitle = usePlayer.getState().sentences;
-    const getSubtitle = (index: number) => {
-        const direct = subtitle[index];
-        if (direct?.index === index) return direct;
-        return subtitle.find((sentence) => sentence.index === index);
-    };
-    const startSentence = getSubtitle(content.start.sIndex);
-    const endSentence = getSubtitle(content.end.sIndex);
-    if (!startSentence || !endSentence || content.start.sIndex > content.end.sIndex) {
-        throw new Error('字幕范围无效，无法提取整句学习主题');
-    }
-
-    const startOffset = Math.max(0, Math.min(content.start.cIndex, startSentence.text.length));
-    const endOffset = Math.max(0, Math.min(content.end.cIndex, endSentence.text.length));
-    if (content.start.sIndex === content.end.sIndex) {
-        return startSentence.text.slice(startOffset, endOffset);
-    }
-
-    const range: string[] = [startSentence.text.slice(startOffset)];
-    for (let index = content.start.sIndex + 1; index < content.end.sIndex; index += 1) {
-        const sentence = getSubtitle(index);
-        if (!sentence) {
-            throw new Error(`字幕范围缺少第 ${index} 条字幕`);
-        }
-        range.push(sentence.text);
-    }
-    range.push(endSentence.text.slice(0, endOffset));
-    return range.join('\n');
 };
 
 export default useChatPanel;
