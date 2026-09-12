@@ -21,6 +21,23 @@ const logger = getRendererLogger('SentenceLearningTransport');
 const activeStreams = new Map<string, ActiveChatStream>();
 
 /**
+ * 摘掉一个流的登记与取消监听。
+ *
+ * 说明：流走完、被用户取消或被后端取消之后再到的片段一律丢弃——往已经关闭的控制器里写会直接抛
+ * TypeError，而这条路径跑在 IPC 事件回调里，抛出去就是一次没人接的异常。
+ *
+ * @param sessionId 会话 ID。
+ */
+const detachStream = (sessionId: string): void => {
+    const active = activeStreams.get(sessionId);
+    if (!active) {
+        return;
+    }
+    active.removeAbortListener();
+    activeStreams.delete(sessionId);
+};
+
+/**
  * 接收 main 进程推送的 AI SDK 标准消息片段并交给对应 transport。
  * @param sessionId 会话 ID。
  * @param chunk 标准 UI 消息片段。
@@ -47,8 +64,7 @@ export const receiveChatChunk = (sessionId: string, chunk: UIMessageChunk): void
     }
     active.controller.enqueue(chunk);
     if (chunk.type === 'finish' || chunk.type === 'error' || chunk.type === 'abort') {
-        active.removeAbortListener();
-        activeStreams.delete(sessionId);
+        detachStream(sessionId);
         active.controller.close();
     }
 };
@@ -76,6 +92,7 @@ export class ElectronChatTransport<CHAT_MESSAGE extends UIMessage = UIMessage>
         return new ReadableStream<UIMessageChunk>({
             start: (controller) => {
                 const abort = () => {
+                    detachStream(sessionId);
                     chatApi.stopSession(sessionId).catch(() => undefined);
                 };
                 options.abortSignal?.addEventListener('abort', abort, { once: true });
@@ -97,12 +114,14 @@ export class ElectronChatTransport<CHAT_MESSAGE extends UIMessage = UIMessage>
                         type: 'error',
                         errorText: error instanceof Error ? error.message : String(error),
                     });
-                    active.removeAbortListener();
-                    activeStreams.delete(sessionId);
+                    detachStream(sessionId);
                     active.controller.close();
                 });
             },
-            cancel: () => chatApi.stopSession(sessionId),
+            cancel: () => {
+                detachStream(sessionId);
+                return chatApi.stopSession(sessionId);
+            },
         });
     }
 
