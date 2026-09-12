@@ -20,7 +20,12 @@ import { OPENAI_SUBTITLE_DEFAULT_STYLES } from '@/common/constants/openaiSubtitl
 import type { LocalAiModelStatus } from '@/common/contracts/local-ai';
 import type { TranscriptionEngine } from '@/common/contracts/transcription-engine';
 import type { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
-import type { ServiceCredentialSettingDetailVO, ServiceCredentialSettingSaveVO } from '@/common/types/vo/service-credentials-setting-vo';
+import type { ServiceCredentialSettingDetailVO } from '@/common/types/vo/service-credentials-setting-vo';
+import {
+    computeCloudModelUsage,
+    OpenAiModelUsageFeature,
+    OPEN_AI_MODEL_USAGE_FEATURES,
+} from '@/common/utils/cloud-model-usage';
 
 /** 内存低于该值（GB）时，本地增强模型跑起来会比较吃力。 */
 const ENHANCE_MIN_MEMORY_GB = 8;
@@ -56,6 +61,20 @@ interface LocalAiDownloadProgress {
 }
 
 /**
+ * 拆开下拉项的值：云端选项形如 `openai:<model>`，其余选项就是引擎枚举值本身。
+ *
+ * @param value 下拉项的值。
+ * @returns 引擎名与云端模型；非云端选项的模型为 null。
+ */
+const parseEngineValue = (value: string): { engine: string; model: string | null } => {
+    const separator = value.indexOf(':');
+    if (separator === -1) {
+        return { engine: value, model: null };
+    }
+    return { engine: value.slice(0, separator), model: value.slice(separator + 1) };
+};
+
+/**
  * 服务与资源设置页。
  *
  * 把“服务与模型”与“功能设置”两页合并成四块：本地基础资源包（发音/字幕识别/轻量翻译三合一）、
@@ -87,14 +106,7 @@ const ServiceResourceSetting: React.FC = () => {
     } = useAutoSaveSettingsForm<ServiceCredentialSettingDetailVO>({
         form: credentialForm,
         onSave: async (values) => {
-            const payload: ServiceCredentialSettingSaveVO = {
-                ...values,
-                openai: {
-                    ...values.openai,
-                    models: values.openai.models.map((item) => item.model),
-                },
-            };
-            await settingsApi.saveServiceCredentials(payload);
+            await settingsApi.saveServiceCredentials(values);
         },
     });
 
@@ -160,9 +172,38 @@ const ServiceResourceSetting: React.FC = () => {
 
     /** 云端模型列表；字幕翻译、词典与整句讲解共用。 */
     const availableModels = React.useMemo(
-        () => settings?.openai.models.map((item) => item.model) ?? [],
+        () => settings?.openai.models ?? [],
         [settings],
     );
+
+    /**
+     * 按模型现算的功能占用，驱动云端模型表的「使用中」角标与删除拦截。
+     *
+     * 输入是功能设置区（引擎选择/整句讲解开关）的当前表单值：在下面把某功能
+     * 切到某个云端模型，上面的角标立刻跟着变，不等自动保存与详情刷新；规则
+     * 与后端删除拦截共用 computeCloudModelUsage。
+     */
+    const usageByModel = React.useMemo(() => {
+        const usage = computeCloudModelUsage({
+            sentenceLearningEnabled: watched.openai?.enableSentenceLearning === true,
+            subtitleTranslationEngine: watched.providers?.subtitleTranslationEngine ?? '',
+            dictionaryEngine: watched.providers?.dictionaryEngine ?? '',
+            modelSlots: {
+                sentenceLearning: watched.openai?.featureModels?.sentenceLearning ?? '',
+                subtitleTranslation: watched.openai?.featureModels?.subtitleTranslation ?? '',
+                dictionary: watched.openai?.featureModels?.dictionary ?? '',
+            },
+        });
+        const map = new Map<string, OpenAiModelUsageFeature[]>();
+        for (const feature of OPEN_AI_MODEL_USAGE_FEATURES) {
+            const model = usage[feature];
+            if (!model) continue;
+            const list = map.get(model) ?? [];
+            list.push(feature);
+            map.set(model, list);
+        }
+        return map;
+    }, [watched]);
 
     /**
      * 本地增强模型的下载进度：只改动聚合快照里对应那一行，结束后重新拉取完整状态。
@@ -344,21 +385,26 @@ const ServiceResourceSetting: React.FC = () => {
         }
     };
 
-    /** 把字幕翻译或词典的引擎值拆成"引擎 + 云端模型"两个字段。
+    /**
+     * 写回字幕翻译或词典的引擎选择，并同步该功能记着的云端模型。
      *
-     * 下拉项里云端选项形如 `openai:<model>`，本地与关闭选项就是枚举值本身。
+     * 说明：下拉项里云端选项形如 `openai:<model>`，本地与关闭选项就是枚举值本身；
+     * 槽位是「上次选的模型」备忘，只在引擎落在云端时有意义，切到本地/关闭时
+     * 一并清空，保持备忘与现状一致。占用判定由后端按引擎配置现算，不依赖
+     * 这里是否清理。
+     *
+     * @param value 下拉项的值，`openai:<model>` 或引擎名。
+     * @param engineKey 要写入的引擎设置键。
+     * @param modelField 与该引擎配套的云端模型槽位。
      */
     const applyEngineValue = (
         value: string,
         engineKey: 'providers.subtitleTranslationEngine' | 'providers.dictionaryEngine',
         modelField: 'openai.featureModels.subtitleTranslation' | 'openai.featureModels.dictionary',
     ) => {
-        const separator = value.indexOf(':');
-        const engine = separator === -1 ? value : value.slice(0, separator);
+        const { engine, model } = parseEngineValue(value);
         setValue(engineKey, engine as 'openai' | 'local' | 'local-mt' | 'tencent' | 'none', { shouldDirty: true });
-        if (engine === 'openai') {
-            setValue(modelField, value.slice(separator + 1), { shouldDirty: true });
-        }
+        setValue(modelField, model ?? '', { shouldDirty: true });
     };
 
     /** 把引擎与云端模型拼成下拉项的值。 */
@@ -381,14 +427,15 @@ const ServiceResourceSetting: React.FC = () => {
     /**
      * 写回整句讲解的选择：禁用时关掉开关，选中云端模型时同时开开关并记住模型。
      *
+     * 说明：禁用时一并清空模型槽位，保持「上次选的模型」备忘与现状一致
+     * （同 applyEngineValue；占用判定由后端现算，不依赖这里是否清理）。
+     *
      * @param value 下拉项值，`none` 或 `openai:<model>`。
      */
     const applySentenceLearningValue = (value: string) => {
-        const separator = value.indexOf(':');
-        setValue('openai.enableSentenceLearning', separator !== -1, { shouldDirty: true });
-        if (separator !== -1) {
-            setValue('openai.featureModels.sentenceLearning', value.slice(separator + 1), { shouldDirty: true });
-        }
+        const { model } = parseEngineValue(value);
+        setValue('openai.enableSentenceLearning', model !== null, { shouldDirty: true });
+        setValue('openai.featureModels.sentenceLearning', model ?? '', { shouldDirty: true });
     };
 
     /** 渲染云端模型选项；各下拉共用，展平不分组。 */
@@ -588,6 +635,7 @@ const ServiceResourceSetting: React.FC = () => {
                 >
                     <OpenAiCredentialCard
                         form={credentialForm}
+                        usageByModel={usageByModel}
                         testingModel={testingOpenAiModel}
                         testResults={openAiTestResults}
                         onTestModel={(model) => testOpenAiModel(model).catch(() => null)}
@@ -596,6 +644,8 @@ const ServiceResourceSetting: React.FC = () => {
                             delete next[model];
                             return next;
                         })}
+                        onCopy={(text) => copyText(text).catch(() => null)}
+                        onOpenUrl={(url) => openUrl(url).catch(() => null)}
                         disabled={credentialSaveStatus === 'saving'}
                     />
                 </SettingCard>

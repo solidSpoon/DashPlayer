@@ -2,11 +2,9 @@ import toast from 'react-hot-toast';
 import {
     PlaybackRepairDiagnosis,
     RepairReason,
-    RepairTaskResult,
+    RepairTaskState,
 } from '@/common/contracts/playback-repair';
-import { DpTask, DpTaskState } from '@/common/contracts/dp-task';
 import PathUtil from '@/common/utils/PathUtil';
-import StrUtil from '@/common/utils/str-util';
 import { SWR_KEY, swrMutate } from '@/fronted/lib/swr-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import i18n from '@/fronted/i18n';
@@ -14,8 +12,8 @@ import useFile from '@/fronted/features/file-browser/fileStore';
 import { usePlayer } from '@/fronted/features/player/playerStore';
 import { playerApi } from '@/fronted/features/player/playerApi';
 import { repairApi } from '@/fronted/features/repair/repairApi';
+import { watchRepair } from '@/fronted/features/repair/repairEvents';
 import { verifyRepairedPlayback } from '@/fronted/features/player/verifyRepairedPlayback';
-import useDpTaskCenter, { registerDpTask } from '@/fronted/hooks/useDpTaskCenter';
 
 const logger = getRendererLogger('PlaybackRepair');
 
@@ -43,75 +41,6 @@ export interface PlaybackRepairOutcome {
  */
 export async function diagnosePlayback(filePath: string): Promise<PlaybackRepairDiagnosis> {
     return repairApi.diagnose(filePath);
-}
-
-/**
- * 判断任务是否已进入终态。
- *
- * @param task 后台任务。
- * @returns 任务已结束（成功、失败或取消）时返回 `true`。
- */
-function isFinalTask(task: DpTask): boolean {
-    return task.status === DpTaskState.DONE
-        || task.status === DpTaskState.FAILED
-        || task.status === DpTaskState.CANCELLED;
-}
-
-/**
- * 从任务结果中读出百分比进度。
- *
- * @param result 任务结果的序列化文本。
- * @returns 可解析出的进度；无法解析时返回 `null`。
- */
-function parseProgress(result: string | null): number | null {
-    if (StrUtil.isBlank(result ?? '')) {
-        return null;
-    }
-    try {
-        const parsed = JSON.parse(result as string) as RepairTaskResult;
-        return typeof parsed.progress === 'number' ? Math.round(parsed.progress) : null;
-    } catch {
-        return null;
-    }
-}
-
-/**
- * 订阅任务直到进入终态。
- *
- * @param taskId 后端任务编号。
- * @param onUpdate 每次任务更新时的回调。
- * @returns 终态任务。
- */
-function watchTask(taskId: number, onUpdate: (task: DpTask) => void): Promise<DpTask> {
-    return new Promise((resolve) => {
-        let settled = false;
-        const finish = (task: DpTask): void => {
-            if (!settled) {
-                settled = true;
-                resolve(task);
-            }
-        };
-        void (async () => {
-            await registerDpTask(async () => taskId, {
-                onUpdated: (task) => onUpdate(task),
-                onFinish: finish,
-            });
-            // 注册完成后再次检查，覆盖任务已在订阅建立前结束的竞态窗口。
-            const current = useDpTaskCenter.getState().tasks.get(taskId);
-            if (current && current !== 'init' && isFinalTask(current)) {
-                finish(current);
-            }
-        })().catch(() => {
-            finish({
-                id: taskId,
-                status: DpTaskState.FAILED,
-                progress: '读取修复任务状态失败',
-                result: null,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-            });
-        });
-    });
 }
 
 /**
@@ -155,38 +84,40 @@ async function runRepair(filePath: string): Promise<PlaybackRepairOutcome> {
     const startPosition = usePlayer.getState().getExactPlayTime();
     const toastId = toast.loading(i18n.t('player:repair.inProgress'));
 
-    let taskId: number | null;
+    // 先建立事件订阅再启动修复，避免极快的修复在订阅建立前就发出终态事件。
+    const watcher = watchRepair(filePath, (event) => {
+        toast.loading(
+            event.progress === undefined
+                ? i18n.t('player:repair.inProgress')
+                : i18n.t('player:repair.inProgressPercent', { progress: Math.round(event.progress) }),
+            { id: toastId },
+        );
+    });
+
     let diagnosis: PlaybackRepairDiagnosis;
+    let started: boolean;
     try {
-        const started = await repairApi.startRepair({ filePath });
-        taskId = started.taskId;
-        diagnosis = started.diagnosis;
+        const result = await repairApi.startRepair({ filePath });
+        started = result.started;
+        diagnosis = result.diagnosis;
     } catch (error) {
+        watcher.stop();
         const message = error instanceof Error ? error.message : String(error);
         logger.error('repair start failed', { filePath, error: message });
         toast.error(i18n.t('player:repair.failed', { message }), { id: toastId });
         return { status: 'failed' };
     }
 
-    if (taskId === null) {
+    if (!started) {
         // 诊断结论是「无需修复」或「已修复」，属于信息提示而非错误，用普通样式展示。
+        watcher.stop();
         toast(describeNoRepair(diagnosis.reason), { id: toastId });
         return { status: 'not-needed', diagnosis };
     }
-    const startedTaskId: number = taskId;
 
-    const task = await watchTask(startedTaskId, (updated) => {
-        const progress = parseProgress(updated.result);
-        toast.loading(
-            progress === null
-                ? i18n.t('player:repair.inProgress')
-                : i18n.t('player:repair.inProgressPercent', { progress }),
-            { id: toastId },
-        );
-    });
-
-    if (task.status !== DpTaskState.DONE) {
-        const message = task.progress ?? i18n.t('player:repair.failed', { message: task.status });
+    const finalEvent = await watcher.finished;
+    if (finalEvent.status !== RepairTaskState.DONE) {
+        const message = finalEvent.error ?? finalEvent.status;
         toast.error(message, { id: toastId });
         return { status: 'failed', diagnosis };
     }

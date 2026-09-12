@@ -63,11 +63,11 @@ preload 每次 `invoke` 生成一个 trace id，main 在 `registerRoute` 边界�
 
 ### 3.2 `job`：一次后台任务
 
-后台任务（转码、转录、片段裁切、分章）用统一的 `data.job` 字符串贯穿 service → ffmpeg/识别子进程首尾。取值约定：
+后台任务（修复、转录、片段裁切、分章）用统一的 `data.job` 字符串贯穿 service → ffmpeg/识别子进程首尾。取值约定：
 
 | job 形态 | 来源 | 产出位置 |
 |---|---|---|
-| `dp_task:<id>` | `dp_task` 表主键，转码/字幕提取等带任务 ID 的链路 | `FfmpegServiceImpl` → `FfmpegGatewayImpl` |
+| `repair:<媒体绝对路径>` | 播放修复不挂 `dp_task`，路径即稳定身份 | `PlaybackRepairService` → `FfmpegServiceImpl` → `FfmpegGatewayImpl` |
 | `transcription:<媒体绝对路径>` | 本地转录不挂 `dp_task`，路径即稳定身份 | `LocalTranscriptionService`、WAV 切片 ffmpeg、`SherpaOnnx` |
 | `clip:<clipKey>` | 学习片段 / 收藏片段 | `VideoLearningServiceImpl`、`FavouriteClipsService` → 裁切 ffmpeg |
 | `split:<输出目录>` | 分章切段 | `FfmpegServiceImpl` → `splitVideoByTimes` |
@@ -84,7 +84,8 @@ preload 每次 `invoke` 生成一个 trace id，main 在 `registerRoute` 边界�
 | `MainStartup` | main | `app ready`（含 `runtimeVersions`）、`gpu feature status` |
 | `ProcessWatchdog` | main | 崩溃/白屏/卡死类进程事件（见第 5 节） |
 | `RendererGateway` | main | renderer API 调用生命周期：`renderer api call dispatched` / `renderer api call settled`（带 `callId`、`outcome`、`elapsedMs`）/ `renderer api call dropped` |
-| `RendererEvents` | main | main → renderer 的推送；窗口不可用时的 `renderer event dropped`（按通道窗口合并，带 `suppressedCount`）；`task status pushed to renderer` 只在状态跃迁时记录 |
+| `RendererEvents` | main | main → renderer 的推送；窗口不可用时的 `renderer event dropped`（按通道窗口合并，带 `suppressedCount`）；`task status pushed to renderer` / `repair status pushed to renderer` 只在状态跃迁时记录 |
+| `PlaybackRepairService` | main | 播放修复任务收尾：`repair finished` / `repair cancelled` / `repair failed` / `repair task crashed`（含 `job: repair:<路径>`）——`job` 首尾成对靠这几条收尾闭环 |
 | `FfmpegServiceImpl` | main | 只记录网关看不到的任务体异常（`ffmpeg task failed`，含 `job`）；子进程失败与取消不在这里重复 |
 | `FfmpegGatewayImpl` | main | `spawned ffmpeg`（`job`/`pid`/`command`）、`FFmpeg 执行完成`、`FFmpeg 执行失败`（error，含 `exitCode`/`pid`/`stderrTail`）、`FFmpeg 已取消`（info）——子进程维度的唯一证据点 |
 | `SherpaOnnx` / `SherpaTts` | main | 识别/合成子进程启停与异常退出：`spawned sherpa-onnx`、`sherpa-onnx exited abnormally`、`sherpa-onnx output rejected`、`sherpa-onnx cancelled` |

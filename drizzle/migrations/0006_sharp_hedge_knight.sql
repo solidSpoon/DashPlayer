@@ -1,0 +1,1 @@
+ALTER TABLE `dp_repair_task` DROP COLUMN `task_id`;

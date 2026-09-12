@@ -43,6 +43,13 @@
       "when": 1789130920790,
       "tag": "0005_short_the_anarchist",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1789147444647,
+      "tag": "0006_sharp_hedge_knight",
+      "breakpoints": true
     }
   ]
 }

@@ -20,8 +20,6 @@ export const repairTask = sqliteTable('dp_repair_task', {
     output_path: text('output_path'),
     /** 诊断原因，用于区分「本来就无需修复」与「已修复」。 */
     reason: text('reason'),
-    /** 正在运行的后台任务编号；前端据此订阅实时进度。 */
-    task_id: integer('task_id', { mode: 'number' }),
     /** 失败原因。 */
     error: text('error'),
     created_at: text('created_at')

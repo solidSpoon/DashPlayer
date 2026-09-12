@@ -7,10 +7,10 @@ import {
     SubtitleTranslationResultItem,
 } from '@/backend/services/gateways/translate/SubtitleBatchTranslationInput';
 import {
-    buildLocalSubtitleBatchPrompt,
-    buildSubtitleBatchLinesGrammar,
-    getSubtitleTranslationDescription,
-    parseSubtitleBatchLines,
+    buildLocalSubtitleFillGrammar,
+    buildLocalSubtitleFillPrompt,
+    LOCAL_TRANSLATION_TEMPERATURE,
+    parseLocalSubtitleFill,
 } from '@/backend/infrastructure/translate/subtitleBatchPrompt';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 
@@ -41,14 +41,15 @@ const isUsableZhTranslation = (source: string, translation: string): boolean => 
 };
 
 /**
- * 本地字幕批量翻译网关：自持紧凑行式提示词拼装与按行解析。
+ * 本地字幕批量翻译网关：源文锚定填槽策略（源文预拼进 JSON 骨架，
+ * GBNF 在解码层强制骨架，模型只填 translation 槽）。
  *
  * 推理进程、模型加载与请求超时都由 LocalAiRuntime 管理；这里负责把语义输入
- * 拼成本地模型可执行的提示词，并校验输出形状。字幕按 5 句一组整批发送，
- * 输出为「每行一条译文、按输入顺序对齐」的紧凑格式——不要求模型回抄字幕键
- * 与 JSON 结构，每批解码 token 约减半。译文照抄原文时显式报错交由调度器
- * 重试，业务层不感知。行数与行分隔由 GBNF 语法在解码层硬约束，
- * 解析层校验退化为纯防御。
+ * 拼成本地模型可执行的提示词与语法，并校验输出。字幕按 5 句一组整批发送。
+ * 译文照抄原文时显式报错交由调度器重试，业务层不感知。历史行式方案在
+ * 长行悬挂收尾的批次会合译后用回抄英文凑行数，填槽把每条译文的生成
+ * 条件锚在自己源文上，从解码层消除该失败类（对比数据见本地链路评测
+ * 脚本）。
  */
 @injectable()
 export default class LocalSubtitleBatchTranslatorImpl
@@ -61,30 +62,33 @@ implements LocalSubtitleBatchTranslator {
     private readonly logger = getMainLogger('LocalSubtitleBatchTranslator');
 
     /**
-     * 执行一次非流式紧凑批量翻译。
+     * 执行一次非流式填槽批量翻译。
      *
      * @param input 当前组、组前后句、模式、风格、使用中模型与取消信号。
-     * @returns 按目标顺序对齐的结构化字幕条目；行数不符时显式报错。
+     * @returns 按目标顺序对齐的结构化字幕条目；结构校验不符时显式报错。
      */
     public async translate(
         input: LocalSubtitleBatchTranslationInput
     ): Promise<SubtitleTranslationResultItem[]> {
-        const prompt = buildLocalSubtitleBatchPrompt(input, input.style, {
+        const sources = input.targets.map((target) => target.text);
+        const prompt = buildLocalSubtitleFillPrompt(input, input.style, {
             forbidEcho: input.mode === 'zh',
-            targetLanguageDescription: getSubtitleTranslationDescription(input.mode),
         });
-        const grammar = buildSubtitleBatchLinesGrammar(input.targets.length);
-        const text = await this.localAi.generateText(prompt, input.modelId, input.signal, { grammar });
-        let lines: string[];
+        const grammar = buildLocalSubtitleFillGrammar(sources);
+        const text = await this.localAi.generateText(prompt, input.modelId, input.signal, {
+            grammar,
+            temperature: LOCAL_TRANSLATION_TEMPERATURE,
+        });
+        let translations: string[];
         try {
-            lines = parseSubtitleBatchLines(text, input.targets.length);
+            translations = parseLocalSubtitleFill(text, sources);
         } catch (error) {
             // 解析失败时把模型原始输出按行落盘留归因证据（长文本以行数组入日志，
             // 避免单字段长度上限截掉尾部）；语法约束下该分支属于纯防御。
-            this.logger.warn('local subtitle batch parse failed', {
+            this.logger.warn('local subtitle fill parse failed', {
                 model: input.modelId,
                 mode: input.mode,
-                expected: input.targets.length,
+                expected: sources.length,
                 rawLines: text.trim().split('\n'),
                 error,
             });
@@ -92,7 +96,7 @@ implements LocalSubtitleBatchTranslator {
         }
         const items = input.targets.map((target, index) => ({
             key: target.key,
-            translation: lines[index],
+            translation: translations[index],
         }));
         if (input.mode === 'zh') {
             this.throwIfEchoed(input.targets, items);

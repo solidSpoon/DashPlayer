@@ -1,49 +1,4 @@
-import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 import { UIMessageChunk } from 'ai';
-
-/**
- * 聊天主题，可以是纯文本，也可以是字幕中的字符范围。
- */
-export type Topic = {
-    /** 主题文本或字幕范围。 */
-    content: string | {
-        /** 范围起点。 */
-        start: {
-            /** 字幕索引。 */
-            sIndex: number;
-            /** 字幕内字符索引。 */
-            cIndex: number;
-        };
-        /** 范围终点。 */
-        end: {
-            /** 字幕索引。 */
-            sIndex: number;
-            /** 字幕内字符索引。 */
-            cIndex: number;
-        };
-    };
-} | 'offscreen';
-
-export type ChatBackgroundContext = {
-    paragraphLines?: string[];
-    analysis?: Partial<AiUnifiedAnalysisRes>;
-    /** 当前会话字幕缓存的只读概览，不包含字幕正文。 */
-    subtitleOverview?: {
-        /** 字幕行数。 */
-        lineCount: number;
-        /** 所有字幕文本的单词数（按空格分词统计）。 */
-        wordCount: number;
-        /** 字幕索引的最小值。 */
-        minIndex: number;
-        /** 字幕索引的最大值。 */
-        maxIndex: number;
-        /** 当前学习句的字幕索引。 */
-        anchorIndex: number;
-    };
-};
-
-/** AI SDK 7 统一的模型推理强度；auto 表示不传 reasoning。 */
-export type ChatReasoningEffort = 'auto' | 'low' | 'medium' | 'high';
 
 /**
  * 创建整句学习会话所需的稳定上下文快照。
@@ -70,24 +25,17 @@ export type ChatSessionCreateResult = {
 };
 
 /**
- * 向已有会话追加一条用户消息。
+ * 向已有会话追加一条用户消息并启动流式回答。
  */
-export type ChatStartParams = {
+export type ChatSendMessageParams = {
     sessionId: string;
+    /** 新增的用户文本。 */
     content: string;
-    /** 本次回答使用的推理强度；auto 或未传时不发送 reasoning。 */
-    reasoningEffort?: ChatReasoningEffort;
 };
 
-export type ChatStartResult = {
+export type ChatSendMessageResult = {
+    /** 后端为本次回答分配的 assistant 消息 ID。 */
     messageId: string;
-};
-
-export type ChatWelcomeParams = {
-    /** 已由 main 进程持有上下文的会话 ID。 */
-    sessionId: string;
-    /** 欢迎回答使用的推理强度；auto 或未传时不发送 reasoning。 */
-    reasoningEffort?: ChatReasoningEffort;
 };
 
 /**
@@ -99,7 +47,7 @@ export type ChatSessionCloseParams = {
 };
 
 /**
- * 暂停会话当前运行但保留会话历史的命令参数。
+ * 取消会话当前运行但保留会话供后续继续对话的命令参数。
  */
 export type ChatSessionStopParams = {
     /** 要取消当前运行的会话 ID。 */
@@ -111,4 +59,28 @@ export type ChatStreamEvent = {
     sessionId: string;
     /** AI SDK 标准 UI 消息流片段。 */
     chunk: UIMessageChunk;
+};
+
+/**
+ * 完整句补全请求参数：当前字幕行及前后紧邻字幕行。
+ */
+export type CompleteSentenceParams = {
+    /** 当前字幕行原文。 */
+    text: string;
+    /** 当前行之前紧邻的字幕行（时间升序，最近一行在最后）。 */
+    precedingLines: string[];
+    /** 当前行之后紧邻的字幕行（时间升序）。 */
+    followingLines: string[];
+};
+
+/**
+ * 完整句补全结果。
+ */
+export type CompleteSentenceResult = {
+    /** 给定字幕行本身是否已是一个完整句子。 */
+    complete: boolean;
+    /** 补全后的完整句子原文；已完整时与原行一致。 */
+    sentence: string;
+    /** 完整句的中文译文，学习页展示在句子下方。 */
+    translation: string;
 };

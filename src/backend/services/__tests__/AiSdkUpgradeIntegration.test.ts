@@ -17,7 +17,7 @@ vi.mock('electron', () => ({
 // electron-store 是外部化 CJS 依赖，vitest 里 vi.mock('electron') 拦不到它内部的 require，
 // 会导致它回落到 ~/Library/Preferences 等真实目录写入配置（曾把开发 Key 写出去）。
 // 因此把应用 store 模块整体 mock 成内存实现，测试数据只存在于内存，绝不落盘。
-// 与生产 storeGet 行为一致：未写入的键回落到 SettingKeyObj 里的默认值（如 apiKeys.openAi.autoAppendV1 默认 'true'）。
+// 与生产 storeGet 行为一致：未写入的键回落到 SettingKeyObj 里的默认值（如 apiKeys.openAi.apiFormat 默认 'openai'）。
 import { SettingKeyObj } from '@/common/types/store_schema';
 import type { SettingKey } from '@/common/types/store_schema';
 const storeState = vi.hoisted(() => ({ values: new Map<string, string>() }));
@@ -34,10 +34,9 @@ import { z } from 'zod';
 import { Output, streamText, LanguageModel } from 'ai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { convertArrayToReadableStream, MockLanguageModelV4 } from 'ai/test';
-import type { LanguageModelV3, LanguageModelV4StreamPart } from '@ai-sdk/provider';
+import type { LanguageModelV4StreamPart } from '@ai-sdk/provider';
 
 import { loadAiSdkTestConfig } from '@/test/aiSdkTestConfig';
-import { resolveOpenAiBaseUrl } from '@/common/utils/openai-endpoint';
 import { splitSystemMessages } from '@/backend/services/chat/ChatPromptBuilder';
 import { ChatServiceImpl } from '../ChatService';
 import { ChatSessionServiceImpl } from '../ChatSessionService';
@@ -62,7 +61,7 @@ const describeLive = liveTestsEnabled && testConfig ? describe : describe.skip;
 /**
  * 构造一个与生产 getModel 完全一致的直连测试模型：
  * @ai-sdk/openai-compatible 的 chat 模型（只走 /chat/completions，避开官方 provider 默认的
- * Responses API，uniapi 代理对 deepseek 的 Responses 流式实现不完整）。推理强度由调用方传入。
+ * Responses API，uniapi 代理对 deepseek 的 Responses 流式实现不完整）。
  *
  * @param modelId 要使用的模型 id。
  * @returns 可直接传给 streamText 的 LanguageModel。
@@ -70,22 +69,7 @@ const describeLive = liveTestsEnabled && testConfig ? describe : describe.skip;
 const buildLiveModel = (modelId: string): LanguageModel => {
     const provider = createOpenAICompatible({
         name: 'openai',
-        baseURL: resolveOpenAiBaseUrl(testConfig!.endpoint, testConfig!.autoAppendV1),
-        apiKey: testConfig!.key,
-    });
-    return provider.chatModel(modelId);
-};
-
-/**
- * 构造一个不带推理注入的裸 chat 模型，仅用于枚举各模型支持的推理档位（档位由调用方显式传入）。
- *
- * @param modelId 要使用的模型 id。
- * @returns 可直接传给 streamText 的 LanguageModel。
- */
-const buildRawLiveModel = (modelId: string): LanguageModelV3 => {
-    const provider = createOpenAICompatible({
-        name: 'openai',
-        baseURL: resolveOpenAiBaseUrl(testConfig!.endpoint, testConfig!.autoAppendV1),
+        baseURL: testConfig!.endpoint,
         apiKey: testConfig!.key,
     });
     return provider.chatModel(modelId);
@@ -134,8 +118,8 @@ const buildErrorModel = (error: Error): LanguageModel => {
 };
 
 const runTests = (): void => {
-    // 离线回归：不发真实请求，默认测试（yarn test）就能跑，守护整句学习面板的欢迎语句路径。
-    describe('整句学习欢迎语句（AI SDK v7 离线回归）', () => {
+    // 离线回归：不发真实请求，默认测试（yarn test）就能跑，守护整句学习面板的模型调用与流式回推路径。
+    describe('整句学习面板（AI SDK v7 离线回归）', () => {
         describe('splitSystemMessages（system 消息拆分）', () => {
             it('能把开头 system 消息拆出并保留剩余消息', () => {
                 const { system, messages } = splitSystemMessages([
@@ -169,12 +153,19 @@ const runTests = (): void => {
             });
         });
 
-        describe('ChatSessionServiceImpl.startWelcome（整句学习面板欢迎语路径）', () => {
-            it('system+user 消息能流式产出欢迎语并通过事件回推，而不是空流直接 done', async () => {
+        describe('ChatSessionServiceImpl.startAnalysis（打开面板时唯一一次模型调用）', () => {
+            it('结构化分析能流式回推意群与词组并在 finish 结束，而不是空流直接 done', async () => {
                 const events: Array<{ event: string; payload: Record<string, unknown> }> = [];
+                const analyzed = JSON.stringify({
+                    structure: { phraseGroups: ['Hello world'] },
+                    phrases: {
+                        hasPhrase: true,
+                        phrases: [{ phrase: 'hello world', meaning: '你好，世界' }],
+                    },
+                });
                 const provider: AiProviderService = {
-                    getModel: vi.fn(() => buildMockTextModel('你好，我们开始学习这句话。')),
-                    createModelById: vi.fn(() => buildMockTextModel('你好，我们开始学习这句话。')),
+                    getModel: vi.fn(() => buildMockTextModel(analyzed)),
+                    createModelById: vi.fn(() => buildMockTextModel(analyzed)),
                 };
                 const gateway: RendererGateway = {
                     call: vi.fn(),
@@ -184,41 +175,29 @@ const runTests = (): void => {
                     }) as RendererGateway['fireAndForget'],
                 };
                 const store = {
-                    get: vi.fn(() => ({
-                        originalTopic: 'Hello world',
-                        fullText: 'Hello world',
-                        paragraphLines: ['Hello world'],
-                        subtitleFileHash: 'hash',
-                        anchorSentenceIndex: 0,
-                    })),
-                    getBackground: vi.fn(() => ({})),
+                    get: vi.fn(() => ({ originalTopic: 'Hello world' })),
                     startRun: vi.fn(() => new AbortController().signal),
                     finishRun: vi.fn(),
-                    appendMessage: vi.fn(),
-                };
-                const cacheService = {
-                    get: vi.fn(() => ({
-                        sentences: [{ index: 0, start: 0, end: 1000, text: 'Hello world' }],
-                    })),
                 };
                 const sessionService = new ChatSessionServiceImpl();
                 (sessionService as unknown as { aiProviderService: AiProviderService }).aiProviderService = provider;
                 (sessionService as unknown as { rendererGateway: RendererGateway }).rendererGateway = gateway;
                 (sessionService as unknown as { chatSessionStore: typeof store }).chatSessionStore = store as never;
-                (sessionService as unknown as { cacheService: typeof cacheService }).cacheService = cacheService as never;
 
-                await sessionService.startWelcome({
-                    sessionId: 's-welcome',
-                });
-                // startWelcome 是 fire-and-forget 模式，流式结果在后台异步回推，轮询等待 done 事件。
+                await sessionService.startAnalysis({ sessionId: 's-analysis' });
+                // startAnalysis 是 fire-and-forget 模式，流式结果在后台异步回推，轮询等待 finish 事件。
                 const deadline = Date.now() + 10000;
                 while (!events.some((e) => e.event === 'finish') && Date.now() < deadline) {
                     await new Promise((resolve) => setTimeout(resolve, 10));
                 }
-                const chunks = events.filter((e) => e.event === 'text-delta');
+                const chunks = events.filter((e) => e.event === 'data-analysis');
                 const done = events.find((e) => e.event === 'finish');
                 expect(chunks.length).toBeGreaterThan(0);
-                expect(chunks.map((c) => String((c.payload.chunk as { delta?: string }).delta ?? '')).join('')).toContain('你好');
+                const lastChunk = chunks[chunks.length - 1];
+                const partial = (lastChunk.payload.chunk as {
+                    data?: { structure?: { phraseGroups?: string[] } };
+                }).data;
+                expect(partial?.structure?.phraseGroups?.[0]).toContain('Hello world');
                 expect(done).toBeDefined();
             }, 15000);
         });
@@ -295,58 +274,6 @@ const runTests = (): void => {
     });
 
     describeLive('AI SDK 升级验证（ai v7 + @ai-sdk/openai-compatible）', () => {
-        describe('推理强度（reasoning effort）档位与模型兼容性', () => {
-            it('真实连接：生产 getModel 路径（按模型族注入 none 或保持默认）对每个可用模型都能流式产出文本', async () => {
-                expect(testConfig!.availableModels.length).toBeGreaterThan(0);
-                for (const modelId of testConfig!.availableModels) {
-                    // buildLiveModel 与生产 getModel 一致：兼容 provider + 仅对已知支持 none 的模型族注入最快档位
-                    const result = streamText({
-                        model: buildLiveModel(modelId),
-                        prompt: 'Reply with exactly: ok',
-                    });
-                    let text = '';
-                    for await (const chunk of result.textStream) {
-                        text += chunk;
-                    }
-                    expect(text.trim().length, `模型 ${modelId} 经生产 getModel 路径应能产出文本`).toBeGreaterThan(0);
-                }
-            }, 120000);
-
-            it('真实连接：枚举每个可用模型支持的推理档位', async () => {
-                // 基线（不设置推理）用于对照：某些代理端模型即使成功也会在流里带 error part
-                const efforts = ['（不设置）', 'low', 'medium', 'high'] as const;
-                const matrix: Record<string, string[]> = {};
-                for (const modelId of testConfig!.availableModels) {
-                    matrix[modelId] = [];
-                    for (const effort of efforts) {
-                        // 注意：提供方 400 不会让 textStream 抛错，而是以 error part 进入流；
-                        // 但 deepseek 等代理模型即使成功也会带“空 error part”，
-                        // 所以只把带具体信息的真实错误（如 AI_APICallError）视为档位不被支持。
-                        const result = streamText({
-                            model: buildRawLiveModel(modelId),
-                            // 推理档位直接传给 AI SDK 7 的 reasoning
-                            ...(effort === '（不设置）'
-                                ? {}
-                                : { reasoning: effort }),
-                            prompt: 'Reply with exactly: ok',
-                            onError: () => {},
-                        });
-                        let rejected = false;
-                        for await (const part of result.fullStream) {
-                            if (part.type === 'error' && part.error && (part.error as Error).message) {
-                                rejected = true;
-                            }
-                        }
-                        if (!rejected) {
-                            matrix[modelId].push(effort);
-                        }
-                    }
-                }
-                console.log('[推理档位兼容矩阵]', JSON.stringify(matrix));
-                expect(Object.keys(matrix)).toHaveLength(testConfig!.availableModels.length);
-            }, 120000);
-        });
-
         describe('streamText 文本流（聊天/欢迎语等通用路径）', () => {
             it('真实连接：messages 输入能流式产出文本并正常结束', async () => {
                 const result = streamText({
@@ -392,7 +319,6 @@ const runTests = (): void => {
                 const { storeSet } = await import('@/backend/infrastructure/settings/store');
                 storeSet('apiKeys.openAi.key', testConfig!.key);
                 storeSet('apiKeys.openAi.endpoint', testConfig!.endpoint);
-                storeSet('apiKeys.openAi.autoAppendV1', testConfig!.autoAppendV1);
                 if (testConfig!.availableModels.length > 0) {
                     storeSet('models.openai.available', testConfig!.availableModels.join('\n'));
                 }
@@ -509,21 +435,6 @@ const runTests = (): void => {
                 expect(partial?.structure).toBeDefined();
             }, 60000);
 
-            it('真实连接：startWelcome() 能流式产出欢迎语并通过事件回推', async () => {
-                events.length = 0;
-                await sessionService.startWelcome({
-                    sessionId: 's2',
-                });
-                // startWelcome 是 fire-and-forget 模式，流式结果在后台异步回推，轮询等待 done 事件。
-                const deadline = Date.now() + 45000;
-                while (!events.some((e) => e.event === 'finish') && Date.now() < deadline) {
-                    await new Promise((resolve) => setTimeout(resolve, 100));
-                }
-                const chunks = events.filter((e) => e.event === 'text-delta');
-                const done = events.find((e) => e.event === 'finish');
-                expect(chunks.length).toBeGreaterThan(0);
-                expect(done).toBeDefined();
-            }, 60000);
         });
 
         describe('TranslateServiceImpl（词典路径）', () => {

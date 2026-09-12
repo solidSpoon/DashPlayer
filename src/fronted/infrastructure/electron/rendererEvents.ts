@@ -1,5 +1,6 @@
 import { DpTask } from '@/common/contracts/dp-task';
 import { RuntimeSettingKey } from '@/common/contracts/runtime-settings';
+import { RepairTaskEvent } from '@/common/contracts/playback-repair';
 
 /**
  * renderer 订阅 main 进程事件的统一入口。
@@ -13,6 +14,16 @@ export const rendererEvents = {
      */
     onTaskUpdate(handler: (task: DpTask) => void): () => void {
         return window.electron.onTaskUpdate(handler);
+    },
+
+    /**
+     * 订阅修复任务实时事件。
+     *
+     * @param handler 修复事件处理函数。
+     * @returns 取消订阅函数。
+     */
+    onRepairTaskUpdate(handler: (event: RepairTaskEvent) => void): () => void {
+        return window.electron.onRepairTaskUpdate(handler);
     },
 
     /**

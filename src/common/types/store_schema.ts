@@ -26,7 +26,7 @@ export const SettingKeyObj = {
     'apiKeys.tencent.secretKey': '',
     'apiKeys.openAi.key': '',
     'apiKeys.openAi.endpoint': '',
-    'apiKeys.openAi.autoAppendV1': 'true',
+    'apiKeys.openAi.apiFormat': 'openai',
     'apiKeys.openAi.stream': 'on',
     'translation.engine': 'tencent',
     'transcription.engine': 'whisper-cpp',

@@ -33,6 +33,12 @@ import type RendererGateway from '@/backend/services/gateways/renderer/RendererG
 const MAX_COMPLETION_TOKENS = 2048;
 
 /**
+ * 默认采样温度：通用对话档，与词典讲解等链路的生成特性匹配。
+ * 翻译等近确定性任务由调用方通过 LocalGenerateTextOptions.temperature 调低。
+ */
+const DEFAULT_TEMPERATURE = 0.6;
+
+/**
  * llama-server 并行 slot 数，与并发内核 localAi 信号量容量保持一致。
  *
  * 字幕翻译按 5 句一组整批发送，多组请求可并发发出，多 slot 借助
@@ -556,14 +562,14 @@ export class LocalAiRuntime implements LocalAiService {
         return result;
     }
 
-    /** 纯文本生成：与 generate 共用采样参数与生命周期，仅不约束 JSON 输出；传入 options.grammar 时在解码层约束输出形状。 */
+    /** 纯文本生成：与 generate 共用生命周期，仅不约束 JSON 输出；传入 options.grammar 时在解码层约束输出形状，options.temperature 覆盖采样温度。 */
     public async generateText(
         prompt: string,
         modelId: string,
         signal?: AbortSignal,
         options?: LocalGenerateTextOptions,
     ): Promise<string> {
-        return (await this.completeText(prompt, null, modelId, signal, options?.grammar)).content;
+        return (await this.completeText(prompt, null, modelId, signal, options)).content;
     }
 
     /**
@@ -575,7 +581,7 @@ export class LocalAiRuntime implements LocalAiService {
         schema: Record<string, unknown> | null,
         modelId: string,
         signal?: AbortSignal,
-        grammar?: string,
+        options?: LocalGenerateTextOptions,
     ): Promise<{ content: string, usage: { prompt: number, completion: number } | null }> {
         const model = await this.resolveModelDefinition(modelId);
         if (this.activeDownload?.modelId === modelId) throw new Error(`本地模型「${model.name}」正在安装`);
@@ -584,7 +590,7 @@ export class LocalAiRuntime implements LocalAiService {
             const endpoint = await this.start(model, combined);
             const startedAt = Date.now();
             try {
-                const result = responseSchema.parse(await this.postChat(endpoint, this.buildChatBody(model.id, prompt, schema, grammar), combined));
+                const result = responseSchema.parse(await this.postChat(endpoint, this.buildChatBody(model.id, prompt, schema, options), combined));
                 const finishReason = result.choices[0].finish_reason;
                 if (finishReason !== 'stop') {
                     // length：输出顶到 max_tokens 上限被截断，输出必然不完整；
@@ -746,15 +752,15 @@ export class LocalAiRuntime implements LocalAiService {
         }
     }
 
-    /** 组装与推理参数固定一致的 chat 请求体；本地链路所有生成共用同一采样参数。schema 与 grammar 互斥使用：schema 走 json_object，grammar 走 llama.cpp 顶层 GBNF 约束。 */
-    private buildChatBody(modelId: string, prompt: string, schema: Record<string, unknown> | null, grammar?: string): Record<string, unknown> {
+    /** 组装与推理参数固定一致的 chat 请求体；本地链路所有生成共用同一采样参数，温度可被 options.temperature 覆盖。schema 与 grammar 互斥使用：schema 走 json_object，grammar 走 llama.cpp 顶层 GBNF 约束。 */
+    private buildChatBody(modelId: string, prompt: string, schema: Record<string, unknown> | null, options?: LocalGenerateTextOptions): Record<string, unknown> {
         return {
             model: modelId,
             messages: [{ role: 'user', content: prompt }],
-            stream: false, temperature: 0.6, top_p: 0.95, top_k: 20,
+            stream: false, temperature: options?.temperature ?? DEFAULT_TEMPERATURE, top_p: 0.95, top_k: 20,
             max_tokens: MAX_COMPLETION_TOKENS,
             ...(schema ? { response_format: { type: 'json_object', schema } } : {}),
-            ...(grammar ? { grammar } : {}),
+            ...(options?.grammar ? { grammar: options.grammar } : {}),
             chat_template_kwargs: { enable_thinking: false },
         };
     }

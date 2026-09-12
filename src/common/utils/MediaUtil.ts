@@ -8,6 +8,8 @@ export const SupportedAudioFormats = ['.mp3', '.wav', '.ogg', '.flac', '.m4a', '
 export const SupportedSubtitleFormats = ['.srt', '.vtt', '.ass'];
 export const AllFormats = [...SupportedVideoFormats, ...UnsupportedVideoFormats, ...SupportedAudioFormats, ...SupportedSubtitleFormats];
 export const SupportedFormats = [...SupportedVideoFormats, ...SupportedAudioFormats, ...SupportedSubtitleFormats];
+/** 全部媒体文件（视频 + 音频，不含字幕），与 {@link MediaUtil.isMedia} 的判定范围一致。 */
+export const MediaFormats = [...SupportedVideoFormats, ...UnsupportedVideoFormats, ...SupportedAudioFormats];
 export default class MediaUtil {
     public static isSrt(path: string): boolean {
         if (StrUtil.isBlank(path)) {

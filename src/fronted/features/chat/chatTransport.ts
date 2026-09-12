@@ -1,6 +1,5 @@
 import { ChatTransport, UIMessage, UIMessageChunk } from 'ai';
 import { chatApi } from '@/fronted/features/chat/chatApi';
-import type { ChatReasoningEffort } from '@/common/types/chat';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 /**
@@ -20,6 +19,23 @@ type ActiveChatStream = {
 const logger = getRendererLogger('SentenceLearningTransport');
 
 const activeStreams = new Map<string, ActiveChatStream>();
+
+/**
+ * 摘掉一个流的登记与取消监听。
+ *
+ * 说明：流走完、被用户取消或被后端取消之后再到的片段一律丢弃——往已经关闭的控制器里写会直接抛
+ * TypeError，而这条路径跑在 IPC 事件回调里，抛出去就是一次没人接的异常。
+ *
+ * @param sessionId 会话 ID。
+ */
+const detachStream = (sessionId: string): void => {
+    const active = activeStreams.get(sessionId);
+    if (!active) {
+        return;
+    }
+    active.removeAbortListener();
+    activeStreams.delete(sessionId);
+};
 
 /**
  * 接收 main 进程推送的 AI SDK 标准消息片段并交给对应 transport。
@@ -48,8 +64,7 @@ export const receiveChatChunk = (sessionId: string, chunk: UIMessageChunk): void
     }
     active.controller.enqueue(chunk);
     if (chunk.type === 'finish' || chunk.type === 'error' || chunk.type === 'abort') {
-        active.removeAbortListener();
-        activeStreams.delete(sessionId);
+        detachStream(sessionId);
         active.controller.close();
     }
 };
@@ -61,7 +76,7 @@ export class ElectronChatTransport<CHAT_MESSAGE extends UIMessage = UIMessage>
     implements ChatTransport<CHAT_MESSAGE> {
     /**
      * 把 useChat 最新一条用户消息发送给 main，并返回标准 UIMessageChunk 流。
-     * @param options AI SDK 提供的发送参数；body.mode=welcome 时启动欢迎消息。
+     * @param options AI SDK 提供的发送参数。
      * @returns 可由 useChat 直接消费的标准消息流。
      */
     public async sendMessages(
@@ -73,12 +88,11 @@ export class ElectronChatTransport<CHAT_MESSAGE extends UIMessage = UIMessage>
             .filter((part) => part.type === 'text')
             .map((part) => part.text)
             .join('') ?? '';
-        const mode = (options.body as { mode?: unknown } | undefined)?.mode;
-        const reasoningEffort = (options.body as { reasoningEffort?: ChatReasoningEffort } | undefined)?.reasoningEffort;
 
         return new ReadableStream<UIMessageChunk>({
             start: (controller) => {
                 const abort = () => {
+                    detachStream(sessionId);
                     chatApi.stopSession(sessionId).catch(() => undefined);
                 };
                 options.abortSignal?.addEventListener('abort', abort, { once: true });
@@ -89,12 +103,9 @@ export class ElectronChatTransport<CHAT_MESSAGE extends UIMessage = UIMessage>
                     firstReasoningAt: null,
                     firstTextAt: null,
                 });
-                logger.info('chat stream request started', { sessionId, mode: mode ?? 'chat' });
+                logger.info('chat stream request started', { sessionId });
 
-                const request = mode === 'welcome'
-                    ? chatApi.getWelcome({ sessionId, reasoningEffort })
-                    : chatApi.start({ sessionId, content, reasoningEffort });
-                request.catch((error) => {
+                chatApi.sendMessage({ sessionId, content }).catch((error) => {
                     const active = activeStreams.get(sessionId);
                     if (!active) {
                         return;
@@ -103,12 +114,14 @@ export class ElectronChatTransport<CHAT_MESSAGE extends UIMessage = UIMessage>
                         type: 'error',
                         errorText: error instanceof Error ? error.message : String(error),
                     });
-                    active.removeAbortListener();
-                    activeStreams.delete(sessionId);
+                    detachStream(sessionId);
                     active.controller.close();
                 });
             },
-            cancel: () => chatApi.stopSession(sessionId),
+            cancel: () => {
+                detachStream(sessionId);
+                return chatApi.stopSession(sessionId);
+            },
         });
     }
 

@@ -46,6 +46,7 @@ import FfmpegService, { FfmpegServiceImpl } from '@/backend/services/FfmpegServi
 import DpTaskService, { DpTaskServiceImpl } from '@/backend/services/DpTaskService';
 import ChatService, { ChatServiceImpl } from '@/backend/services/ChatService';
 import ChatSessionService, { ChatSessionServiceImpl } from '@/backend/services/ChatSessionService';
+import SentenceLearningService, { SentenceLearningServiceImpl } from '@/backend/services/SentenceLearningService';
 import ChatSessionStore, { InMemoryChatSessionStore } from '@/backend/services/chat/ChatSessionStore';
 import AiProviderService, { AiProviderServiceImpl } from '@/backend/services/AiProviderService';
 import ModelRoutingService, { ModelRoutingServiceImpl } from '@/backend/services/ModelRoutingService';
@@ -88,6 +89,7 @@ import { SherpaTtsModelController } from '@/backend/controllers/SherpaTtsModelCo
 import { WordMatchService, WordMatchServiceImpl } from '@/backend/services/WordMatchService';
 import VocabularyController from '@/backend/controllers/VocabularyController';
 import VocabularyService, { VocabularyServiceImpl } from '@/backend/services/VocabularyService';
+import SentenceVocabularyService, { SentenceVocabularyServiceImpl } from '@/backend/services/SentenceVocabularyService';
 import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
 import RendererGatewayImpl from '@/backend/infrastructure/renderer/RendererGatewayImpl';
 import RendererEvents from '@/backend/services/gateways/renderer/RendererEvents';
@@ -238,6 +240,7 @@ container.bind<DpTaskService>(TYPES.DpTaskService).to(DpTaskServiceImpl).inSingl
 container.bind<ChatService>(TYPES.ChatService).to(ChatServiceImpl).inSingletonScope();
 container.bind<ChatSessionStore>(TYPES.ChatSessionStore).to(InMemoryChatSessionStore).inSingletonScope();
 container.bind<ChatSessionService>(TYPES.ChatSessionService).to(ChatSessionServiceImpl).inSingletonScope();
+container.bind<SentenceLearningService>(TYPES.SentenceLearningService).to(SentenceLearningServiceImpl).inSingletonScope();
 container.bind<PlaybackRepairService>(TYPES.PlaybackRepairService).to(PlaybackRepairServiceImpl).inSingletonScope();
 container.bind<PlaybackCapabilityService>(TYPES.PlaybackCapabilityService).to(PlaybackCapabilityServiceImpl).inSingletonScope();
 container.bind<SplitVideoService>(TYPES.SplitVideoService).to(SplitVideoServiceImpl).inSingletonScope();
@@ -250,4 +253,5 @@ container.bind<WatchHistoryService>(TYPES.WatchHistoryService).to(WatchHistorySe
 container.bind<TranscriptionService>(TYPES.LocalTranscriptionService).to(LocalTranscriptionServiceImpl).inSingletonScope();
 container.bind<WordMatchService>(TYPES.WordMatchService).to(WordMatchServiceImpl).inSingletonScope();
 container.bind<VocabularyService>(TYPES.VocabularyService).to(VocabularyServiceImpl).inSingletonScope();
+container.bind<SentenceVocabularyService>(TYPES.SentenceVocabularyService).to(SentenceVocabularyServiceImpl).inSingletonScope();
 export default container;
