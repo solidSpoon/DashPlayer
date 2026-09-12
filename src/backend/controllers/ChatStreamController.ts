@@ -9,6 +9,8 @@ import {
     ChatSessionCreateResult,
     ChatStartParams,
     ChatStartResult,
+    CompleteSentenceParams,
+    CompleteSentenceResult,
 } from '@/common/types/chat';
 import { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
 
@@ -38,6 +40,12 @@ export default class ChatStreamController implements Controller {
 
         registerRoute('chat/analysis/start', async (params: AnalysisStartParams): Promise<AnalysisStartResult> => {
             return this.chatSessionService.startAnalysis(params);
+        });
+
+        registerRoute('chat/complete-sentence', async (
+            params: CompleteSentenceParams,
+        ): Promise<CompleteSentenceResult> => {
+            return this.chatSessionService.completeSentence(params);
         });
 
     }

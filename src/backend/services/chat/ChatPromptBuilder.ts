@@ -48,9 +48,9 @@ export const formatSubtitleOverview = (
  * 构建整句学习的结构化分析提示词。
  *
  * 说明：
- * - 一次分析同时产出开场导学（opening）与结构化解析，面板据此渲染整张句子卡片，
- *   不再为同一句话额外发起一次讲解调用；
+ * - 一次分析只产出结构化解析（意群、词组），左栏据此渲染句子卡片；
  * - 生词不在此处提取：由本地词典选词（vocabulary/pick-sentence）负责，模型不再重复产出词表；
+ * - 语法不在此处展开：需要语法讲解时由对话流承担（输入框上方的快捷提问），模型不再重复产出；
  * - 例句不在此处生成：需要例句时由聊天中的字幕检索工具取真实台词，避免模型生造语料。
  *
  * @param text 用户选中的学习文本（已由会话冻结）。
@@ -66,19 +66,12 @@ export const buildAnalysisPrompt = (text: string): string => {
         text,
         '',
         '# 分析要求',
-        '- opening: 面向学习者的开场导学，用简短的 Markdown 写成，自然衔接、不要小标题。',
-        '  1) 一句话点出本句的语言特色或使用场景；',
-        '  2) 给出 2~3 个地道同义改写，Markdown 列表（- 开头），英文均用 [[tts:...]] 包裹并简述语境差异；',
-        '  3) 若原句只是被换行截断的片段，可用 [[switch:完整句子原文|提示文本]] 引导切换，不确定就不输出该标记。',
-        '  注意：界面已常驻展示原句与中文意译，opening 里不要再复述原句或意译。',
         '- structure: 意群拆解。phraseGroups 为字符串数组，按原句自然阅读顺序切分出 2~5 个英文意群片段。',
         '- phrases: 提取重点词组或搭配，提供中文释义；如无短语则 phrases 为空数组且 hasPhrase=false。',
-        '- grammar: 用清晰的中文 Markdown 解释关键语法结构，不要使用 # 级标题，使用加粗或列表即可。',
         '',
         '# 字段契约与示例模板（请完全遵循此 JSON 结构与字段命名）:',
         '```json',
         '{',
-        '  "opening": "开场导学 Markdown 文本",',
         '  "structure": {',
         '    "phraseGroups": ["意群片段1", "意群片段2", "意群片段3"]',
         '  },',
@@ -87,10 +80,6 @@ export const buildAnalysisPrompt = (text: string): string => {
         '    "phrases": [',
         '      { "phrase": "词组/搭配", "meaning": "中文释义" }',
         '    ]',
-        '  },',
-        '  "grammar": {',
-        '    "hasGrammar": true,',
-        '    "grammarsMd": "语法要点说明（Markdown）"',
         '  }',
         '}',
         '```',
@@ -198,4 +187,53 @@ export const buildSubtitleContext = (params: {
         return null;
     }
     return [SUBTITLE_CONTEXT_PREFIX, '', parts.join('\n\n')].join('\n');
+};
+
+/**
+ * 构建字幕完整句判定与补全的提示词。
+ *
+ * 说明：
+ * - 字幕按换行/时间轴切分后，一行常只有半个句子；同时给前文与后续行，
+ *   让模型返回当前行所在的完整句子（真实句首到真实句尾）；
+ * - 译文随这一次调用一并产出：学习页要把中文摆在句子下方，单独再走一遍字幕
+ *   翻译链路要重建上下文与缓存，代价远高于在同一次结构化输出里多要一个字段。
+ *
+ * @param params 当前字幕行及其前后紧邻字幕行。
+ * @returns 交给 generateObject 的单条提示词。
+ */
+export const buildCompleteSentencePrompt = (params: {
+    /** 当前字幕行原文。 */
+    text: string;
+    /** 当前行之前紧邻的字幕行（时间升序，最近一行在最后）。 */
+    precedingLines: string[];
+    /** 当前行之后紧邻的字幕行（时间升序）。 */
+    followingLines: string[];
+}): string => {
+    const formatLines = (lines: string[]) => (lines.length > 0
+        ? lines.map((line, index) => `${index + 1}. ${line}`).join('\n')
+        : '（无）');
+    return [
+        '你在处理影视字幕。字幕经常被换行或时间轴切断，一行可能只有半个句子。',
+        '请判断「当前字幕行」是否已是一个完整句子的全部；如果不是，结合前后紧邻字幕行，把当前行所在的句子补全。',
+        '',
+        '当前字幕行：',
+        params.text,
+        '',
+        '前文行（按时间顺序，最近一行在最后）：',
+        formatLines(params.precedingLines),
+        '',
+        '后续行（按时间顺序）：',
+        formatLines(params.followingLines),
+        '',
+        '# 输出要求',
+        // DeepSeek 等接口在使用 json_object 响应格式时强制要求提示词里出现 "json" 字样，缺失会直接报错。
+        '- 只输出一个 JSON 对象，包含 complete、sentence 与 translation 三个字段，不要输出任何其他文字。',
+        '- complete：当前字幕行本身是否已完整（句首与句尾都在当前行内）。',
+        '- sentence：当前行所在的完整句子原文，从真实句首到真实句尾。',
+        '- 当前行只是句子后半时，sentence 必须带上前文里的前半句；当前行开头已是句首时，sentence 从当前行开始。',
+        '- 已完整时 sentence 与当前字幕行保持一致，不要改写或润色。',
+        '- sentence 内不要包裹引号、代码块或任何说明文字，语言与原字幕保持一致。',
+        '- translation：sentence 的中文译文，只输出译文本身，不要加引号或说明。',
+        '- sentence 本身已是中文时，translation 与 sentence 保持一致。',
+    ].join('\n');
 };

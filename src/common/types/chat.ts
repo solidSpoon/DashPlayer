@@ -81,3 +81,27 @@ export type ChatStreamEvent = {
     /** AI SDK 标准 UI 消息流片段。 */
     chunk: UIMessageChunk;
 };
+
+/**
+ * 完整句补全请求参数：当前字幕行及前后紧邻字幕行。
+ */
+export type CompleteSentenceParams = {
+    /** 当前字幕行原文。 */
+    text: string;
+    /** 当前行之前紧邻的字幕行（时间升序，最近一行在最后）。 */
+    precedingLines: string[];
+    /** 当前行之后紧邻的字幕行（时间升序）。 */
+    followingLines: string[];
+};
+
+/**
+ * 完整句补全结果。
+ */
+export type CompleteSentenceResult = {
+    /** 给定字幕行本身是否已是一个完整句子。 */
+    complete: boolean;
+    /** 补全后的完整句子原文；已完整时与原行一致。 */
+    sentence: string;
+    /** 完整句的中文译文，学习页展示在句子下方。 */
+    translation: string;
+};

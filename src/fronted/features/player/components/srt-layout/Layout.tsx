@@ -240,7 +240,14 @@ const PlaybackLayout = () => {
                             <div className="w-1 h-10 rounded-full bg-stone-500/70 dark:bg-neutral-400/70 group-hover:bg-rose-600 dark:group-hover:bg-rose-400 group-hover:h-14 transition-all duration-200 shadow-xs" />
                         </ResizableHandle>
                         <ResizablePanel
-                            className="relative overflow-hidden bg-stone-300/60 dark:bg-neutral-950/70 backdrop-blur-2xl shadow-[inset_1px_1px_6px_rgba(0,0,0,0.06)] dark:shadow-[inset_1px_1px_8px_rgba(0,0,0,0.4)]"
+                            className={cn(
+                                'relative overflow-hidden backdrop-blur-2xl shadow-[inset_1px_1px_6px_rgba(0,0,0,0.06)] dark:shadow-[inset_1px_1px_8px_rgba(0,0,0,0.4)]',
+                                // 学习页打开时把字幕列表提亮到与学习区面板一致的浅色系，关闭时平滑恢复
+                                'transition-colors duration-300',
+                                learningVisible
+                                    ? 'bg-stone-100/85 dark:bg-neutral-800/85'
+                                    : 'bg-stone-300/60 dark:bg-neutral-950/70'
+                            )}
                             defaultSize={sizeOb}
                             onResize={(e) => {
                                 if (fullScreen) {

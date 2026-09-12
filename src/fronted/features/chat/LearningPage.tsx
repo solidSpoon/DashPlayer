@@ -23,19 +23,33 @@ const logger = getRendererLogger('LearningPage');
  *
  * 说明：
  * - 页面在播放器内部替换视频与主字幕区域，进入时视频已暂停，页面不承载播放控制；
- * - 学习句取自创建会话时冻结的主题，中文译文按锚点索引从播放器字幕里精确匹配；
- * - 生词与悬停取词来自本地词典（`vocabulary/pick-sentence`），打开页面即可用，不等待模型；
- * - 结构化解析按需触发（点击左栏懒加载入口），对话由 useSentenceLearningChat 承载。
+ * - 进入页面不等后端：当前字幕行先乐观摆上来，云端补全出更完整的句子后再替换，
+ *   生词与悬停取词走本地词典，页面一出现就能看；
+ * - 学习句取自创建会话时冻结的主题，中文译文随整句补全一起取回，未补全时退回字幕自带中文；
+ * - 结构化解析（意群、词组）按需生成：点左栏入口才发起唯一一次模型调用；
+ * - 语法不单独出结构化结果，想讲语法点输入框上方的「本句语法」快捷提问，由对话流回答。
  */
 export default function LearningPage() {
     const { t } = useTranslation('common');
     const hideLearning = useChatPanel((state) => state.hideLearning);
+    const topicText = useChatPanel((state) => state.topicText);
+    const topicTranslation = useChatPanel((state) => state.topicTranslation);
+    const anchorIndex = useChatPanel((state) => state.anchorIndex);
+    const chatSessionId = useChatPanel((state) => state.chatSessionId);
+    const sentenceResolveError = useChatPanel((state) => state.sentenceResolveError);
     const analysis = useChatPanel((state) => state.analysis);
     const analysisStatus = useChatPanel((state) => state.analysisStatus);
     const analysisError = useChatPanel((state) => state.analysisError);
-    const topicText = useChatPanel((state) => state.topicText);
-    const anchorIndex = useChatPanel((state) => state.anchorIndex);
     const chat = useSentenceLearningChat();
+    // 后端会话建立前，对话与解析都没有可用的主题快照，入口先按住
+    const sessionReady = chatSessionId !== '';
+
+    // 整句补全失败时显式提示；学习页仍用当前字幕行继续
+    useEffect(() => {
+        if (sentenceResolveError) {
+            toast.error(t('learning.sentenceResolveFailed'));
+        }
+    }, [sentenceResolveError, t]);
     const vocabulary = useVocabulary();
     const sentences = usePlayerState((state) => state.sentences);
     // 本地选词结果：生词卡与悬停取词共用同一份数据
@@ -47,14 +61,15 @@ export default function LearningPage() {
 
     const sentence: LearningSentence = useMemo(() => ({
         en: topicText,
-        zh: topicLine?.textZH ?? '',
+        // 整句补全带回来的译文优先；未启用云端整句学习时退回字幕自带中文
+        zh: topicTranslation || topicLine?.textZH || '',
         position: anchorIndex === null
             ? ''
             : [
                 topicLine ? TimeUtil.secondToTimeStrCompact(topicLine.start) : '',
                 t('learning.position', { index: anchorIndex, total: sentences.length }),
             ].filter(Boolean).join(' · '),
-    }), [anchorIndex, sentences.length, t, topicLine, topicText]);
+    }), [anchorIndex, sentences.length, t, topicLine, topicText, topicTranslation]);
 
     // 句子一变就重新选词：本地词典、同步返回，不涉及模型与网络
     useEffect(() => {
@@ -103,10 +118,6 @@ export default function LearningPage() {
             });
     }, []);
 
-    const requestAnalysis = useCallback(() => {
-        void useChatPanel.getState().startAnalysis();
-    }, []);
-
     /**
      * 切换生词收藏：未收藏时加入词汇工坊，已收藏时从词表移除。
      *
@@ -146,6 +157,10 @@ export default function LearningPage() {
 
     const isFavorite = useCallback((word: string) => vocabulary.isVocabularyWord(word), [vocabulary]);
 
+    const requestAnalysis = useCallback(() => {
+        void useChatPanel.getState().startAnalysis();
+    }, []);
+
     return (
         <div className="h-full w-full select-text">
             <LearningWorkspace
@@ -154,6 +169,7 @@ export default function LearningPage() {
                 analysisStatus={analysisStatus}
                 analysisError={analysisError}
                 onRequestAnalysis={requestAnalysis}
+                sessionReady={sessionReady}
                 vocabWords={vocabWords}
                 resolveWordDetail={resolveWordDetail}
                 messages={chat.messageViews}

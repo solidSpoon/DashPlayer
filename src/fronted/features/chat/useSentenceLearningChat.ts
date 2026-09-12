@@ -140,23 +140,28 @@ export const useSentenceLearningChat = () => {
     }, [chatSessionId, logger, messages, status]);
 
     useEffect(() => {
-        if (!queuedMessage || status !== 'ready') {
+        // 会话尚未建立时先留在队列里：等会话就绪再发，别丢问题也别发到空会话上
+        if (!queuedMessage || !chatSessionId || status !== 'ready') {
             return;
         }
         const { id, content } = queuedMessage;
         consumeQueuedMessage(id);
         sendMessage({ text: content, metadata: { kind: 'chat' } }).catch(() => undefined);
-    }, [consumeQueuedMessage, queuedMessage, sendMessage, status]);
+    }, [chatSessionId, consumeQueuedMessage, queuedMessage, sendMessage, status]);
 
     const messageViews = useMemo(() => messages.map(toMessageView), [messages]);
 
     /**
      * 提交输入框内容；生成期间拒绝重复提交，并在发起请求前清空受控输入值。
+     *
+     * 说明：会话尚未建立时也拒绝：对话要落到会话冻结的主题上，没有会话就没有可发的地方
+     * （此时页面已把发送按钮与快捷提问置灰，这里只是兜住输入框回车这条路径）。
+     *
      * @param text 用户输入的追问内容。
      */
     const handleSubmit = async (text: string) => {
         const trimmedInput = text.trim();
-        if (!trimmedInput || isBusy) {
+        if (!trimmedInput || isBusy || !chatSessionId) {
             return;
         }
         setInput('');

@@ -1,9 +1,11 @@
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
-import { AnalysisStartParams } from '@/common/types/analysis';
 import {
     ChatSessionCreateParams,
     ChatStartParams,
+    CompleteSentenceParams,
+    CompleteSentenceResult,
 } from '@/common/types/chat';
+import { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
 
 /**
  * 聊天功能调用的后端接口。
@@ -42,12 +44,13 @@ export const chatApi = {
     start: (params: ChatStartParams) => backendClient.call('chat/start', params),
 
     /**
-     * 启动聊天分析消息流。
+     * 启动当前会话主题的结构化分析（懒加载，用户点击解析入口时触发）。
      *
-     * @param params 分析请求参数。
-     * @returns 后端创建的消息标识。
+     * @param params 会话 ID。
+     * @returns 本次分析消息 ID。
      */
-    startAnalysis: (params: AnalysisStartParams) => backendClient.call('chat/analysis/start', params),
+    startAnalysis: (params: AnalysisStartParams): Promise<AnalysisStartResult> =>
+        backendClient.call('chat/analysis/start', params),
 
     /**
      * 本地选词：返回句子里的生词与句内逐词释义。
@@ -58,4 +61,13 @@ export const chatApi = {
      * @returns 生词列表与句内逐词释义映射。
      */
     pickSentenceVocabulary: (text: string) => backendClient.call('vocabulary/pick-sentence', { text }),
+
+    /**
+     * 补全被换行截断的字幕：仅云端整句学习启用时可用。
+     *
+     * @param params 当前字幕行及前后紧邻字幕行。
+     * @returns 是否原本完整与补全后的完整句。
+     */
+    completeSentence: (params: CompleteSentenceParams): Promise<CompleteSentenceResult> =>
+        backendClient.call('chat/complete-sentence', params),
 };

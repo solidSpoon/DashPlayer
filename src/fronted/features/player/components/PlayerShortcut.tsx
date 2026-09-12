@@ -18,6 +18,9 @@ const process = (values: string) => values
 
 /**
  * 注册播放器页快捷键，并在快捷键配置变化后即时重绑。
+ *
+ * 学习页打开期间全部播放类快捷键停用（enabled: false），避免学习时误触改变播放状态；
+ * 只有开关学习页的快捷键保持可用，否则用户无法用键盘退出学习页。
  */
 export default function PlayerShortCut() {
     const {
@@ -64,6 +67,9 @@ export default function PlayerShortCut() {
     // 模式开关的写入统一走 PlayerActions，此处只订阅展示用的值
     const singleRepeat = usePlayer((s) => s.singleRepeat);
     const autoPause = usePlayer((s) => s.autoPause);
+    const learningVisible = useChatPanel((s) => s.learningVisible);
+    // 学习页打开期间停用播放类快捷键；开关学习页的快捷键除外
+    const playbackKeysEnabled = !learningVisible;
 
     const toggleSingleRepeat = () => {
         playerActions.setSingleRepeat(!singleRepeat);
@@ -77,69 +83,69 @@ export default function PlayerShortCut() {
         if (scrollState === 'USER_BROWSING') {
             onUserFinishScrolling();
         }
-    }, [onUserFinishScrolling, scrollState]);
+    }, { enabled: playbackKeysEnabled }, [onUserFinishScrolling, scrollState]);
     useHotkeys('right', () => {
         playerActions.nextSentence();
         if (scrollState === 'USER_BROWSING') {
             onUserFinishScrolling();
         }
-    }, [onUserFinishScrolling, scrollState]);
+    }, { enabled: playbackKeysEnabled }, [onUserFinishScrolling, scrollState]);
     useHotkeys('down', (e) => {
         e.preventDefault();
         playerActions.repeatCurrent({ loop: false });
         if (scrollState === 'USER_BROWSING') {
             onUserFinishScrolling();
         }
-    }, [onUserFinishScrolling, scrollState]);
+    }, { enabled: playbackKeysEnabled }, [onUserFinishScrolling, scrollState]);
     useHotkeys('space', (e) => {
         e.preventDefault();
         playerActions.togglePlay();
-    });
+    }, { enabled: playbackKeysEnabled });
     useHotkeys('up', (e) => {
         e.preventDefault();
         playerActions.togglePlay();
-    });
+    }, { enabled: playbackKeysEnabled });
     useHotkeys(process(shortcuts.previousSentence), () => {
         playerActions.prevSentence();
         if (scrollState === 'USER_BROWSING') {
             onUserFinishScrolling();
         }
-    }, [onUserFinishScrolling, scrollState]);
+    }, { enabled: playbackKeysEnabled }, [onUserFinishScrolling, scrollState]);
     useHotkeys(process(shortcuts.nextSentence), () => {
         playerActions.nextSentence();
         if (scrollState === 'USER_BROWSING') {
             onUserFinishScrolling();
         }
-    }, [onUserFinishScrolling, scrollState]);
+    }, { enabled: playbackKeysEnabled }, [onUserFinishScrolling, scrollState]);
     useHotkeys(process(shortcuts.repeatSentence), () => {
         playerActions.repeatCurrent({ loop: false });
         if (scrollState === 'USER_BROWSING') {
             onUserFinishScrolling();
         }
-    }, [onUserFinishScrolling, scrollState]);
-    useHotkeys(process(shortcuts.playPause), playerActions.togglePlay.bind(playerActions));
-    useHotkeys(process(shortcuts.repeatSingleSentence), toggleSingleRepeat, [toggleSingleRepeat]);
-    useHotkeys(process(shortcuts.autoPause), toggleAutoPause, [toggleAutoPause]);
-    useHotkeys(process(shortcuts.toggleEnglishDisplay), changeShowEn);
-    useHotkeys(process(shortcuts.toggleChineseDisplay), changeShowCn);
-    useHotkeys(process(shortcuts.toggleBilingualDisplay), changeShowEnCn);
+    }, { enabled: playbackKeysEnabled }, [onUserFinishScrolling, scrollState]);
+    useHotkeys(process(shortcuts.playPause), playerActions.togglePlay.bind(playerActions), { enabled: playbackKeysEnabled });
+    useHotkeys(process(shortcuts.repeatSingleSentence), toggleSingleRepeat, { enabled: playbackKeysEnabled }, [toggleSingleRepeat]);
+    useHotkeys(process(shortcuts.autoPause), toggleAutoPause, { enabled: playbackKeysEnabled }, [toggleAutoPause]);
+    useHotkeys(process(shortcuts.toggleEnglishDisplay), changeShowEn, { enabled: playbackKeysEnabled });
+    useHotkeys(process(shortcuts.toggleChineseDisplay), changeShowCn, { enabled: playbackKeysEnabled });
+    useHotkeys(process(shortcuts.toggleBilingualDisplay), changeShowEnCn, { enabled: playbackKeysEnabled });
     useHotkeys(process(shortcuts.adjustBeginMinus), () => {
         playerActions.adjustCurrentBegin(-0.2);
-    });
+    }, { enabled: playbackKeysEnabled });
     useHotkeys(process(shortcuts.adjustBeginPlus), () => {
         playerActions.adjustCurrentBegin(0.2);
-    });
+    }, { enabled: playbackKeysEnabled });
     useHotkeys(process(shortcuts.adjustEndMinus), () => {
         playerActions.adjustCurrentEnd(-0.2);
-    });
+    }, { enabled: playbackKeysEnabled });
     useHotkeys(process(shortcuts.adjustEndPlus), () => {
         playerActions.adjustCurrentEnd(0.2);
-    });
+    }, { enabled: playbackKeysEnabled });
     useHotkeys(process(shortcuts.clearAdjust), () => {
         void playerActions.clearAdjust();
-    });
-    useHotkeys(process(shortcuts.toggleWordLevelDisplay), changeShowWordLevel);
-    useHotkeys(process(shortcuts.nextPlaybackRate), playerActions.cyclePlaybackRate.bind(playerActions));
+    }, { enabled: playbackKeysEnabled });
+    useHotkeys(process(shortcuts.toggleWordLevelDisplay), changeShowWordLevel, { enabled: playbackKeysEnabled });
+    useHotkeys(process(shortcuts.nextPlaybackRate), playerActions.cyclePlaybackRate.bind(playerActions), { enabled: playbackKeysEnabled });
     useHotkeys(process(shortcuts.aiChat), () => {
         // 同一个快捷键开关学习页：进入时学习页会自行暂停播放，返回时不动播放状态
         useChatPanel.getState().toggleLearning().catch((error) => {
@@ -149,6 +155,6 @@ export default function PlayerShortCut() {
 
     useHotkeys(process(shortcuts.addClip), async () => {
         useFavouriteClip.getState().changeCurrentLineClip();
-    });
+    }, { enabled: playbackKeysEnabled });
     return <></>;
 }

@@ -170,13 +170,14 @@ const runTests = (): void => {
         });
 
         describe('ChatSessionServiceImpl.startAnalysis（打开面板时唯一一次模型调用）', () => {
-            it('结构化分析能流式回推开场导学并在 finish 结束，而不是空流直接 done', async () => {
+            it('结构化分析能流式回推意群与词组并在 finish 结束，而不是空流直接 done', async () => {
                 const events: Array<{ event: string; payload: Record<string, unknown> }> = [];
                 const analyzed = JSON.stringify({
-                    opening: '这句话的口语感很强。',
                     structure: { phraseGroups: ['Hello world'] },
-                    phrases: { hasPhrase: false, phrases: [] },
-                    grammar: { hasGrammar: false, grammarsMd: '' },
+                    phrases: {
+                        hasPhrase: true,
+                        phrases: [{ phrase: 'hello world', meaning: '你好，世界' }],
+                    },
                 });
                 const provider: AiProviderService = {
                     getModel: vi.fn(() => buildMockTextModel(analyzed)),
@@ -209,8 +210,10 @@ const runTests = (): void => {
                 const done = events.find((e) => e.event === 'finish');
                 expect(chunks.length).toBeGreaterThan(0);
                 const lastChunk = chunks[chunks.length - 1];
-                const partial = (lastChunk.payload.chunk as { data?: { opening?: string } }).data;
-                expect(partial?.opening).toContain('口语感');
+                const partial = (lastChunk.payload.chunk as {
+                    data?: { structure?: { phraseGroups?: string[] } };
+                }).data;
+                expect(partial?.structure?.phraseGroups?.[0]).toContain('Hello world');
                 expect(done).toBeDefined();
             }, 15000);
         });

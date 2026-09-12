@@ -55,6 +55,7 @@ const PlayerWithControlsPage = () => {
     const titleBarHeight = useLayout((state) => state.titleBarHeight);
     const uiFullScreen = useLayout((s) => s.fullScreen);
     const chatTopic = useChatPanel(s => s.topic);
+    const learningVisible = useChatPanel(s => s.learningVisible);
     const videoLoaded = useFile((s) => s.videoLoaded);
     const w = cpW.bind(
         null,
@@ -448,7 +449,9 @@ const PlayerWithControlsPage = () => {
                             className={cn(
                                 'hidden row-start-1 row-end-3 col-start-2 col-end-4 p-2.5 pl-1.5 pr-1',
                                 w('md') && 'block col-end-3',
-                                h('md') && 'block row-end-2'
+                                h('md') && 'block row-end-2',
+                                // 学习页打开期间冻结播放控制面板：不响应操作并弱化显示，关闭后恢复
+                                learningVisible && 'pointer-events-none opacity-50'
                             )}
                         >
                             <ControlBox/>
@@ -479,7 +482,7 @@ const PlayerWithControlsPage = () => {
                 >
                     <PlaybackLayout/>
                 </div>
-                {/* 播放器控制与快捷键常驻：学习页只替换视频与主字幕区域，不应剥夺画面操作能力 */}
+                {/* 播放器控制与快捷键常驻挂载；学习页打开期间控制面板冻结、播放类快捷键停用（见 ControlBox 与 PlayerShortcut 的 learningVisible 分支） */}
                 <ControlButton/>
                 <PlayerShortcut/>
 

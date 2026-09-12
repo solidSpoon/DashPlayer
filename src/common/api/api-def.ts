@@ -38,6 +38,8 @@ import {
     ChatSessionStopParams,
     ChatStartParams,
     ChatStartResult,
+    CompleteSentenceParams,
+    CompleteSentenceResult,
 } from '@/common/types/chat';
 import { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
 import {
@@ -195,6 +197,8 @@ interface ChatDef {
     'chat/session/close': { params: ChatSessionCloseParams, return: void };
     'chat/session/stop': { params: ChatSessionStopParams, return: void };
     'chat/start': { params: ChatStartParams, return: ChatStartResult };
+    /** 补全被换行截断的字幕为完整句；仅云端整句学习启用时可用。 */
+    'chat/complete-sentence': { params: CompleteSentenceParams, return: CompleteSentenceResult };
 }
 
 interface ChatAnalysisDef {
