@@ -22,6 +22,7 @@ import { ProxySettingDetailVO, ProxySettingSaveVO } from '@/common/contracts/pro
 import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
 import { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
 import { getSubtitleDefaultStyle } from '@/common/constants/openaiSubtitlePrompts';
+import { AI_API_FORMATS } from '@/common/utils/openai-endpoint';
 import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import type LocalAiService from '@/backend/services/LocalAiService';
 import {
@@ -330,6 +331,11 @@ export class SettingServiceImpl implements SettingService {
             openai: {
                 key: this.getValue('apiKeys.openAi.key'),
                 endpoint: this.getValue('apiKeys.openAi.endpoint'),
+                apiFormat: this.requireEnumValue(
+                    this.getValue('apiKeys.openAi.apiFormat'),
+                    AI_API_FORMATS,
+                    'apiKeys.openAi.apiFormat',
+                ),
                 autoAppendV1: this.requireBooleanString(
                     this.getValue('apiKeys.openAi.autoAppendV1'),
                     'apiKeys.openAi.autoAppendV1',
@@ -352,6 +358,7 @@ export class SettingServiceImpl implements SettingService {
      */
     public async saveServiceCredentials(settings: ServiceCredentialSettingSaveVO): Promise<void> {
         const currentAvailableModels = this.parseOpenAiModels(this.getValue('models.openai.available'));
+        const apiFormat = this.requireEnumValue(settings.openai.apiFormat, AI_API_FORMATS, 'openai.apiFormat');
         if (typeof settings.openai.autoAppendV1 !== 'boolean') {
             throw new Error('openai.autoAppendV1 必须为布尔值');
         }
@@ -376,6 +383,7 @@ export class SettingServiceImpl implements SettingService {
 
         await this.setValue('apiKeys.openAi.key', settings.openai.key);
         await this.setValue('apiKeys.openAi.endpoint', settings.openai.endpoint);
+        await this.setValue('apiKeys.openAi.apiFormat', apiFormat);
         await this.setValue('apiKeys.openAi.autoAppendV1', settings.openai.autoAppendV1 ? 'true' : 'false');
         await this.setValue('models.openai.available', dedupedModels.join('\n'));
 

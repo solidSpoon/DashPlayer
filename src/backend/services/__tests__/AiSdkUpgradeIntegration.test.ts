@@ -37,7 +37,7 @@ import { convertArrayToReadableStream, MockLanguageModelV4 } from 'ai/test';
 import type { LanguageModelV3, LanguageModelV4StreamPart } from '@ai-sdk/provider';
 
 import { loadAiSdkTestConfig } from '@/test/aiSdkTestConfig';
-import { resolveOpenAiBaseUrl } from '@/common/utils/openai-endpoint';
+import { resolveAiBaseUrl } from '@/common/utils/openai-endpoint';
 import { splitSystemMessages } from '@/backend/services/chat/ChatPromptBuilder';
 import { ChatServiceImpl } from '../ChatService';
 import { ChatSessionServiceImpl } from '../ChatSessionService';
@@ -70,7 +70,7 @@ const describeLive = liveTestsEnabled && testConfig ? describe : describe.skip;
 const buildLiveModel = (modelId: string): LanguageModel => {
     const provider = createOpenAICompatible({
         name: 'openai',
-        baseURL: resolveOpenAiBaseUrl(testConfig!.endpoint, testConfig!.autoAppendV1),
+        baseURL: resolveAiBaseUrl(testConfig!.endpoint, 'openai', testConfig!.autoAppendV1),
         apiKey: testConfig!.key,
     });
     return provider.chatModel(modelId);
@@ -85,7 +85,7 @@ const buildLiveModel = (modelId: string): LanguageModel => {
 const buildRawLiveModel = (modelId: string): LanguageModelV3 => {
     const provider = createOpenAICompatible({
         name: 'openai',
-        baseURL: resolveOpenAiBaseUrl(testConfig!.endpoint, testConfig!.autoAppendV1),
+        baseURL: resolveAiBaseUrl(testConfig!.endpoint, 'openai', testConfig!.autoAppendV1),
         apiKey: testConfig!.key,
     });
     return provider.chatModel(modelId);

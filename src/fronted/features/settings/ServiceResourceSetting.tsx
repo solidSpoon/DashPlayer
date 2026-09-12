@@ -596,6 +596,8 @@ const ServiceResourceSetting: React.FC = () => {
                             delete next[model];
                             return next;
                         })}
+                        onCopy={(text) => copyText(text).catch(() => null)}
+                        onOpenUrl={(url) => openUrl(url).catch(() => null)}
                         disabled={credentialSaveStatus === 'saving'}
                     />
                 </SettingCard>

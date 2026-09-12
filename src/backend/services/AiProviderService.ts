@@ -1,8 +1,10 @@
 import { storeGet } from '@/backend/infrastructure/settings/store';
-import { resolveOpenAiBaseUrl } from '@/common/utils/openai-endpoint';
+import { resolveAiBaseUrl } from '@/common/utils/openai-endpoint';
 import StrUtil from '@/common/utils/str-util';
 import { inject, injectable } from 'inversify';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+import { createAnthropic } from '@ai-sdk/anthropic';
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
 import { LanguageModel } from 'ai';
 import ModelRoutingService from '@/backend/services/ModelRoutingService';
 import TYPES from '@/backend/ioc/types';
@@ -11,7 +13,13 @@ export type AiModelScene = 'sentenceLearning' | 'subtitleTranslation' | 'diction
 
 export default interface AiProviderService {
     getModel(scene: AiModelScene): LanguageModel | null;
-    /** 按模型 ID 创建语言模型实例（不校验功能开关，供连接测试等跨场景用途）。 */
+    /**
+     * 按模型 ID 创建语言模型实例（不校验功能开关，供连接测试等跨场景用途）。
+     *
+     * 按用户配置的 API 格式（openai/anthropic/gemini）创建对应 provider，
+     * 三种格式都走各自 SDK 的通用文本生成路径，结构化输出统一由 AI SDK
+     * 在客户端按 schema 校验。
+     */
     createModelById(modelId: string): LanguageModel;
 }
 
@@ -43,26 +51,41 @@ export class AiProviderServiceImpl implements AiProviderService {
     }
 
     /**
-     * 按模型 ID 创建 OpenAI 兼容的语言模型实例。
+     * 按模型 ID 与 API 格式创建语言模型实例。
+     *
+     * 三种格式说明：
+     * - openai：使用 OpenAI 兼容 provider（@ai-sdk/openai-compatible）而非官方
+     *   OpenAI provider：兼容 provider 只走 /chat/completions 协议，没有 Responses
+     *   API 路径。uniapi 等三方兼容端点的 /responses 流式实现不完整
+     *   （deepseek-v4-flash 的 text-delta 缺少 text-start，SDK 会丢弃全部文本
+     *   导致结构化输出为空），官方 provider 的默认模型方法恰恰走 Responses；
+     *   三方模型场景下兼容 provider 更稳妥。不开启 supportsStructuredOutputs：
+     *   让 Output.object 走通用的 response_format json_object，兼容面最广
+     *   （几乎所有 OpenAI 兼容端点都支持）；SDK 仍在客户端按 schema 校验解析
+     *   结果。若开启会发送 json_schema（strict），部分只支持 json_object 的
+     *   兼容端点会 400。
+     * - anthropic：@ai-sdk/anthropic 的 messages 路径，智谱/Moonshot/DeepSeek
+     *   等厂商的 Anthropic 兼容端点同样适用。
+     * - gemini：@ai-sdk/google 的 generateContent 路径。
+     *
      * @param modelId 模型 ID（来自模型路由配置）。
      * @returns 可直接传给 generateText/streamText 的语言模型。
      */
     public createModelById(modelId: string): LanguageModel {
         const apiKey = storeGet('apiKeys.openAi.key');
         const endpoint = storeGet('apiKeys.openAi.endpoint');
-        // 使用 OpenAI 兼容 provider（@ai-sdk/openai-compatible）而非官方 OpenAI provider：
-        // 兼容 provider 只走 /chat/completions 协议，没有 Responses API 路径。uniapi 等三方
-        // 兼容端点的 /responses 流式实现不完整（deepseek-v4-flash 的 text-delta 缺少
-        // text-start，SDK 会丢弃全部文本导致结构化输出为空），官方 provider 的默认模型方法
-        // 恰恰走 Responses；三方模型场景下兼容 provider 更稳妥。
+        const apiFormat = storeGet('apiKeys.openAi.apiFormat');
+        const baseURL = resolveAiBaseUrl(endpoint, apiFormat, storeGet('apiKeys.openAi.autoAppendV1'));
+        if (apiFormat === 'anthropic') {
+            return createAnthropic({ baseURL, apiKey })(modelId);
+        }
+        if (apiFormat === 'gemini') {
+            return createGoogleGenerativeAI({ baseURL, apiKey })(modelId);
+        }
         const provider = createOpenAICompatible({
             name: 'openai',
-            baseURL: resolveOpenAiBaseUrl(endpoint, storeGet('apiKeys.openAi.autoAppendV1')),
+            baseURL,
             apiKey: apiKey,
-            // 不开启 supportsStructuredOutputs：让 Output.object 走通用的 response_format
-            // json_object，兼容面最广（几乎所有 OpenAI 兼容端点都支持）；SDK 仍在客户端按
-            // schema 校验解析结果。若开启会发送 json_schema（strict），部分只支持
-            // json_object 的兼容端点会 400。
         });
         return provider.chatModel(modelId);
     }

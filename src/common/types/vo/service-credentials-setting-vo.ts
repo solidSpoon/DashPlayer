@@ -1,3 +1,5 @@
+import type { AiApiFormat } from '@/common/utils/openai-endpoint';
+
 /**
  * 功能占用标识。
  */
@@ -20,9 +22,11 @@ export type ServiceCredentialSettingDetailVO = {
     openai: {
         /** OpenAI API Key。 */
         key: string;
-        /** OpenAI 兼容接口地址（不含 /v1，是否自动追加由 autoAppendV1 决定）。 */
+        /** 云端接口地址（不含版本路径，是否自动追加由 autoAppendV1 决定）。 */
         endpoint: string;
-        /** 是否自动在接口地址后追加 /v1。 */
+        /** API 兼容格式：openai / anthropic / gemini。 */
+        apiFormat: AiApiFormat;
+        /** 是否自动在接口地址后追加版本路径（/v1 或 /v1beta）。 */
         autoAppendV1: boolean;
         /** OpenAI 可用模型列表。 */
         models: OpenAiAvailableModelDetailVO[];
@@ -42,9 +46,11 @@ export type ServiceCredentialSettingSaveVO = {
     openai: {
         /** OpenAI API Key。 */
         key: string;
-        /** OpenAI 兼容接口地址（不含 /v1，是否自动追加由 autoAppendV1 决定）。 */
+        /** 云端接口地址（不含版本路径，是否自动追加由 autoAppendV1 决定）。 */
         endpoint: string;
-        /** 是否自动在接口地址后追加 /v1。 */
+        /** API 兼容格式：openai / anthropic / gemini。 */
+        apiFormat: AiApiFormat;
+        /** 是否自动在接口地址后追加版本路径（/v1 或 /v1beta）。 */
         autoAppendV1: boolean;
         /** OpenAI 可用模型标识列表。 */
         models: string[];
