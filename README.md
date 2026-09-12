@@ -194,11 +194,21 @@ chmod +x DashPlayer-*.AppImage
 
 ```bash
 # Debian/Ubuntu 系
-sudo dpkg -i DashPlayer-*.deb
+sudo dpkg -i dashplayer_*.deb
 
 # Fedora/RHEL 系
-sudo rpm -i DashPlayer-*.rpm
+sudo rpm -i dashplayer-*.rpm
 ```
+
+> Linux 包名已由 `dash-player` 统一为 `dashplayer`（与桌面窗口身份一致）。安装过旧版本（6.12.x 及更早）的用户请先卸载旧包再安装，否则新旧两个版本会同时存在：
+>
+> ```bash
+> # Debian/Ubuntu 系
+> sudo apt remove dash-player
+>
+> # Fedora/RHEL 系
+> sudo rpm -e dash-player
+> ```
 
 3. 开始使用吧！
 
