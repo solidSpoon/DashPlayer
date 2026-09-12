@@ -10,19 +10,7 @@ import StrUtil from '@/common/utils/str-util';
 import TimeUtil from '@/common/utils/TimeUtil';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
-
-/**
- * 字幕解析结论。
- *
- * `mismatchSuspected` 为 true 表示字幕是靠模糊兜底匹配到的且文件名与视频存疑，
- * 可能是别的视频的字幕，前端据此引导用户重新生成字幕。
- */
-export interface SubtitleResolution {
-    /** 字幕文件路径；未匹配到时为空字符串。 */
-    subtitlePath: string;
-    /** 字幕文件名与视频对不上、疑似挂错。 */
-    mismatchSuspected: boolean;
-}
+import { SubtitleResolution } from '@/common/contracts/subtitle-resolution';
 
 /**
  * 将观看历史数据库记录转换为 renderer 使用的展示数据。

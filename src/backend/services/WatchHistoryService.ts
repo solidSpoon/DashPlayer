@@ -25,7 +25,8 @@ import {
     mergeHtml5Variants,
 } from '@/backend/services/watch-history-file-rules';
 import WatchHistoryLibrary from '@/backend/services/WatchHistoryLibrary';
-import WatchHistoryViewBuilder, { SubtitleResolution } from '@/backend/services/WatchHistoryViewBuilder';
+import WatchHistoryViewBuilder from '@/backend/services/WatchHistoryViewBuilder';
+import { SubtitleResolution } from '@/common/contracts/subtitle-resolution';
 import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
 import SubtitleService from '@/backend/services/SubtitleService';
 import { getMainLogger } from '@/backend/infrastructure/logger';

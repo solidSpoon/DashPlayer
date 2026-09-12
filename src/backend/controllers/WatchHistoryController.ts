@@ -3,7 +3,7 @@ import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import Controller from '@/backend/controllers/Controller';
 import WatchHistoryService from '@/backend/services/WatchHistoryService';
-import { SubtitleResolution } from '@/backend/services/WatchHistoryViewBuilder';
+import { SubtitleResolution } from '@/common/contracts/subtitle-resolution';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 
 @injectable()
