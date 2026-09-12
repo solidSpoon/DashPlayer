@@ -9,6 +9,16 @@ import { TranslationMode } from '@/common/types/TranslationResult';
 export const LOCAL_TRANSLATION_TEMPERATURE = 0.3;
 
 /**
+ * 本地字幕翻译策略版本，编入缓存分区（storageMode）以隔离旧译文。
+ *
+ * 提示词、填槽语法或采样参数任一变化，都会改变同一源文的期望译文；
+ * 此处改动后必须进位，否则升级用户会继续命中按旧策略缓存的译文
+ * （本策略要修的坏译文恰好在旧缓存里）。v2：行式输出改为源文锚定
+ * 填槽，翻译链路温度降至 0.3。
+ */
+export const LOCAL_SUBTITLE_STRATEGY_VERSION = 2;
+
+/**
  * 批量字幕翻译的提示词模板与结构化输出约定。
  *
  * 这是各引擎网关（云端/本地）自持的拼装细节：模板文本、JSON 形状与字段说明
