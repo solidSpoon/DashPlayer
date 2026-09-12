@@ -584,6 +584,28 @@ async function download({url, dir, file, sha}) {
 const WHISPER_CPP_REF = '52a939a2a762224e255d366c1182b2af4dd1a032';
 
 /**
+ * 运行时配方版本：构建参数或“随包附带文件”一变就必须 +1。
+ * 同一 ref 不同配方产出的二进制不可互换（r3 = Windows 静态 CRT + OpenMP + 附带
+ * vulkan-1.dll/vcomp140.dll），标记里带上它，已装的旧配方运行时才会被重装而不是继续沿用。
+ */
+const WHISPER_RUNTIME_RECIPE = 'r3';
+
+/**
+ * Windows 侧 ggml-vulkan 对 vulkan-1.dll 是硬链接依赖（非 delay-load）：干净系统
+ * （无独显驱动、未装 VC 运行库）的 system32 里没有它，缺了进程在加载期就死。
+ * loader 取 LunarG 官方运行包（Apache-2.0/MIT，许可证随包附带），
+ * 版本与 release.yml 的 VULKAN_VERSION 对齐。
+ */
+const VULKAN_RUNTIME_VERSION = '1.4.357.0';
+const VULKAN_RUNTIME_COMPONENTS_URL = `https://sdk.lunarg.com/sdk/download/${VULKAN_RUNTIME_VERSION}/windows/vulkan-runtime-components.zip`;
+
+/**
+ * MSVC 的 OpenMP 运行时文件名：只有 DLL 形式、/MT 也去不掉（见
+ * installOpenMpRuntimeForWindows），与 vulkan-1.dll 一样必须与 exe 同目录分发。
+ */
+const VCOMP_DLL_NAME = 'vcomp140.dll';
+
+/**
  * 运行时目录中的来源标记文件名：记录已安装的二进制来自哪个 Release 版本或哪个源码 ref。
  * 只判文件存在无法区分“装的是哪一份”，会让人在换 ref / 换版本后继续沿用旧二进制。
  */
@@ -611,6 +633,79 @@ const readWhisperRuntimeMarker = (markerPath) => {
  */
 const whisperRuntimeAssetName = (platform, arch) =>
     `whisper-cpp-${platform}-${arch}.${platform === 'win32' ? 'zip' : 'tar.gz'}`;
+
+/**
+ * 下载 LunarG 官方 Vulkan 运行包，把 x64 的 vulkan-1.dll 与许可证安装到目标目录。
+ *
+ * Windows 上 parakeet-cli.exe 对 vulkan-1.dll 是硬链接依赖（非 delay-load），而干净系统
+ * （无独显驱动、未装 VC 运行库）的 system32 里没有它，缺了进程在加载期就死（0xC0000135，
+ * stderr 为空）。exe 目录在 DLL 搜索顺序里优先于 system32，所以 loader 与 exe 同目录分发。
+ * 运行包同时含 x86 版本与 pdb，只取 x64；与 release.yml 的 Package 步骤同一来源、同一版本。
+ *
+ * @param {string} targetDir loader 与许可证的落地目录（exe 同级）。
+ * @returns {Promise<void>} 下载、解压或拷贝失败时抛出。
+ */
+async function installVulkanLoaderForWindows(targetDir) {
+    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dashplayer-vulkan-'));
+    const archiveName = 'vulkan-runtime-components.zip';
+    await download({url: VULKAN_RUNTIME_COMPONENTS_URL, dir: tmpRoot, file: archiveName});
+    const extractDir = path.join(tmpRoot, 'extract');
+    await extractArchive(path.join(tmpRoot, archiveName), extractDir);
+
+    const loader = findFirstFile(
+        extractDir,
+        (p) => /^x64$/i.test(path.basename(path.dirname(p))) && path.basename(p).toLowerCase() === 'vulkan-1.dll',
+        12
+    );
+    if (!loader) throw new Error(`Vulkan 运行包里找不到 x64/vulkan-1.dll：${VULKAN_RUNTIME_COMPONENTS_URL}`);
+    const license = findFirstFile(extractDir, (p) => path.basename(p) === 'VulkanRT-License.txt', 12);
+    if (!license) throw new Error(`Vulkan 运行包里找不到 VulkanRT-License.txt：${VULKAN_RUNTIME_COMPONENTS_URL}`);
+
+    for (const src of [loader, license]) {
+        const dest = path.join(targetDir, path.basename(src));
+        fs.copyFileSync(src, dest);
+        console.info(chalk.green(`✅ vulkan runtime: ${src} -> ${dest}`));
+    }
+}
+
+/**
+ * 把系统里的 vcomp140.dll（vc_redist 装进 System32 的那份）装到目标目录。
+ *
+ * MSVC 的 OpenMP 运行时只有 DLL 形式、无法静态链接，而关掉 OpenMP 实测 encode 慢
+ * ~30%、decode 慢一个量级（VM 内新旧二进制交替跑对比），因此与 vulkan-1.dll 同样
+ * 随 exe 分发。必须取 System32 的副本：那份是零外部依赖的（只依赖 KERNEL32），而
+ * VS 自带的 app-local 副本（Redist 目录下 x64 的 Microsoft.VC14x.OpenMP）依赖
+ * VCRUNTIME140 + UCRT，会把 /MT 去掉的依赖又请回来。与 release.yml 的 Package 步骤同源。
+ *
+ * @param {string} targetDir vcomp140.dll 的落地目录（exe 同级）。
+ * @returns {Promise<void>} 系统里没有该 DLL（未装 VC++ Redistributable）时抛出。
+ */
+async function installOpenMpRuntimeForWindows(targetDir) {
+    const src = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', VCOMP_DLL_NAME);
+    if (!fs.existsSync(src)) {
+        throw new Error(`找不到 ${src}：Windows 本地构建 whisper.cpp 需要先安装 VC++ Redistributable（微软官方 vc_redist.x64.exe）`);
+    }
+    const dest = path.join(targetDir, VCOMP_DLL_NAME);
+    fs.copyFileSync(src, dest);
+    console.info(chalk.green(`✅ openmp runtime: ${src} -> ${dest}`));
+}
+
+/**
+ * 校验 Windows whisper.cpp 运行时是否与 exe 配套：exe 对 vulkan-1.dll（ggml-vulkan
+ * 硬依赖）与 vcomp140.dll（MSVC OpenMP 运行时，/MT 去不掉）都是硬链接依赖，缺任何一个
+ * 在干净系统上都是加载期直接失败（0xC0000135、stderr 为空），必须当场抛错，
+ * 而不是留下一个默认识别引擎不可用的运行时。
+ * @param {string} basePath 运行时目录。
+ */
+const assertWhisperWindowsRuntimeComplete = (basePath) => {
+    if (platform !== 'win32') return;
+    for (const name of ['vulkan-1.dll', VCOMP_DLL_NAME]) {
+        const dllPath = path.join(basePath, name);
+        if (!fs.existsSync(dllPath)) {
+            throw new Error(`whisper.cpp Windows 运行时缺少 ${name}：${dllPath}，parakeet-cli 在干净系统上会直接起不来`);
+        }
+    }
+};
 
 /**
  * 本地源码构建 whisper.cpp parakeet-cli（开发机获取运行时的唯一路径）。
@@ -694,10 +789,20 @@ async function buildWhisperCppFromSource({ basePath, exeName }) {
         ? ['-DGGML_METAL=ON', '-DGGML_METAL_USE_BF16=ON', '-DGGML_METAL_EMBED_LIBRARY=ON', `-DCMAKE_OSX_ARCHITECTURES=${arch === 'arm64' ? 'arm64' : 'x86_64'}`]
         : [
             '-DGGML_VULKAN=ON',
-            // Windows 用静态 CRT（/MT），与 release.yml 对齐：MSVC 默认 /MD 会让二进制
-            // 依赖 VCRUNTIME140.dll / MSVCP140.dll（来自 VC++ Redistributable，不保证存在）
-            ...(platform === 'win32' ? ['-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded'] : []),
+            // Windows 两个参数与 release.yml 的 Configure (Vulkan) 步骤逐字对齐，缺一不可：
+            // CMP0091 为 OLD 时 CMAKE_MSVC_RUNTIME_LIBRARY 会被静默忽略（whisper.cpp 顶层
+            // cmake_minimum_required 只有 3.5），必须显式抬成 NEW；静态 CRT 去
+            // VCRUNTIME140.dll / MSVCP140.dll。OpenMP 保持开启（关掉实测 encode 慢 ~30%、
+            // decode 慢一个量级），vcomp140.dll 由 installOpenMpRuntimeForWindows 随包附带
+            ...(platform === 'win32'
+                ? ['-DCMAKE_POLICY_DEFAULT_CMP0091=NEW', '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded']
+                : []),
         ];
+    if (platform === 'win32') {
+        // 与 exe 配套的两个 DLL 先落地：缺件要在开跑几分钟编译之前就暴露
+        await installVulkanLoaderForWindows(basePath);
+        await installOpenMpRuntimeForWindows(basePath);
+    }
     console.info(chalk.blue('=> Building whisper.cpp parakeet-cli (first build takes a few minutes)...'));
     try {
         execSync(
@@ -726,6 +831,7 @@ async function buildWhisperCppFromSource({ basePath, exeName }) {
         return false;
     }
     fs.copyFileSync(builtPath, path.join(basePath, exeName));
+    assertWhisperWindowsRuntimeComplete(basePath);
     console.info(chalk.green(`✅ whisper.cpp parakeet-cli built and installed to ${basePath}`));
     return true;
 }
@@ -760,9 +866,9 @@ async function buildWhisperCppFromSource({ basePath, exeName }) {
         const localArchiveExists = Boolean(localArchivePath && fs.existsSync(localArchivePath));
 
         // parakeet-cli 的输出格式是解析契约（见 WhisperCppCli.parseOutput），所以已装的
-        // 二进制必须带上来源：标记与预期不符（换了 whisper.cpp ref / 手工放置）就重新安装。
-        // 运行时只由固定 ref 的源码构建产出，因此标记统一是 source:<ref>。
-        const expectedMarker = `source:${WHISPER_CPP_REF}`;
+        // 二进制必须带上来源：标记与预期不符（换了 whisper.cpp ref / 换了配方 / 手工放置）
+        // 就重新安装。二进制内容由 ref 与配方共同决定，标记统一是 source:<ref>+<配方>。
+        const expectedMarker = `source:${WHISPER_CPP_REF}+${WHISPER_RUNTIME_RECIPE}`;
         const installedMarker = readWhisperRuntimeMarker(markerPath);
         if (fs.existsSync(exePath) && installedMarker === expectedMarker) {
             console.info(chalk.green(`✅ File ${exeName} already exists (${expectedMarker})`));
@@ -777,7 +883,10 @@ async function buildWhisperCppFromSource({ basePath, exeName }) {
                     archivePath: localArchivePath,
                     outputPath: exePath,
                     binaryNameCandidates: ['parakeet-cli', 'parakeet-cli.exe'],
+                    // Windows 归档里 exe 之外还有 loader、OpenMP 运行时与许可证（release.yml 的 Package 步骤打包）
+                    extraCopyPatterns: platform === 'win32' ? [/^vulkan-1\.dll$/i, /^vcomp140\.dll$/i, /^VulkanRT-License\.txt$/] : [],
                 });
+                assertWhisperWindowsRuntimeComplete(basePath);
                 fs.writeFileSync(markerPath, `${expectedMarker}\n`);
             } else if (process.env.CI) {
                 // CI 上不许编译兜底：缺运行时说明 whisper-cpp-runtime 没产出该平台产物，
