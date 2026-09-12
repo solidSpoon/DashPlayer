@@ -184,7 +184,9 @@ jobs:
         if: matrix.os.name == 'windows'
         run: |
           choco install wixtoolset
-          echo "C:\Program Files (x86)\WiX Toolset v3.11\bin" >> $GITHUB_PATH
+          # pwsh 里环境变量必须写 $env:GITHUB_PATH；裸 $GITHUB_PATH 是未定义 PS 变量，
+          # 重定向会静默失败
+          Add-Content $env:GITHUB_PATH "C:\Program Files (x86)\WiX Toolset v3.11\bin"
       # AppImage maker (@reforged/maker-appimage) 需要系统提供 mksquashfs，
       # 显式安装而不依赖 runner 镜像恰好预装
       - name: Install squashfs-tools (Linux only)
