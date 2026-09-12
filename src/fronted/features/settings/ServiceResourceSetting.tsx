@@ -20,7 +20,12 @@ import { OPENAI_SUBTITLE_DEFAULT_STYLES } from '@/common/constants/openaiSubtitl
 import type { LocalAiModelStatus } from '@/common/contracts/local-ai';
 import type { TranscriptionEngine } from '@/common/contracts/transcription-engine';
 import type { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
-import type { ServiceCredentialSettingDetailVO, ServiceCredentialSettingSaveVO } from '@/common/types/vo/service-credentials-setting-vo';
+import type { ServiceCredentialSettingDetailVO } from '@/common/types/vo/service-credentials-setting-vo';
+import {
+    computeCloudModelUsage,
+    OpenAiModelUsageFeature,
+    OPEN_AI_MODEL_USAGE_FEATURES,
+} from '@/common/utils/cloud-model-usage';
 
 /** 内存低于该值（GB）时，本地增强模型跑起来会比较吃力。 */
 const ENHANCE_MIN_MEMORY_GB = 8;
@@ -101,14 +106,7 @@ const ServiceResourceSetting: React.FC = () => {
     } = useAutoSaveSettingsForm<ServiceCredentialSettingDetailVO>({
         form: credentialForm,
         onSave: async (values) => {
-            const payload: ServiceCredentialSettingSaveVO = {
-                ...values,
-                openai: {
-                    ...values.openai,
-                    models: values.openai.models.map((item) => item.model),
-                },
-            };
-            await settingsApi.saveServiceCredentials(payload);
+            await settingsApi.saveServiceCredentials(values);
         },
     });
 
@@ -174,9 +172,38 @@ const ServiceResourceSetting: React.FC = () => {
 
     /** 云端模型列表；字幕翻译、词典与整句讲解共用。 */
     const availableModels = React.useMemo(
-        () => settings?.openai.models.map((item) => item.model) ?? [],
+        () => settings?.openai.models ?? [],
         [settings],
     );
+
+    /**
+     * 按模型现算的功能占用，驱动云端模型表的「使用中」角标与删除拦截。
+     *
+     * 输入是功能设置区（引擎选择/整句讲解开关）的当前表单值：在下面把某功能
+     * 切到某个云端模型，上面的角标立刻跟着变，不等自动保存与详情刷新；规则
+     * 与后端删除拦截共用 computeCloudModelUsage。
+     */
+    const usageByModel = React.useMemo(() => {
+        const usage = computeCloudModelUsage({
+            sentenceLearningEnabled: watched.openai?.enableSentenceLearning === true,
+            subtitleTranslationEngine: watched.providers?.subtitleTranslationEngine ?? '',
+            dictionaryEngine: watched.providers?.dictionaryEngine ?? '',
+            modelSlots: {
+                sentenceLearning: watched.openai?.featureModels?.sentenceLearning ?? '',
+                subtitleTranslation: watched.openai?.featureModels?.subtitleTranslation ?? '',
+                dictionary: watched.openai?.featureModels?.dictionary ?? '',
+            },
+        });
+        const map = new Map<string, OpenAiModelUsageFeature[]>();
+        for (const feature of OPEN_AI_MODEL_USAGE_FEATURES) {
+            const model = usage[feature];
+            if (!model) continue;
+            const list = map.get(model) ?? [];
+            list.push(feature);
+            map.set(model, list);
+        }
+        return map;
+    }, [watched]);
 
     /**
      * 本地增强模型的下载进度：只改动聚合快照里对应那一行，结束后重新拉取完整状态。
@@ -362,8 +389,9 @@ const ServiceResourceSetting: React.FC = () => {
      * 写回字幕翻译或词典的引擎选择，并同步该功能记着的云端模型。
      *
      * 说明：下拉项里云端选项形如 `openai:<model>`，本地与关闭选项就是枚举值本身；
-     * 槽位只在引擎落在云端时有意义，切到本地/不补充时一并清空——留着它会让
-     * 「可用模型」表把该模型当成仍被占用（于是删不掉），而实际上没有任何调用会用到它。
+     * 槽位是「上次选的模型」备忘，只在引擎落在云端时有意义，切到本地/关闭时
+     * 一并清空，保持备忘与现状一致。占用判定由后端按引擎配置现算，不依赖
+     * 这里是否清理。
      *
      * @param value 下拉项的值，`openai:<model>` 或引擎名。
      * @param engineKey 要写入的引擎设置键。
@@ -399,8 +427,8 @@ const ServiceResourceSetting: React.FC = () => {
     /**
      * 写回整句讲解的选择：禁用时关掉开关，选中云端模型时同时开开关并记住模型。
      *
-     * 说明：禁用时一并清空模型槽位——否则「可用模型」表会继续把它标记为被整句讲解占用，
-     * 那个模型就删不掉了（同 applyEngineValue）。
+     * 说明：禁用时一并清空模型槽位，保持「上次选的模型」备忘与现状一致
+     * （同 applyEngineValue；占用判定由后端现算，不依赖这里是否清理）。
      *
      * @param value 下拉项值，`none` 或 `openai:<model>`。
      */
@@ -607,6 +635,7 @@ const ServiceResourceSetting: React.FC = () => {
                 >
                     <OpenAiCredentialCard
                         form={credentialForm}
+                        usageByModel={usageByModel}
                         testingModel={testingOpenAiModel}
                         testResults={openAiTestResults}
                         onTestModel={(model) => testOpenAiModel(model).catch(() => null)}

@@ -16,10 +16,8 @@ import { Input } from '@/fronted/components/ui/input';
 import { Label } from '@/fronted/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/fronted/components/ui/table';
-import {
-    OpenAiModelUsageFeature,
-    ServiceCredentialSettingDetailVO,
-} from '@/common/types/vo/service-credentials-setting-vo';
+import { ServiceCredentialSettingDetailVO } from '@/common/types/vo/service-credentials-setting-vo';
+import { OpenAiModelUsageFeature } from '@/common/utils/cloud-model-usage';
 import { CLOUD_AI_PROVIDER_PRESETS } from '@/common/constants/cloud-ai-provider-presets';
 import { AI_API_FORMATS, AiApiFormat } from '@/common/utils/cloud-ai-api-format';
 import toast from 'react-hot-toast';
@@ -32,6 +30,14 @@ export interface OpenAiModelTestResult {
 
 interface OpenAiCredentialCardProps {
     form: UseFormReturn<ServiceCredentialSettingDetailVO>;
+    /**
+     * 按模型标识现算的占用功能列表。
+     *
+     * 来源是功能设置区（引擎选择/整句讲解开关）的当前表单值，而非后端详情
+     * 快照——在下面把某功能切到某个云端模型，上表的「使用中」角标与删除
+     * 拦截立刻跟着变，不等保存刷新。
+     */
+    usageByModel: Map<string, OpenAiModelUsageFeature[]>;
     /** 正在测试的模型标识；非空时其余测试按钮一并禁用。 */
     testingModel: string | null;
     /** 按模型标识缓存的最近一次测试结果。 */
@@ -57,6 +63,7 @@ interface OpenAiCredentialCardProps {
  */
 export const OpenAiCredentialCard: React.FC<OpenAiCredentialCardProps> = ({
     form,
+    usageByModel,
     testingModel,
     testResults,
     onTestModel,
@@ -98,24 +105,19 @@ export const OpenAiCredentialCard: React.FC<OpenAiCredentialCardProps> = ({
     const handleAddModel = () => {
         const model = newModel.trim();
         if (!model) return;
-        if (openAiModels.some((item) => item.model === model)) {
+        if (openAiModels.includes(model)) {
             toast.error(`${t('common.saveFailed')}\n${t('serviceCredentials.openai.duplicateModel', { model })}`);
             return;
         }
-        setValue(
-            'openai.models',
-            [...openAiModels, { model, inUseBy: [] }],
-            { shouldDirty: true },
-        );
+        setValue('openai.models', [...openAiModels, model], { shouldDirty: true });
         setNewModel('');
     };
 
     const handleDeleteModel = (model: string) => {
-        const target = openAiModels.find((item) => item.model === model);
-        if (!target || target.inUseBy.length > 0) return;
+        if (!openAiModels.includes(model) || (usageByModel.get(model)?.length ?? 0) > 0) return;
         setValue(
             'openai.models',
-            openAiModels.filter((item) => item.model !== model),
+            openAiModels.filter((item) => item !== model),
             { shouldDirty: true },
         );
         onModelRemoved(model);
@@ -174,16 +176,17 @@ export const OpenAiCredentialCard: React.FC<OpenAiCredentialCardProps> = ({
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {openAiModels.map((item) => {
-                                const isTestingThisModel = testingModel === item.model;
-                                const result = testResults[item.model];
+                            {openAiModels.map((model) => {
+                                const isTestingThisModel = testingModel === model;
+                                const result = testResults[model];
+                                const usage = usageByModel.get(model) ?? [];
 
                                 return (
-                                    <TableRow key={item.model}>
-                                        <TableCell className="font-mono text-sm">{item.model}</TableCell>
+                                    <TableRow key={model}>
+                                        <TableCell className="font-mono text-sm">{model}</TableCell>
                                         <TableCell>
-                                            {item.inUseBy.length > 0
-                                                ? item.inUseBy.map((feature) => usageLabelMap[feature]).join(' / ')
+                                            {usage.length > 0
+                                                ? usage.map((feature) => usageLabelMap[feature]).join(' / ')
                                                 : t('serviceCredentials.openai.usageNone')}
                                         </TableCell>
                                         <TableCell>
@@ -213,7 +216,7 @@ export const OpenAiCredentialCard: React.FC<OpenAiCredentialCardProps> = ({
                                                     size="sm"
                                                     className="min-w-24 justify-center whitespace-nowrap"
                                                     disabled={disabled || testingModel !== null}
-                                                    onClick={() => onTestModel(item.model)}
+                                                    onClick={() => onTestModel(model)}
                                                 >
                                                     {isTestingThisModel ? (
                                                         <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
@@ -226,8 +229,8 @@ export const OpenAiCredentialCard: React.FC<OpenAiCredentialCardProps> = ({
                                                     type="button"
                                                     variant="ghost"
                                                     size="sm"
-                                                    disabled={item.inUseBy.length > 0}
-                                                    onClick={() => handleDeleteModel(item.model)}
+                                                    disabled={usage.length > 0}
+                                                    onClick={() => handleDeleteModel(model)}
                                                 >
                                                     <Trash2 className="w-4 h-4" />
                                                 </Button>

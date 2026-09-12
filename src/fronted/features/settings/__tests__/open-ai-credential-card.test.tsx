@@ -44,6 +44,7 @@ const renderCard = (defaultValues: ServiceCredentialSettingDetailVO) => {
         return (
             <OpenAiCredentialCard
                 form={form}
+                usageByModel={new Map()}
                 testingModel={null}
                 testResults={{}}
                 onTestModel={() => undefined}
@@ -74,7 +75,7 @@ describe('OpenAiCredentialCard', () => {
     it('选择 DeepSeek 预设后回填完整接口地址，且不覆盖已有模型列表', async () => {
         const user = userEvent.setup();
         renderCard(buildDefaultValues({
-            models: [{ model: 'existing-model', inUseBy: [] }],
+            models: ['existing-model'],
         }));
 
         await user.click(screen.getByRole('button', { name: '使用预设' }));
