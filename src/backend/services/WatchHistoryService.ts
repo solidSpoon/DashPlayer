@@ -26,6 +26,7 @@ import {
 } from '@/backend/services/watch-history-file-rules';
 import WatchHistoryLibrary from '@/backend/services/WatchHistoryLibrary';
 import WatchHistoryViewBuilder from '@/backend/services/WatchHistoryViewBuilder';
+import { SubtitleResolution } from '@/common/contracts/subtitle-resolution';
 import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
 import SubtitleService from '@/backend/services/SubtitleService';
 import { getMainLogger } from '@/backend/infrastructure/logger';
@@ -48,9 +49,9 @@ interface WatchHistoryService {
      * 独立解析播放记录应使用的字幕。
      *
      * @param id 观看记录 ID。
-     * @returns 字幕路径；没有匹配字幕时返回空字符串。
+     * @returns 字幕解析结论；没有匹配字幕时 `subtitlePath` 为空字符串。
      */
-    playerSubtitle(id: string): Promise<string>;
+    playerSubtitle(id: string): Promise<SubtitleResolution>;
 
     /**
      * 添加媒体文件
@@ -401,9 +402,9 @@ export class WatchHistoryServiceImpl implements WatchHistoryService {
      * 独立解析播放记录应使用的字幕，并优先基于实际播放的 HTML5 变体进行匹配。
      *
      * @param id 观看历史记录 ID。
-     * @returns 字幕路径；没有匹配字幕时返回空字符串。
+     * @returns 字幕解析结论；没有匹配字幕时 `subtitlePath` 为空字符串。
      */
-    public async playerSubtitle(id: string): Promise<string> {
+    public async playerSubtitle(id: string): Promise<SubtitleResolution> {
         const record = await this.watchHistoryRepository.findById(id);
         if (!record) {
             throw new Error(`观看记录不存在：${id}`);

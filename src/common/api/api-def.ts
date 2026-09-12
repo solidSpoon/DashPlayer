@@ -5,6 +5,7 @@ import type { ResourceFallbackSnapshot } from '@/common/contracts/resource-fallb
 import type { ResourceStatusSnapshot } from '@/common/contracts/resource-status';
 import type { MigrationFailureDetail } from '@/common/contracts/migration-failure';
 import type { GpuAcceleration } from '@/common/contracts/system-info';
+import type { SubtitleResolution } from '@/common/contracts/subtitle-resolution';
 import {OpenAIDictionaryResult} from '@/common/types/DictionaryResult';
 import {ChapterParseResult} from '@/common/types/chapter-result';
 import {SrtSentence, Sentence} from '@/common/types/SentenceC';
@@ -219,7 +220,7 @@ interface WatchHistoryDef {
     'watch-history/group-delete': { params: string, return: void };
     'watch-history/detail': { params: string, return: WatchHistoryVO | null };
     'watch-history/player-detail': { params: string, return: WatchHistoryVO | null };
-    'watch-history/player-subtitle': { params: string, return: string };
+    'watch-history/player-subtitle': { params: string, return: SubtitleResolution };
     'watch-history/attach-srt': { params: { videoPath: string, srtPath: string | 'same' }, return: void };
     'watch-history/suggest-srt': { params: string, return: string[] };
     'watch-history/get-next-video': { params: string, return: WatchHistoryVO | null };

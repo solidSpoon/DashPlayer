@@ -81,7 +81,7 @@ export default interface SubtitleService {
      * @param subtitlePath 字幕文件路径；空值表示当前视频没有字幕。
      * @param videoId 当前播放视频 ID。
      * @param playbackSessionId 字幕加载会话 ID。
-     * @returns 已结构化的字幕；会话已过期或没有字幕时返回 `null`。
+     * @returns 已结构化的字幕；会话已过期、没有字幕或字幕文件已不存在时返回 `null`。
      */
     parseSrtForPlayback(
         subtitlePath: string | null,
@@ -270,10 +270,13 @@ export class SubtitleServiceImpl implements SubtitleService {
      * 新会话会立即使同一视频的旧生词任务失效。旧视频发来的迟到请求不会反向
      * 覆盖当前播放视频；空字幕路径只更新会话，不执行文件解析。
      *
+     * 行为说明：字幕文件已不存在时按"没有字幕"返回 `null`，由前端清空字幕状态。
+     * 用户删除字幕属于正常状态而非异常，不应作为错误上报到界面；但仍记 warn 日志保留可观测性。
+     *
      * @param subtitlePath 字幕文件路径；空值表示当前视频没有字幕。
      * @param videoId 当前播放视频 ID。
      * @param playbackSessionId 字幕加载会话 ID。
-     * @returns 已结构化的字幕；会话已过期或没有字幕时返回 `null`。
+     * @returns 已结构化的字幕；会话已过期、没有字幕或字幕文件已不存在时返回 `null`。
      */
     public async parseSrtForPlayback(
         subtitlePath: string | null,
@@ -288,6 +291,15 @@ export class SubtitleServiceImpl implements SubtitleService {
         this.activePlaybackSessionId = playbackSessionId;
         this.vocabularyMatchGeneration += 1;
         if (StrUtil.isBlank(subtitlePath)) {
+            return null;
+        }
+
+        if (!(await this.fileSystemGateway.fileExists(subtitlePath!))) {
+            logger.warn('subtitle file missing, treated as no subtitle', {
+                subtitlePath,
+                videoId,
+                playbackSessionId,
+            });
             return null;
         }
 

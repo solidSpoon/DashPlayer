@@ -12,6 +12,21 @@ export enum TranscriptTaskState {
 }
 
 /**
+ * 判断任务是否还没跑完（已入队未开始、或执行中）。
+ *
+ * 入队的任务不会自动开始，需要显式启动；但对用户而言「已经在等这份字幕」已经成立，
+ * 不应再引导他生成一次。
+ *
+ * @param status 任务状态；缺省表示已入队未开始。
+ * @returns 是否尚未得出终态。
+ */
+export function isTaskPendingOrRunning(status?: TranscriptTaskState): boolean {
+    return status !== TranscriptTaskState.DONE
+        && status !== TranscriptTaskState.CANCELLED
+        && status !== TranscriptTaskState.FAILED;
+}
+
+/**
  * 增量转录单个识别分块的时长（秒）。
  *
  * 后端据此切分音频块，前端据此推导播放位置的上报去重粒度；两侧必须共用同一来源，

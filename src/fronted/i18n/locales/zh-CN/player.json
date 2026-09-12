@@ -21,6 +21,14 @@
         "tooltipTitle": "修复播放问题",
         "tooltipBody": "检查当前媒体为什么播放异常（无声、画面异常、逐句跳转不准），并在同目录生成一份修复后的副本。"
     },
+    "subtitleMismatch": {
+        "title": "字幕看起来不对？",
+        "noSubtitleDescription": "当前视频没有匹配到字幕。",
+        "nameMismatchDescription": "这个字幕的文件名和视频对不上，可能是别的视频的字幕。",
+        "chineseOnlyDescription": "当前字幕只有中文，没有英文原文。",
+        "ignore": "暂时忽略",
+        "generate": "生成字幕"
+    },
     "emptyState": {
         "heroTitle": "开启英语学习之旅",
         "heroDescription": "选择视频，通过双语字幕和智能学习工具提升英语水平。",

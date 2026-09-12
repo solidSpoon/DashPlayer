@@ -10,6 +10,7 @@ import StrUtil from '@/common/utils/str-util';
 import TimeUtil from '@/common/utils/TimeUtil';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
+import { SubtitleResolution } from '@/common/contracts/subtitle-resolution';
 
 /**
  * 将观看历史数据库记录转换为 renderer 使用的展示数据。
@@ -40,14 +41,14 @@ export default class WatchHistoryViewBuilder {
      * @returns 完整展示数据；视频文件不存在时返回 `null`。
      */
     public async buildFull(history: WatchHistoryRecord): Promise<WatchHistoryVO | null> {
-        const srtFile = await this.resolveSubtitleForPlayback(history);
-        if (srtFile === null) {
+        const resolution = await this.resolveSubtitleForPlayback(history);
+        if (resolution === null) {
             return null;
         }
 
         const filePath = path.join(history.base_path, history.file_name);
         const duration = await this.mediaService.duration(filePath);
-        return this.buildBase(history, duration, srtFile);
+        return this.buildBase(history, duration, resolution.subtitlePath);
     }
 
     /**
@@ -110,36 +111,41 @@ export default class WatchHistoryViewBuilder {
     /**
      * 解析观看记录使用的字幕文件。
      *
-     * 已关联字幕有效时直接使用；否则在视频目录中匹配最合适的字幕。
+     * 已关联字幕有效时直接使用（用户显式挂载或转录产出，视为可信）；
+     * 否则在视频目录中匹配最合适的字幕，并附带模糊兜底命中的可疑标记。
      *
      * @param history 观看历史数据库记录。
      * @param videoPath 视频文件路径。
-     * @returns 字幕文件路径；未匹配到时返回空字符串。
+     * @returns 字幕解析结论；未匹配到字幕时 `subtitlePath` 为空字符串。
      */
-    private async resolveSubtitle(history: WatchHistoryRecord, videoPath: string): Promise<string> {
+    private async resolveSubtitle(history: WatchHistoryRecord, videoPath: string): Promise<SubtitleResolution> {
         const configuredSubtitle = history.srt_file;
         if (StrUtil.isNotBlank(configuredSubtitle)) {
             await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(configuredSubtitle);
             const exists = await this.fileSystemGateway.fileExists(configuredSubtitle);
             if (exists) {
-                return configuredSubtitle;
+                return { subtitlePath: configuredSubtitle, mismatchSuspected: false };
             }
         }
 
         const subtitleFiles = await this.listSubtitleFiles(history.base_path);
-        return MatchSrt.matchOne(videoPath, subtitleFiles) ?? '';
+        const detail = MatchSrt.matchOneDetail(videoPath, subtitleFiles);
+        if (detail === null) {
+            return { subtitlePath: '', mismatchSuspected: false };
+        }
+        return { subtitlePath: detail.path, mismatchSuspected: detail.suspicious };
     }
 
     /**
      * 独立解析播放记录应使用的字幕文件。
      *
      * 已关联字幕有效时直接返回；否则扫描视频目录并匹配最合适的字幕。
-     * 返回 `null` 表示媒体文件本身不存在，空字符串表示媒体存在但没有匹配字幕。
+     * 返回 `null` 表示媒体文件本身不存在，`subtitlePath` 为空字符串表示媒体存在但没有匹配字幕。
      *
      * @param history 观看历史数据库记录。
-     * @returns 字幕路径、空字符串或媒体不存在时的 `null`。
+     * @returns 字幕解析结论或媒体不存在时的 `null`。
      */
-    public async resolveSubtitleForPlayback(history: WatchHistoryRecord): Promise<string | null> {
+    public async resolveSubtitleForPlayback(history: WatchHistoryRecord): Promise<SubtitleResolution | null> {
         const videoPath = path.join(history.base_path, history.file_name);
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(videoPath);
         if (!await this.fileSystemGateway.fileExists(videoPath)) {
