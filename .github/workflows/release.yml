@@ -86,20 +86,20 @@ jobs:
           Add-Content $env:GITHUB_PATH "C:\VulkanSDK\$env:VULKAN_VERSION\bin"
       - name: Configure (Vulkan)
         if: matrix.gpu == 'vulkan'
-        env:
-          # Windows 上三个参数必须一起给，都是为了让 parakeet-cli.exe 在干净 Windows
-          # （未装 VC++ Redistributable）上能起来：
-          # - CMAKE_POLICY_DEFAULT_CMP0091=NEW：whisper.cpp 顶层 cmake_minimum_required
-          #   是 3.5（ggml 是 3.14），CMP0091 为 OLD 时 CMAKE_MSVC_RUNTIME_LIBRARY 会被
-          #   静默忽略，/MT 从来没生效过；
-          # - CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded：静态 CRT，去掉
-          #   VCRUNTIME140.dll / MSVCP140.dll 依赖；
-          # - GGML_OPENMP=OFF：MSVC 的 OpenMP 运行时 vcomp140.dll 永远是动态链接、
-          #   不受 /MT 影响；关掉后 ggml 用自己的 std::thread 线程池，并行度不变。
-          # Vulkan 必须留在链接期（ggml-vulkan 硬依赖 vulkan-1.dll，非 delay-load），
-          # 由 Package 步骤把官方 loader 打进运行包
-          WINDOWS_BUILD_FLAGS: ${{ runner.os == 'Windows' && '-DCMAKE_POLICY_DEFAULT_CMP0091=NEW -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DGGML_OPENMP=OFF' || '' }}
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DGGML_VULKAN=ON -DBUILD_SHARED_LIBS=OFF -DWHISPER_BUILD_EXAMPLES=ON -DWHISPER_BUILD_TESTS=OFF $WINDOWS_BUILD_FLAGS
+        # Windows 上三个参数必须一起给，都是为了让 parakeet-cli.exe 在干净 Windows
+        # （未装 VC++ Redistributable）上能起来：
+        # - CMAKE_POLICY_DEFAULT_CMP0091=NEW：whisper.cpp 顶层 cmake_minimum_required
+        #   是 3.5（ggml 是 3.14），CMP0091 为 OLD 时 CMAKE_MSVC_RUNTIME_LIBRARY 会被
+        #   静默忽略，/MT 不生效；
+        # - CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded：静态 CRT，去掉
+        #   VCRUNTIME140.dll / MSVCP140.dll 依赖；
+        # - GGML_OPENMP=OFF：MSVC 的 OpenMP 运行时 vcomp140.dll 永远是动态链接、
+        #   不受 /MT 影响；关掉后 ggml 用自己的 std::thread 线程池，并行度不变。
+        # 参数用 ${{ }} 表达式内联而不是步骤 env + $VAR：Windows 的 run 默认 shell 是
+        # pwsh，POSIX 的 $VAR 语法不展开、参数会静默丢失（历史上 /MT 因此从未生效）。
+        # Vulkan 必须留在链接期（ggml-vulkan 硬依赖 vulkan-1.dll，非 delay-load），
+        # 由 Package 步骤把官方 loader 打进运行包
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DGGML_VULKAN=ON -DBUILD_SHARED_LIBS=OFF -DWHISPER_BUILD_EXAMPLES=ON -DWHISPER_BUILD_TESTS=OFF ${{ runner.os == 'Windows' && '-DCMAKE_POLICY_DEFAULT_CMP0091=NEW -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded -DGGML_OPENMP=OFF' || '' }}
       - name: Configure (Metal)
         if: matrix.gpu == 'metal'
         run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DGGML_METAL_USE_BF16=ON -DGGML_METAL_EMBED_LIBRARY=ON -DCMAKE_OSX_ARCHITECTURES=${{ contains(matrix.name, 'arm64') && 'arm64' || 'x86_64' }} -DBUILD_SHARED_LIBS=OFF -DWHISPER_BUILD_EXAMPLES=ON -DWHISPER_BUILD_TESTS=OFF
