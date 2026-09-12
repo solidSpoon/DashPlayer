@@ -1,0 +1,11 @@
+# 临时触发器：在修复分支上干跑 whisper.cpp 运行时矩阵（runtime_only），
+# 验证新加的 Windows 依赖断言与静态 CRT 构建；验证完成后删除本文件
+name: Dry run win runtime
+on:
+  push:
+    branches: [fix/win-whisper-runtime-deps]
+jobs:
+  runtime:
+    uses: ./.github/workflows/release.yml
+    with:
+      runtime_only: true
