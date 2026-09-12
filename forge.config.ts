@@ -187,7 +187,10 @@ const config: ForgeConfig = {
             // 原生库必须解到 app.asar.unpacked：dyld/ld.so 读不了 asar 内部，
             // 例如 onnxruntime 的 binding.node 会按 @rpath（自身目录）找
             // libonnxruntime.*，只解包 .node 会导致 dlopen 报 Library not loaded。
-            unpack: '**/*.{wasm,node,dylib,so,so.*}',
+            // Windows 同理：onnxruntime_binding.node 的导入表直接依赖同目录的
+            // onnxruntime.dll / DirectML.dll，DLL 留在 asar 内时 LoadLibrary
+            // 报「找不到指定的模块」（126），装机后启动即崩。
+            unpack: '**/*.{wasm,node,dylib,dll,so,so.*}',
         },
         icon: './assets/icons/icon',
         extraResource: ['./drizzle', './lib', './scripts', './resources'],
