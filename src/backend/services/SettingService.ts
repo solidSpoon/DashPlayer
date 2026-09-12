@@ -759,10 +759,12 @@ export class SettingServiceImpl implements SettingService {
                 return { success: false, message: '模型未在服务配置中启用' };
             }
             const model = this.aiProviderService.createModelById(modelId);
+            // 推理类模型（如 deepseek-flash）会先把额度花在 reasoning_content 上，
+            // 5 个 token 时正文必为空且 finish_reason=length，连通性被误判为失败
             const result = await generateText({
                 model,
                 prompt: 'Hello',
-                maxOutputTokens: 5,
+                maxOutputTokens: 50,
             });
 
             if (StrUtil.isNotBlank(result.text)) {
