@@ -4,6 +4,7 @@
   "version": "6.12.1",
   "description": "A video player designed for English learning",
   "main": ".vite/build/main.js",
+  "desktopName": "dashplayer.desktop",
   "scripts": {
     "download": "zx ./scripts/download.mjs",
     "build:dictionary": "node scripts/build-dictionary.mjs",
