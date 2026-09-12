@@ -49,9 +49,9 @@ interface OpenAiCredentialCardProps {
 /**
  * 云端服务卡片中的 OpenAI 区块：密钥、接口地址与可用模型列表。
  *
- * 预设通过「使用预设」弹窗选择，选中后仅回填接口地址与 API 类型（不预填
- * 模型），用户仍可自由修改各项内容；弹窗里同时提供各厂商控制台网址的
- * 复制与跳转，方便申请 API Key。
+ * 预设通过「使用预设」弹窗选择，选中后回填接口基础地址、版本路径与
+ * API 类型（不预填模型），用户仍可自由修改各项内容；弹窗里同时提供各
+ * 厂商控制台网址的复制与跳转，方便申请 API Key。
  *
  * 连通性测试按模型逐行进行，结果就展示在该模型所在行，避免一个按钮只测
  * 某一个模型、用户却不知道测了谁。
@@ -86,11 +86,12 @@ export const OpenAiCredentialCard: React.FC<OpenAiCredentialCardProps> = ({
         gemini: t('serviceCredentials.openai.apiFormatGemini'),
     }), [t]);
 
-    /** 选中预设后回填接口地址与 API 类型；不触碰密钥与模型列表。 */
+    /** 选中预设后回填接口基础地址、版本路径与 API 类型；不触碰密钥与模型列表。 */
     const applyPreset = (presetId: string) => {
         const preset = CLOUD_AI_PROVIDER_PRESETS.find((item) => item.id === presetId);
         if (!preset) return;
         setValue('openai.endpoint', preset.endpoint, { shouldDirty: true });
+        setValue('openai.versionPath', preset.versionPath, { shouldDirty: true });
         setValue('openai.apiFormat', preset.apiFormat, { shouldDirty: true });
         setPresetDialogOpen(false);
     };
@@ -155,10 +156,17 @@ export const OpenAiCredentialCard: React.FC<OpenAiCredentialCardProps> = ({
                         {t('serviceCredentials.openai.usePreset')}
                     </Button>
                 </div>
-                <Input
-                    {...register('openai.endpoint')}
-                    placeholder={t('serviceCredentials.openai.endpointPlaceholder')}
-                />
+                <div className="flex items-center gap-2">
+                    <Input
+                        {...register('openai.endpoint')}
+                        placeholder={t('serviceCredentials.openai.endpointPlaceholder')}
+                    />
+                    <Input
+                        {...register('openai.versionPath')}
+                        className="w-28 shrink-0 font-mono"
+                        placeholder={t('serviceCredentials.openai.versionPathPlaceholder')}
+                    />
+                </div>
                 <div className="text-xs text-muted-foreground">{t('serviceCredentials.openai.endpointHint')}</div>
             </div>
             <div className="space-y-2">
@@ -259,16 +267,16 @@ export const OpenAiCredentialCard: React.FC<OpenAiCredentialCardProps> = ({
                 <div className="text-xs text-muted-foreground">{t('serviceCredentials.openai.usedByHint')}</div>
             </div>
 
-            {/* 厂商预设弹窗：选择后回填接口地址与 API 类型 */}
+            {/* 厂商预设弹窗：选择后回填接口基础地址、版本路径与 API 类型 */}
             <Dialog open={presetDialogOpen} onOpenChange={setPresetDialogOpen}>
-                <DialogContent className="sm:max-w-[520px] rounded-xl p-5">
+                <DialogContent className="sm:max-w-[640px] rounded-xl p-6">
                     <DialogHeader>
                         <DialogTitle>{t('serviceCredentials.openai.presetDialogTitle')}</DialogTitle>
                         <DialogDescription>
                             {t('serviceCredentials.openai.presetDialogDescription')}
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="max-h-[360px] overflow-y-auto space-y-2 pr-1">
+                    <div className="max-h-[480px] overflow-y-auto space-y-2 pr-1">
                         {CLOUD_AI_PROVIDER_PRESETS.map((preset) => (
                             <div
                                 key={preset.id}
@@ -290,8 +298,8 @@ export const OpenAiCredentialCard: React.FC<OpenAiCredentialCardProps> = ({
                                         {t('serviceCredentials.openai.useThisPreset')}
                                     </Button>
                                 </div>
-                                <div className="truncate font-mono text-xs text-muted-foreground" title={preset.endpoint}>
-                                    {preset.endpoint}
+                                <div className="truncate font-mono text-xs text-muted-foreground" title={`${preset.endpoint}${preset.versionPath}`}>
+                                    {preset.endpoint}{preset.versionPath}
                                 </div>
                                 <div className="flex items-center justify-between gap-2">
                                     <span className="truncate text-xs text-muted-foreground" title={preset.consoleUrl}>

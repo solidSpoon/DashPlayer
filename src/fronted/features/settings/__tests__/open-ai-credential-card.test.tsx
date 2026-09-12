@@ -31,6 +31,7 @@ const buildDefaultValues = (
     openai: {
         key: '',
         endpoint: '',
+        versionPath: '/v1',
         apiFormat: 'openai',
         models: [],
         ...openai,
@@ -67,7 +68,7 @@ describe('OpenAiCredentialCard', () => {
         expect(within(dialog).getByText('选择厂商预设')).toBeInTheDocument();
         for (const preset of CLOUD_AI_PROVIDER_PRESETS) {
             expect(within(dialog).getByText(preset.name)).toBeInTheDocument();
-            expect(within(dialog).getByText(preset.endpoint)).toBeInTheDocument();
+            expect(within(dialog).getByText(`${preset.endpoint}${preset.versionPath}`)).toBeInTheDocument();
         }
     });
 
@@ -84,7 +85,8 @@ describe('OpenAiCredentialCard', () => {
         await user.click(useButtons[deepSeekIndex]);
 
         await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
-        expect(screen.getByDisplayValue('https://api.deepseek.com/v1')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('https://api.deepseek.com')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('/v1')).toBeInTheDocument();
         expect(screen.getByText('existing-model')).toBeInTheDocument();
     });
 
@@ -99,6 +101,7 @@ describe('OpenAiCredentialCard', () => {
         await user.click(useButtons[anthropicIndex]);
 
         expect(await screen.findByText('Anthropic 兼容')).toBeInTheDocument();
-        expect(screen.getByDisplayValue('https://api.anthropic.com/v1')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('https://api.anthropic.com')).toBeInTheDocument();
+        expect(screen.getByDisplayValue('/v1')).toBeInTheDocument();
     });
 });

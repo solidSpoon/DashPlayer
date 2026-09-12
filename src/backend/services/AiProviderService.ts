@@ -1,5 +1,6 @@
 import { storeGet } from '@/backend/infrastructure/settings/store';
 import { AI_API_FORMATS, AiApiFormat } from '@/common/utils/openai-endpoint';
+import { joinUrl } from '@/common/utils/Util';
 import StrUtil from '@/common/utils/str-util';
 import { inject, injectable } from 'inversify';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
@@ -68,8 +69,8 @@ export class AiProviderServiceImpl implements AiProviderService {
      *   等厂商的 Anthropic 兼容端点同样适用。
      * - gemini：@ai-sdk/google 的 generateContent 路径。
      *
-     * endpoint 存储语义是完整 base URL（含 /v1 等版本路径），由各 SDK 直接
-     * 作为 baseURL 使用。
+     * endpoint 与 versionPath 分开存储（基础地址 + 版本路径），这里拼接成完整
+     * base URL 由各 SDK 直接使用；versionPath 为空表示地址已完整、直接沿用。
      *
      * @param modelId 模型 ID（来自模型路由配置）。
      * @returns 可直接传给 generateText/streamText 的语言模型。
@@ -77,19 +78,21 @@ export class AiProviderServiceImpl implements AiProviderService {
     public createModelById(modelId: string): LanguageModel {
         const apiKey = storeGet('apiKeys.openAi.key');
         const endpoint = storeGet('apiKeys.openAi.endpoint');
+        const versionPath = storeGet('apiKeys.openAi.versionPath');
         const apiFormat = storeGet('apiKeys.openAi.apiFormat');
         if (!AI_API_FORMATS.includes(apiFormat as AiApiFormat)) {
             throw new Error(`设置项 apiKeys.openAi.apiFormat 非法: ${apiFormat}`);
         }
+        const baseURL = versionPath ? joinUrl(endpoint, versionPath) : endpoint;
         if (apiFormat === 'anthropic') {
-            return createAnthropic({ baseURL: endpoint, apiKey })(modelId);
+            return createAnthropic({ baseURL, apiKey })(modelId);
         }
         if (apiFormat === 'gemini') {
-            return createGoogleGenerativeAI({ baseURL: endpoint, apiKey })(modelId);
+            return createGoogleGenerativeAI({ baseURL, apiKey })(modelId);
         }
         const provider = createOpenAICompatible({
             name: 'openai',
-            baseURL: endpoint,
+            baseURL,
             apiKey: apiKey,
         });
         return provider.chatModel(modelId);

@@ -26,6 +26,7 @@ export const SettingKeyObj = {
     'apiKeys.tencent.secretKey': '',
     'apiKeys.openAi.key': '',
     'apiKeys.openAi.endpoint': '',
+    'apiKeys.openAi.versionPath': '/v1',
     'apiKeys.openAi.apiFormat': 'openai',
     'apiKeys.openAi.stream': 'on',
     'translation.engine': 'tencent',
