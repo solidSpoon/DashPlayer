@@ -25,14 +25,16 @@ export type ChatSessionCreateResult = {
 };
 
 /**
- * 向已有会话追加一条用户消息。
+ * 向已有会话追加一条用户消息并启动流式回答。
  */
-export type ChatStartParams = {
+export type ChatSendMessageParams = {
     sessionId: string;
+    /** 新增的用户文本。 */
     content: string;
 };
 
-export type ChatStartResult = {
+export type ChatSendMessageResult = {
+    /** 后端为本次回答分配的 assistant 消息 ID。 */
     messageId: string;
 };
 
@@ -45,7 +47,7 @@ export type ChatSessionCloseParams = {
 };
 
 /**
- * 暂停会话当前运行但保留会话历史的命令参数。
+ * 取消会话当前运行但保留会话供后续继续对话的命令参数。
  */
 export type ChatSessionStopParams = {
     /** 要取消当前运行的会话 ID。 */

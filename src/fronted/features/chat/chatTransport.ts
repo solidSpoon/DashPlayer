@@ -105,7 +105,7 @@ export class ElectronChatTransport<CHAT_MESSAGE extends UIMessage = UIMessage>
                 });
                 logger.info('chat stream request started', { sessionId });
 
-                chatApi.start({ sessionId, content }).catch((error) => {
+                chatApi.sendMessage({ sessionId, content }).catch((error) => {
                     const active = activeStreams.get(sessionId);
                     if (!active) {
                         return;

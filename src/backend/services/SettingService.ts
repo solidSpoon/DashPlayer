@@ -11,17 +11,22 @@ import { getMainLogger } from '@/backend/infrastructure/logger';
 import RendererEvents from '@/backend/services/gateways/renderer/RendererEvents';
 import { SettingsStore } from '@/backend/services/gateways/SettingsStore';
 import {
-    OpenAiAvailableModelDetailVO,
-    OpenAiModelUsageFeature,
     ServiceCredentialSettingDetailVO,
     ServiceCredentialSettingSaveVO,
 } from '@/common/types/vo/service-credentials-setting-vo';
+import {
+    CloudModelUsage,
+    computeCloudModelUsage,
+    OpenAiModelUsageFeature,
+    OPEN_AI_MODEL_USAGE_FEATURES,
+} from '@/common/utils/cloud-model-usage';
 import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 import { ShortcutSettingDetailVO, ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
 import { ProxySettingDetailVO, ProxySettingSaveVO } from '@/common/contracts/proxy-setting-vo';
 import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
 import { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
 import { getSubtitleDefaultStyle } from '@/common/constants/openaiSubtitlePrompts';
+import { AI_API_FORMATS } from '@/common/utils/cloud-ai-api-format';
 import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import type LocalAiService from '@/backend/services/LocalAiService';
 import {
@@ -36,6 +41,13 @@ import { TRANSCRIPTION_ENGINES, TranscriptionEngine } from '@/common/contracts/t
 const SUBTITLE_TRANSLATION_ENGINES = ['openai', 'local', 'local-mt', 'tencent', 'none'] as const;
 /** 词典引擎的合法取值。 */
 const DICTIONARY_ENGINES = ['openai', 'local', 'none'] as const;
+
+/** 功能占用提示与报错文案共用的功能中文名。 */
+const OPEN_AI_FEATURE_LABELS: Record<OpenAiModelUsageFeature, string> = {
+    sentenceLearning: '整句讲解',
+    subtitleTranslation: '字幕翻译',
+    dictionary: '词典查词',
+};
 
 /** 功能引擎取值（含 'invalid' 占位）。 */
 type FeatureEngine =
@@ -165,42 +177,33 @@ export class SettingServiceImpl implements SettingService {
     }
 
     /**
-     * 读取当前功能模型占用关系。
+     * 现算当前真正落到云端模型上的功能占用关系。
+     *
+     * 说明：功能模型槽位只是「上次选的模型」备忘，功能切走引擎或关闭后不会
+     * 被清理，直接读槽位会把残留值当成占用、导致模型删不掉。占用是引擎
+     * 配置与功能开关推导出的事实，规则在 computeCloudModelUsage 一份纯函数
+     * 里，与前端「使用中」角标共用。
      */
-    private getOpenAiFeatureModelUsage(): Record<OpenAiModelUsageFeature, string> {
-        return {
-            sentenceLearning: this.getValue('models.openai.sentenceLearning'),
-            subtitleTranslation: this.getValue('models.openai.subtitleTranslation'),
-            dictionary: this.getValue('models.openai.dictionary'),
-        };
-    }
-
-    /**
-     * 构建可用模型详情并标记占用来源。
-     */
-    private buildOpenAiModelDetails(availableModels: string[]): OpenAiAvailableModelDetailVO[] {
-        const usageByFeature = this.getOpenAiFeatureModelUsage();
-        const usageMap = new Map<string, OpenAiModelUsageFeature[]>();
-
-        for (const feature of Object.keys(usageByFeature) as OpenAiModelUsageFeature[]) {
-            const model = usageByFeature[feature];
-            const list = usageMap.get(model) ?? [];
-            list.push(feature);
-            usageMap.set(model, list);
-        }
-
-        return availableModels.map((model) => ({
-            model,
-            inUseBy: usageMap.get(model) ?? [],
-        }));
+    private getOpenAiFeatureModelUsage(): CloudModelUsage {
+        return computeCloudModelUsage({
+            sentenceLearningEnabled: this.getValue('features.openai.enableSentenceLearning') === 'true',
+            subtitleTranslationEngine: this.getValue('providers.subtitleTranslation'),
+            dictionaryEngine: this.getValue('providers.dictionary'),
+            modelSlots: {
+                sentenceLearning: this.getValue('models.openai.sentenceLearning'),
+                subtitleTranslation: this.getValue('models.openai.subtitleTranslation'),
+                dictionary: this.getValue('models.openai.dictionary'),
+            },
+        });
     }
 
     /**
      * 解析功能槽位最终要写入的云端模型。
      *
-     * 说明：槽位只在功能由云端承担时才有意义——引擎落在本地或功能关闭时写入空字符串，
-     * 免得留下一个没人调用、却被「可用模型」表当成仍被占用的尾巴（那个模型会因此删不掉）；
-     * 真正走云端的功能则必须指向一个可用模型，缺失或已失效直接报错，
+     * 说明：槽位是「上次选的模型」备忘，只在功能由云端承担时才有意义——
+     * 引擎切走或功能关闭时写入空字符串，保持备忘与现状一致；占用判定由
+     * getOpenAiFeatureModelUsage 现算，不依赖这里是否清理。真正走云端的
+     * 功能则必须指向一个可用模型，缺失或已失效直接报错，
      * 不静默换成列表里的第一个模型。
      *
      * @param candidate 槽位里记着的模型标识。
@@ -361,22 +364,21 @@ export class SettingServiceImpl implements SettingService {
     /**
      * 查询服务凭据设置。
      *
-     * 返回说明：
-     * - `openai.models` 返回结构化模型列表，并附带占用信息；
-     * - 其他字段按当前存储值映射为设置页表单结构。
+     * 返回说明：模型列表只含标识；占用由前端按引擎选择现算（computeCloudModelUsage），
+     * 不随详情快照下发，其他字段按当前存储值映射为设置页表单结构。
      */
     public async getServiceCredentialsDetail(): Promise<ServiceCredentialSettingDetailVO> {
         const availableModels = this.parseOpenAiModels(this.getValue('models.openai.available'));
-        const modelDetails = this.buildOpenAiModelDetails(availableModels);
         return {
             openai: {
                 key: this.getValue('apiKeys.openAi.key'),
                 endpoint: this.getValue('apiKeys.openAi.endpoint'),
-                autoAppendV1: this.requireBooleanString(
-                    this.getValue('apiKeys.openAi.autoAppendV1'),
-                    'apiKeys.openAi.autoAppendV1',
+                apiFormat: this.requireEnumValue(
+                    this.getValue('apiKeys.openAi.apiFormat'),
+                    AI_API_FORMATS,
+                    'apiKeys.openAi.apiFormat',
                 ),
-                models: modelDetails,
+                models: availableModels,
             },
             tencent: {
                 secretId: this.getValue('apiKeys.tencent.secretId'),
@@ -390,13 +392,12 @@ export class SettingServiceImpl implements SettingService {
      *
      * 行为说明：
      * - `openai.models` 使用结构化数组保存为标准换行文本；
-     * - 当前被功能占用的模型禁止删除。
+     * - 被云端功能实际占用的模型禁止删除，占用按引擎配置与功能开关现算
+     *   （见 getOpenAiFeatureModelUsage）。
      */
     public async saveServiceCredentials(settings: ServiceCredentialSettingSaveVO): Promise<void> {
         const currentAvailableModels = this.parseOpenAiModels(this.getValue('models.openai.available'));
-        if (typeof settings.openai.autoAppendV1 !== 'boolean') {
-            throw new Error('openai.autoAppendV1 必须为布尔值');
-        }
+        const apiFormat = this.requireEnumValue(settings.openai.apiFormat, AI_API_FORMATS, 'openai.apiFormat');
         const parsedModels = settings.openai.models.map((item) => item.trim());
         if (parsedModels.some((item) => item.length === 0)) {
             throw new Error('openai.models 包含空模型标识');
@@ -409,16 +410,16 @@ export class SettingServiceImpl implements SettingService {
         const usageByFeature = this.getOpenAiFeatureModelUsage();
         const removedModels = currentAvailableModels.filter((model) => !dedupedModels.includes(model));
         for (const removedModel of removedModels) {
-            for (const feature of Object.keys(usageByFeature) as OpenAiModelUsageFeature[]) {
+            for (const feature of OPEN_AI_MODEL_USAGE_FEATURES) {
                 if (usageByFeature[feature] === removedModel) {
-                    throw new Error(`模型 ${removedModel} 正被功能 ${feature} 使用，不能删除`);
+                    throw new Error(`「${removedModel}」正被「${OPEN_AI_FEATURE_LABELS[feature]}」使用，请先在功能设置中更换模型或切换引擎`);
                 }
             }
         }
 
         await this.setValue('apiKeys.openAi.key', settings.openai.key);
         await this.setValue('apiKeys.openAi.endpoint', settings.openai.endpoint);
-        await this.setValue('apiKeys.openAi.autoAppendV1', settings.openai.autoAppendV1 ? 'true' : 'false');
+        await this.setValue('apiKeys.openAi.apiFormat', apiFormat);
         await this.setValue('models.openai.available', dedupedModels.join('\n'));
 
         await this.setValue('apiKeys.tencent.secretId', settings.tencent.secretId);
@@ -483,8 +484,9 @@ export class SettingServiceImpl implements SettingService {
      * 枚举字段为 `'invalid'` 占位时跳过对应键，保留原存储值（仍非法），
      * 其余字段正常保存；用户重新选择合法值后才会写回。
      *
-     * 功能模型槽位跟着引擎走：不落云端的功能够写入空值（见 resolveFeatureModelSlot），
-     * 因此引擎切到本地后保存一次，该功能记着的云端模型即被清掉。
+     * 功能模型槽位只是「上次选的模型」备忘：引擎切走或功能关闭时写入空值
+     * 保持备忘与现状一致（见 resolveFeatureModelSlot）；占用判定另有现算
+     * （getOpenAiFeatureModelUsage），不依赖槽位是否被清理。
      */
     public async saveEngineSelection(settings: EngineSelectionSettingVO): Promise<void> {
         if (settings.providers.subtitleTranslationEngine === 'invalid') {

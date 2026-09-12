@@ -36,8 +36,8 @@ import {
     ChatSessionCreateParams,
     ChatSessionCreateResult,
     ChatSessionStopParams,
-    ChatStartParams,
-    ChatStartResult,
+    ChatSendMessageParams,
+    ChatSendMessageResult,
     CompleteSentenceParams,
     CompleteSentenceResult,
 } from '@/common/types/chat';
@@ -196,7 +196,7 @@ interface ChatDef {
     'chat/session/create': { params: ChatSessionCreateParams, return: ChatSessionCreateResult };
     'chat/session/close': { params: ChatSessionCloseParams, return: void };
     'chat/session/stop': { params: ChatSessionStopParams, return: void };
-    'chat/start': { params: ChatStartParams, return: ChatStartResult };
+    'chat/send-message': { params: ChatSendMessageParams, return: ChatSendMessageResult };
     /** 补全被换行截断的字幕为完整句；仅云端整句学习启用时可用。 */
     'chat/complete-sentence': { params: CompleteSentenceParams, return: CompleteSentenceResult };
     /** 整句讲解当前是否可用（功能已启用且云端模型已配好），供学习页决定入口是否置灰。 */

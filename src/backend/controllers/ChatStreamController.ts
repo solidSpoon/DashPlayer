@@ -7,17 +7,22 @@ import {
     ChatSessionCloseParams,
     ChatSessionCreateParams,
     ChatSessionCreateResult,
-    ChatStartParams,
-    ChatStartResult,
+    ChatSessionStopParams,
+    ChatSendMessageParams,
+    ChatSendMessageResult,
     CompleteSentenceParams,
     CompleteSentenceResult,
 } from '@/common/types/chat';
 import { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
+import SentenceLearningService from '@/backend/services/SentenceLearningService';
 
 @injectable()
 export default class ChatStreamController implements Controller {
     @inject(TYPES.ChatSessionService)
     private chatSessionService!: ChatSessionService;
+
+    @inject(TYPES.SentenceLearningService)
+    private sentenceLearningService!: SentenceLearningService;
 
     registerRoutes(): void {
         registerRoute('chat/session/create', async (
@@ -30,12 +35,12 @@ export default class ChatStreamController implements Controller {
             this.chatSessionService.close(params.sessionId);
         });
 
-        registerRoute('chat/session/stop', async (params: ChatSessionCloseParams): Promise<void> => {
+        registerRoute('chat/session/stop', async (params: ChatSessionStopParams): Promise<void> => {
             this.chatSessionService.stop(params.sessionId);
         });
 
-        registerRoute('chat/start', async (params: ChatStartParams): Promise<ChatStartResult> => {
-            return this.chatSessionService.start(params.sessionId, params.content);
+        registerRoute('chat/send-message', async (params: ChatSendMessageParams): Promise<ChatSendMessageResult> => {
+            return this.chatSessionService.sendMessage(params);
         });
 
         registerRoute('chat/analysis/start', async (params: AnalysisStartParams): Promise<AnalysisStartResult> => {
@@ -45,11 +50,11 @@ export default class ChatStreamController implements Controller {
         registerRoute('chat/complete-sentence', async (
             params: CompleteSentenceParams,
         ): Promise<CompleteSentenceResult> => {
-            return this.chatSessionService.completeSentence(params);
+            return this.sentenceLearningService.completeSentence(params);
         });
 
         registerRoute('chat/learning/available', async (): Promise<boolean> => {
-            return this.chatSessionService.isLearningAvailable();
+            return this.sentenceLearningService.isLearningAvailable();
         });
 
     }
