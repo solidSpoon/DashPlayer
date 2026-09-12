@@ -22,7 +22,7 @@ import { ProxySettingDetailVO, ProxySettingSaveVO } from '@/common/contracts/pro
 import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
 import { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
 import { getSubtitleDefaultStyle } from '@/common/constants/openaiSubtitlePrompts';
-import { AI_API_FORMATS } from '@/common/utils/openai-endpoint';
+import { AI_API_FORMATS } from '@/common/utils/cloud-ai-api-format';
 import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import type LocalAiService from '@/backend/services/LocalAiService';
 import {

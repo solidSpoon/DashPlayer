@@ -1,5 +1,5 @@
 import { storeGet } from '@/backend/infrastructure/settings/store';
-import { AI_API_FORMATS, AiApiFormat } from '@/common/utils/openai-endpoint';
+import { AI_API_FORMATS, AiApiFormat } from '@/common/utils/cloud-ai-api-format';
 import StrUtil from '@/common/utils/str-util';
 import { inject, injectable } from 'inversify';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';

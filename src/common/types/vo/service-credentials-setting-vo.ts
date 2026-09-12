@@ -1,4 +1,4 @@
-import type { AiApiFormat } from '@/common/utils/openai-endpoint';
+import type { AiApiFormat } from '@/common/utils/cloud-ai-api-format';
 
 /**
  * 功能占用标识。

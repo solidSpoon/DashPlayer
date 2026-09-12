@@ -1,4 +1,4 @@
-import { AiApiFormat } from '@/common/utils/openai-endpoint';
+import { AiApiFormat } from '@/common/utils/cloud-ai-api-format';
 
 /**
  * 云端 AI 厂商预设模板。

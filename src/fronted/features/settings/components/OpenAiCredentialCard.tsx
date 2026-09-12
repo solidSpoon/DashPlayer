@@ -21,7 +21,7 @@ import {
     ServiceCredentialSettingDetailVO,
 } from '@/common/types/vo/service-credentials-setting-vo';
 import { CLOUD_AI_PROVIDER_PRESETS } from '@/common/constants/cloud-ai-provider-presets';
-import { AI_API_FORMATS, AiApiFormat } from '@/common/utils/openai-endpoint';
+import { AI_API_FORMATS, AiApiFormat } from '@/common/utils/cloud-ai-api-format';
 import toast from 'react-hot-toast';
 
 /** 单个模型的连通性测试结果。 */
