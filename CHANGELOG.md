@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.12.1](https://github.com/solidSpoon/DashPlayer/compare/v6.12.0...v6.12.1) (2026-09-12)
+
+
+### Bug Fixes
+
+* 打包解出 Windows 动态库，修复装机版启动即崩 ([b8dcdf2](https://github.com/solidSpoon/DashPlayer/commit/b8dcdf2f2dda66f636de1860053dda67b4071231))
+* 打包解出 Windows 动态库，修复装机版启动即崩 ([89da8f2](https://github.com/solidSpoon/DashPlayer/commit/89da8f2a11c0e3cd20a2b161a89fcd9159f9d154))
+* 轻量翻译引擎原生库改为按需加载，不再拖垮启动 ([d421dc1](https://github.com/solidSpoon/DashPlayer/commit/d421dc1cc6c29b9b5ed88ff26cce9c4c6eb7c919))
+
 ## [6.12.0](https://github.com/solidSpoon/DashPlayer/compare/v6.11.2...v6.12.0) (2026-09-12)
 
 
