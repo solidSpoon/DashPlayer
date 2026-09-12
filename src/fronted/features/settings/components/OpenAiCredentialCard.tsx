@@ -156,17 +156,15 @@ export const OpenAiCredentialCard: React.FC<OpenAiCredentialCardProps> = ({
                         {t('serviceCredentials.openai.usePreset')}
                     </Button>
                 </div>
-                <div className="flex items-center gap-2">
-                    <Input
-                        {...register('openai.endpoint')}
-                        placeholder={t('serviceCredentials.openai.endpointPlaceholder')}
-                    />
-                    <Input
-                        {...register('openai.versionPath')}
-                        className="w-28 shrink-0 font-mono"
-                        placeholder={t('serviceCredentials.openai.versionPathPlaceholder')}
-                    />
-                </div>
+                <Input
+                    {...register('openai.endpoint')}
+                    placeholder={t('serviceCredentials.openai.endpointPlaceholder')}
+                />
+                <Input
+                    {...register('openai.versionPath')}
+                    className="w-28 font-mono"
+                    placeholder={t('serviceCredentials.openai.versionPathPlaceholder')}
+                />
                 <div className="text-xs text-muted-foreground">{t('serviceCredentials.openai.endpointHint')}</div>
             </div>
             <div className="space-y-2">

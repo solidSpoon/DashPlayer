@@ -309,7 +309,7 @@
             "usePreset": "Use preset",
             "endpointPlaceholder": "https://api.deepseek.com",
             "versionPathPlaceholder": "/v1",
-            "endpointHint": "Base URL on the left, version path on the right (e.g. /v1, /v1beta; leave empty if not needed); click \"Use preset\" above to fill both.",
+            "endpointHint": "Base URL in the first box, version path in the second (e.g. /v1, /v1beta; leave empty if not needed); click \"Use preset\" above to fill both.",
             "presetDialogTitle": "Choose provider preset",
             "presetDialogDescription": "Selecting one fills in the base URL, version path and API format automatically; you only need to enter the API key and models.",
             "useThisPreset": "Use",
