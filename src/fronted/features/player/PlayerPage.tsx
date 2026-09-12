@@ -23,6 +23,7 @@ import {
 } from '@/fronted/components/shared/toasts/PlaybackRepairToast';
 import { SubtitleSuspicionToast } from '@/fronted/components/shared/toasts/SubtitleSuspicionToast';
 import { useSubtitleSuspicion } from '@/fronted/features/player/subtitleSuspicion';
+import { useSubtitleSuspicionNudge } from '@/fronted/features/player/hooks/useSubtitleSuspicionNudge';
 import { startTranscriptionForCurrentVideo } from '@/fronted/features/player/startTranscription';
 import useSystem from '@/fronted/hooks/useSystem';
 import { playerApi } from '@/fronted/features/player/playerApi';
@@ -390,8 +391,9 @@ const PlayerWithControlsPage = () => {
         };
     }, [video, videoLoaded]);
     const subtitleSuspicions = useSubtitleSuspicion((s) => s.reasons);
+    const subtitleNudge = useSubtitleSuspicionNudge();
     useEffect(() => {
-        if (!video || !videoLoaded || subtitleSuspicions.length === 0) {
+        if (!video || !videoLoaded || !subtitleNudge) {
             return;
         }
         const videoKey = video.id;
@@ -429,7 +431,7 @@ const PlayerWithControlsPage = () => {
         return () => {
             window.clearTimeout(timer);
         };
-    }, [video, videoLoaded, subtitleSuspicions]);
+    }, [video, videoLoaded, subtitleSuspicions, subtitleNudge]);
     useEffect(() => {
         setSearchParams({sideBarAnimation: 'true'});
     }, [setSearchParams]);

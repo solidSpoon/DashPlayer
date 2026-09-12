@@ -7,7 +7,7 @@ import { useTranslation as useI18nTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { SWR_KEY } from '@/fronted/lib/swr-util';
 import { transcriptApi } from '@/fronted/features/transcript/transcriptApi';
-import { useSubtitleSuspicion } from '@/fronted/features/player/subtitleSuspicion';
+import { useSubtitleSuspicionNudge } from '@/fronted/features/player/hooks/useSubtitleSuspicionNudge';
 import { startTranscriptionForCurrentVideo } from '@/fronted/features/player/startTranscription';
 
 /** 播放器转录按钮属性。 */
@@ -19,7 +19,8 @@ interface TranscriptButtonProps {
 /**
  * 展示当前视频的后端转录状态，并允许直接启动转录。
  *
- * 字幕可疑（可能挂错或缺失）时图标右上角显示小圆点，提示用户生成字幕。
+ * 字幕可疑（可能挂错或缺失）且该视频没有排队中/运行中的转录任务时，
+ * 图标右上角显示小圆点，提示用户生成字幕。
  *
  * @param props 按钮样式属性。
  * @returns 播放器转录按钮。
@@ -27,7 +28,7 @@ interface TranscriptButtonProps {
 export default function TranscriptButton({ className }: TranscriptButtonProps) {
   const { t } = useI18nTranslation('player');
   const videoPath = useFile((s) => s.videoPath);
-  const suspicionReasons = useSubtitleSuspicion((s) => s.reasons);
+  const showSubtitleNudge = useSubtitleSuspicionNudge();
   const { data: tasks = [], error, mutate } = useSWR(
     SWR_KEY.TRANSCRIPTION_TASKS,
     transcriptApi.listTasks,
@@ -95,7 +96,7 @@ export default function TranscriptButton({ className }: TranscriptButtonProps) {
       tooltipMd={tooltipMd}
       variant="ghost"
       className={className}
-      dot={suspicionReasons.length > 0}
+      dot={showSubtitleNudge}
     />
   );
 }
