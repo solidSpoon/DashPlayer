@@ -128,11 +128,12 @@ jobs:
             cp "$(find vkrt-extract -name 'VulkanRT-License.txt' -print -quit)" stage/VulkanRT-License.txt
             # OpenMP 运行时（vcomp140.dll）同理要跟着 exe 走：MSVC 的 OpenMP 只有 DLL 形式，
             # /MT 也去不掉它，而关掉 OpenMP 实测 encode 慢 ~30%、decode 慢一个量级。
-            # 取 VS 自带的 Redist 副本（与 vc_redist 装到 system32 的是同一份文件，只依赖
-            # KERNEL32），不下载 vc_redist.x64.exe 再解包：版本与本次编译所用工具链一致；
-            # 路径里的 VC 版本号随 VS 更新变化，用通配匹配（只认 x64 的 OpenMP 目录）
-            VCOMP="$(find "/c/Program Files/Microsoft Visual Studio/2022" -path '*x64/Microsoft.VC14*.OpenMP/vcomp140.dll' -print -quit)"
-            [ -n "$VCOMP" ] || { echo "[FAIL] 在 VS Redist 目录里找不到 vcomp140.dll，检查 VS 安装是否完整"; exit 1; }
+            # 取系统里的那份（vc_redist 装进 System32 的版本，只依赖 KERNEL32）：VS 自带的
+            # app-local 副本（VC/Redist/MSVC/*/x64/Microsoft.VC14*.OpenMP/）是另一个构建，
+            # 自己依赖 VCRUNTIME140 + UCRT，拿它等于把刚用 /MT 去掉的依赖又请回来（实测被
+            # Verify 步骤拦下）。runner 镜像自带 VC++ Redistributable，缺件就 fail-closed
+            VCOMP="$(cygpath -u "${SystemRoot:-C:\\Windows}")/System32/vcomp140.dll"
+            [ -f "$VCOMP" ] || { echo "[FAIL] 找不到 $VCOMP：runner 缺少 VC++ Redistributable"; exit 1; }
             cp "$VCOMP" stage/vcomp140.dll
             (cd stage && 7z a "../whisper-cpp-${{ matrix.name }}.zip" parakeet-cli.exe vulkan-1.dll vcomp140.dll VulkanRT-License.txt)
           else
@@ -146,7 +147,6 @@ jobs:
         #   - 这两个 DLL 自身只依赖系统 DLL（附带的 DLL 自己还带依赖就等于没修）；
         #   - exe 确实导入了它们（拦住“参数静默丢失”这类回归：/MT 没生效、OpenMP 被关掉，
         #     历史上 $VAR 在 pwsh 下不展开就出过这种事）。
-        # 模式串不用 /c:：findstr 的 /c: 是字面量，[0-9] 不会按正则解释
         if: runner.os == 'Windows'
         shell: cmd
         run: |

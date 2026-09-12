@@ -669,45 +669,25 @@ async function installVulkanLoaderForWindows(targetDir) {
 }
 
 /**
- * 从本机 Visual Studio 的 Redist 目录里取 vcomp140.dll 装到目标目录。
+ * 把系统里的 vcomp140.dll（vc_redist 装进 System32 的那份）装到目标目录。
  *
  * MSVC 的 OpenMP 运行时只有 DLL 形式、无法静态链接，而关掉 OpenMP 实测 encode 慢
  * ~30%、decode 慢一个量级（VM 内新旧二进制交替跑对比），因此与 vulkan-1.dll 同样
- * 随 exe 分发。Redist 目录里的副本与 vc_redist 装进 system32 的是同一份文件，且版本
- * 与本次编译所用工具链一致（该 DLL 只依赖 KERNEL32，本身零外部依赖）。
- * 目录里的 “14.x” 会随 VS 更新变化，按通配查找；只认 x64 的 OpenMP 目录。
+ * 随 exe 分发。必须取 System32 的副本：那份是零外部依赖的（只依赖 KERNEL32），而
+ * VS 自带的 app-local 副本（Redist 目录下 x64 的 Microsoft.VC14x.OpenMP）依赖
+ * VCRUNTIME140 + UCRT，会把 /MT 去掉的依赖又请回来。与 release.yml 的 Package 步骤同源。
  *
  * @param {string} targetDir vcomp140.dll 的落地目录（exe 同级）。
- * @returns {Promise<void>} 本机没有可用的 VS Redist 副本时抛出。
+ * @returns {Promise<void>} 系统里没有该 DLL（未装 VC++ Redistributable）时抛出。
  */
 async function installOpenMpRuntimeForWindows(targetDir) {
-    const { execSync } = await import('node:child_process');
-    const vswhere = path.join(
-        process.env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)',
-        'Microsoft Visual Studio',
-        'Installer',
-        'vswhere.exe'
-    );
-    if (!fs.existsSync(vswhere)) {
-        throw new Error(`找不到 ${vswhere}：Windows 本地构建 whisper.cpp 需要 Visual Studio 的“使用 C++ 的桌面开发”工作负载（同时提供编译工具与 ${VCOMP_DLL_NAME}）`);
-    }
-    const vsRoot = execSync(`"${vswhere}" -latest -products * -property installationPath`, {encoding: 'utf8'}).trim();
-    const redistRoot = path.join(vsRoot, 'VC', 'Redist', 'MSVC');
-    const dll = fs.existsSync(redistRoot)
-        ? findFirstFile(
-            redistRoot,
-            (p) => path.basename(p).toLowerCase() === VCOMP_DLL_NAME
-                && /^x64$/i.test(path.basename(path.dirname(path.dirname(p))))
-                && /^Microsoft\.VC14\d*\.OpenMP$/i.test(path.basename(path.dirname(p))),
-            8
-        )
-        : null;
-    if (!dll) {
-        throw new Error(`在 ${redistRoot} 下找不到 x64 的 ${VCOMP_DLL_NAME}：请修复 VS 安装（“使用 C++ 的桌面开发”工作负载）后重试`);
+    const src = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', VCOMP_DLL_NAME);
+    if (!fs.existsSync(src)) {
+        throw new Error(`找不到 ${src}：Windows 本地构建 whisper.cpp 需要先安装 VC++ Redistributable（微软官方 vc_redist.x64.exe）`);
     }
     const dest = path.join(targetDir, VCOMP_DLL_NAME);
-    fs.copyFileSync(dll, dest);
-    console.info(chalk.green(`✅ openmp runtime: ${dll} -> ${dest}`));
+    fs.copyFileSync(src, dest);
+    console.info(chalk.green(`✅ openmp runtime: ${src} -> ${dest}`));
 }
 
 /**
