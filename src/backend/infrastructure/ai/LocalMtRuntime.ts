@@ -3,8 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import axios from 'axios';
-import { pipeline, env } from '@huggingface/transformers';
-import type { TranslationOutput } from '@huggingface/transformers';
+import type { pipeline, TranslationOutput } from '@huggingface/transformers';
 import TYPES from '@/backend/ioc/types';
 import StorageDirectoryProvider, { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import { concurrency } from '@/backend/utils/concurrency';
@@ -273,8 +272,9 @@ export class LocalMtRuntime implements LocalMtService {
     }
 
     /**
-     * 懒加载翻译 pipeline；transformers.js 经动态 import 引入，
-     * 未启用该引擎时不为应用启动增加 onnxruntime 负担。
+     * 懒加载翻译 pipeline：transformers.js 经动态 import 引入（它在模块顶层就
+     * require('onnxruntime-node')，静态引入会让未启用本引擎的启动路径也加载
+     * onnx 原生库，原生库异常会连累整个应用启动失败）。
      * 加载本身不可取消（onnx 会话构建无中断点）；调用方在加载前后自行检查取消。
      */
     private async ensurePipeline(): Promise<MtPipeline> {
@@ -285,6 +285,7 @@ export class LocalMtRuntime implements LocalMtService {
                 throw new Error('轻量翻译模型未安装，请前往设置-服务凭据下载');
             }
             const startedAt = Date.now();
+            const { pipeline, env } = await import('@huggingface/transformers');
             // 进程级全局突变：目前仓库唯一的 transformers.js 使用点；若出现第二个
             // 使用者，这两行会静默影响它，届时应改为每次调用前设置或封装。
             env.allowLocalModels = true;
