@@ -1,5 +1,5 @@
 import React from 'react';
-import { UseFormReturn } from 'react-hook-form';
+import { UseFormReturn, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, Loader2, Plus, TestTube, Trash2, XCircle } from 'lucide-react';
 import { cn } from '@/fronted/lib/utils';
@@ -47,10 +47,12 @@ export const OpenAiCredentialCard: React.FC<OpenAiCredentialCardProps> = ({
     disabled,
 }) => {
     const { t } = useTranslation('settings');
-    const { register, setValue, watch } = form;
+    const { register, setValue } = form;
     const [newModel, setNewModel] = React.useState('');
 
-    const openAiModels = watch('openai.models') ?? [];
+    // 渲染期 watch() 不会订阅字段变化，改用 useWatch 让开关与模型表随 setValue 即时刷新
+    const autoAppendV1 = useWatch({ control: form.control, name: 'openai.autoAppendV1' });
+    const openAiModels = useWatch({ control: form.control, name: 'openai.models' }) ?? [];
 
     const usageLabelMap: Record<OpenAiModelUsageFeature, string> = React.useMemo(() => ({
         sentenceLearning: t('serviceCredentials.openai.usageSentenceLearning'),
@@ -99,7 +101,7 @@ export const OpenAiCredentialCard: React.FC<OpenAiCredentialCardProps> = ({
                         <div className="text-xs text-muted-foreground">{t('serviceCredentials.openai.autoAppendV1Hint')}</div>
                     </div>
                     <Switch
-                        checked={watch('openai.autoAppendV1')}
+                        checked={autoAppendV1}
                         onCheckedChange={(checked) => setValue('openai.autoAppendV1', checked === true, { shouldDirty: true })}
                     />
                 </div>
