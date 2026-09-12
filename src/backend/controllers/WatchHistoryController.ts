@@ -3,6 +3,7 @@ import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import Controller from '@/backend/controllers/Controller';
 import WatchHistoryService from '@/backend/services/WatchHistoryService';
+import { SubtitleResolution } from '@/backend/services/WatchHistoryViewBuilder';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 
 @injectable()
@@ -58,9 +59,9 @@ export default class WatchHistoryController implements Controller {
      * 独立解析播放记录应使用的字幕。
      *
      * @param id 观看记录 ID。
-     * @returns 字幕路径；没有匹配字幕时返回空字符串。
+     * @returns 字幕解析结论；没有匹配字幕时 `subtitlePath` 为空字符串。
      */
-    public async playerSubtitle(id: string): Promise<string> {
+    public async playerSubtitle(id: string): Promise<SubtitleResolution> {
         return this.watchHistoryService.playerSubtitle(id);
     }
 

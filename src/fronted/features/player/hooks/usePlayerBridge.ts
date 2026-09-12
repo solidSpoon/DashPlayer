@@ -14,6 +14,11 @@ import useTranslation from '@/fronted/features/player/translationStore';
 import useVocabulary from '@/fronted/features/player/vocabularyStore';
 import { transcriptApi } from '@/fronted/features/transcript/transcriptApi';
 import { TRANSCRIPTION_CHUNK_SECONDS } from '@/common/contracts/transcript/transcript-task';
+import {
+    detectChineseOnlySubtitle,
+    mergeChineseOnlySuspicion,
+    useSubtitleSuspicion,
+} from '@/fronted/features/player/subtitleSuspicion';
 
 const logger = getRendererLogger('usePlayerBridge');
 
@@ -81,6 +86,8 @@ export function usePlayerBridge(navigate: (path: string) => void) {
             if (cancelled || videoPath !== useFile.getState().videoPath) return;
             if (incrementalSnapshot && incrementalSnapshot.sentences.length > 0) {
                 // 转录进行中：增量字幕优先于已挂载的 SRT，直到会话结束。
+                // 字幕正在重新生成，之前“字幕不对”的引导不再成立。
+                useSubtitleSuspicion.getState().setReasons([]);
                 useTranslation.getState().setActiveFileHash(incrementalSnapshot.sessionId);
                 playerActions.loadSubtitles(incrementalSnapshot.sentences);
                 return;
@@ -116,11 +123,15 @@ export function usePlayerBridge(navigate: (path: string) => void) {
                 });
                 useTranslation.getState().setActiveFileHash(result.fileHash);
                 playerActions.loadSubtitles(result.sentences);
+                // 字幕解析完成后才能判断是否纯中文，以增删方式合并进可疑结论
+                const chineseOnly = detectChineseOnlySubtitle(result.sentences);
+                mergeChineseOnlySuspicion(chineseOnly);
                 logger.info('subtitle parsing completed', {
                     videoId: currentVideoId,
                     subtitlePath: currentPath,
                     fileHash: result.fileHash,
                     sentenceCount: result.sentences.length,
+                    chineseOnlySuspected: chineseOnly,
                     playbackSessionId,
                 });
             } catch (error) {

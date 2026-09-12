@@ -21,6 +21,14 @@
         "tooltipTitle": "Fix playback",
         "tooltipBody": "Checks why the current media misbehaves (no sound, wrong picture, imprecise line jumps) and writes a fixed copy next to it."
     },
+    "subtitleMismatch": {
+        "title": "Subtitles look wrong?",
+        "noSubtitleDescription": "No subtitle was found for this video.",
+        "nameMismatchDescription": "The subtitle's filename doesn't match the video — it may belong to another video.",
+        "chineseOnlyDescription": "The subtitle is Chinese-only, with no English lines.",
+        "ignore": "Ignore for now",
+        "generate": "Generate subtitles"
+    },
     "emptyState": {
         "heroTitle": "Start your English learning journey",
         "heroDescription": "Pick a video and improve your English with bilingual subtitles and smart learning tools.",

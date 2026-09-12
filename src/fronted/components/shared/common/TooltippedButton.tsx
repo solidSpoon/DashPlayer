@@ -12,6 +12,8 @@ interface TooltippedButtonProps extends Omit<React.ComponentProps<typeof Button>
   tooltipMd?: string;
   tooltipClassName?: string;
   fullWidth?: boolean;
+  /** 为 true 时在图标右上角显示小圆点，用作不显眼的通知标记。 */
+  dot?: boolean;
 }
 
 export default function TooltippedButton({
@@ -21,6 +23,7 @@ export default function TooltippedButton({
   tooltipMd,
   tooltipClassName,
   fullWidth,
+  dot = false,
   className,
   variant = 'ghost',
   ...rest
@@ -32,7 +35,16 @@ export default function TooltippedButton({
         className={cn('justify-start', fullWidth && 'w-full', className)}
         {...rest}
       >
-        {Icon && <Icon className={iconClassName} />}
+        {Icon && (
+          dot ? (
+            <span className={cn(iconClassName, 'relative inline-flex shrink-0')}>
+              <Icon />
+              <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
+            </span>
+          ) : (
+            <Icon className={iconClassName} />
+          )
+        )}
         {text}
       </Button>
     </WithMarkdownTooltip>

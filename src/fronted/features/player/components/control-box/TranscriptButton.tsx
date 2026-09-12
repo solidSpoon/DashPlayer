@@ -1,15 +1,14 @@
 import React from 'react';
-import toast from 'react-hot-toast';
 import { codeBlock } from 'common-tags';
 import { Captions } from 'lucide-react';
 import TooltippedButton from '@/fronted/components/shared/common/TooltippedButton';
 import useFile from '@/fronted/features/file-browser/fileStore';
-import StrUtil from '@/common/utils/str-util';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { SWR_KEY } from '@/fronted/lib/swr-util';
 import { transcriptApi } from '@/fronted/features/transcript/transcriptApi';
-import { usePlayer } from '@/fronted/features/player/playerStore';
+import { useSubtitleSuspicion } from '@/fronted/features/player/subtitleSuspicion';
+import { startTranscriptionForCurrentVideo } from '@/fronted/features/player/startTranscription';
 
 /** 播放器转录按钮属性。 */
 interface TranscriptButtonProps {
@@ -20,12 +19,15 @@ interface TranscriptButtonProps {
 /**
  * 展示当前视频的后端转录状态，并允许直接启动转录。
  *
+ * 字幕可疑（可能挂错或缺失）时图标右上角显示小圆点，提示用户生成字幕。
+ *
  * @param props 按钮样式属性。
  * @returns 播放器转录按钮。
  */
 export default function TranscriptButton({ className }: TranscriptButtonProps) {
   const { t } = useI18nTranslation('player');
   const videoPath = useFile((s) => s.videoPath);
+  const suspicionReasons = useSubtitleSuspicion((s) => s.reasons);
   const { data: tasks = [], error, mutate } = useSWR(
     SWR_KEY.TRANSCRIPTION_TASKS,
     transcriptApi.listTasks,
@@ -80,20 +82,8 @@ export default function TranscriptButton({ className }: TranscriptButtonProps) {
    * 启动当前视频的后端转录任务。
    */
   const handleClick = async (): Promise<void> => {
-    const srtPath = videoPath;
-    if (StrUtil.isBlank(srtPath)) {
-      toast.error(t('transcript.noVideoSelected'));
-      return;
-    }
-    // 仅在点击瞬间读取播放位置作为转录起点，避免订阅高频播放时钟导致组件跟随渲染
-    const currentPosition = usePlayer.getState().getExactPlayTime();
-    const result = await transcriptApi.startTranscription(srtPath, currentPosition);
+    await startTranscriptionForCurrentVideo();
     await mutate();
-    if (result === 'model_missing') {
-      toast.error(t('transcript.modelMissing'));
-      return;
-    }
-    toast(t('transcript.addedToQueue'), { icon: '👏' });
   };
 
   return (
@@ -105,6 +95,7 @@ export default function TranscriptButton({ className }: TranscriptButtonProps) {
       tooltipMd={tooltipMd}
       variant="ghost"
       className={className}
+      dot={suspicionReasons.length > 0}
     />
   );
 }

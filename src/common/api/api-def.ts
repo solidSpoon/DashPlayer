@@ -214,7 +214,10 @@ interface WatchHistoryDef {
     'watch-history/group-delete': { params: string, return: void };
     'watch-history/detail': { params: string, return: WatchHistoryVO | null };
     'watch-history/player-detail': { params: string, return: WatchHistoryVO | null };
-    'watch-history/player-subtitle': { params: string, return: string };
+    'watch-history/player-subtitle': {
+        params: string,
+        return: { subtitlePath: string, mismatchSuspected: boolean }
+    };
     'watch-history/attach-srt': { params: { videoPath: string, srtPath: string | 'same' }, return: void };
     'watch-history/suggest-srt': { params: string, return: string[] };
     'watch-history/get-next-video': { params: string, return: WatchHistoryVO | null };
