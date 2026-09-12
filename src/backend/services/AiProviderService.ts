@@ -11,6 +11,10 @@ import TYPES from '@/backend/ioc/types';
 
 export type AiModelScene = 'sentenceLearning' | 'subtitleTranslation' | 'dictionary';
 
+/** 云端模型未配置时推给用户的引导文案：说明去哪配、可以用预设。即 getModel 返回 null 的用户可读形式。 */
+export const CLOUD_AI_NOT_CONFIGURED_MESSAGE =
+    '云端 AI 未配置：请到「设置 → 服务与资源」填写 API Key、接口地址与模型，或点「使用预设」快速填入';
+
 export default interface AiProviderService {
     getModel(scene: AiModelScene): LanguageModel | null;
     /**

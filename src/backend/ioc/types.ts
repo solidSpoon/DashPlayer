@@ -23,6 +23,7 @@ const TYPES = {
     ChatService: Symbol('ChatService'),
     ChatSessionService: Symbol('ChatSessionService'),
     ChatSessionStore: Symbol('ChatSessionStore'),
+    SentenceLearningService: Symbol('SentenceLearningService'),
     FfmpegGateway: Symbol('FfmpegGateway'),
     FfmpegService: Symbol('FfmpegService'),
     SplitVideoService: Symbol('SplitVideoService'),

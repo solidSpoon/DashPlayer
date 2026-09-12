@@ -1,7 +1,7 @@
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import {
     ChatSessionCreateParams,
-    ChatStartParams,
+    ChatSendMessageParams,
     CompleteSentenceParams,
     CompleteSentenceResult,
 } from '@/common/types/chat';
@@ -36,12 +36,12 @@ export const chatApi = {
     stopSession: (sessionId: string) => backendClient.call('chat/session/stop', { sessionId }),
 
     /**
-     * 启动聊天消息流。
+     * 向会话发送一条用户消息并启动流式回答。
      *
-     * @param params 聊天请求参数。
-     * @returns 后端创建的消息标识。
+     * @param params 会话 ID 与用户文本。
+     * @returns 后端为本次回答分配的消息标识。
      */
-    start: (params: ChatStartParams) => backendClient.call('chat/start', params),
+    sendMessage: (params: ChatSendMessageParams) => backendClient.call('chat/send-message', params),
 
     /**
      * 启动当前会话主题的结构化分析（懒加载，用户点击解析入口时触发）。

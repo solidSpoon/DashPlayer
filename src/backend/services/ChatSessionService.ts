@@ -1,17 +1,16 @@
 import { inject, injectable } from 'inversify';
 import { randomUUID } from 'node:crypto';
-import { APICallError, isStepCount, type LanguageModel, ModelMessage, Output, generateObject, streamText, toUIMessageStream, tool, UIMessageChunk } from 'ai';
+import { APICallError, isStepCount, type LanguageModel, ModelMessage, Output, streamText, toUIMessageStream, tool, UIMessageChunk } from 'ai';
 import { z } from 'zod';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
 import TYPES from '@/backend/ioc/types';
-import AiProviderService from '@/backend/services/AiProviderService';
+import AiProviderService, { CLOUD_AI_NOT_CONFIGURED_MESSAGE } from '@/backend/services/AiProviderService';
 import {
     ChatSessionCreateParams,
     ChatSessionCreateResult,
-    ChatStartResult,
-    CompleteSentenceParams,
-    CompleteSentenceResult,
+    ChatSendMessageParams,
+    ChatSendMessageResult,
 } from '@/common/types/chat';
 import { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
 import { AiUnifiedAnalysisSchema } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
@@ -19,16 +18,12 @@ import { WithRateLimit } from '@/backend/utils/concurrency/decorators';
 import { isUserCancellation } from '@/common/utils/cancellation';
 import {
     buildAnalysisPrompt,
-    buildCompleteSentencePrompt,
     buildSubtitleContext,
     ensureChatRoleMessage,
     splitSystemMessages,
 } from '@/backend/services/chat/ChatPromptBuilder';
 import ChatSessionStore from '@/backend/services/chat/ChatSessionStore';
 import CacheService from '@/backend/services/CacheService';
-
-/** 云端模型未配置时推给用户的引导文案：说明去哪配、可以用预设。 */
-const CLOUD_AI_NOT_CONFIGURED_MESSAGE = '云端 AI 未配置：请到「设置 → 服务与资源」填写 API Key、接口地址与模型，或点「使用预设」快速填入';
 
 /**
  * 把流内异常转成给用户看的错误文案。
@@ -49,37 +44,25 @@ const describeStreamError = (error: unknown): string => {
     return error instanceof Error ? error.message : String(error);
 };
 
-/**
- * 完整句补全的结构化输出契约。
- */
-const CompleteSentenceSchema = z.object({
-    /** 给定字幕行本身是否已是一个完整句子。 */
-    complete: z.boolean(),
-    /** 完整句子原文；当前行已完整时与原行保持一致。 */
-    sentence: z.string().min(1),
-    /** 完整句的中文译文。 */
-    translation: z.string().min(1),
-});
-
 export default interface ChatSessionService {
     create(params: ChatSessionCreateParams): ChatSessionCreateResult;
     close(sessionId: string): void;
     stop(sessionId: string): void;
-    start(sessionId: string, content: string): Promise<ChatStartResult>;
+    /**
+     * 向会话追加用户消息并基于 main 进程持有的历史流式生成回答。
+     *
+     * 说明：每轮对话都调用本方法（会话早已由 create 建立）；首轮把会话冻结的
+     * 字幕参考材料并入用户消息；模型未配置时推送错误片段而不是抛出。
+     */
+    sendMessage(params: ChatSendMessageParams): Promise<ChatSendMessageResult>;
+    /**
+     * 启动当前会话主题的结构化句子分析。
+     *
+     * 说明：结构化解析按需生成，用户点学习页的解析入口时才跑这一次模型调用；
+     * 会话与模型先校验、再宣告开始——宣告之后才失败会让渲染层永久停在「生成中」，
+     * 而这里的失败直接抛出，由渲染层落到分析错误态（那里有重试入口）。
+     */
     startAnalysis(params: AnalysisStartParams): Promise<AnalysisStartResult>;
-    /**
-     * 判断当前字幕行是否被换行截断，并尽力补全为完整句子。
-     *
-     * 说明：仅云端整句学习启用时可用（getModel 内部校验开关），
-     * 补全结果作为学习会话的主题原文，让解析与对话都围绕完整句进行。
-     */
-    completeSentence(params: CompleteSentenceParams): Promise<CompleteSentenceResult>;
-    /**
-     * 整句讲解当前是否可用：功能已启用且云端模型已配好。
-     *
-     * 说明：供学习页决定解析与对话入口是否置灰，避免用户点下去才发现用不了。
-     */
-    isLearningAvailable(): boolean;
 }
 
 
@@ -125,12 +108,6 @@ export class ChatSessionServiceImpl implements ChatSessionService {
     }
 
     /**
-     * 启动当前会话主题的结构化句子分析。
-     *
-     * 说明：结构化解析按需生成，用户点学习页的解析入口时才跑这一次模型调用；
-     * 会话与模型先校验、再宣告开始——宣告之后才失败会让渲染层永久停在「生成中」，
-     * 而这里的失败直接抛出，由渲染层落到分析错误态（那里有重试入口）。
-     *
      * @param params 会话 ID，主题从会话快照读取。
      * @returns 本次分析消息 ID。
      */
@@ -159,86 +136,19 @@ export class ChatSessionServiceImpl implements ChatSessionService {
     }
 
     /**
-     * 判断当前字幕行是否被换行截断，并尽力补全为完整句子。
-     *
-     * 说明：仅云端整句学习启用时可用（getModel 内部校验开关）；
-     * 补全结果作为学习会话的主题原文，让解析与对话都围绕完整句进行。
-     *
-     * @param params 当前字幕行及其前后紧邻字幕行。
-     * @returns 是否原本完整与补全后的句子。
-     */
-    @WithRateLimit('gpt')
-    public async completeSentence(params: CompleteSentenceParams): Promise<CompleteSentenceResult> {
-        const model = this.aiProviderService.getModel('sentenceLearning');
-        if (!model) {
-            throw new Error(CLOUD_AI_NOT_CONFIGURED_MESSAGE);
-        }
-        const startedAt = Date.now();
-        this.logger.info('complete sentence start', {
-            textLength: params.text.length,
-            precedingCount: params.precedingLines.length,
-            followingCount: params.followingLines.length,
-        });
-        try {
-            const result = await generateObject({
-                model,
-                schema: CompleteSentenceSchema,
-                prompt: buildCompleteSentencePrompt(params),
-            });
-            this.logger.info('complete sentence done', {
-                durationMs: Date.now() - startedAt,
-                complete: result.object.complete,
-                sentenceLength: result.object.sentence.length,
-            });
-            return result.object;
-        } catch (error) {
-            // 结构化输出解析/校验失败时，NoObjectGeneratedError 携带模型原始返回文本，
-            // 记进日志才能区分是模型输出格式问题还是接口问题。
-            const noObjectError = error as { name?: string; message?: string; text?: unknown };
-            this.logger.error('complete sentence failed', {
-                durationMs: Date.now() - startedAt,
-                errorName: noObjectError?.name,
-                errorMessage: noObjectError?.message,
-                rawText: typeof noObjectError?.text === 'string' ? noObjectError.text.slice(0, 500) : undefined,
-            });
-            throw error;
-        }
-    }
-
-    /**
-     * 整句讲解当前是否可用：功能已启用且云端模型已配好。
-     *
-     * 说明：判定直接复用 getModel，界面上的「可用」因此不会与真实调用结果漂移；
-     * getModel 在功能未启用或模型配置失效时抛错，对界面而言这些都等价于「暂不可用」，
-     * 故折成 false——真正发起调用时仍走 getModel，具体原因照旧抛出。
-     *
-     * @returns 可发起解析与对话时为 true。
-     */
-    public isLearningAvailable(): boolean {
-        try {
-            return this.aiProviderService.getModel('sentenceLearning') !== null;
-        } catch {
-            return false;
-        }
-    }
-
-    /**
      * 向会话追加用户消息并基于 main 进程持有的历史启动回答。
      *
      * 说明：首轮把会话冻结的字幕参考材料并入用户消息，保持角色严格交替，
      * 同时让参考材料固定落在历史最前端，后续轮次的提示词前缀完全不变；
      * 模型在写入历史前先解析：功能关闭或凭据缺失时不能留下一条永远没有回答的
      * 用户消息，否则后续轮次会出现连续两条用户消息。
-     *
-     * @param sessionId 会话 ID。
-     * @param content 新增的用户文本。
-     * @returns 新 assistant 消息的 ID。
      */
     @WithRateLimit('gpt')
-    public async start(
-        sessionId: string,
-        content: string,
-    ): Promise<ChatStartResult> {
+    public async sendMessage(
+        params: ChatSendMessageParams,
+    ): Promise<ChatSendMessageResult> {
+        const sessionId = params.sessionId;
+        const content = params.content;
         const session = this.chatSessionStore.get(sessionId);
         const model = this.aiProviderService.getModel('sentenceLearning');
         const messageId = this.createMessageId();
@@ -508,9 +418,8 @@ export class ChatSessionServiceImpl implements ChatSessionService {
         prompt: string,
         abortSignal: AbortSignal,
     ): Promise<void> {
-        const streamLogger = this.logger;
         const startedAt = Date.now();
-        streamLogger.info('analysis stream start', { sessionId, messageId });
+        this.logger.info('analysis stream start', { sessionId, messageId });
         const result = streamText({
             model,
             output: Output.object({ schema: AiUnifiedAnalysisSchema }),
@@ -522,7 +431,7 @@ export class ChatSessionServiceImpl implements ChatSessionService {
             chunkCount += 1;
             // chunk 频率极高，仅首 chunk 与每 20 个采样一次，避免逐 chunk 刷屏。
             if (chunkCount === 1 || chunkCount % 20 === 0) {
-                streamLogger.debug('analysis stream chunk', {
+                this.logger.debug('analysis stream chunk', {
                     sessionId,
                     messageId,
                     chunkCount,
@@ -539,14 +448,14 @@ export class ChatSessionServiceImpl implements ChatSessionService {
                 },
             });
         }
-        streamLogger.info('analysis stream done', {
+        this.logger.info('analysis stream done', {
             sessionId,
             messageId,
             chunkCount,
             durationMs: Date.now() - startedAt,
         });
         const finalObject = await result.output;
-        streamLogger.debug('analysis final object resolved', { sessionId, messageId });
+        this.logger.debug('analysis final object resolved', { sessionId, messageId });
         this.rendererGateway.fireAndForget('chat/analysis/stream', {
             sessionId,
             messageId,
@@ -568,7 +477,7 @@ export class ChatSessionServiceImpl implements ChatSessionService {
         sessionId: string,
         error: unknown,
     ): void {
-        const cancelled = this.isCancellation(error);
+        const cancelled = isUserCancellation(error);
         const errorMessage = describeStreamError(error);
         if (!cancelled) {
             this.logger.error('chat stream failed', { error: errorMessage });
@@ -586,7 +495,7 @@ export class ChatSessionServiceImpl implements ChatSessionService {
      * @param error 捕获到的异常。
      */
     private handleAnalysisError(sessionId: string, messageId: string, error: unknown): void {
-        const cancelled = this.isCancellation(error);
+        const cancelled = isUserCancellation(error);
         const errorMessage = describeStreamError(error);
         if (!cancelled) {
             this.logger.error('analysis stream failed', { error: errorMessage });
@@ -598,16 +507,5 @@ export class ChatSessionServiceImpl implements ChatSessionService {
                 ? { type: 'abort', reason: '用户已取消分析' }
                 : { type: 'error', errorText: errorMessage },
         });
-    }
-
-    /**
-     * 判断异常是否由用户主动取消产生。
-     *
-     * 统一走 common 的类型名判定：消息正则会把恰好含 "closed" 等字样的真实故障误判为取消并降级。
-     * @param error 捕获到的异常。
-     * @returns 属于取消语义时为 true。
-     */
-    private isCancellation(error: unknown): boolean {
-        return isUserCancellation(error);
     }
 }
