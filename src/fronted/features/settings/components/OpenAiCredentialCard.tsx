@@ -88,19 +88,11 @@ export const OpenAiCredentialCard: React.FC<OpenAiCredentialCardProps> = ({
         gemini: t('serviceCredentials.openai.apiFormatGemini'),
     }), [t]);
 
-    /** 请求路径输入框的示例占位，随所选 API 类型切换。 */
-    const requestPathPlaceholderMap: Record<AiApiFormat, string> = React.useMemo(() => ({
-        openai: t('serviceCredentials.openai.requestPathPlaceholderOpenai'),
-        anthropic: t('serviceCredentials.openai.requestPathPlaceholderAnthropic'),
-        gemini: t('serviceCredentials.openai.requestPathPlaceholderGemini'),
-    }), [t]);
-
-    /** 选中预设后回填接口地址与 API 类型，并清空请求路径（预设走标准路径）；不触碰密钥与模型列表。 */
+    /** 选中预设后回填接口地址与 API 类型；不触碰密钥与模型列表。 */
     const applyPreset = (presetId: string) => {
         const preset = CLOUD_AI_PROVIDER_PRESETS.find((item) => item.id === presetId);
         if (!preset) return;
         setValue('openai.endpoint', preset.endpoint, { shouldDirty: true });
-        setValue('openai.requestPath', '', { shouldDirty: true });
         setValue('openai.apiFormat', preset.apiFormat, { shouldDirty: true });
         setPresetDialogOpen(false);
     };
@@ -170,15 +162,6 @@ export const OpenAiCredentialCard: React.FC<OpenAiCredentialCardProps> = ({
                     placeholder={t('serviceCredentials.openai.endpointPlaceholder')}
                 />
                 <div className="text-xs text-muted-foreground">{t('serviceCredentials.openai.endpointHint')}</div>
-            </div>
-            <div className="space-y-2">
-                <Label>{t('serviceCredentials.openai.requestPathLabel')}</Label>
-                <Input
-                    {...register('openai.requestPath')}
-                    className="font-mono"
-                    placeholder={requestPathPlaceholderMap[apiFormat]}
-                />
-                <div className="text-xs text-muted-foreground">{t('serviceCredentials.openai.requestPathHint')}</div>
             </div>
             <div className="space-y-2">
                 <Label>{t('serviceCredentials.openai.modelsLabel')}</Label>

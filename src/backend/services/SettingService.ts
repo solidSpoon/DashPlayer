@@ -373,7 +373,6 @@ export class SettingServiceImpl implements SettingService {
             openai: {
                 key: this.getValue('apiKeys.openAi.key'),
                 endpoint: this.getValue('apiKeys.openAi.endpoint'),
-                requestPath: this.getValue('apiKeys.openAi.requestPath'),
                 apiFormat: this.requireEnumValue(
                     this.getValue('apiKeys.openAi.apiFormat'),
                     AI_API_FORMATS,
@@ -398,12 +397,6 @@ export class SettingServiceImpl implements SettingService {
     public async saveServiceCredentials(settings: ServiceCredentialSettingSaveVO): Promise<void> {
         const currentAvailableModels = this.parseOpenAiModels(this.getValue('models.openai.available'));
         const apiFormat = this.requireEnumValue(settings.openai.apiFormat, AI_API_FORMATS, 'openai.apiFormat');
-        if (typeof settings.openai.requestPath !== 'string') {
-            throw new Error('openai.requestPath 必须为字符串');
-        }
-        if (settings.openai.requestPath.length > 0 && !settings.openai.requestPath.startsWith('/')) {
-            throw new Error('openai.requestPath 非空时必须以 / 开头');
-        }
         const parsedModels = settings.openai.models.map((item) => item.trim());
         if (parsedModels.some((item) => item.length === 0)) {
             throw new Error('openai.models 包含空模型标识');
@@ -425,7 +418,6 @@ export class SettingServiceImpl implements SettingService {
 
         await this.setValue('apiKeys.openAi.key', settings.openai.key);
         await this.setValue('apiKeys.openAi.endpoint', settings.openai.endpoint);
-        await this.setValue('apiKeys.openAi.requestPath', settings.openai.requestPath);
         await this.setValue('apiKeys.openAi.apiFormat', apiFormat);
         await this.setValue('models.openai.available', dedupedModels.join('\n'));
 

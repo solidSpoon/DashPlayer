@@ -24,8 +24,6 @@ export type ServiceCredentialSettingDetailVO = {
         key: string;
         /** 云端接口完整 base URL（含 /v1 等版本路径）。 */
         endpoint: string;
-        /** 完整请求路径覆盖（如 /v1/messages）；空串表示走该 API 类型的标准路径。 */
-        requestPath: string;
         /** API 兼容格式：openai / anthropic / gemini。 */
         apiFormat: AiApiFormat;
         /** OpenAI 可用模型列表。 */
@@ -48,8 +46,6 @@ export type ServiceCredentialSettingSaveVO = {
         key: string;
         /** 云端接口完整 base URL（含 /v1 等版本路径）。 */
         endpoint: string;
-        /** 完整请求路径覆盖（如 /v1/messages）；空串表示走该 API 类型的标准路径。 */
-        requestPath: string;
         /** API 兼容格式：openai / anthropic / gemini。 */
         apiFormat: AiApiFormat;
         /** OpenAI 可用模型标识列表。 */

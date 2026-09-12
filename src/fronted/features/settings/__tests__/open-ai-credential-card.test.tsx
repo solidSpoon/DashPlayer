@@ -31,7 +31,6 @@ const buildDefaultValues = (
     openai: {
         key: '',
         endpoint: '',
-        requestPath: '',
         apiFormat: 'openai',
         models: [],
         ...openai,
@@ -75,7 +74,6 @@ describe('OpenAiCredentialCard', () => {
     it('选择 DeepSeek 预设后回填完整接口地址，且不覆盖已有模型列表', async () => {
         const user = userEvent.setup();
         renderCard(buildDefaultValues({
-            requestPath: '/custom/chat/completions',
             models: [{ model: 'existing-model', inUseBy: [] }],
         }));
 
@@ -87,8 +85,6 @@ describe('OpenAiCredentialCard', () => {
 
         await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
         expect(screen.getByDisplayValue('https://api.deepseek.com/v1')).toBeInTheDocument();
-        const requestPathInput = screen.getByPlaceholderText('serviceCredentials.openai.requestPathPlaceholderOpenai');
-        expect(requestPathInput).toHaveValue('');
         expect(screen.getByText('existing-model')).toBeInTheDocument();
     });
 
