@@ -2,21 +2,13 @@ import path from 'path';
 import leven from 'leven';
 import StrUtil from '@/common/utils/str-util';
 
-/**
- * 字幕命中方式。
- *
- * - `exact-name`：与视频同名（无语言后缀）；
- * - `lang-suffix`：视频名 + 语言后缀；
- * - `fuzzy`：编辑距离模糊兜底。
- */
-export type SrtMatchKind = 'exact-name' | 'lang-suffix' | 'fuzzy';
+/** 字幕命中方式。 */
+type SrtMatchKind = 'exact-name' | 'lang-suffix' | 'fuzzy';
 
 /** 单个字幕的匹配详情，用于判断字幕是否可能挂错。 */
 export interface SrtMatchDetail {
     /** 命中的字幕文件路径。 */
     path: string;
-    /** 命中方式。 */
-    kind: SrtMatchKind;
     /** 模糊兜底命中且文件名与视频存疑时为 true，可能是别的视频的字幕。 */
     suspicious: boolean;
 }
@@ -242,7 +234,7 @@ export default class MatchSrt {
     }
 
     /**
-     * 返回最优字幕匹配的详情，包括命中方式与模糊兜底命中的可疑标记。
+     * 返回最优字幕匹配的详情，包括模糊兜底命中的可疑标记。
      *
      * 同名与语言后缀命中视为可信（`suspicious` 恒为 false）；只有模糊兜底命中才做保守的
      * 名称存疑判定，供前端引导用户重新生成字幕。
@@ -261,7 +253,6 @@ export default class MatchSrt {
             ?? extractBaseName(videoPath);
         return {
             path: best.path,
-            kind: best.kind,
             suspicious: best.kind === 'fuzzy' && isSuspiciousFuzzyPair(referenceVideoName, extractBaseName(best.path)),
         };
     }
