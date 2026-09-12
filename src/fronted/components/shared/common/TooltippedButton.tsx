@@ -37,8 +37,8 @@ export default function TooltippedButton({
       >
         {Icon && (
           dot ? (
-            <span className={cn(iconClassName, 'relative inline-flex shrink-0')}>
-              <Icon />
+            <span className="relative inline-flex shrink-0">
+              <Icon className={iconClassName} />
               <span className="absolute -right-1 -top-1 h-2 w-2 rounded-full bg-primary ring-2 ring-background" />
             </span>
           ) : (
