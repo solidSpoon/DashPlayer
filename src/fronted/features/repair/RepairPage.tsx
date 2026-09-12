@@ -237,8 +237,8 @@ const RepairPage = () => {
      */
     const removeGroup = async (group: RepairGroup): Promise<void> => {
         for (const task of group.tasks) {
-            if (isRunning(task) && task.taskId !== null) {
-                await repairApi.cancelTask(task.taskId);
+            if (isRunning(task)) {
+                await repairApi.cancel(task.file);
             }
         }
         if (group.key === '') {
@@ -258,8 +258,8 @@ const RepairPage = () => {
      * @param task 目标记录。
      */
     const removeTask = async (task: RepairTask): Promise<void> => {
-        if (isRunning(task) && task.taskId !== null) {
-            await repairApi.cancelTask(task.taskId);
+        if (isRunning(task)) {
+            await repairApi.cancel(task.file);
             await mutate();
             return;
         }

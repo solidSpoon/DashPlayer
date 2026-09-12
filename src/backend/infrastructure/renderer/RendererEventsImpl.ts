@@ -3,6 +3,7 @@ import TYPES from '@/backend/ioc/types';
 import RendererEvents from '@/backend/services/gateways/renderer/RendererEvents';
 import { RuntimeSettingKey } from '@/common/contracts/runtime-settings';
 import { DpTask, DpTaskState } from '@/common/contracts/dp-task';
+import { RepairTaskEvent, RepairTaskState } from '@/common/contracts/playback-repair';
 import { createWindowedDeduper } from '@/common/log/windowed-dedup';
 import MainWindowRegistry from '@/backend/infrastructure/system/MainWindowRegistry';
 import { getMainLogger } from '@/backend/infrastructure/logger';
@@ -31,6 +32,9 @@ export default class RendererEventsImpl implements RendererEvents {
 
     /** 各任务上次推送给渲染进程的状态，用来只在状态跃迁时记日志。 */
     private readonly lastPushedStatus = new Map<number, DpTaskState>();
+
+    /** 各修复任务上次推送给渲染进程的状态，用来只在状态跃迁时记日志。 */
+    private readonly lastPushedRepairStatus = new Map<string, RepairTaskState>();
 
     /**
      * 解析可用的主窗口；不可用时显式记录丢弃原因。
@@ -105,6 +109,32 @@ export default class RendererEventsImpl implements RendererEvents {
             });
         }
         win.webContents.send('dp-task-update', task);
+    }
+
+    /**
+     * 向渲染进程推送修复任务实时事件。
+     *
+     * 进度更新是高频事件，只在状态跃迁（含首次推送）时记 info，
+     * 保证「修复何时进入 done/failed/cancelled」在日志里留下明确时间点。
+     *
+     * @param event 修复任务事件。
+     */
+    public repairTaskUpdate(event: RepairTaskEvent): void {
+        const win = this.resolveWindow('repair-task-update');
+        if (!win) {
+            return;
+        }
+        const previous = this.lastPushedRepairStatus.get(event.file);
+        if (previous !== event.status) {
+            this.lastPushedRepairStatus.set(event.file, event.status);
+            logger.info('repair status pushed to renderer', {
+                file: event.file,
+                from: previous ?? null,
+                to: event.status,
+                progress: event.progress ?? null,
+            });
+        }
+        win.webContents.send('repair-task-update', event);
     }
 
     /**

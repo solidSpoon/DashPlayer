@@ -6,6 +6,11 @@ import type { LocalAiSpeedTestResult, LocalAiStatus } from '@/common/contracts/l
 export interface LocalGenerateTextOptions {
     /** GBNF 语法文本；传入后 llama-server 在解码层约束输出形状（如恰好 N 行）。 */
     grammar?: string;
+    /**
+     * 采样温度覆盖；缺省用通用对话参数（0.6，与词典讲解等链路共享）。
+     * 翻译属近确定性任务，传入低值（如 0.3）减少元话发挥与填充凑行。
+     */
+    temperature?: number;
 }
 
 /** 本地模型安装、生命周期和结构化推理的业务边界。 */

@@ -1,49 +1,126 @@
 import { describe, expect, it } from 'vitest';
 import {
-    buildSubtitleBatchLinesGrammar,
-    parseSubtitleBatchLines,
+    buildLocalSubtitleFillGrammar,
+    buildLocalSubtitleFillPrompt,
+    parseLocalSubtitleFill,
 } from '@/backend/infrastructure/translate/subtitleBatchPrompt';
 
-/**
- * 紧凑行式输出的解析契约：本地模型按「每行一条译文」返回，
- * 行数必须与目标句数一致才能按序对齐；模型自发添加的装饰前缀
- * （实测 Qwen3-0.6B 会模仿 "- " 或自发 "1. "）不进入业务层。
- */
-describe('紧凑行式译文解析', () => {
-    it('按行拆分并返回与目标数一致的译文数组', () => {
-        const lines = parseSubtitleBatchLines('第一句\n第二句\n第三句', 3);
-        expect(lines).toEqual(['第一句', '第二句', '第三句']);
+/** 构造本地填槽提示词的最小语义输入；mode 决定目标语言。 */
+const fillInput = (texts: string[], mode: 'zh' | 'simple_en' | 'custom' = 'zh') => ({
+    targets: texts.map((text, index) => ({ key: `k${index}`, text })),
+    contextBefore: [],
+    contextAfter: [],
+    mode,
+});
+
+/** 与 grammar 构造一致的提示词骨架，用于 round-trip 校验。 */
+const buildSkeleton = (sources: string[]): string =>
+    `{"items":[${sources.map((source) => `{"source": ${JSON.stringify(source)}, "translation": ""}`).join(', ')}]}`;
+
+describe('本地填槽语法构造', () => {
+    it('骨架字面量与译文自由段交替，槽数与源文逐字固定', () => {
+        const grammar = buildLocalSubtitleFillGrammar(['hello world.', 'second line.']);
+        expect(grammar).toBe(String.raw`root ::= "{\"items\":[{\"source\": \"hello world.\", \"translation\": \"" tran0 "\"},{\"source\": \"second line.\", \"translation\": \"" tran1 "\"}]}"
+tran0 ::= [^"\\\x00-\x1f]{1,60}
+tran1 ::= [^"\\\x00-\x1f]{1,60}`);
     });
 
-    it('忽略首尾空白行；译文自身保留前后内部空格的 trim 结果', () => {
-        const lines = parseSubtitleBatchLines('\n译文甲\n\n\n译文乙\n', 2);
-        expect(lines).toEqual(['译文甲', '译文乙']);
+    it('单槽批次不产生槽间字面量', () => {
+        const grammar = buildLocalSubtitleFillGrammar(['only line.']);
+        expect(grammar).toBe(String.raw`root ::= "{\"items\":[{\"source\": \"only line.\", \"translation\": \"" tran0 "\"}]}"
+tran0 ::= [^"\\\x00-\x1f]{1,60}`);
     });
 
-    it('剥离模型模仿输入格式带上的列表或序号前缀', () => {
-        const lines = parseSubtitleBatchLines('- 甲\n* 乙\n1. 丙\n2、丁\n3）戊', 5);
-        expect(lines).toEqual(['甲', '乙', '丙', '丁', '戊']);
+    it('槽上限按源文长度 2 倍推导，下限 60 兜住短句', () => {
+        const grammar = buildLocalSubtitleFillGrammar(['a'.repeat(100), 'ok.']);
+        expect(grammar).toContain(String.raw`tran0 ::= [^"\\\x00-\x1f]{1,200}`);
+        expect(grammar).toContain(String.raw`tran1 ::= [^"\\\x00-\x1f]{1,60}`);
     });
 
-    it('行数多于或少于目标数时显式报错，不做静默对齐', () => {
-        expect(() => parseSubtitleBatchLines('甲\n乙', 3)).toThrow('行数不匹配');
-        expect(() => parseSubtitleBatchLines('甲\n乙\n丙', 2)).toThrow('行数不匹配');
+    it('源文转义后进入字面量，字面量解码序列可被解析侧按 JSON 回读', () => {
+        const sources = ['He said "go" \\ now.', 'plain line.'];
+        const grammar = buildLocalSubtitleFillGrammar(sources);
+        // GBNF 字符串字面量转义与 JSON 兼容，直接用 JSON.parse 还原固定文本。
+        const literals = grammar.split('\n')[0]
+            .replace(/^root ::= /, '')
+            .split(/ tran\d+ /)
+            .map((literal) => JSON.parse(literal) as string);
+        // 字面量解码后拼上任意译文，即是解析侧期望的原始输出形状。
+        const raw = literals[0] + '他说走。' + literals[1] + '现在。' + literals[2];
+        expect(parseLocalSubtitleFill(raw, sources)).toEqual(['他说走。', '现在。']);
+        // 解码后的骨架里，源文必须是 JSON.stringify 的形态（双引号与反斜杠已转义）。
+        expect(literals[0]).toContain('"He said \\"go\\" \\\\ now."');
+    });
+
+    it('空槽数显式报错', () => {
+        expect(() => buildLocalSubtitleFillGrammar([])).toThrow('非法的字幕批次槽数');
     });
 });
 
-describe('行式输出 GBNF 语法构造', () => {
-    it('多句批次约束为恰好 N 行、行间用换行分隔、行首不允许 think 残留字符', () => {
-        expect(buildSubtitleBatchLinesGrammar(5)).toBe(
-            'root ::= line ("\\n" line){4}\nline ::= [^<\\n][^\\n]*',
+describe('本地填槽提示词拼装', () => {
+    it('骨架带空 translation 字段，源文逐字预填', () => {
+        const prompt = buildLocalSubtitleFillPrompt(
+            fillInput(['first line.', 'second line.']),
+            '自然口语化',
+            { forbidEcho: true },
         );
+        expect(prompt).toContain(buildSkeleton(['first line.', 'second line.']));
+        expect(prompt).toContain('"translation": ""');
     });
 
-    it('单句批次退化为单行语法，不产生重复计数片段', () => {
-        expect(buildSubtitleBatchLinesGrammar(1)).toBe('root ::= line\nline ::= [^<\\n][^\\n]*');
+    it('中文模式嵌入简体中文目标语言标签', () => {
+        const prompt = buildLocalSubtitleFillPrompt(fillInput(['hello.']), '自然口语化');
+        expect(prompt).toContain('into Simplified Chinese');
+        expect(prompt).not.toContain('The translated sentence in');
     });
 
-    it('非正整数句数显式报错', () => {
-        expect(() => buildSubtitleBatchLinesGrammar(0)).toThrow('非法的字幕批次行数');
-        expect(() => buildSubtitleBatchLinesGrammar(-1)).toThrow('非法的字幕批次行数');
+    it('禁照抄开关注入正向禁照抄规则，关闭时允许原文返回', () => {
+        const forbidden = buildLocalSubtitleFillPrompt(fillInput(['hello.']), '自然口语化', { forbidEcho: true });
+        expect(forbidden).toContain('copying a source text as its own translation is forbidden');
+        const allowed = buildLocalSubtitleFillPrompt(fillInput(['hello.']), '自然口语化');
+        expect(allowed).toContain('If a source should remain unchanged, copy it into the translation field.');
+    });
+
+    it('只读上下文标注不输出', () => {
+        const prompt = buildLocalSubtitleFillPrompt(
+            {
+                ...fillInput(['hello.']),
+                contextBefore: [{ key: 'prev', text: 'previous sentence.' }],
+            },
+            '自然口语化',
+        );
+        expect(prompt).toContain('Context before (read-only, do NOT translate or output): previous sentence.');
+    });
+});
+
+describe('本地填槽输出解析', () => {
+    it('合法填槽输出返回按槽序排列的译文，并 trim 首尾空白', () => {
+        const sources = ['hello.', 'world.'];
+        const text = '{"items":[{"source": "hello.", "translation": " 你好。"},{"source": "world.", "translation": "世界。"}]}';
+        expect(parseLocalSubtitleFill(text, sources)).toEqual(['你好。', '世界。']);
+    });
+
+    it('输出不是合法 JSON 时显式报错', () => {
+        expect(() => parseLocalSubtitleFill('not json', ['hello.'])).toThrow('不是合法 JSON');
+    });
+
+    it('形状不符（缺字段/类型错误）显式报错', () => {
+        expect(() => parseLocalSubtitleFill('{"items":[{"key":"k"}]}', ['hello.'])).toThrow('形状不符');
+    });
+
+    it('槽数与目标不一致时显式报错，不做静默对齐', () => {
+        const text = '{"items":[{"source": "a.", "translation": "甲"}]}';
+        expect(() => parseLocalSubtitleFill(text, ['a.', 'b.'])).toThrow('槽数不匹配');
+    });
+
+    it('源文回显错位时显式报错，防御推理端未按约束解码', () => {
+        const text = '{"items":[{"source": "错位的源文.", "translation": "甲"}]}';
+        expect(() => parseLocalSubtitleFill(text, ['a.'])).toThrow('源文错位');
+    });
+
+    it('译文长度触到槽上限时显式报错，不让语法截断的文本静默进入字幕', () => {
+        const source = 'a'.repeat(40);
+        const text = JSON.stringify({ items: [{ source, translation: '译'.repeat(80) }] });
+        expect(() => parseLocalSubtitleFill(text, [source])).toThrow('译文触顶');
     });
 });

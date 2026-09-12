@@ -11,6 +11,39 @@ export interface VocabularyMatch<TPayload> { original: string; normalized: strin
 /** 基于字幕 token lemma 的单向词表匹配器。 */
 export interface VocabularyMatcher<TPayload> { match(text: string): VocabularyMatch<TPayload>[]; }
 
+/** wink 分析出的单个 token 语义信息。 */
+export interface AnalyzedToken {
+    /** 原始文本。 */
+    text: string;
+    /** 词形还原后的 lemma（标点等非词 token 为原文小写）。 */
+    lemma: string;
+    /** wink 的 token 类型（word / punctuation 等）。 */
+    type: string;
+}
+
+/**
+ * 对一段文本做一次 wink 分词、词性标注与 lemma 归一化。
+ *
+ * 说明：句子选词需要逐 token 的 lemma，而不是拼接后的整体 lemma，因此单独暴露该入口。
+ *
+ * @param text 原文。
+ * @returns 与原文顺序一致的 token 列表。
+ */
+export function analyzeWords(text: string): AnalyzedToken[] {
+    if (!text?.trim()) {
+        return [];
+    }
+    const doc = nlp.readDoc(text);
+    const values = doc.tokens().out(nlp.its.value as unknown as ItsFunction<string>) as string[];
+    const lemmas = doc.tokens().out(nlp.its.lemma as unknown as ItsFunction<string>) as string[];
+    const types = doc.tokens().out(nlp.its.type as unknown as ItsFunction<string>) as string[];
+    return values.map((value, index) => ({
+        text: value,
+        lemma: lemmas[index] ?? value,
+        type: types[index] ?? 'text',
+    }));
+}
+
 /**
  * 字幕侧使用 wink 的 POS-aware lemma 查询索引；词表侧保留用户输入原文，
  * 不拆分、不做 lemma 归一化，也不生成额外词形。
@@ -51,11 +84,7 @@ export class WinkVocabularyMatcher<TPayload> implements VocabularyMatcher<TPaylo
      * @returns token 语义信息。
      */
     private analyze(text: string): Array<{ text: string; lemma: string; type: string }> {
-        const doc = nlp.readDoc(text);
-        const values = doc.tokens().out(nlp.its.value as unknown as ItsFunction<string>) as string[];
-        const lemmas = doc.tokens().out(nlp.its.lemma as unknown as ItsFunction<string>) as string[];
-        const types = doc.tokens().out(nlp.its.type as unknown as ItsFunction<string>) as string[];
-        return values.map((value, index) => ({ text: value, lemma: lemmas[index] ?? value, type: types[index] ?? 'text' }));
+        return analyzeWords(text);
     }
 }
 

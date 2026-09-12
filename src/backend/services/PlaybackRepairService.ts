@@ -13,6 +13,7 @@ import {
     RepairGroup,
     RepairGroupSource,
     RepairRecipe,
+    RepairTaskEvent,
     RepairTaskState,
 } from '@/common/contracts/playback-repair';
 import MediaUtil from '@/common/utils/MediaUtil';
@@ -20,7 +21,7 @@ import { CancelByUserError } from '@/backend/utils/errors/errors';
 import { detectMp3BitrateMode } from '@/backend/utils/mp3-bitrate-mode';
 import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
 import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
-import DpTaskService from '@/backend/services/DpTaskService';
+import RendererEvents from '@/backend/services/gateways/renderer/RendererEvents';
 import FfmpegService from '@/backend/services/FfmpegService';
 import TYPES from '@/backend/ioc/types';
 import { decideRepair, isCopyableAudioCodec, isCopyableVideoCodec, PlaybackFacts } from '@/backend/services/playback-repair-rules';
@@ -48,6 +49,16 @@ const GROUP_KEY_FOLDER_PREFIX = 'folder:';
 
 /** 手动多选来源的组标识前缀。 */
 const GROUP_KEY_FILES_PREFIX = 'files:';
+
+/**
+ * 生成修复任务的日志检索键。
+ *
+ * @param filePath 媒体绝对路径。
+ * @returns 形如 `repair:<媒体绝对路径>` 的 job 键。
+ */
+function repairJob(filePath: string): string {
+    return `repair:${filePath}`;
+}
 
 /**
  * 计算组标识。
@@ -99,6 +110,46 @@ class RunningRepairEntry {
 }
 
 /**
+ * 一次修复的取消状态，随修复存续期存活。
+ *
+ * 先请求取消、后注册句柄（ffmpeg 尚未 spawn）与先注册句柄、后请求取消两个方向都要生效：
+ * 请求置位后新注册的句柄立即触发，已注册的句柄当场调用。
+ */
+class RepairCancellation {
+    private requested = false;
+    private readonly handles: Array<() => void> = [];
+
+    /**
+     * 请求取消：触发全部已注册句柄。
+     */
+    public requestCancel(): void {
+        this.requested = true;
+        for (const cancel of this.handles) {
+            cancel();
+        }
+    }
+
+    /**
+     * 注册取消句柄；取消请求已置位时立即触发。
+     *
+     * @param cancel 句柄；调用即终止对应操作。
+     */
+    public registerHandle(cancel: () => void): void {
+        this.handles.push(cancel);
+        if (this.requested) {
+            cancel();
+        }
+    }
+
+    /**
+     * 是否已收到取消请求。
+     */
+    public get isRequested(): boolean {
+        return this.requested;
+    }
+}
+
+/**
  * 播放修复的业务契约：诊断媒体在当前播放器上会不会出问题，并按配方生成修复产物。
  */
 export default interface PlaybackRepairService {
@@ -115,9 +166,19 @@ export default interface PlaybackRepairService {
      * 诊断并启动修复任务。
      *
      * @param request 待修复媒体与可选的强制配方。
-     * @returns 任务编号与诊断结论；无需修复时任务编号为 `null`（调用方据此提示用户）。
+     * @returns 是否已启动修复与诊断结论；无需修复时未启动（调用方据此提示用户）。
      */
     startRepair(request: PlaybackRepairStartRequest): Promise<PlaybackRepairStartResult>;
+
+    /**
+     * 取消正在运行的修复任务。
+     *
+     * 没有修复在运行时是无操作：修复任务只存活在当前进程内，记录里的「进行中」
+     * 可能只是界面还没刷新。
+     *
+     * @param filePath 待取消修复的媒体绝对路径。
+     */
+    cancelRepair(filePath: string): Promise<void>;
 
     /**
      * 把媒体加入修复名单。
@@ -216,8 +277,15 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
     private readonly runningRepairs = new Map<string, Promise<PlaybackRepairStartResult>>();
 
     /**
+     * 正在修复的产物路径到取消状态。
+     *
+     * 与 {@link runningRepairs} 同生命周期：修复结束时一并清理，避免取消请求串到下一轮修复。
+     */
+    private readonly runningCancellations = new Map<string, RepairCancellation>();
+
+    /**
      * 创建播放修复用例服务。
-     * @param dpTaskService 后台任务状态服务。
+     * @param rendererEvents 渲染进程事件推送端口。
      * @param ffmpegService FFmpeg 基础能力服务。
      * @param storageDirectoryProvider 外部路径权限恢复服务。
      * @param fileSystemGateway 文件系统访问入口。
@@ -226,7 +294,7 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
      * @param repairGroupRepository 修复名单组标记仓储。
      */
     constructor(
-        @inject(TYPES.DpTaskService) private readonly dpTaskService: DpTaskService,
+        @inject(TYPES.RendererEvents) private readonly rendererEvents: RendererEvents,
         @inject(TYPES.FfmpegService) private readonly ffmpegService: FfmpegService,
         @inject(TYPES.StorageDirectoryProvider) private readonly storageDirectoryProvider: StorageDirectoryProvider,
         @inject(TYPES.FileSystemGateway) private readonly fileSystemGateway: FileSystemGateway,
@@ -291,12 +359,12 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
     /**
      * 诊断并启动修复任务。
      *
-     * 同一媒体的修复已在运行时不再重复创建任务，而是返回正在运行的任务编号，
-     * 调用方（播放页、修复页）接管同一条进度，避免两个 ffmpeg 写同一份产物。
+     * 同一媒体的修复已在运行时不再重复启动，而是返回同一条运行中的修复，
+     * 调用方（播放页、修复页）按媒体路径订阅进度事件即可，避免两个 ffmpeg 写同一份产物。
      * 占位在方法内同步登记，因此即使两个入口几乎同时发起也只会启动一次。
      *
      * @param request 待修复媒体与可选的强制配方。
-     * @returns 任务编号与诊断结论；无需修复时任务编号为 `null`。
+     * @returns 是否已启动修复与诊断结论；无需修复时未启动。
      */
     public startRepair(request: PlaybackRepairStartRequest): Promise<PlaybackRepairStartResult> {
         const { filePath, forceRecipe } = request;
@@ -310,6 +378,26 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
         const entry = new RunningRepairEntry(() => this.beginRepair(filePath, forceRecipe));
         this.runningRepairs.set(outputPath, entry.started);
         return entry.started;
+    }
+
+    /**
+     * 取消正在运行的修复任务。
+     *
+     * 没有修复在运行时是无操作：界面上的「进行中」可能来自尚未刷新的旧记录，
+     * 此时既没有句柄可杀，也不需要改写记录状态。
+     *
+     * @param filePath 待取消修复的媒体绝对路径。
+     */
+    public cancelRepair(filePath: string): Promise<void> {
+        const outputPath = getHtml5VariantPath(filePath);
+        const cancellation = this.runningCancellations.get(outputPath);
+        if (!cancellation) {
+            this.logger.debug('cancel requested for idle repair', { filePath });
+            return Promise.resolve();
+        }
+        this.logger.info('repair cancel requested', { filePath });
+        cancellation.requestCancel();
+        return Promise.resolve();
     }
 
     /**
@@ -460,11 +548,11 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
     }
 
     /**
-     * 执行诊断并创建修复任务；无论成功失败都会释放占位。
+     * 执行诊断并启动修复；无论成功失败都会释放占位。
      *
      * @param filePath 待修复媒体绝对路径。
      * @param forceRecipe 用户指定的配方；传入时跳过「需不需要修」的判断。
-     * @returns 任务编号与诊断结论。
+     * @returns 是否已启动修复与诊断结论。
      */
     private async beginRepair(
         filePath: string,
@@ -482,28 +570,30 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
                     reason: diagnosis.reason,
                     outputPath: diagnosis.outputPath ?? null,
                 });
-                return { taskId: null, diagnosis };
+                return { started: false, diagnosis };
             }
 
-            const taskId = await this.dpTaskService.create();
+            const cancellation = new RepairCancellation();
+            this.runningCancellations.set(outputPath, cancellation);
             await this.recordRepairResult(filePath, {
                 status: RepairTaskState.IN_PROGRESS,
                 recipe: diagnosis.recipe ?? null,
                 outputPath: diagnosis.outputPath ?? null,
                 reason: diagnosis.reason,
-                taskId,
             });
-            void this.executeRepair(taskId, filePath, diagnosis)
+            this.emitRepairEvent({ file: filePath, status: RepairTaskState.IN_PROGRESS, progress: 0 });
+            void this.executeRepair(filePath, diagnosis, cancellation)
                 .catch((error: unknown) => {
                     // executeRepair 自己只处理修复过程中的异常，这里兜住它启动前的早期失败。
-                    this.logger.error('repair task crashed', { taskId, filePath, error });
-                    this.dpTaskService.fail(taskId, {
-                        progress: `修复失败：${error instanceof Error ? error.message : String(error)}`,
-                        result: JSON.stringify({ progress: 0, path: outputPath }),
-                    });
+                    const message = error instanceof Error ? error.message : String(error);
+                    this.logger.error('repair task crashed', { job: repairJob(filePath), error });
+                    this.emitRepairEvent({ file: filePath, status: RepairTaskState.FAILED, error: message });
                 })
-                .finally(() => this.runningRepairs.delete(outputPath));
-            return { taskId, diagnosis };
+                .finally(() => {
+                    this.runningRepairs.delete(outputPath);
+                    this.runningCancellations.delete(outputPath);
+                });
+            return { started: true, diagnosis };
         } catch (error) {
             this.runningRepairs.delete(outputPath);
             throw error;
@@ -610,16 +700,18 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
     }
 
     /**
-     * 执行修复任务并保证后台异常会落到明确的任务状态。
+     * 执行修复任务并保证后台异常会落到明确的状态。
      *
-     * @param taskId 修复任务 ID。
+     * 进度与终态经事件推送给渲染端，终态另行落库；进度本身不落库。
+     *
      * @param inputFile 待修复媒体绝对路径。
      * @param diagnosis 已确认需要修复的诊断结论。
+     * @param cancellation 本次修复的取消状态。
      */
     private async executeRepair(
-        taskId: number,
         inputFile: string,
         diagnosis: PlaybackRepairDiagnosis,
+        cancellation: RepairCancellation,
     ): Promise<void> {
         const recipe = diagnosis.recipe;
         const outputPath = diagnosis.outputPath;
@@ -627,32 +719,28 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
             throw new Error(`修复诊断缺少配方或产物路径：${diagnosis.filePath}`);
         }
         const subtitlePath = this.buildOutputPaths(inputFile).subtitlePath;
-        // 任务中心要求每次进度更新都携带输出路径，供渲染端持续展示修复结果。
         const updateProgress = (progress: number): void => {
-            this.dpTaskService.process(taskId, {
-                progress: '正在修复',
-                result: JSON.stringify({ progress, path: outputPath }),
-            });
+            this.emitRepairEvent({ file: inputFile, status: RepairTaskState.IN_PROGRESS, progress });
         };
 
         try {
             updateProgress(0);
-            await this.repairMedia(taskId, inputFile, outputPath, recipe, diagnosis, updateProgress);
+            await this.repairMedia(inputFile, outputPath, recipe, diagnosis, updateProgress, cancellation);
             // 纯音频修复不会产出字幕；视频修复沿用既有行为，把内嵌文本字幕抽成同名 srt。
-            const subtitleExtracted = recipe === 'audio-transcode'
-                ? false
-                : await this.extractSubtitleIfNeeded(taskId, inputFile, subtitlePath, updateProgress);
-            this.dpTaskService.finish(taskId, {
-                progress: subtitleExtracted ? '修复完成' : '修复完成，未提取到字幕',
-                result: JSON.stringify({ progress: 100, path: outputPath }),
-            });
+            if (recipe !== 'audio-transcode') {
+                await this.extractSubtitleIfNeeded(inputFile, subtitlePath, updateProgress, cancellation);
+            }
+            this.logger.info('repair finished', { job: repairJob(inputFile) });
+            this.emitRepairEvent({ file: inputFile, status: RepairTaskState.DONE, progress: 100 });
             await this.recordRepairResult(inputFile, {
                 status: RepairTaskState.DONE,
                 recipe,
                 outputPath,
             });
         } catch (error) {
-            if (this.confirmUserCancellation(taskId, error)) {
+            if (this.confirmUserCancellation(cancellation, error)) {
+                this.logger.info('repair cancelled', { job: repairJob(inputFile) });
+                this.emitRepairEvent({ file: inputFile, status: RepairTaskState.CANCELLED, error: '已取消修复' });
                 await this.recordRepairResult(inputFile, {
                     status: RepairTaskState.CANCELLED,
                     error: '已取消修复',
@@ -661,10 +749,8 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
             }
 
             const message = error instanceof Error ? error.message : String(error);
-            this.dpTaskService.fail(taskId, {
-                progress: `修复失败：${message}`,
-                result: JSON.stringify({ progress: 0, path: outputPath }),
-            });
+            this.logger.error('repair failed', { job: repairJob(inputFile), error });
+            this.emitRepairEvent({ file: inputFile, status: RepairTaskState.FAILED, error: message });
             await this.recordRepairResult(inputFile, {
                 status: RepairTaskState.FAILED,
                 recipe,
@@ -735,20 +821,20 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
      * 「有修复产物就优先用产物」的播放与元数据探测逻辑选中，而写到一半的 mp4 系容器
      * 无法解析，会让正在播放的媒体与观看历史列表一起报错。
      *
-     * @param taskId 修复任务 ID。
      * @param inputFile 待修复媒体绝对路径。
      * @param outputFile 修复产物路径。
      * @param recipe 修复配方。
      * @param diagnosis 本次诊断结论，提供源文件流信息。
      * @param onProgress FFmpeg 进度回调。
+     * @param cancellation 本次修复的取消状态。
      */
     private async repairMedia(
-        taskId: number,
         inputFile: string,
         outputFile: string,
         recipe: RepairRecipe,
         diagnosis: PlaybackRepairDiagnosis,
         onProgress: (progress: number) => void,
+        cancellation: RepairCancellation,
     ): Promise<void> {
         const tempPath = getRepairTempPath(outputFile);
         // 上一轮异常退出可能留下临时文件，先清掉，避免 ffmpeg 接着旧内容写。
@@ -756,11 +842,12 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
         let published = false;
         try {
             await this.ffmpegService.repair({
-                taskId,
+                job: repairJob(inputFile),
                 inputFile,
                 outputFile: tempPath,
                 recipe,
                 onProgress,
+                registerCancel: (cancel) => cancellation.registerHandle(cancel),
             });
 
             if (!await this.hasNonEmptyFile(tempPath)) {
@@ -836,17 +923,17 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
      * 不再采用“跑失败再重试下一条轨道”的猜测式两段回退。
      * 用户取消必须继续向上抛出，由任务流程标记为已取消。
      *
-     * @param taskId 修复任务 ID。
      * @param inputFile 待修复媒体绝对路径。
      * @param subtitleFile 字幕输出路径。
      * @param onProgress FFmpeg 进度回调。
+     * @param cancellation 本次修复的取消状态。
      * @returns 成功生成非空字幕文件时返回 `true`。
      */
     private async extractSubtitleIfNeeded(
-        taskId: number,
         inputFile: string,
         subtitleFile: string,
         onProgress: (progress: number) => void,
+        cancellation: RepairCancellation,
     ): Promise<boolean> {
         if (await this.hasNonEmptyFile(subtitleFile)) {
             return true;
@@ -856,10 +943,11 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
         try {
             await this.fileSystemGateway.removeFileIfExists(tempPath);
             const extracted = await this.ffmpegService.extractSubtitles({
-                taskId,
+                job: repairJob(inputFile),
                 inputFile,
                 outputFile: tempPath,
                 onProgress,
+                registerCancel: (cancel) => cancellation.registerHandle(cancel),
             });
 
             if (extracted && await this.hasNonEmptyFile(tempPath)) {
@@ -892,24 +980,26 @@ export class PlaybackRepairServiceImpl implements PlaybackRepairService {
     }
 
     /**
-     * 确认异常是否来自当前任务的用户取消请求。
-     * @param taskId 修复任务 ID。
+     * 确认异常是否来自当前修复的用户取消请求。
+     *
+     * 只信取消状态标记而不信异常本身：其它任务取消时 ffmpeg 网关也可能抛出
+     * CancelByUserError，只有本修复收到过取消请求才能按「已取消」落库。
+     *
+     * @param cancellation 本次修复的取消状态。
      * @param error 修复流程捕获的异常。
-     * @returns 任务已被标记为取消时返回 `true`。
+     * @returns 异常为取消异常且本修复确已请求取消时返回 `true`。
      */
-    private confirmUserCancellation(taskId: number, error: unknown): boolean {
-        if (!(error instanceof CancelByUserError)) {
-            return false;
-        }
+    private confirmUserCancellation(cancellation: RepairCancellation, error: unknown): boolean {
+        return error instanceof CancelByUserError && cancellation.isRequested;
+    }
 
-        try {
-            this.dpTaskService.checkCancel(taskId);
-        } catch (cancelError) {
-            if (cancelError instanceof CancelByUserError) {
-                return true;
-            }
-        }
-        return false;
+    /**
+     * 推送修复状态事件到渲染进程。
+     *
+     * @param event 修复状态事件。
+     */
+    private emitRepairEvent(event: RepairTaskEvent): void {
+        this.rendererEvents.repairTaskUpdate(event);
     }
 
     /**

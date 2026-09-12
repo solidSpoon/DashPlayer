@@ -3,34 +3,18 @@ import { RefreshCw, Star, Loader2 } from 'lucide-react';
 import { OpenAIDictionaryResult } from '@/common/types/DictionaryResult';
 import Playable from '@/fronted/components/shared/common/Playable';
 import { cn } from '@/fronted/lib/utils';
+import { formatPhonetic } from '@/fronted/lib/phonetic';
+import { DICT_TAG_I18N_KEYS } from '@/fronted/lib/dict-tags';
 import { useTranslation } from 'react-i18next';
 
 /**
  * 统一音标显示格式，自动补齐首尾斜杠。
  */
-const formatPhonetic = (value: string) => {
-    if (!value) return null;
-    const trimmed = value.trim().replace(/^\/+/, '').replace(/\/+$/, '');
-    if (!trimmed) return null;
-    return `/${trimmed}/`;
-};
 
 const formatPartOfSpeech = (pos?: string) => {
     if (!pos) return '';
     const cleaned = pos.trim().replace(/\.+$/, '');
     return cleaned ? `${cleaned}.` : '';
-};
-
-/** ECDICT 考试标签到 i18n key 的映射；构建脚本保证只会产出这些取值。 */
-const DICT_TAG_I18N_KEYS: Record<string, string> = {
-    zk: 'dictTagZk',
-    gk: 'dictTagGk',
-    cet4: 'dictTagCet4',
-    cet6: 'dictTagCet6',
-    ky: 'dictTagKy',
-    toefl: 'dictTagToefl',
-    ielts: 'dictTagIelts',
-    gre: 'dictTagGre',
 };
 
 interface OpenAIWordPopProps {

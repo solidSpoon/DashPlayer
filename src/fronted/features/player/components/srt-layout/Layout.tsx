@@ -14,6 +14,8 @@ import { usePlayerBridge } from '@/fronted/features/player/hooks/usePlayerBridge
 import { useNavigate } from 'react-router-dom';
 import { usePlayerState } from '@/fronted/features/player/playerState';
 import PlaybackEmptyState from './EmptyState';
+import LearningPage from '@/fronted/features/chat/LearningPage';
+import useChatPanel from '@/fronted/features/chat/chatStore';
 
 const logger = getRendererLogger('PlaybackLayout');
 
@@ -23,6 +25,10 @@ const PlaybackLayout = () => {
     const fullScreen = useLayout((s) => s.fullScreen);
     const podcastMode = useLayout(s => s.podcastMode);
     const hasSource = usePlayerState((s) => !!s.src);
+    const hasLearningContext = useChatPanel((s) => s.hasLearningContext);
+    const learningVisible = useChatPanel((s) => s.learningVisible);
+    // 有会话时保持挂载，切回播放画面只做隐藏，避免回来时对话与滚动状态丢失
+    const learningMounted = learningVisible || hasLearningContext;
     const [sizeOa, setSizeOa] = useLocalStorage<number>('split-size-oa', 75);
     const [sizeOb, setSizeOb] = useLocalStorage<number>('split-size-ob', 25);
     const [sizeIa, setSizeIa] = useLocalStorage<number>('split-size-ia', 80);
@@ -157,7 +163,11 @@ const PlaybackLayout = () => {
                     }}
                 >
                     <div className="relative w-full h-full overflow-hidden">
-                        <ResizablePanelGroup direction={'vertical'} className="relative z-10">
+                        {/* 视频与主字幕：学习页打开时只隐藏不卸载，切回播放时视频元素、播放进度与滚动位置全部保留 */}
+                        <ResizablePanelGroup
+                            direction={'vertical'}
+                            className={cn('relative z-10', learningVisible && 'invisible')}
+                        >
                             <ResizablePanel
                                 minSize={10}
                                 defaultSize={sizeIa}
@@ -208,6 +218,13 @@ const PlaybackLayout = () => {
                         {podcastMode && (
                             <PodcastViewer className="absolute inset-0 z-30" />
                         )}
+
+                        {/* 整句学习页：占据视频与主字幕的位置，与播放器同一套外壳 */}
+                        {learningMounted && (
+                            <div className={cn('absolute inset-0 z-20', !learningVisible && 'invisible')}>
+                                <LearningPage/>
+                            </div>
+                        )}
                     </div>
                 </ResizablePanel>
 
@@ -223,7 +240,14 @@ const PlaybackLayout = () => {
                             <div className="w-1 h-10 rounded-full bg-stone-500/70 dark:bg-neutral-400/70 group-hover:bg-rose-600 dark:group-hover:bg-rose-400 group-hover:h-14 transition-all duration-200 shadow-xs" />
                         </ResizableHandle>
                         <ResizablePanel
-                            className="relative overflow-hidden bg-stone-300/60 dark:bg-neutral-950/70 backdrop-blur-2xl shadow-[inset_1px_1px_6px_rgba(0,0,0,0.06)] dark:shadow-[inset_1px_1px_8px_rgba(0,0,0,0.4)]"
+                            className={cn(
+                                'relative overflow-hidden backdrop-blur-2xl shadow-[inset_1px_1px_6px_rgba(0,0,0,0.06)] dark:shadow-[inset_1px_1px_8px_rgba(0,0,0,0.4)]',
+                                // 学习页打开时把字幕列表提亮到与学习区面板一致的浅色系，关闭时平滑恢复
+                                'transition-colors duration-300',
+                                learningVisible
+                                    ? 'bg-stone-100/85 dark:bg-neutral-800/85'
+                                    : 'bg-stone-300/60 dark:bg-neutral-950/70'
+                            )}
                             defaultSize={sizeOb}
                             onResize={(e) => {
                                 if (fullScreen) {

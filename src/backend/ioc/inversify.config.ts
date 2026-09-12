@@ -88,6 +88,7 @@ import { SherpaTtsModelController } from '@/backend/controllers/SherpaTtsModelCo
 import { WordMatchService, WordMatchServiceImpl } from '@/backend/services/WordMatchService';
 import VocabularyController from '@/backend/controllers/VocabularyController';
 import VocabularyService, { VocabularyServiceImpl } from '@/backend/services/VocabularyService';
+import SentenceVocabularyService, { SentenceVocabularyServiceImpl } from '@/backend/services/SentenceVocabularyService';
 import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
 import RendererGatewayImpl from '@/backend/infrastructure/renderer/RendererGatewayImpl';
 import RendererEvents from '@/backend/services/gateways/renderer/RendererEvents';
@@ -250,4 +251,5 @@ container.bind<WatchHistoryService>(TYPES.WatchHistoryService).to(WatchHistorySe
 container.bind<TranscriptionService>(TYPES.LocalTranscriptionService).to(LocalTranscriptionServiceImpl).inSingletonScope();
 container.bind<WordMatchService>(TYPES.WordMatchService).to(WordMatchServiceImpl).inSingletonScope();
 container.bind<VocabularyService>(TYPES.VocabularyService).to(VocabularyServiceImpl).inSingletonScope();
+container.bind<SentenceVocabularyService>(TYPES.SentenceVocabularyService).to(SentenceVocabularyServiceImpl).inSingletonScope();
 export default container;

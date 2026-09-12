@@ -30,6 +30,7 @@ import {ClipMeta, OssBaseMeta} from '@/common/types/clipMeta';
 import WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import {VideoLearningClipPage} from '@/common/types/vo/VideoLearningClipVO';
 import { GlobalVideoLearningClipQueueStatusVO, VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
+import { SentenceVocabularyVO } from '@/common/types/vo/SentenceVocabularyVO';
 import {
     ChatSessionCloseParams,
     ChatSessionCreateParams,
@@ -37,7 +38,8 @@ import {
     ChatSessionStopParams,
     ChatStartParams,
     ChatStartResult,
-    ChatWelcomeParams,
+    CompleteSentenceParams,
+    CompleteSentenceResult,
 } from '@/common/types/chat';
 import { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
 import {
@@ -195,7 +197,10 @@ interface ChatDef {
     'chat/session/close': { params: ChatSessionCloseParams, return: void };
     'chat/session/stop': { params: ChatSessionStopParams, return: void };
     'chat/start': { params: ChatStartParams, return: ChatStartResult };
-    'chat/welcome': { params: ChatWelcomeParams, return: ChatStartResult };
+    /** 补全被换行截断的字幕为完整句；仅云端整句学习启用时可用。 */
+    'chat/complete-sentence': { params: CompleteSentenceParams, return: CompleteSentenceResult };
+    /** 整句讲解当前是否可用（功能已启用且云端模型已配好），供学习页决定入口是否置灰。 */
+    'chat/learning/available': { params: void, return: boolean };
 }
 
 interface ChatAnalysisDef {
@@ -332,6 +337,7 @@ interface MediaDef {
 interface PlaybackRepairDef {
     'repair/diagnose': { params: string, return: PlaybackRepairDiagnosis };
     'repair/start': { params: PlaybackRepairStartRequest, return: PlaybackRepairStartResult };
+    'repair/cancel': { params: string, return: void };
     'repair/list-folder-videos': { params: string[], return: FolderVideos[] };
     'repair/enqueue': { params: RepairEnqueueRequest, return: RepairEnqueueResult };
     'repair/groups': { params: void, return: RepairGroup[] };
@@ -397,6 +403,10 @@ interface VocabularyDef {
     'vocabulary/generate-definition': {
         params: { word: string },
         return: { success: boolean; data?: string; error?: string }
+    };
+    'vocabulary/pick-sentence': {
+        params: { text: string },
+        return: SentenceVocabularyVO
     };
 }
 

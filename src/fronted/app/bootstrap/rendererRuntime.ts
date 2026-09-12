@@ -7,6 +7,10 @@ import {
     startListeningToDpTasks,
     stopListeningToDpTasks,
 } from '@/fronted/hooks/useDpTaskCenter';
+import {
+    startListeningToRepairEvents,
+    stopListeningToRepairEvents,
+} from '@/fronted/features/repair/repairEvents';
 import { syncStatus } from '@/fronted/hooks/useSystem';
 
 let cleanupRuntime: (() => void) | null = null;
@@ -71,10 +75,12 @@ export function startRendererRuntime(): () => void {
         cleanups.push(initIpcMessageToasts());
         cleanups.push(initMouseFocusCleanup());
         startListeningToDpTasks();
+        startListeningToRepairEvents();
         syncStatus();
     } catch (error) {
         cleanups.reverse().forEach((cleanup) => cleanup());
         stopListeningToDpTasks();
+        stopListeningToRepairEvents();
         logger.error('renderer runtime initialization failed', {
             error: error instanceof Error ? error.message : String(error),
         });
@@ -86,6 +92,7 @@ export function startRendererRuntime(): () => void {
     cleanupRuntime = () => {
         cleanups.reverse().forEach((cleanup) => cleanup());
         stopListeningToDpTasks();
+        stopListeningToRepairEvents();
         cleanupRuntime = null;
         logger.info('renderer runtime stopped');
     };

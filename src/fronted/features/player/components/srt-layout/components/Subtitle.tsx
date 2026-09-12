@@ -9,6 +9,7 @@ import useLayout from '@/fronted/hooks/useLayout';
 import { cn } from '@/fronted/lib/utils';
 import useSubtitleScroll, { useSubtitleScrollState } from '@/fronted/features/player/hooks/useSubtitleScroll';
 import useBoundary from '@/fronted/features/player/hooks/useBoundary';
+import useChatPanel from '@/fronted/features/chat/chatStore';
 import { Sentence } from '@/common/types/SentenceC';
 
 export default function Subtitle() {
@@ -137,6 +138,10 @@ export default function Subtitle() {
             applySelectionRange(startListPosition, lastListPosition);
         } else if (sentence) {
             playerActions.clearVirtualGroup();
+            // 学习页打开期间点击字幕视为正常跳转：先关闭学习页，再按常规跳转到该句
+            if (useChatPanel.getState().learningVisible) {
+                useChatPanel.getState().hideLearning();
+            }
             playerActions.gotoSentence(sentence);
             if (scrollState === 'USER_BROWSING') {
                 delaySetNormal();

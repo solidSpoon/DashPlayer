@@ -51,7 +51,7 @@ export interface FfmpegRunOptions {
     onCancelable?: (cancel: () => void) => void;
     /**
      * 子进程身份标识，用于把同一次后台任务的日志串起来。
-     * 约定取值：`dp_task:<id>` / `transcription:<filePath>` / `clip:<clipKey>` / `split:<folder>`。
+     * 约定取值：`transcription:<filePath>` / `clip:<clipKey>` / `split:<folder>` / `repair:<filePath>`。
      */
     job?: string;
 }

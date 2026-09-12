@@ -1,5 +1,5 @@
 /**
- * 播放修复用例服务：并发守护、产物先写临时名再改名、修复记录写入。
+ * 播放修复用例服务：并发守护、产物先写临时名再改名、修复记录写入、事件推送与取消。
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -8,10 +8,11 @@ import { createMemoryDb, type MemoryDb } from '@/test/database';
 import RepairTaskRepositoryImpl from '@/backend/infrastructure/db/repositories/RepairTaskRepositoryImpl';
 import RepairGroupRepositoryImpl from '@/backend/infrastructure/db/repositories/RepairGroupRepositoryImpl';
 import { PlaybackRepairServiceImpl } from '@/backend/services/PlaybackRepairService';
-import type DpTaskService from '@/backend/services/DpTaskService';
+import type RendererEvents from '@/backend/services/gateways/renderer/RendererEvents';
 import type FfmpegService from '@/backend/services/FfmpegService';
 import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import type PlaybackCapabilityService from '@/backend/services/PlaybackCapabilityService';
+import { CancelByUserError } from '@/backend/utils/errors/errors';
 import { RepairTaskState } from '@/common/contracts/playback-repair';
 
 vi.mock('@/backend/infrastructure/logger', () => ({
@@ -27,26 +28,20 @@ describe('播放修复用例服务', () => {
     let fsGateway: MemoryFileSystemGateway;
     let repairTaskRepository: RepairTaskRepositoryImpl;
     let repairGroupRepository: RepairGroupRepositoryImpl;
-    let dpTask: { create: ReturnType<typeof vi.fn>; process: ReturnType<typeof vi.fn>; finish: ReturnType<typeof vi.fn>; fail: ReturnType<typeof vi.fn>; checkCancel: ReturnType<typeof vi.fn> };
+    let rendererEvents: { repairTaskUpdate: ReturnType<typeof vi.fn> };
     let ffmpeg: { getVideoInfo: ReturnType<typeof vi.fn>; repair: ReturnType<typeof vi.fn>; extractSubtitles: ReturnType<typeof vi.fn> };
     let service: PlaybackRepairServiceImpl;
-    let nextTaskId: number;
     let writtenWhileRepairing: string[];
 
     beforeEach(() => {
-        nextTaskId = 1;
         memoryDb = createMemoryDb();
         repairTaskRepository = new RepairTaskRepositoryImpl(memoryDb.db);
         repairGroupRepository = new RepairGroupRepositoryImpl(memoryDb.db);
         fsGateway = new MemoryFileSystemGateway();
         fsGateway.files.set(SOURCE, 'x'.repeat(1024));
         writtenWhileRepairing = [];
-        dpTask = {
-            create: vi.fn(async () => nextTaskId++),
-            process: vi.fn(),
-            finish: vi.fn(),
-            fail: vi.fn(),
-            checkCancel: vi.fn(),
+        rendererEvents = {
+            repairTaskUpdate: vi.fn(),
         };
         ffmpeg = {
             getVideoInfo: vi.fn(async () => ({ duration: 100, videoCodec: 'h264', audioCodec: 'aac' })),
@@ -66,7 +61,7 @@ describe('播放修复用例服务', () => {
             getOverlay: vi.fn(async () => ({})),
         } as unknown as PlaybackCapabilityService;
         service = new PlaybackRepairServiceImpl(
-            dpTask as unknown as DpTaskService,
+            rendererEvents as unknown as RendererEvents,
             ffmpeg as unknown as FfmpegService,
             storage,
             fsGateway,
@@ -80,7 +75,7 @@ describe('播放修复用例服务', () => {
         memoryDb.close();
     });
 
-    it('同一文件并发发起时只启动一次修复，两个调用方拿到同一条任务', async () => {
+    it('同一文件并发发起时只启动一次修复，两个调用方都拿到启动中的结果', async () => {
         // 让诊断停在半途，模拟两个入口几乎同时发起。
         let releaseDiagnose: () => void = () => undefined;
         const gate = new Promise<void>((resolve) => {
@@ -96,26 +91,24 @@ describe('播放修复用例服务', () => {
         releaseDiagnose();
 
         const [firstResult, secondResult] = await Promise.all([first, second]);
-        expect(firstResult.taskId).toBe(1);
-        expect(secondResult.taskId).toBe(1);
-        expect(dpTask.create).toHaveBeenCalledTimes(1);
+        expect(firstResult.started).toBe(true);
+        expect(secondResult.started).toBe(true);
         expect(firstResult.diagnosis.needsRepair).toBe(true);
+        await vi.waitFor(() => expect(ffmpeg.repair).toHaveBeenCalledTimes(1));
         // 只留一行记录，不会因为两边同时发起产生两行。
         expect(await repairTaskRepository.list()).toHaveLength(1);
     });
 
     it('产物先写临时名，验收通过后才改名为正式产物，记录落到完成状态', async () => {
         const started = await service.startRepair({ filePath: SOURCE });
-        expect(started.taskId).toBe(1);
+        expect(started.started).toBe(true);
         expect(started.diagnosis.outputPath).toBe(OUTPUT);
-        // 修复开始后表里立刻是「进行中」，页面据此显示进度。
+        // 修复开始后表里立刻是「进行中」，界面据此显示进度。
         expect(await repairTaskRepository.findByFilePath(SOURCE)).toMatchObject({
             status: RepairTaskState.IN_PROGRESS,
             outputPath: OUTPUT,
-            taskId: 1,
         });
 
-        await vi.waitFor(() => expect(dpTask.finish).toHaveBeenCalledTimes(1));
         await vi.waitFor(async () => {
             expect(await repairTaskRepository.findByFilePath(SOURCE)).toMatchObject({
                 status: RepairTaskState.DONE,
@@ -126,6 +119,49 @@ describe('播放修复用例服务', () => {
         expect(fsGateway.files.has(TEMP)).toBe(false);
         expect(fsGateway.files.has(OUTPUT)).toBe(true);
         expect(ffmpeg.repair).toHaveBeenCalledTimes(1);
+        // 进度与终态经事件推送给渲染端：进行中带百分比，完成带满进度。
+        expect(rendererEvents.repairTaskUpdate).toHaveBeenCalledWith(
+            expect.objectContaining({ file: SOURCE, status: RepairTaskState.IN_PROGRESS, progress: 0 }),
+        );
+        expect(rendererEvents.repairTaskUpdate).toHaveBeenCalledWith(
+            expect.objectContaining({ file: SOURCE, status: RepairTaskState.DONE, progress: 100 }),
+        );
+    });
+
+    it('修复中取消：产物不落盘，记录与事件都按已取消收尾', async () => {
+        // ffmpeg 挂起直到收到取消句柄，模拟一次真实的用户取消。
+        ffmpeg.repair.mockImplementation(async (args: { registerCancel?: (cancel: () => void) => void }) => {
+            await new Promise<void>((resolve) => {
+                args.registerCancel?.(() => resolve());
+            });
+            throw new CancelByUserError();
+        });
+
+        const started = await service.startRepair({ filePath: SOURCE });
+        expect(started.started).toBe(true);
+
+        await service.cancelRepair(SOURCE);
+
+        await vi.waitFor(async () => {
+            expect(await repairTaskRepository.findByFilePath(SOURCE)).toMatchObject({
+                status: RepairTaskState.CANCELLED,
+                error: '已取消修复',
+            });
+        });
+        expect(fsGateway.files.has(OUTPUT)).toBe(false);
+        expect(rendererEvents.repairTaskUpdate).toHaveBeenCalledWith(
+            expect.objectContaining({ file: SOURCE, status: RepairTaskState.CANCELLED }),
+        );
+    });
+
+    it('没有修复在跑时取消是无操作，不会改写任何记录', async () => {
+        await service.enqueueRepairTasks({ source: 'folder', path: '/media', filePaths: [SOURCE] });
+
+        await service.cancelRepair(SOURCE);
+
+        expect(await repairTaskRepository.findByFilePath(SOURCE)).toMatchObject({
+            status: RepairTaskState.INIT,
+        });
     });
 
     it('本来无需修复的媒体也会留下一条完成记录', async () => {
@@ -133,7 +169,7 @@ describe('播放修复用例服务', () => {
 
         const result = await service.startRepair({ filePath: SOURCE });
 
-        expect(result.taskId).toBeNull();
+        expect(result.started).toBe(false);
         expect(ffmpeg.repair).not.toHaveBeenCalled();
         expect(await repairTaskRepository.findByFilePath(SOURCE)).toMatchObject({
             status: RepairTaskState.DONE,
@@ -163,9 +199,9 @@ describe('播放修复用例服务', () => {
             service.startRepair({ filePath: otherSource }),
         ]);
 
-        expect(first.taskId).toBe(1);
-        expect(second.taskId).toBe(2);
-        expect(dpTask.create).toHaveBeenCalledTimes(2);
+        expect(first.started).toBe(true);
+        expect(second.started).toBe(true);
+        await vi.waitFor(() => expect(ffmpeg.repair).toHaveBeenCalledTimes(2));
         expect(await repairTaskRepository.list()).toHaveLength(2);
     });
 
@@ -233,7 +269,6 @@ describe('播放修复用例服务', () => {
         });
         // 探测不启动修复。
         expect(ffmpeg.repair).not.toHaveBeenCalled();
-        expect(dpTask.create).not.toHaveBeenCalled();
     });
 
     it('删除组时：只在文件不属于其它组时才删掉记录', async () => {
@@ -268,7 +303,7 @@ describe('播放修复用例服务', () => {
 
         // 自动路径：判定「无需修复」，不启动任务。
         const automatic = await service.startRepair({ filePath: '/media/ok.mp4' });
-        expect(automatic.taskId).toBeNull();
+        expect(automatic.started).toBe(false);
         expect(await repairTaskRepository.findByFilePath('/media/ok.mp4')).toMatchObject({
             status: RepairTaskState.DONE,
             reason: 'playable',
@@ -279,8 +314,7 @@ describe('播放修复用例服务', () => {
             filePath: '/media/ok.mp4',
             forceRecipe: 'full-transcode',
         });
-        expect(forced.taskId).toBe(1);
-        await vi.waitFor(() => expect(dpTask.finish).toHaveBeenCalledTimes(1));
+        expect(forced.started).toBe(true);
         await vi.waitFor(async () => {
             expect(await repairTaskRepository.findByFilePath('/media/ok.mp4')).toMatchObject({
                 status: RepairTaskState.DONE,
@@ -306,7 +340,7 @@ describe('播放修复用例服务', () => {
             filePath: '/media/song.mp3',
             forceRecipe: 'audio-transcode',
         });
-        expect(retry.taskId).toBe(1);
+        expect(retry.started).toBe(true);
     });
 
     it('重启后把遗留的进行中记录标记为已中断', async () => {
@@ -314,14 +348,13 @@ describe('播放修复用例服务', () => {
         await service.enqueueRepairTasks({ source: 'folder', path: '/media', filePaths: [SOURCE] });
         await repairTaskRepository.updateByFilePath(SOURCE, {
             status: RepairTaskState.IN_PROGRESS,
-            taskId: 7,
         });
 
         await service.recoverInterruptedTasks();
 
         expect(await repairTaskRepository.findByFilePath(SOURCE)).toMatchObject({
             status: RepairTaskState.CANCELLED,
-            taskId: null,
+            error: '应用重启导致修复中断',
         });
     });
 });

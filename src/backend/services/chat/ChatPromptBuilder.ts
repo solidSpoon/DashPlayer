@@ -1,9 +1,23 @@
 import { ModelMessage } from 'ai';
-import { ChatBackgroundContext } from '@/common/types/chat';
-import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 
 /**
- * 格式化通用 TTS 朗读与排版规范指令，供 Welcome 与 Chat System Prompt 复用。
+ * 会话创建时冻结的字幕规模概览。
+ */
+export type SubtitleOverview = {
+    /** 字幕行数。 */
+    lineCount: number;
+    /** 所有字幕文本的单词数（按空格分词统计）。 */
+    wordCount: number;
+    /** 字幕索引的最小值。 */
+    minIndex: number;
+    /** 字幕索引的最大值。 */
+    maxIndex: number;
+    /** 当前学习句的字幕索引。 */
+    anchorIndex: number;
+};
+
+/**
+ * 格式化通用 TTS 朗读与排版规范指令，供聊天系统提示词复用。
  */
 const TTS_FORMAT_GUIDELINES = [
     '## 朗读标记规范（重要）：',
@@ -17,7 +31,7 @@ const TTS_FORMAT_GUIDELINES = [
  * 格式化字幕概览文本，统一输出结构。
  */
 export const formatSubtitleOverview = (
-    overview?: ChatBackgroundContext['subtitleOverview']
+    overview?: SubtitleOverview
 ): string | null => {
     if (!overview) {
         return null;
@@ -31,83 +45,16 @@ export const formatSubtitleOverview = (
 };
 
 /**
- * 欢迎消息提示词所需的后端内部上下文。
- */
-type ChatWelcomePromptParams = {
-    /** 会话 ID，保持调用语义完整。 */
-    sessionId: string;
-    /** 用户选择的原始学习文本。 */
-    originalTopic: string;
-    /** 创建会话时冻结的完整段落。 */
-    fullText?: string;
-    /** 完整字幕的统计概览。 */
-    subtitleOverview?: ChatBackgroundContext['subtitleOverview'];
-};
-
-/**
- * 构建整句学习面板的欢迎语提示词。
- */
-export const buildWelcomeMessages = (params: ChatWelcomePromptParams): ModelMessage[] => {
-    const system = [
-        '你是用户的英语学习伙伴，以亲切、自然的口吻引导用户理解和掌握当前选中的英语表达。',
-        '',
-        '# 身份与交流风格',
-        '- 像和朋友聊天一样自然交流，避免刻板或机械式的报告词汇。',
-        '- 保持启发与鼓励，每次表达自然灵动。',
-        '',
-        '# 格式与标记要求',
-        '- 严格使用 Markdown 格式（不要使用 HTML 标签）。',
-        TTS_FORMAT_GUIDELINES,
-        '',
-        '## 完整句切换标记（[[switch:...]]）：',
-        '- 字幕常因排版将长句切分到多行。若提供了“完整段落”且目标句明显只是被截断的片段：',
-        '  - 使用 [[switch:完整句子原文|提示文本]] 引导用户切换（如 [[switch:Full sentence here.|点击查看完整句]]）。',
-        '  - 若无法确信或无完整段落，不要输出 switch 标记。',
-        '',
-        '# 消息内容结构（自然衔接，避免生硬的小标题列举）',
-        '1. 轻松问候开场：简述本句的语言特色、地道之处或使用场景。',
-        '2. 展示并解析句子：',
-        '   - 直接以 [[tts:英文原句]] 起始，换行后提供准确自然的中文意译。',
-        '   - 禁止在 [[tts:...]] 前后重复写英文原句或使用“原文：”等冗余标签。',
-        '   - 如被截断，附加 [[switch:...]] 切换建议。',
-        '3. 地道同义表达：',
-        '   - 给出 2~3 个地道改写，使用 Markdown 列表（- 开头），每项英文均用 [[tts:...]] 包裹并简要说明语境差异。',
-        '4. 引导侧边材料：',
-        '   - 自然提示界面中已同步解析的意群拆解、生词音标、常用短语及例句，鼓励用户随心查看。',
-        '',
-        '# 长度控制',
-        '- 整体长度保持在 12~18 行 Markdown 之间，充实且不冗长。',
-    ].join('\n');
-
-    const userLines = [
-        '用户选择了以下内容开始学习：',
-        '',
-        params.originalTopic,
-    ];
-
-    if (params.fullText && params.fullText.trim() !== params.originalTopic.trim()) {
-        userLines.push(
-            '',
-            '完整段落（供判断是否被换行截断）：',
-            params.fullText,
-        );
-    }
-
-    const overviewText = formatSubtitleOverview(params.subtitleOverview);
-    if (overviewText) {
-        userLines.push('', overviewText);
-    }
-
-    userLines.push('', '请生成一段自然、生动的开场欢迎与导学消息。');
-
-    return [
-        { role: 'system', content: system },
-        { role: 'user', content: userLines.join('\n') },
-    ];
-};
-
-/**
- * 构建整句深度分析的结构化 JSON 提示词。
+ * 构建整句学习的结构化分析提示词。
+ *
+ * 说明：
+ * - 一次分析只产出结构化解析（意群、词组），左栏据此渲染句子卡片；
+ * - 生词不在此处提取：由本地词典选词（vocabulary/pick-sentence）负责，模型不再重复产出词表；
+ * - 语法不在此处展开：需要语法讲解时由对话流承担（输入框上方的快捷提问），模型不再重复产出；
+ * - 例句不在此处生成：需要例句时由聊天中的字幕检索工具取真实台词，避免模型生造语料。
+ *
+ * @param text 用户选中的学习文本（已由会话冻结）。
+ * @returns 交给 Output.object 的单条分析提示词。
  */
 export const buildAnalysisPrompt = (text: string): string => {
     return [
@@ -120,10 +67,7 @@ export const buildAnalysisPrompt = (text: string): string => {
         '',
         '# 分析要求',
         '- structure: 意群拆解。phraseGroups 为字符串数组，按原句自然阅读顺序切分出 2~5 个英文意群片段。',
-        '- vocab: 提取中级学习者可能不熟悉的生词，提供标准音标与中文释义；如无生词则 words 为空数组且 hasNewWord=false。',
         '- phrases: 提取重点词组或搭配，提供中文释义；如无短语则 phrases 为空数组且 hasPhrase=false。',
-        '- grammar: 用清晰的中文 Markdown 解释关键语法结构，不要使用 # 级标题，使用加粗或列表即可。',
-        '- examples: 必须给出 5 个例句（sentences 数组长度固定为 5）。尽量结合本句词汇与短语，points 标明所用考点，meaning 提供中文释义。',
         '',
         '# 字段契约与示例模板（请完全遵循此 JSON 结构与字段命名）:',
         '```json',
@@ -131,25 +75,10 @@ export const buildAnalysisPrompt = (text: string): string => {
         '  "structure": {',
         '    "phraseGroups": ["意群片段1", "意群片段2", "意群片段3"]',
         '  },',
-        '  "vocab": {',
-        '    "hasNewWord": true,',
-        '    "words": [',
-        '      { "word": "单词", "phonetic": "音标", "meaning": "中文释义" }',
-        '    ]',
-        '  },',
         '  "phrases": {',
         '    "hasPhrase": true,',
         '    "phrases": [',
         '      { "phrase": "词组/搭配", "meaning": "中文释义" }',
-        '    ]',
-        '  },',
-        '  "grammar": {',
-        '    "hasGrammar": true,',
-        '    "grammarsMd": "语法要点说明（Markdown）"',
-        '  },',
-        '  "examples": {',
-        '    "sentences": [',
-        '      { "sentence": "英文例句", "meaning": "例句中文翻译", "points": ["考点词/短语"] }',
         '    ]',
         '  }',
         '}',
@@ -215,23 +144,38 @@ export const ensureChatRoleMessage = (messages: ModelMessage[]): ModelMessage[] 
     ];
 };
 
+/** 字幕参考材料的固定前缀。 */
+const SUBTITLE_CONTEXT_PREFIX = '【字幕参考材料】';
+
 /**
- * 将已有的背景分析与段落上下文装配进消息队列中。
+ * 构建首轮对话的字幕参考材料。
+ *
+ * 说明：
+ * - 只包含模型无法自行推导的客观上下文（当前学习句、全片规模、周边台词）；
+ * - 不包含句子解析结果：解析内容已由句子卡片呈现，重复回灌既浪费上下文，也会与卡片产生两套说法。
+ *
+ * @param params 会话冻结的主题、周边字幕与字幕概览。
+ * @returns 参考材料文本；没有可用内容时返回 null。
  */
-/**
- * 将已有的背景分析与段落上下文装配为一条稳定的上下文参考消息。
- * 采用 user 角色或上下文数据包装，避免作为 dynamic system 消息污染顶层 System Prompt 从而破坏 KV 前缀缓存。
- */
-export const buildChatBackgroundMessage = (
-    background?: ChatBackgroundContext
-): ModelMessage | null => {
+export const buildSubtitleContext = (params: {
+    /** 会话冻结的学习主题原文。 */
+    originalTopic: string;
+    /** 会话冻结的周边字幕。 */
+    paragraphLines?: string[];
+    /** 全片字幕规模概览。 */
+    subtitleOverview?: SubtitleOverview;
+}): string | null => {
     const parts: string[] = [];
-    const overviewText = formatSubtitleOverview(background?.subtitleOverview);
+    if (params.originalTopic.trim().length > 0) {
+        parts.push(`当前学习句：${params.originalTopic}`);
+    }
+
+    const overviewText = formatSubtitleOverview(params.subtitleOverview);
     if (overviewText) {
         parts.push(overviewText);
     }
 
-    const paragraphLines = background?.paragraphLines ?? [];
+    const paragraphLines = params.paragraphLines ?? [];
     if (paragraphLines.length > 0) {
         parts.push([
             '原始段落上下文（当前句及前后台词）：',
@@ -239,105 +183,57 @@ export const buildChatBackgroundMessage = (
         ].join('\n'));
     }
 
-    const analysis = background?.analysis;
-    if (analysis?.structure?.phraseGroups?.length) {
-        const lines = analysis.structure.phraseGroups.map(
-            (group: string) => `- ${group}`
-        );
-        parts.push(['已解析的意群拆解：', ...lines].join('\n'));
-    }
-
-    if (analysis?.vocab?.words?.length) {
-        const lines = analysis.vocab.words.map(
-            (word: AiUnifiedAnalysisRes['vocab']['words'][number]) => {
-                const phonetic = word.phonetic ? ` ${word.phonetic}` : '';
-                return `- ${word.word}${phonetic}: ${word.meaning ?? ''}`;
-            }
-        );
-        parts.push(['已提取的生词：', ...lines].join('\n'));
-    }
-
-    if (analysis?.phrases?.phrases?.length) {
-        const lines = analysis.phrases.phrases.map(
-            (phrase: AiUnifiedAnalysisRes['phrases']['phrases'][number]) =>
-                `- ${phrase.phrase ?? ''}: ${phrase.meaning ?? ''}`
-        );
-        parts.push(['已提取的短语：', ...lines].join('\n'));
-    }
-
-    if (analysis?.grammar?.grammarsMd) {
-        parts.push(['已总结的语法要点：', analysis.grammar.grammarsMd].join('\n'));
-    }
-
-    if (analysis?.examples?.sentences?.length) {
-        const lines = analysis.examples.sentences.map(
-            (example: AiUnifiedAnalysisRes['examples']['sentences'][number], index) => {
-                const sentence = example.sentence ?? '';
-                const meaning = example.meaning ?? '';
-                const points = example.points?.length ? ` [${example.points.join('、')}]` : '';
-                return `${index + 1}. ${sentence}${meaning ? ` / ${meaning}` : ''}${points}`;
-            }
-        );
-        parts.push(['关联参考例句：', ...lines].join('\n'));
-    }
-
     if (parts.length === 0) {
         return null;
     }
-
-    return {
-        role: 'user',
-        content: [
-            '【背景参考材料与语言分析】（已自动解析就绪，后续对话请据此参考）：',
-            '',
-            parts.join('\n\n'),
-        ].join('\n'),
-    };
+    return [SUBTITLE_CONTEXT_PREFIX, '', parts.join('\n\n')].join('\n');
 };
 
 /**
- * 带有缓存友好特性的背景信息注入器：
- * 1. 顶层 System Prompt（ensureChatRoleMessage）保持绝对固定，保证最前缀 100% 命中 KV Cache。
- * 2. 背景材料只在第一轮（Welcome 答复之后）作为第 2 条上下文消息注入一次，历史消息单调向后追加，绝不在后续轮次中间插队篡改前缀。
+ * 构建字幕完整句判定与补全的提示词。
+ *
+ * 说明：
+ * - 字幕按换行/时间轴切分后，一行常只有半个句子；同时给前文与后续行，
+ *   让模型返回当前行所在的完整句子（真实句首到真实句尾）；
+ * - 译文随这一次调用一并产出：学习页要把中文摆在句子下方，单独再走一遍字幕
+ *   翻译链路要重建上下文与缓存，代价远高于在同一次结构化输出里多要一个字段。
+ *
+ * @param params 当前字幕行及其前后紧邻字幕行。
+ * @returns 交给 generateObject 的单条提示词。
  */
-export const appendBackgroundMessage = (
-    messages: ModelMessage[],
-    background?: ChatBackgroundContext
-): ModelMessage[] => {
-    const withRole = ensureChatRoleMessage(messages);
-    const backgroundMessage = buildChatBackgroundMessage(background);
-    if (!backgroundMessage) {
-        return withRole;
-    }
-
-    // 检查历史中是否已经注入过背景参考材料，若已存在则直接返回，保证历史序列不变
-    const alreadyInjected = withRole.some(
-        (msg) => typeof msg.content === 'string' && msg.content.startsWith('【背景参考材料与语言分析】')
-    );
-    if (alreadyInjected) {
-        return withRole;
-    }
-
-    // 找到首轮 welcome 的 assistant 回复位置（通常在第 2 或第 3 条），固定插入在其后；若不存在则插入在最前一条 user 消息之后
-    const firstAssistantIndex = withRole.findIndex((msg) => msg.role === 'assistant');
-    if (firstAssistantIndex >= 0) {
-        return [
-            ...withRole.slice(0, firstAssistantIndex + 1),
-            backgroundMessage,
-            { role: 'assistant', content: '收到，已同步本次学习的完整背景与语言分析材料。' },
-            ...withRole.slice(firstAssistantIndex + 1),
-        ];
-    }
-
-    // 若尚未有 assistant 消息，插入在第一条 user 消息之后或直接追加
-    const firstUserIndex = withRole.findIndex((msg) => msg.role === 'user');
-    if (firstUserIndex >= 0) {
-        return [
-            ...withRole.slice(0, firstUserIndex + 1),
-            backgroundMessage,
-            ...withRole.slice(firstUserIndex + 1),
-        ];
-    }
-
-    return [...withRole, backgroundMessage];
+export const buildCompleteSentencePrompt = (params: {
+    /** 当前字幕行原文。 */
+    text: string;
+    /** 当前行之前紧邻的字幕行（时间升序，最近一行在最后）。 */
+    precedingLines: string[];
+    /** 当前行之后紧邻的字幕行（时间升序）。 */
+    followingLines: string[];
+}): string => {
+    const formatLines = (lines: string[]) => (lines.length > 0
+        ? lines.map((line, index) => `${index + 1}. ${line}`).join('\n')
+        : '（无）');
+    return [
+        '你在处理影视字幕。字幕经常被换行或时间轴切断，一行可能只有半个句子。',
+        '请判断「当前字幕行」是否已是一个完整句子的全部；如果不是，结合前后紧邻字幕行，把当前行所在的句子补全。',
+        '',
+        '当前字幕行：',
+        params.text,
+        '',
+        '前文行（按时间顺序，最近一行在最后）：',
+        formatLines(params.precedingLines),
+        '',
+        '后续行（按时间顺序）：',
+        formatLines(params.followingLines),
+        '',
+        '# 输出要求',
+        // DeepSeek 等接口在使用 json_object 响应格式时强制要求提示词里出现 "json" 字样，缺失会直接报错。
+        '- 只输出一个 JSON 对象，包含 complete、sentence 与 translation 三个字段，不要输出任何其他文字。',
+        '- complete：当前字幕行本身是否已完整（句首与句尾都在当前行内）。',
+        '- sentence：当前行所在的完整句子原文，从真实句首到真实句尾。',
+        '- 当前行只是句子后半时，sentence 必须带上前文里的前半句；当前行开头已是句首时，sentence 从当前行开始。',
+        '- 已完整时 sentence 与当前字幕行保持一致，不要改写或润色。',
+        '- sentence 内不要包裹引号、代码块或任何说明文字，语言与原字幕保持一致。',
+        '- translation：sentence 的中文译文，只输出译文本身，不要加引号或说明。',
+        '- sentence 本身已是中文时，translation 与 sentence 保持一致。',
+    ].join('\n');
 };

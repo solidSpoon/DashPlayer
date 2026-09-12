@@ -1,5 +1,5 @@
 import React from 'react';
-import { UseFormReturn } from 'react-hook-form';
+import { UseFormReturn, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, Copy, ExternalLink, ListPlus, Loader2, Plus, TestTube, Trash2, XCircle } from 'lucide-react';
 import { cn } from '@/fronted/lib/utils';
@@ -68,12 +68,13 @@ export const OpenAiCredentialCard: React.FC<OpenAiCredentialCardProps> = ({
     disabled,
 }) => {
     const { t } = useTranslation('settings');
-    const { register, setValue, watch } = form;
+    const { register, setValue } = form;
     const [newModel, setNewModel] = React.useState('');
     const [presetDialogOpen, setPresetDialogOpen] = React.useState(false);
 
-    const openAiModels = watch('openai.models') ?? [];
-    const apiFormat = watch('openai.apiFormat') ?? 'openai';
+    // 渲染期 watch() 不会订阅字段变化，改用 useWatch 让 API 类型与模型表随 setValue 即时刷新
+    const apiFormat = useWatch({ control: form.control, name: 'openai.apiFormat' }) ?? 'openai';
+    const openAiModels = useWatch({ control: form.control, name: 'openai.models' }) ?? [];
 
     const usageLabelMap: Record<OpenAiModelUsageFeature, string> = React.useMemo(() => ({
         sentenceLearning: t('serviceCredentials.openai.usageSentenceLearning'),

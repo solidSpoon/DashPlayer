@@ -56,6 +56,20 @@ interface LocalAiDownloadProgress {
 }
 
 /**
+ * 拆开下拉项的值：云端选项形如 `openai:<model>`，其余选项就是引擎枚举值本身。
+ *
+ * @param value 下拉项的值。
+ * @returns 引擎名与云端模型；非云端选项的模型为 null。
+ */
+const parseEngineValue = (value: string): { engine: string; model: string | null } => {
+    const separator = value.indexOf(':');
+    if (separator === -1) {
+        return { engine: value, model: null };
+    }
+    return { engine: value.slice(0, separator), model: value.slice(separator + 1) };
+};
+
+/**
  * 服务与资源设置页。
  *
  * 把“服务与模型”与“功能设置”两页合并成四块：本地基础资源包（发音/字幕识别/轻量翻译三合一）、
@@ -344,21 +358,25 @@ const ServiceResourceSetting: React.FC = () => {
         }
     };
 
-    /** 把字幕翻译或词典的引擎值拆成"引擎 + 云端模型"两个字段。
+    /**
+     * 写回字幕翻译或词典的引擎选择，并同步该功能记着的云端模型。
      *
-     * 下拉项里云端选项形如 `openai:<model>`，本地与关闭选项就是枚举值本身。
+     * 说明：下拉项里云端选项形如 `openai:<model>`，本地与关闭选项就是枚举值本身；
+     * 槽位只在引擎落在云端时有意义，切到本地/不补充时一并清空——留着它会让
+     * 「可用模型」表把该模型当成仍被占用（于是删不掉），而实际上没有任何调用会用到它。
+     *
+     * @param value 下拉项的值，`openai:<model>` 或引擎名。
+     * @param engineKey 要写入的引擎设置键。
+     * @param modelField 与该引擎配套的云端模型槽位。
      */
     const applyEngineValue = (
         value: string,
         engineKey: 'providers.subtitleTranslationEngine' | 'providers.dictionaryEngine',
         modelField: 'openai.featureModels.subtitleTranslation' | 'openai.featureModels.dictionary',
     ) => {
-        const separator = value.indexOf(':');
-        const engine = separator === -1 ? value : value.slice(0, separator);
+        const { engine, model } = parseEngineValue(value);
         setValue(engineKey, engine as 'openai' | 'local' | 'local-mt' | 'tencent' | 'none', { shouldDirty: true });
-        if (engine === 'openai') {
-            setValue(modelField, value.slice(separator + 1), { shouldDirty: true });
-        }
+        setValue(modelField, model ?? '', { shouldDirty: true });
     };
 
     /** 把引擎与云端模型拼成下拉项的值。 */
@@ -381,14 +399,15 @@ const ServiceResourceSetting: React.FC = () => {
     /**
      * 写回整句讲解的选择：禁用时关掉开关，选中云端模型时同时开开关并记住模型。
      *
+     * 说明：禁用时一并清空模型槽位——否则「可用模型」表会继续把它标记为被整句讲解占用，
+     * 那个模型就删不掉了（同 applyEngineValue）。
+     *
      * @param value 下拉项值，`none` 或 `openai:<model>`。
      */
     const applySentenceLearningValue = (value: string) => {
-        const separator = value.indexOf(':');
-        setValue('openai.enableSentenceLearning', separator !== -1, { shouldDirty: true });
-        if (separator !== -1) {
-            setValue('openai.featureModels.sentenceLearning', value.slice(separator + 1), { shouldDirty: true });
-        }
+        const { model } = parseEngineValue(value);
+        setValue('openai.enableSentenceLearning', model !== null, { shouldDirty: true });
+        setValue('openai.featureModels.sentenceLearning', model ?? '', { shouldDirty: true });
     };
 
     /** 渲染云端模型选项；各下拉共用，展平不分组。 */

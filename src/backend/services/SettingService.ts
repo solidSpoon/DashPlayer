@@ -38,6 +38,24 @@ const SUBTITLE_TRANSLATION_ENGINES = ['openai', 'local', 'local-mt', 'tencent', 
 /** 词典引擎的合法取值。 */
 const DICTIONARY_ENGINES = ['openai', 'local', 'none'] as const;
 
+/** 功能引擎取值（含 'invalid' 占位）。 */
+type FeatureEngine =
+    | EngineSelectionSettingVO['providers']['subtitleTranslationEngine']
+    | EngineSelectionSettingVO['providers']['dictionaryEngine'];
+
+/**
+ * 判断某个功能的引擎是否由云端承担。
+ *
+ * 说明：'invalid' 是存储值非法的占位，此时无从判断，返回 null 让调用方保留用户原值；
+ * 只有 openai 会落到云端模型槽位，本地、腾讯与关闭都不需要槽位。
+ *
+ * @param engine 设置里记着的引擎值。
+ * @returns 是否走云端；`null` 表示存储值非法。
+ */
+const engineUsesCloud = (engine: FeatureEngine): boolean | null => (
+    engine === 'invalid' ? null : engine === 'openai'
+);
+
 /**
  * 管理设置页数据和渲染进程需要的非敏感运行时设置。
  */
@@ -179,11 +197,35 @@ export class SettingServiceImpl implements SettingService {
     }
 
     /**
-     * 校验功能模型是否在可用模型列表中。
+     * 解析功能槽位最终要写入的云端模型。
+     *
+     * 说明：槽位只在功能由云端承担时才有意义——引擎落在本地或功能关闭时写入空字符串，
+     * 免得留下一个没人调用、却被「可用模型」表当成仍被占用的尾巴（那个模型会因此删不掉）；
+     * 真正走云端的功能则必须指向一个可用模型，缺失或已失效直接报错，
+     * 不静默换成列表里的第一个模型。
+     *
+     * @param candidate 槽位里记着的模型标识。
+     * @param availableModels 当前可用模型列表。
+     * @param usesCloud 该功能当前是否由云端承担；`null` 表示引擎存储值非法（'invalid' 占位）无从判断。
+     * @param featureLabel 功能中文名，用于报错文案。
+     * @returns 要写入槽位的模型标识；功能不落云端时为空字符串。
+     * @throws 功能走云端、但槽位为空或已不在可用列表时抛出。
      */
-    private requireFeatureModelAvailable(candidate: string, availableModels: string[], fieldName: string): string {
-        if (!availableModels.includes(candidate)) {
-            throw new Error(`${fieldName} 不是可用模型: ${candidate}`);
+    private resolveFeatureModelSlot(
+        candidate: string,
+        availableModels: string[],
+        usesCloud: boolean | null,
+        featureLabel: string,
+    ): string {
+        // 引擎存储值非法时无从判断是否走云端：原样保留，不把用户记着的模型清掉
+        if (usesCloud === null) {
+            return candidate;
+        }
+        if (!usesCloud) {
+            return '';
+        }
+        if (!candidate || !availableModels.includes(candidate)) {
+            throw new Error(`${featureLabel}还没选好云端模型，请先在「可用模型」里选一个`);
         }
         return candidate;
     }
@@ -448,6 +490,9 @@ export class SettingServiceImpl implements SettingService {
      *
      * 枚举字段为 `'invalid'` 占位时跳过对应键，保留原存储值（仍非法），
      * 其余字段正常保存；用户重新选择合法值后才会写回。
+     *
+     * 功能模型槽位跟着引擎走：不落云端的功能够写入空值（见 resolveFeatureModelSlot），
+     * 因此引擎切到本地后保存一次，该功能记着的云端模型即被清掉。
      */
     public async saveEngineSelection(settings: EngineSelectionSettingVO): Promise<void> {
         if (settings.providers.subtitleTranslationEngine === 'invalid') {
@@ -498,26 +543,29 @@ export class SettingServiceImpl implements SettingService {
 
         await this.setValue(
             'models.openai.sentenceLearning',
-            this.requireFeatureModelAvailable(
+            this.resolveFeatureModelSlot(
                 settings.openai.featureModels.sentenceLearning,
                 availableModels,
-                'openai.featureModels.sentenceLearning',
+                settings.openai.enableSentenceLearning,
+                '整句讲解',
             ),
         );
         await this.setValue(
             'models.openai.subtitleTranslation',
-            this.requireFeatureModelAvailable(
+            this.resolveFeatureModelSlot(
                 settings.openai.featureModels.subtitleTranslation,
                 availableModels,
-                'openai.featureModels.subtitleTranslation',
+                engineUsesCloud(settings.providers.subtitleTranslationEngine),
+                '字幕翻译',
             ),
         );
         await this.setValue(
             'models.openai.dictionary',
-            this.requireFeatureModelAvailable(
+            this.resolveFeatureModelSlot(
                 settings.openai.featureModels.dictionary,
                 availableModels,
-                'openai.featureModels.dictionary',
+                engineUsesCloud(settings.providers.dictionaryEngine),
+                '词典查词',
             ),
         );
     }
@@ -767,10 +815,12 @@ export class SettingServiceImpl implements SettingService {
                 return { success: false, message: '模型未在服务配置中启用' };
             }
             const model = this.aiProviderService.createModelById(modelId);
+            // 推理类模型（如 deepseek-flash）会先把额度花在 reasoning_content 上，
+            // 5 个 token 时正文必为空且 finish_reason=length，连通性被误判为失败
             const result = await generateText({
                 model,
                 prompt: 'Hello',
-                maxOutputTokens: 5,
+                maxOutputTokens: 50,
             });
 
             if (StrUtil.isNotBlank(result.text)) {

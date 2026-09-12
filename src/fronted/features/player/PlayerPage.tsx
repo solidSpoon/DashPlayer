@@ -1,4 +1,3 @@
-import {AnimatePresence} from 'framer-motion';
 import React, {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
 import {useLocation, useNavigate, useParams, useSearchParams} from 'react-router-dom';
 import useLayout, {cpW} from '@/fronted/hooks/useLayout';
@@ -9,7 +8,6 @@ import ControlButton from '@/fronted/features/player/components/ControlButton';
 import useFile from '@/fronted/features/file-browser/fileStore';
 import PlayerShortcut from '@/fronted/features/player/components/PlayerShortcut';
 import SideBar from '@/fronted/components/layout/SideBar';
-import ChatPanel from '@/fronted/features/chat/ChatPanel';
 import useChatPanel from '@/fronted/features/chat/chatStore';
 import useSWR from 'swr';
 import PlaybackLayout from '@/fronted/features/player/components/srt-layout/Layout';
@@ -56,7 +54,7 @@ const PlayerWithControlsPage = () => {
     const showSideBar = useLayout((state) => state.showSideBar);
     const titleBarHeight = useLayout((state) => state.titleBarHeight);
     const uiFullScreen = useLayout((s) => s.fullScreen);
-    const chatTopic = useChatPanel(s => s.topic);
+    const learningVisible = useChatPanel(s => s.learningVisible);
     const videoLoaded = useFile((s) => s.videoLoaded);
     const w = cpW.bind(
         null,
@@ -168,7 +166,7 @@ const PlayerWithControlsPage = () => {
             }
             setVisible(true);
         };
-    }, [chatTopic, isMac, showSideBar, uiFullScreen, video, windowState]);
+    }, [isMac, showSideBar, uiFullScreen, video, windowState]);
     useEffect(() => {
         /**
          * 应用轻量播放详情，并优先把视频源写入播放器状态。
@@ -194,6 +192,8 @@ const PlayerWithControlsPage = () => {
                     srtHash: null,
                     subtitleSessionId: null,
                 });
+                // 整句学习会话绑定在具体视频与字幕缓存上，换片必须结束，否则会检索到上一部片的字幕
+                useChatPanel.getState().clear();
             }
             if (videoPath && vp !== videoPath) {
                 useFile.getState().updateFile(videoPath);
@@ -448,7 +448,9 @@ const PlayerWithControlsPage = () => {
                             className={cn(
                                 'hidden row-start-1 row-end-3 col-start-2 col-end-4 p-2.5 pl-1.5 pr-1',
                                 w('md') && 'block col-end-3',
-                                h('md') && 'block row-end-2'
+                                h('md') && 'block row-end-2',
+                                // 学习页打开期间冻结播放控制面板：不响应操作并弱化显示，关闭后恢复
+                                learningVisible && 'pointer-events-none opacity-50'
                             )}
                         >
                             <ControlBox/>
@@ -479,15 +481,9 @@ const PlayerWithControlsPage = () => {
                 >
                     <PlaybackLayout/>
                 </div>
-                {chatTopic === 'offscreen' && (
-                    <>
-                        <ControlButton/>
-                        <PlayerShortcut/>
-                    </>
-                )}
-                <AnimatePresence>
-                    {chatTopic !== 'offscreen' && <ChatPanel/>}
-                </AnimatePresence>
+                {/* 播放器控制与快捷键常驻挂载；学习页打开期间控制面板冻结、播放类快捷键停用（见 ControlBox 与 PlayerShortcut 的 learningVisible 分支） */}
+                <ControlButton/>
+                <PlayerShortcut/>
 
             </div>
         </div>
