@@ -1,6 +1,8 @@
 # 临时触发器：在修复分支上干跑完整链路（package_only，不上传 Release），
 # 验证运行时矩阵断言、静态 CRT 构建、download.mjs 的 Windows 安装路径与 app 打包；
-# 验证完成后删除本文件
+# 验证完成后删除本文件。
+# 二次触发：上一轮 macos-x64 因 runner 侧 artifact 下载 ENOTFOUND 失败（基础设施抖动），
+# 重跑一次取全绿基线
 name: Dry run full package
 on:
   push:
