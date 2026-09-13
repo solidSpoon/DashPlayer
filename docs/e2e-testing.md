@@ -96,6 +96,7 @@ test.describe('xxx 设置', () => {
 
 ## 7. 已知坑
 
-- **`app.evaluate()` 会挂住**：当前 Electron 44 + Playwright 1.63 组合下主进程会话建立不起来（`page.evaluate()` 正常）。需要在主进程侧取证时，改用文件系统间接断言（例如等 `<userData>/data-dev/dp_db.sqlite3` 出现）。
+- **启动偶发停顿几十秒到几分钟（环境级，与 Playwright 无关）**：`launch()` 偶尔迟迟不返回，stderr 在 `Debugger listening` 后长期不出 `DevTools listening`；停顿期间应用就绪前的 JS（建库、迁移）已完成，但 Chromium 不 fork GPU 进程、不建 profile，恢复时一次性补齐。纯手动 `electron .` 同样复现（实测停顿 17 秒至 2 分钟以上），与本项目代码、`app.evaluate()`（实测 5~64ms 正常）无关；本机观测到的停顿全部落在 USB 外设热插拔（断开→重新枚举）时间窗内，窗外 5/5 次启动约 2 秒。遇到启动超时先查 `journalctl -k` 的外设事件，不要怀疑用例本身。
+- **Chromium 开关必须用 `--flag=value` 等号形式**：`--user-data-dir <path>` 写成两个 token 会被解析成"无值开关 + 位置参数"，userData 静默回退到真实目录、污染开发数据。fixture 里是 `--user-data-dir=${dir}`（另有 `assertUserDataIsolated` 兜底）；手写启动脚本时容易踩。
 - **`yarn install` 后 Electron 二进制可能缺失**：仓库里 `electron` 包的 postinstall 不落盘二进制，首次 `e2e:run` 会自动补下，日志出现 `Downloading Electron binary...` 属正常。
 - **配置是嵌套 JSON**：electron-store 按点号访问，`appearance.theme` 在文件里存成 `{"appearance":{"theme":"dark"}}`；断言用 `readConfigValue`，不要按平铺 key 读。
