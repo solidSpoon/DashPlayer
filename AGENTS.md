@@ -6,7 +6,7 @@
 - 新增/修改的 `type`/`interface`/`class` 写顶部 JSDoc；含义/单位/约束不直观的字段写字段级注释，含义一眼可懂的变量不用注释。
 
 ## 测试规范
-写或改测试前，先读 `docs/testing-guidelines.md`（测试规约：分层策略、依赖注入约定、内存库基建、mock 边界）。核心红线：
+写或改测试前，先读 `docs/testing-guidelines.md`（测试规约：分层策略、依赖注入约定、内存库基建、mock 边界）。写或改 e2e 用例时另读 `docs/e2e-testing.md`（运行方式、fixtures 用法、页面用例写法与已知坑）。核心红线：
 
 - 测试必须断言真实业务行为（返回值、数据库状态、DOM），禁止以 mock 调用断言为主；服务层测试一律使用内存 SQLite（`createMemoryDb()`），禁止 mock 仓储层。
 - 服务类依赖一律构造函数注入，禁止属性注入后测试强转私有字段。
