@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.12.3](https://github.com/solidSpoon/DashPlayer/compare/v6.12.2...v6.12.3) (2026-09-13)
+
+
+### Bug Fixes
+
+* 轻量翻译随包 VC++ 运行库，修复干净 Windows 上 onnxruntime 加载失败 ([0f72339](https://github.com/solidSpoon/DashPlayer/commit/0f723395562cb642302fcd799bf04e760fbe7e58))
+* 轻量翻译随包 VC++ 运行库，修复干净 Windows 上 onnxruntime 加载失败 ([60fdb0c](https://github.com/solidSpoon/DashPlayer/commit/60fdb0c67f99685ad786cf1c8d1bbdb5b9282357))
+
 ## [6.12.2](https://github.com/solidSpoon/DashPlayer/compare/v6.12.1...v6.12.2) (2026-09-13)
 
 
