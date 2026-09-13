@@ -13,6 +13,13 @@ permissions:
   contents: write
   pull-requests: write
 
+# 串行化：短时间内连续合并多个 PR 会触发多个 run 并行，各自基于旧快照计算版本，
+# 曾产生重复的发版 PR 并导致发版状态错乱（v6.12.3 被跳过、manifest 与 tag 脱节）。
+# 排队执行而不取消，保证每个 run 都基于前一个 run 的最新结果。
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
 jobs:
   release-please:
     outputs:
