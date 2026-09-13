@@ -19,6 +19,9 @@
     "test:run": "run-s test:base -- run",
     "test:coverage": "run-s test:base -- run --coverage",
     "test:watch": "run-s test:base -- watch",
+    "e2e:build": "node e2e/build.mjs",
+    "e2e:run": "playwright test",
+    "test:e2e": "run-s e2e:build e2e:run",
     "drizzle-kit": "cross-env ELECTRON_RUN_AS_NODE=1 electron node_modules/drizzle-kit/bin.cjs"
   },
   "keywords": [],
@@ -43,6 +46,7 @@
     "@electron-forge/plugin-vite": "^7.11.2",
     "@electron/fuses": "^2.1.3",
     "@electron/rebuild": "^4.2.0",
+    "@playwright/test": "^1.63.0",
     "@reforged/maker-appimage": "^5.3.1",
     "@tailwindcss/typography": "^0.5.12",
     "@tailwindcss/vite": "^4.3.3",
