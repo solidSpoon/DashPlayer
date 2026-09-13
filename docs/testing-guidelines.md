@@ -19,6 +19,7 @@
 | 业务组件 | `src/fronted/components/shared`、`src/fronted/features` | 用户可见的交互行为 | 仅 mock 外部边界（IPC、TTS/网络） |
 | IPC 契约 | `src/backend/controllers` | handler 入参/出参形状 | 按需 mock service |
 | UI 基础件 | `src/fronted/components/ui` | **不测** | — |
+| e2e | `e2e/` | 跨进程真实链路：界面操作 → IPC → 数据库/配置文件 | 不 mock，启动真实应用；见 [e2e 测试指南](./e2e-testing.md) |
 
 ## 3. 依赖注入约定
 
@@ -80,5 +81,7 @@ yarn test:run        # 全量跑一次
 yarn test:watch      # 迭代
 yarn test:coverage   # PR 前检查覆盖率
 ```
+
+e2e 层是独立的一套（构建 + 启动真实应用）：`yarn test:e2e`，详见 [e2e 测试指南](./e2e-testing.md)。
 
 覆盖率只作为发现盲区的工具，不作为 KPI 追求；mock 编排堆出来的覆盖率是负资产（见第 1 节原则 1/2）。
