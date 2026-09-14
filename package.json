@@ -21,7 +21,8 @@
     "test:watch": "run-s test:base -- watch",
     "e2e:build": "node e2e/build.mjs",
     "e2e:run": "playwright test",
-    "test:e2e": "run-s e2e:build e2e:run",
+    "test:cases:check": "node scripts/check-test-cases.mjs",
+    "test:e2e": "run-s test:cases:check e2e:build e2e:run",
     "drizzle-kit": "cross-env ELECTRON_RUN_AS_NODE=1 electron node_modules/drizzle-kit/bin.cjs"
   },
   "keywords": [],
