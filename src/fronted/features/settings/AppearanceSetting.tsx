@@ -40,6 +40,7 @@ const AppearanceSetting = () => {
 
     const { ready, initialize, flush } = useAutoSaveSettingsForm<AppearanceFormValues>({
         form,
+        detailKey: 'settings/appearance/detail',
         onSave: async (values) => {
             logger.debug('saving appearance settings', { values });
             await settingsApi.saveAppearance(values);

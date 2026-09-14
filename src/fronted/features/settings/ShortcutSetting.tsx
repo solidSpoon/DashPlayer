@@ -471,6 +471,7 @@ const ShortcutSetting = () => {
     const { control } = form;
     const { ready, status: autoSaveStatus, error: autoSaveError, initialize, flush } = useAutoSaveSettingsForm<ShortcutFormValues>({
         form,
+        detailKey: 'settings/shortcuts/detail',
         onSave: async (values) => {
             await settingsApi.saveShortcuts(values);
         },
@@ -583,7 +584,10 @@ const ShortcutSetting = () => {
                 contentClassName="space-y-6"
             >
                 {autoSaveStatus === 'error' && autoSaveError && (
-                    <div className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                    <div
+                        role="alert"
+                        className="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+                    >
                         {autoSaveError}
                     </div>
                 )}

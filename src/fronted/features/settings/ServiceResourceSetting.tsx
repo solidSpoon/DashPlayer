@@ -105,6 +105,7 @@ const ServiceResourceSetting: React.FC = () => {
         flush: flushCredentials,
     } = useAutoSaveSettingsForm<ServiceCredentialSettingDetailVO>({
         form: credentialForm,
+        detailKey: 'settings/service-credentials/detail',
         onSave: async (values) => {
             await settingsApi.saveServiceCredentials(values);
         },
@@ -118,6 +119,7 @@ const ServiceResourceSetting: React.FC = () => {
         flush: flushPreferences,
     } = useAutoSaveSettingsForm<EngineSelectionSettingVO>({
         form: preferenceForm,
+        detailKey: 'settings/engine-selection/detail',
         onSave: async (values) => {
             await settingsApi.saveEngineSelection(values);
         },

@@ -83,8 +83,9 @@ const StorageSetting = () => {
         }
     }, []);
 
-    const { status: autoSaveStatus, initialize, flush } = useAutoSaveSettingsForm<StorageFormValues>({
+    const { status: autoSaveStatus, error: autoSaveError, initialize, flush } = useAutoSaveSettingsForm<StorageFormValues>({
         form,
+        detailKey: 'settings/storage/detail',
         onSave: async (values) => {
             await settingsApi.saveStorage(values.path);
             await loadStorageStatus(values.path);
@@ -233,6 +234,16 @@ const StorageSetting = () => {
                     </div>
                 )}
             >
+                {/* 路径不可用时后端会拒绝写入；必须把原因显式露出来，否则用户会以为已经保存 */}
+                {autoSaveStatus === 'error' && autoSaveError && (
+                    <div
+                        role="alert"
+                        className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+                    >
+                        {autoSaveError}
+                    </div>
+                )}
+
                 {/* 媒体库路径卡片 */}
                 <SettingCard
                     title={t('storage.libraryPathTitle')}

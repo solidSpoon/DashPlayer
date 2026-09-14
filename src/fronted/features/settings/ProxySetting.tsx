@@ -40,6 +40,7 @@ const ProxySetting = () => {
 
     const { ready, status: autoSaveStatus, error: autoSaveError, initialize, flush } = useAutoSaveSettingsForm<ProxyFormValues>({
         form,
+        detailKey: 'settings/proxy/detail',
         onSave: async (values) => {
             await settingsApi.saveProxy({
                 mode: values.mode,
@@ -83,7 +84,10 @@ const ProxySetting = () => {
                 contentClassName="space-y-6"
             >
                 {autoSaveStatus === 'error' && autoSaveError && (
-                    <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                    <div
+                        role="alert"
+                        className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+                    >
                         {autoSaveError}
                     </div>
                 )}
