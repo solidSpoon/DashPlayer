@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { expect, type Page } from '@playwright/test';
 import { readConfigValue, test } from './fixtures';
-import { openSettingsSection, reloadSettingsPage } from './settings-page';
+import { openSettingsSection, reloadSettingsPage, switchSettingsSection } from './settings-page';
 
 /** 进入存储管理设置页。 */
 async function openStorageSetting(page: Page): Promise<void> {
@@ -55,5 +55,24 @@ test.describe('存储设置', () => {
         // 重进页面：界面回显的是真正存下来的旧路径，而不是刚才那段无效输入
         await reloadSettingsPage(page, page.getByRole('heading', { name: '存储管理' }));
         await expect(page.getByPlaceholder('Documents/DashPlayer')).toHaveValue(initialPath);
+    });
+
+    test('[SET-STO-05] 改完媒体库路径立刻切到别的栏目，改动仍会落盘并在切回后回显', async ({ session, userDataDir }) => {
+        const page = session.page;
+        await openStorageSetting(page);
+
+        const libraryInput = page.getByPlaceholder('Documents/DashPlayer');
+        await expect(libraryInput).toHaveValue(path.join(userDataDir, 'library'));
+
+        const nextPath = path.join(userDataDir, 'library-autosave');
+        fs.mkdirSync(nextPath, { recursive: true });
+        await libraryInput.fill(nextPath);
+
+        // 本页的保存还带着「读取新目录状态」的附加动作，卸载时同样不能把挂起的路径丢掉
+        await switchSettingsSection(page, '外观', page.getByRole('button', { name: '深色' }));
+        await expect.poll(() => readConfigValue(userDataDir, 'storage.path')).toBe(nextPath);
+
+        await switchSettingsSection(page, '存储', page.getByRole('heading', { name: '存储管理' }));
+        await expect(page.getByPlaceholder('Documents/DashPlayer')).toHaveValue(nextPath);
     });
 });

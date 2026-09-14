@@ -37,6 +37,7 @@
 ```
 
 - 同一个 ID 还要出现在 spec 的 `test()` 标题里，写成 `test('[SET-PRX-01] 场景描述', ...)`。
+- 本文件也登记缺口，但只登记**跨页面、挂不到任何单一页面上**的机制性缺口（见文末），所以它只允许出现「编号」行，不允许出现「用例」行。
 - 缺口只有两种，都要求 ID **不出现在任何 spec 里**：
 
 | 状态 | 含义 |
@@ -69,4 +70,10 @@ yarn test:cases:check   # 文档与用例双向比对（已串进 yarn test:e2e�
 | [shortcut.md](./shortcut.md) | 快捷键 | `e2e/shortcut-settings.spec.ts` |
 | [appearance.md](./appearance.md) | 外观 | `e2e/appearance-settings.spec.ts` |
 | [about.md](./about.md) | 关于与更新 | `e2e/about-settings.spec.ts` |
-| [autosave.md](./autosave.md) | 设置页通用的保存时机 | `e2e/settings-autosave.spec.ts` |
+
+「改完立刻切走会不会丢」是每个表单页共有的时机场景，所以不单开文档，就写在各自的页面文档里（各页有一条 `xx-05` 之类的用例）。下面只剩两条没法挂到任何单一页面上的机制性缺口。
+
+## 跨页面的机制性缺口
+
+- 编号：**[SET-AUTO-02]**（未覆盖）保存还没发出就关窗/退出应用：改动是随卸载时的 flush 一起提交的，若进程先退出，flush 里的 IPC 可能来不及往返。要自动化就得让用例真正关窗，属于进程生命周期场景，暂缓。
+- 编号：**[SET-AUTO-03]**（未覆盖）保存失败后又立刻切走：此时页面上还挂着失败提示，用户直接离开会看到提示一闪而过，回来只看得到旧值。要不要在离开时拦一下（或让提示跟随到新页面）还没定。

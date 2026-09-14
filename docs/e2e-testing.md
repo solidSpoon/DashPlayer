@@ -65,13 +65,16 @@ const restarted = await launchAppSession(userDataDir);
 | 导出 | 用途 |
 |---|---|
 | `openSettingsSection(page, '网络代理', ready)` | 从首页进「设置中心」再切到指定栏目，并等该页标志性元素出现 |
+| `switchSettingsSection(page, '外观', ready)` | 已经在设置中心时切到另一个栏目（用例中途离开当前页、验证挂起的改动是否提交） |
 | `reloadSettingsPage(page, ready)` | 重新加载当前设置页（HashRouter 保留路由），验证值来自后端回读 |
 | `selectInRow(page, 行内独有文案)` | 定位某一设置行里的下拉框；同页多个 Select 时按行缩小范围 |
 | `chooseInRow(page, 行内独有文案, '选项文案')` | 在指定行点开下拉框并选中一项 |
 
+`openSettingsSection` 与 `switchSettingsSection` 分开，是为了让「从一个设置页切到另一个」的用例只经历一次导航——切走的瞬间正是要验证的时机，不能有多余的中间跳转。
+
 ## 5. 新页面用例怎么写
 
-设置中心六个页面已全覆盖（22 条用例）。**每条用例测什么、哪些场景还是缺口，看 [docs/test-cases/](./test-cases/)（一个设置页一份文档）**；本文档只讲怎么写，按页面形态挑最近的抄：
+设置中心六个页面已全覆盖（27 条用例）。**每条用例测什么、哪些场景还是缺口，看 [docs/test-cases/](./test-cases/)（一个设置页一份文档）**；本文档只讲怎么写，按页面形态挑最近的抄：
 
 | 页面形态 | 参考文件 |
 |---|---|
@@ -80,7 +83,7 @@ const restarted = await launchAppSession(userDataDir);
 | 下拉框与自定义提示词 | `e2e/service-resource-settings.spec.ts` |
 | 弹窗内录制 / 保存 | `e2e/shortcut-settings.spec.ts` |
 | 只读页（无可填字段的守卫） | `e2e/about-settings.spec.ts` |
-| 保存时机（跨页面） | `e2e/settings-autosave.spec.ts` |
+| 保存时机（改完立刻切走） | 各页 spec 里都有一条：`e2e/appearance-settings.spec.ts` 的 SET-APP-09 最简洁 |
 
 1. **入口定位用 getByRole**：`link` / `button` / `heading` + 中文文案（fixture 已固定 `i18n.language: 'zh-CN'`，不随宿主系统语言漂移）；避免 CSS 选择器。设置页导航走 `openSettingsSection`，不要手写点击链接——面包屑里可能出现同名链接。
 2. **「用户填了但没保存」是这套用例的首要防范对象**：设置页没有保存按钮，改动由页面防抖自动保存，所以每条用例都按三段式写——① 操作控件；② `expect.poll(() => readConfigValue(...))` 断言值真进了配置文件；③ `reloadSettingsPage` 后断言界面回显。只做第 ① 步，或只断言界面 state，都可能在「保存链路断了」时假通过。涉及保存时机的用例还要多走一步「切到别的栏目再切回来」，因为整页 reload 会清掉前端缓存，验不到缓存过期一类的问题（见下面的已知坑）。

@@ -1,6 +1,6 @@
 import { expect, type Page, type Locator } from '@playwright/test';
 import { launchAppSession, readConfigValue, test } from './fixtures';
-import { openSettingsSection, reloadSettingsPage, selectInRow } from './settings-page';
+import { openSettingsSection, reloadSettingsPage, selectInRow, switchSettingsSection } from './settings-page';
 
 /** 主题按钮文案到根节点主题类名的映射。 */
 const THEME_CLASS = { 深色: 'dark', 浅色: 'light' } as const;
@@ -146,5 +146,23 @@ test.describe('外观设置', () => {
         } finally {
             await restarted.close();
         }
+    });
+
+    test('[SET-APP-09] 选完主题立刻切到别的设置栏目，主题仍会落盘并在重进后回显选中', async ({ session, userDataDir }) => {
+        const page = session.page;
+        await openAppearanceSetting(page);
+
+        await page.getByRole('button', { name: '深色' }).click();
+        await expect(page.locator('html')).toHaveClass(/\bdark\b/);
+
+        // 关键：点完立刻离开，不给 600ms 防抖留时间。主题是立即可见的界面状态，
+        // 用户很容易「点完就走」，此时若丢值，重进页面选中项会退回浅色。
+        await switchSettingsSection(page, '网络代理', page.getByRole('heading', { name: '网络代理' }));
+
+        await expect.poll(() => readConfigValue(userDataDir, 'appearance.theme')).toBe('dark');
+
+        // 回到该页：选中态来自后端回读，而不是页面里残留的 state
+        await switchSettingsSection(page, '外观', page.getByRole('button', { name: '深色' }));
+        await expect(page.getByRole('button', { name: '深色' })).toHaveClass(/ring-1/);
     });
 });

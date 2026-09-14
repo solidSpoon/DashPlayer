@@ -9,6 +9,9 @@
  * - 自动化：`- 用例：**[SET-PRX-01]** 场景描述`
  * - 缺口：  `- 编号：**[SET-PRX-03]**（未覆盖）理由`
  *
+ * README.md 是规范文档，但跨页面的机制性缺口没别处可放，也按同样写法登记在这里；
+ * 它只允许出现缺口行，且不认「用例文件」（那个路径是举例，不是真的页面）。
+ *
  * 两类错误：
  * - 未翻译：文档标了「自动化」，但该页 spec 里找不到这个 ID。
  * - 未登记：spec 里出现了 ID，但文档没把它登记成「自动化」。
@@ -20,7 +23,7 @@ import {fileURLToPath} from 'node:url';
 
 /** 仓库根目录（本文件在 scripts/ 下）。 */
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-/** 用例文档目录；README.md 只讲规范，不参与比对。 */
+/** 用例文档目录；README.md 只讲规范，但也登记跨页面的机制性缺口。 */
 const CASES_DIR = path.join(REPO_ROOT, 'docs', 'test-cases');
 /** e2e 用例目录。 */
 const E2E_DIR = path.join(REPO_ROOT, 'e2e');
@@ -47,20 +50,45 @@ const listFiles = (dir, ext) =>
         .map((name) => path.join(dir, name));
 
 /**
- * 解析一份页面文档。
+ * 去掉围栏代码块（``` 之间）的内容。
+ *
+ * README 里用代码块举例说明「用例」与「编号」两种写法，那些例子不能被当成真实登记。
+ * 逐行保留行号（用空串占位），这样报错里的行号仍对得上原文。
+ *
+ * @param {string[]} lines 文档按行切分的结果。
+ * @returns {string[]} 同长度数组，代码块内的行被替换成空串。
+ */
+const stripFencedBlocks = (lines) => {
+    let inFence = false;
+    return lines.map((line) => {
+        if (line.trimStart().startsWith('```')) {
+            inFence = !inFence;
+            return '';
+        }
+        return inFence ? '' : line;
+    });
+};
+
+/**
+ * 解析一份用例文档。
  *
  * @param {string} file 文档绝对路径。
  * @returns {{page: object, problems: string[]}} page 为 {file, specFile, cases}；problems 为文档自身的问题。
  */
 const parsePageDoc = (file) => {
     const relFile = path.relative(REPO_ROOT, file);
-    const lines = fs.readFileSync(file, 'utf8').split('\n');
+    // README 是规范文档：只登记跨页面的缺口，不认「用例文件」那行路径示例
+    const gapsOnly = path.basename(file) === 'README.md';
+    const lines = stripFencedBlocks(fs.readFileSync(file, 'utf8').split('\n'));
     const problems = [];
     const cases = [];
 
-    const specFile = lines.map((line) => line.match(SPEC_FILE_RE)).find(Boolean)?.[1];
-    if (!specFile) {
-        problems.push(`${relFile} 顶部没有声明「用例文件：\`e2e/xxx.spec.ts\`」，脚本不知道该去哪找用例`);
+    let specFile;
+    if (!gapsOnly) {
+        specFile = lines.map((line) => line.match(SPEC_FILE_RE)).find(Boolean)?.[1];
+        if (!specFile) {
+            problems.push(`${relFile} 顶部没有声明「用例文件：\`e2e/xxx.spec.ts\`」，脚本不知道该去哪找用例`);
+        }
     }
 
     lines.forEach((line, index) => {
@@ -80,15 +108,23 @@ const parsePageDoc = (file) => {
             );
             return;
         }
+        if (gapsOnly && status === '自动化') {
+            problems.push(
+                `${relFile}:${index + 1} 登记了自动化用例 ${ids.join('、')}，但 README 不是页面文档，没有可对应的 spec；请把这条放到它所属页面的文档里`
+            );
+            return;
+        }
         for (const id of ids) {
             cases.push({id, status, file: relFile, line: index + 1});
         }
     });
 
-    // 同一份文档里的 ID 应当属于同一个页面/范围前缀，避免把别的页的用例抄错地方
-    const prefixes = new Set(cases.map((item) => item.id.split('-')[1]));
-    if (prefixes.size > 1) {
-        problems.push(`${relFile} 里混了多个 ID 前缀（${[...prefixes].join('、')}），一页里的前缀应当一致`);
+    // 同一份文档里的 ID 应当属于同一个页面/范围前缀，避免把别的页的用例抄错地方（README 天然跨范围）
+    if (!gapsOnly) {
+        const prefixes = new Set(cases.map((item) => item.id.split('-')[1]));
+        if (prefixes.size > 1) {
+            problems.push(`${relFile} 里混了多个 ID 前缀（${[...prefixes].join('、')}），一页里的前缀应当一致`);
+        }
     }
 
     return {page: {file: relFile, specFile, cases}, problems};
@@ -136,9 +172,6 @@ const main = () => {
     const pages = [];
 
     for (const file of listFiles(CASES_DIR, '.md')) {
-        if (path.basename(file) === 'README.md') {
-            continue;
-        }
         const {page, problems: docProblems} = parsePageDoc(file);
         problems.push(...docProblems);
         pages.push(page);
@@ -198,12 +231,17 @@ const main = () => {
     }
 
     // 各页概览直接由脚本输出，不手写进文档（手写的概览迟早与清单对不上）
-    const overview = pages.map((page) => {
-        const automated = page.cases.filter((item) => item.status === '自动化').length;
-        const gaps = page.cases.filter((item) => item.status !== '自动化');
-        const gapText = gaps.length === 0 ? '无缺口' : `缺口 ${gaps.length} 条（${gaps.map((item) => item.id).join('、')}）`;
-        return `  ${path.basename(page.file, '.md').padEnd(18)} 自动化 ${String(automated).padStart(2)} 条，${gapText}`;
-    });
+    const overview = pages
+        .slice()
+        // 页面文档按文件名排，README（跨页面缺口）永远放最后
+        .sort((a, b) => (a.specFile ? 0 : 1) - (b.specFile ? 0 : 1) || a.file.localeCompare(b.file))
+        .map((page) => {
+            const automated = page.cases.filter((item) => item.status === '自动化').length;
+            const gaps = page.cases.filter((item) => item.status !== '自动化');
+            const gapText = gaps.length === 0 ? '无缺口' : `缺口 ${gaps.length} 条（${gaps.map((item) => item.id).join('、')}）`;
+            const name = page.specFile ? path.basename(page.file, '.md') : 'README（跨页面）';
+            return `  ${name.padEnd(18)} 自动化 ${String(automated).padStart(2)} 条，${gapText}`;
+        });
 
     if (problems.length > 0) {
         console.error('用例文档与 e2e 用例对不上：');

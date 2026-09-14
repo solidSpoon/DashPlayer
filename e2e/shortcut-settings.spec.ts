@@ -1,6 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
 import { readConfigValue, test } from './fixtures';
-import { openSettingsSection, reloadSettingsPage } from './settings-page';
+import { openSettingsSection, reloadSettingsPage, switchSettingsSection } from './settings-page';
 
 /** 进入快捷键设置页。 */
 async function openShortcutSetting(page: Page): Promise<void> {
@@ -112,5 +112,25 @@ test.describe('快捷键设置', () => {
         await reloadSettingsPage(page, page.getByRole('heading', { name: '快捷键' }));
         await expect(page.getByPlaceholder('搜索快捷键或功能名称...')).toHaveValue('');
         expect(readConfigValue(userDataDir, 'shortcut.searchQuery')).toBeUndefined();
+    });
+
+    test('[SET-SHT-07] 弹窗里改完按键立刻切到别的设置栏目，改动仍会落盘并在重进后回显', async ({ session, userDataDir }) => {
+        const page = session.page;
+        await openShortcutSetting(page);
+
+        await openShortcutDialog(page, '单句重播');
+        await page.keyboard.press('y');
+        await page.getByRole('button', { name: '添加此按键' }).click();
+        await page.getByRole('button', { name: '完成并保存' }).click();
+
+        // 关键：弹窗保存只是把改动交回整页表单，紧接着离开，不给 600ms 防抖留时间。
+        // 快捷键改键是整份表单一起保存的，离开时挂起的改动丢了会连带丢掉其它行的改动。
+        await switchSettingsSection(page, '外观', page.getByRole('button', { name: '深色' }));
+
+        await expect.poll(() => readConfigValue(userDataDir, 'shortcut.repeatSingleSentence')).toBe('r,y');
+
+        // 回到该页：按键来自后端回读，而不是页面里残留的输入
+        await switchSettingsSection(page, '快捷键', page.getByRole('heading', { name: '快捷键' }));
+        await expect(shortcutRow(page, '单句重播')).toContainText('Y');
     });
 });
