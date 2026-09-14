@@ -8,7 +8,7 @@ import { Textarea } from '@/fronted/components/ui/textarea';
 import { Globe, Shield, Wifi } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
-import { settingsApi } from '@/fronted/features/settings/settingsApi';
+import { SETTINGS_DETAIL_SWR_OPTIONS, settingsApi } from '@/fronted/features/settings/settingsApi';
 import { ProxySettingDetailVO } from '@/common/contracts/proxy-setting-vo';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
@@ -29,8 +29,10 @@ const ProxySetting = () => {
     const { t } = useI18nTranslation('settings');
 
     // 与 EngineSelectionSetting / ShortcutSetting 等页面一致：通过 detail 接口取服务端数据。
-    const { data: settings } = useSWR<ProxySettingDetailVO>('settings/proxy/detail', () =>
-        settingsApi.getProxy(),
+    const { data: settings } = useSWR<ProxySettingDetailVO>(
+        'settings/proxy/detail',
+        () => settingsApi.getProxy(),
+        SETTINGS_DETAIL_SWR_OPTIONS,
     );
 
     const form = useForm<ProxyFormValues>();

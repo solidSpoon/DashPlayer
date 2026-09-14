@@ -9,7 +9,7 @@ import SettingsPageShell from '@/fronted/features/settings/components/form/Setti
 import { cn } from '@/fronted/lib/utils';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { useForm, useWatch } from 'react-hook-form';
-import { settingsApi } from '@/fronted/features/settings/settingsApi';
+import { SETTINGS_DETAIL_SWR_OPTIONS, settingsApi } from '@/fronted/features/settings/settingsApi';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { applyLanguageSetting } from '@/fronted/i18n';
@@ -27,8 +27,10 @@ type AppearanceFormValues = AppearanceSettingVO;
 const AppearanceSetting = () => {
     const { t } = useI18nTranslation('settings');
 
-    const { data: settings } = useSWR<AppearanceSettingVO>('settings/appearance/detail', () =>
-        settingsApi.getAppearance(),
+    const { data: settings } = useSWR<AppearanceSettingVO>(
+        'settings/appearance/detail',
+        () => settingsApi.getAppearance(),
+        SETTINGS_DETAIL_SWR_OPTIONS,
     );
 
     const form = useForm<AppearanceFormValues>();

@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test';
 import { readConfigValue, test } from './fixtures';
-import { openSettingsSection, reloadSettingsPage, chooseInRow, selectInRow } from './settings-page';
+import { openSettingsSection, reloadSettingsPage, switchSettingsSection, chooseInRow, selectInRow } from './settings-page';
 
 /** 进入服务与资源设置页。 */
 async function openResourcesSetting(page: Page): Promise<void> {
@@ -206,5 +206,22 @@ test.describe('服务与资源设置', () => {
 
         await reloadSettingsPage(page, page.getByRole('heading', { name: '服务与资源' }));
         await expect(selectInRow(page, '整句讲解')).toHaveText('禁用');
+    });
+
+    test('[SET-SVC-17] 填完密钥立刻切到别的设置栏目，密钥仍会落盘并在重进后回显', async ({ session, userDataDir }) => {
+        const page = session.page;
+        await openResourcesSetting(page);
+
+        await page.getByPlaceholder('sk-...').fill(API_KEY);
+
+        // 关键：填完立刻离开，不给 600ms 防抖留时间。密钥是最不能丢的值，
+        // 用户填完随手切走若静默丢失，会表现为「填了密钥但还是提示未配置」。
+        await switchSettingsSection(page, '外观', page.getByRole('button', { name: '深色' }));
+
+        await expect.poll(() => readConfigValue(userDataDir, 'apiKeys.openAi.key')).toBe(API_KEY);
+
+        // 回到该页：密钥来自后端回读，而不是页面里残留的输入
+        await switchSettingsSection(page, '服务与资源', page.getByRole('heading', { name: '服务与资源' }));
+        await expect(page.getByPlaceholder('sk-...')).toHaveValue(API_KEY);
     });
 });

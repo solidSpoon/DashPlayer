@@ -116,9 +116,7 @@ export function useAutoSaveSettingsForm<TFormValues extends FieldValues>(
 
         try {
             await onSave(latestValues);
-            // 保存成功后详情缓存已被写脏，必须立刻刷新它：SWR 在一次请求结束后会在
-            // dedupingInterval（默认 2 秒）内保留「请求进行中」标记，此时重新进入该页
-            // 会被判定为无需重拉，于是页面一直显示旧值——用户核对时会以为没保存成功。
+            // 保存成功后缓存里的详情已经过时，立刻重取一次拉平，免得下次进入页面先闪一眼旧值。
             // 失败不影响保存结果本身，这里只吞掉错误交给下次进入页面时重拉。
             if (detailKey) {
                 void mutate(detailKey).catch(() => undefined);
@@ -152,11 +150,16 @@ export function useAutoSaveSettingsForm<TFormValues extends FieldValues>(
 
     /**
      * 用后端详情重置表单，并建立新的保存基线。
+     *
+     * `keepFieldsRef` 必须开：默认的 `reset` 会连已注册字段的 ref 一起清掉，于是
+     * `register` 出来的非受控输入框只更新表单值、不更新 DOM——页面已经渲染出来
+     * 之后再收到一次详情（切走再切回、后台重新校验）就会一直显示旧值，用户核对
+     * 时以为没保存成功。开着它才会把新值写回这些输入框，与受控字段行为一致。
      */
     const initialize = React.useCallback((values: TFormValues) => {
         const nextSnapshot = snapshotOf(values);
         baselineSnapshotRef.current = nextSnapshot;
-        reset(values);
+        reset(values, { keepFieldsRef: true });
         setReady(true);
         setStatus('idle');
         setError(null);
