@@ -548,12 +548,18 @@ const ServiceResourceSetting: React.FC = () => {
                 contentClassName="space-y-6"
             >
                 {credentialSaveStatus === 'error' && credentialSaveError && (
-                    <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                    <div
+                        className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+                        role="alert"
+                    >
                         {credentialSaveError}
                     </div>
                 )}
                 {preferenceSaveStatus === 'error' && preferenceSaveError && (
-                    <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                    <div
+                        className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+                        role="alert"
+                    >
                         {preferenceSaveError}
                     </div>
                 )}

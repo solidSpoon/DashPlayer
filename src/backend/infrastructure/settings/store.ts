@@ -11,9 +11,18 @@ const buildStore = (name: string): Store<Record<string, unknown>> => {
 const store = buildStore(getEnvironmentConfigName('config'));
 
 /**
- * 判断当前设置项是否属于可被用户清空的快捷键配置。
+ * 允许显式写入空字符串的设置键：对这些键来说空值是有意义的状态，不是「没填」。
+ *
+ * 快捷键清空表示取消绑定；云端模型清单清空表示用户不再使用任何云端模型
+ * （设置页按「无模型可用」渲染）。其余键沿用历史行为：空值回落到 schema 默认值。
  */
-const isShortcutSettingKey = (key: SettingKey): boolean => key.startsWith('shortcut.');
+const EMPTIABLE_SETTING_KEYS: ReadonlySet<string> = new Set(['models.openai.available']);
+
+/**
+ * 判断设置项是否可以显式写入空值（而不是回落到默认值）。
+ */
+const canHoldEmptyValue = (key: SettingKey): boolean =>
+    key.startsWith('shortcut.') || EMPTIABLE_SETTING_KEYS.has(key);
 
 /**
  * 订阅设置项变化。
@@ -35,11 +44,12 @@ export const subscribeSettingChange = (key: SettingKey, callback: () => void): (
  * 写入设置值。
  *
  * 行为说明：
- * - 快捷键配置允许写入空字符串，表示显式取消绑定。
- * - 非快捷键配置仍沿用历史行为：空值回落到默认值。
+ * - 可清空的键（快捷键、云端模型清单，见 canHoldEmptyValue）允许写入空字符串，
+ *   表示显式清空。
+ * - 其余配置仍沿用历史行为：空值回落到 schema 默认值。
  */
 export const storeSet = (key: SettingKey, value: string | undefined | null): boolean => {
-    if (StrUtil.isBlank(value) && !isShortcutSettingKey(key)) {
+    if (StrUtil.isBlank(value) && !canHoldEmptyValue(key)) {
         value = SettingKeyObj[key];
     }
     const oldValue = store.get(key, SettingKeyObj[key]);
