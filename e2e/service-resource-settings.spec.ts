@@ -1,5 +1,5 @@
 import { expect, type Page } from '@playwright/test';
-import { readConfigValue, test } from './fixtures';
+import { readConfigValue, launchAppSession, test } from './fixtures';
 import { openSettingsSection, reloadSettingsPage, switchSettingsSection, chooseInRow, selectInRow } from './settings-page';
 
 /** 进入服务与资源设置页。 */
@@ -206,6 +206,77 @@ test.describe('服务与资源设置', () => {
 
         await reloadSettingsPage(page, page.getByRole('heading', { name: '服务与资源' }));
         await expect(selectInRow(page, '整句讲解')).toHaveText('禁用');
+    });
+
+    test('[SET-SVC-10] 把功能从云端模型切走后，原模型的删除按钮恢复可用且删得掉', async ({ session, userDataDir }) => {
+        const page = session.page;
+        await openResourcesSetting(page);
+
+        // 新加的模型指给字幕翻译后就成了「在用」的模型，占用是现算的，删除按钮随之禁用
+        await page.getByPlaceholder('输入模型标识，如 gpt-4o-mini').fill(NEW_MODEL);
+        await page.getByRole('button', { name: '添加' }).click();
+        await chooseInRow(page, '字幕翻译', NEW_MODEL);
+        await expect.poll(() => readConfigValue(userDataDir, 'models.openai.subtitleTranslation')).toBe(NEW_MODEL);
+
+        const modelRow = page.getByRole('row').filter({ hasText: NEW_MODEL });
+        await expect(modelRow.getByRole('button').last()).toBeDisabled();
+
+        // 把字幕翻译切回本地：占用应当当场解除，不需要重进页面
+        await chooseInRow(page, '字幕翻译', '本地基础资源包');
+        await expect(modelRow.getByRole('button').last()).toBeEnabled();
+
+        await modelRow.getByRole('button').last().click();
+        await expect.poll(() => readConfigValue(userDataDir, 'models.openai.available')).not.toContain(NEW_MODEL);
+        await expect(page.getByRole('cell', { name: NEW_MODEL })).toHaveCount(0);
+    });
+
+    test('[SET-SVC-11] 关掉应用再打开，云端密钥仍原样回读', async ({ userDataDir }) => {
+        const first = await launchAppSession(userDataDir);
+        try {
+            await openResourcesSetting(first.page);
+            await first.page.getByPlaceholder('sk-...').fill(API_KEY);
+            await expect.poll(() => readConfigValue(userDataDir, 'apiKeys.openAi.key')).toBe(API_KEY);
+        } finally {
+            await first.close();
+        }
+
+        // 重启后不做任何操作：密钥必须来自持久化配置，而不是本次进程里的状态
+        const restarted = await launchAppSession(userDataDir);
+        try {
+            await openResourcesSetting(restarted.page);
+            await expect(restarted.page.getByPlaceholder('sk-...')).toHaveValue(API_KEY);
+        } finally {
+            await restarted.close();
+        }
+    });
+
+    test('[SET-SVC-13] 把云端模型清单删空后清单保持为空，此时改动偏好仍会正常落盘', async ({ session, userDataDir }) => {
+        const page = session.page;
+        await openResourcesSetting(page);
+
+        // 默认那个模型被三处占用，先逐个解绑，删除按钮才会亮
+        await chooseInRow(page, '整句讲解', '禁用');
+        await chooseInRow(page, '字幕翻译', '关闭');
+        await chooseInRow(page, '词典查询', '不补充');
+        await expect.poll(() => readConfigValue(userDataDir, 'providers.subtitleTranslation')).toBe('none');
+
+        const builtinRow = page.getByRole('row').filter({ hasText: 'gpt-5.4-nano' });
+        await expect(builtinRow.getByRole('button').last()).toBeEnabled();
+        await builtinRow.getByRole('button').last().click();
+
+        // 清空就是清空：清单在磁盘上留空，不会又被兜底成默认模型塞回来
+        await expect.poll(() => readConfigValue(userDataDir, 'models.openai.available')).toBe('');
+        await expect(page.getByRole('cell', { name: 'gpt-5.4-nano' })).toHaveCount(0);
+        await reloadSettingsPage(page, page.getByRole('heading', { name: '服务与资源' }));
+        await expect(page.getByRole('cell', { name: 'gpt-5.4-nano' })).toHaveCount(0);
+
+        // 清单为空只该拦住「要用云端」的功能，不该连带把无关偏好一起拒绝保存
+        await page.getByRole('button', { name: '查看详情' }).click();
+        await chooseInRow(page, '翻译风格', '简化英文');
+        await expect.poll(() => readConfigValue(userDataDir, 'features.openai.subtitleTranslationMode')).toBe('simple_en');
+        // 值落盘之外还要确认页面没弹保存失败横幅：保存被拒时值也不会变，
+        // 但「值没变」只会表现为超时，横幅才是用户看到的那句错误。放保存之后断言才抓得到。
+        await expect(page.getByRole('alert')).toHaveCount(0);
     });
 
     test('[SET-SVC-17] 填完密钥立刻切到别的设置栏目，密钥仍会落盘并在重进后回显', async ({ session, userDataDir }) => {
