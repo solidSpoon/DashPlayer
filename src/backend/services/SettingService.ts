@@ -481,87 +481,87 @@ export class SettingServiceImpl implements SettingService {
     /**
      * 保存功能设置页面数据，不进行静默回退。
      *
-     * 枚举字段为 `'invalid'` 占位时跳过对应键，保留原存储值（仍非法），
-     * 其余字段正常保存；用户重新选择合法值后才会写回。
+     * 先校验、后写盘：这一单涉及多个键，任何一项校验失败都必须整单不落盘，否则会留下
+     * 「引擎已经切了、开关没切」这种半份写入，而页面只弹一句失败提示、用户无从判断
+     * 到底哪半生效了。
+     *
+     * 云端模型清单为空是合法状态（用户可以只用本地引擎，也可以在解绑占用后把云端配置
+     * 清空）：只有本次真要指向云端的功能才要求它记着的模型还在清单里，校验由
+     * resolveFeatureModelSlot 逐项完成，错误信息也指名道姓到具体功能。
+     *
+     * 枚举字段为 `'invalid'` 占位时跳过对应键，保留原存储值（仍非法），其余字段正常保存；
+     * 用户重新选择合法值后才会写回。
      *
      * 功能模型槽位只是「上次选的模型」备忘：引擎切走或功能关闭时写入空值
      * 保持备忘与现状一致（见 resolveFeatureModelSlot）；占用判定另有现算
      * （getOpenAiFeatureModelUsage），不依赖槽位是否被清理。
      */
     public async saveEngineSelection(settings: EngineSelectionSettingVO): Promise<void> {
-        if (settings.providers.subtitleTranslationEngine === 'invalid') {
+        const subtitleEngine = settings.providers.subtitleTranslationEngine === 'invalid'
+            ? null
+            : this.requireEnumValue(
+                settings.providers.subtitleTranslationEngine,
+                SUBTITLE_TRANSLATION_ENGINES,
+                'providers.subtitleTranslationEngine',
+            );
+        const dictionaryEngine = settings.providers.dictionaryEngine === 'invalid'
+            ? null
+            : this.requireEnumValue(
+                settings.providers.dictionaryEngine,
+                DICTIONARY_ENGINES,
+                'providers.dictionaryEngine',
+            );
+        const subtitleTranslationMode = settings.openai.subtitleTranslationMode === 'invalid'
+            ? null
+            : this.requireEnumValue(
+                settings.openai.subtitleTranslationMode,
+                ['zh', 'simple_en', 'custom'] as const,
+                'openai.subtitleTranslationMode',
+            );
+        const availableModels = this.parseOpenAiModels(this.getValue('models.openai.available'));
+        const sentenceLearningSlot = this.resolveFeatureModelSlot(
+            settings.openai.featureModels.sentenceLearning,
+            availableModels,
+            settings.openai.enableSentenceLearning,
+            '整句讲解',
+        );
+        const subtitleTranslationSlot = this.resolveFeatureModelSlot(
+            settings.openai.featureModels.subtitleTranslation,
+            availableModels,
+            engineUsesCloud(settings.providers.subtitleTranslationEngine),
+            '字幕翻译',
+        );
+        const dictionarySlot = this.resolveFeatureModelSlot(
+            settings.openai.featureModels.dictionary,
+            availableModels,
+            engineUsesCloud(settings.providers.dictionaryEngine),
+            '词典查词',
+        );
+
+        if (subtitleEngine === null) {
             this.logger.warn('providers.subtitleTranslationEngine 为非法占位值，跳过保存并保留原存储值');
         } else {
-            await this.setValue(
-                'providers.subtitleTranslation',
-                this.requireEnumValue(
-                    settings.providers.subtitleTranslationEngine,
-                    SUBTITLE_TRANSLATION_ENGINES,
-                    'providers.subtitleTranslationEngine',
-                ),
-            );
+            await this.setValue('providers.subtitleTranslation', subtitleEngine);
         }
-        if (settings.providers.dictionaryEngine === 'invalid') {
+        if (dictionaryEngine === null) {
             this.logger.warn('providers.dictionaryEngine 为非法占位值，跳过保存并保留原存储值');
         } else {
-            await this.setValue(
-                'providers.dictionary',
-                this.requireEnumValue(
-                    settings.providers.dictionaryEngine,
-                    DICTIONARY_ENGINES,
-                    'providers.dictionaryEngine',
-                ),
-            );
+            await this.setValue('providers.dictionary', dictionaryEngine);
         }
         // 引擎切换即时反映到本地模型常驻策略：切到 local 后台预加载，切走后恢复空闲卸载。
         this.localAi.syncEngineResidency();
-        const availableModels = this.parseOpenAiModels(this.getValue('models.openai.available'));
-        if (availableModels.length === 0) {
-            throw new Error('models.openai.available 为空，无法保存功能模型选择');
-        }
 
         await this.setValue('features.openai.enableSentenceLearning', settings.openai.enableSentenceLearning ? 'true' : 'false');
-        if (settings.openai.subtitleTranslationMode === 'invalid') {
+        if (subtitleTranslationMode === null) {
             this.logger.warn('openai.subtitleTranslationMode 为非法占位值，跳过保存并保留原存储值');
         } else {
-            await this.setValue(
-                'features.openai.subtitleTranslationMode',
-                this.requireEnumValue(
-                    settings.openai.subtitleTranslationMode,
-                    ['zh', 'simple_en', 'custom'] as const,
-                    'openai.subtitleTranslationMode',
-                ),
-            );
+            await this.setValue('features.openai.subtitleTranslationMode', subtitleTranslationMode);
         }
         await this.setValue('features.openai.subtitleCustomStyle', settings.openai.subtitleCustomStyle);
 
-        await this.setValue(
-            'models.openai.sentenceLearning',
-            this.resolveFeatureModelSlot(
-                settings.openai.featureModels.sentenceLearning,
-                availableModels,
-                settings.openai.enableSentenceLearning,
-                '整句讲解',
-            ),
-        );
-        await this.setValue(
-            'models.openai.subtitleTranslation',
-            this.resolveFeatureModelSlot(
-                settings.openai.featureModels.subtitleTranslation,
-                availableModels,
-                engineUsesCloud(settings.providers.subtitleTranslationEngine),
-                '字幕翻译',
-            ),
-        );
-        await this.setValue(
-            'models.openai.dictionary',
-            this.resolveFeatureModelSlot(
-                settings.openai.featureModels.dictionary,
-                availableModels,
-                engineUsesCloud(settings.providers.dictionaryEngine),
-                '词典查词',
-            ),
-        );
+        await this.setValue('models.openai.sentenceLearning', sentenceLearningSlot);
+        await this.setValue('models.openai.subtitleTranslation', subtitleTranslationSlot);
+        await this.setValue('models.openai.dictionary', dictionarySlot);
     }
 
     /**

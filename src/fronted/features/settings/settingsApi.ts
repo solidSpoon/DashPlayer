@@ -6,6 +6,17 @@ import { ServiceCredentialSettingSaveVO } from '@/common/types/vo/service-creden
 import type { TranscriptionEngine } from '@/common/contracts/transcription-engine';
 import { ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
+import type { SWRConfiguration } from 'swr';
+
+/**
+ * 设置页详情查询统一使用的 SWR 选项。
+ *
+ * 必须去掉 SWR 的复用窗口：默认 `dedupingInterval` 是 2 秒，一次请求完成后这段时间内
+ * 重新挂载会被判为「无需重拉」，直接复用上次的响应。设置页的写盘是自动保存，最常见的
+ * 用户动作是「填完立刻切走、马上切回来核对」，两次进入恰好落在同一段窗口里，页面就会
+ * 显示比磁盘更旧的详情——用户看到的现象正是「刚填的没了」。设成 0 后每次进入都真读一次。
+ */
+export const SETTINGS_DETAIL_SWR_OPTIONS: SWRConfiguration = { dedupingInterval: 0 };
 
 /**
  * 设置功能调用的后端接口。

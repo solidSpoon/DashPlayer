@@ -24,6 +24,7 @@
     },
     "include": [
         "src",
+        "e2e",
         "vite.*.config.ts",
         "vitest.config.ts",
         "forge.config.ts",

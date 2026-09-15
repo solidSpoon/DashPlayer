@@ -20,7 +20,7 @@ import useFile from '@/fronted/features/file-browser/fileStore';
 import toast from 'react-hot-toast';
 import { useForm, Controller } from 'react-hook-form';
 import { Input } from '@/fronted/components/ui/input';
-import { settingsApi } from '@/fronted/features/settings/settingsApi';
+import { SETTINGS_DETAIL_SWR_OPTIONS, settingsApi } from '@/fronted/features/settings/settingsApi';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
 import useSWR from 'swr';
@@ -40,8 +40,10 @@ const StorageSetting = () => {
     // 初始即为待加载状态，避免首次查询完成前误显示“目录不可用”。
     const [usageLoading, setUsageLoading] = React.useState(true);
 
-    const { data: detail } = useSWR<StorageSettingVO>('settings/storage/detail', () =>
-        settingsApi.getStorage(),
+    const { data: detail } = useSWR<StorageSettingVO>(
+        'settings/storage/detail',
+        () => settingsApi.getStorage(),
+        SETTINGS_DETAIL_SWR_OPTIONS,
     );
 
     const form = useForm<StorageFormValues>();
@@ -83,8 +85,9 @@ const StorageSetting = () => {
         }
     }, []);
 
-    const { status: autoSaveStatus, initialize, flush } = useAutoSaveSettingsForm<StorageFormValues>({
+    const { status: autoSaveStatus, error: autoSaveError, initialize, flush } = useAutoSaveSettingsForm<StorageFormValues>({
         form,
+        detailKey: 'settings/storage/detail',
         onSave: async (values) => {
             await settingsApi.saveStorage(values.path);
             await loadStorageStatus(values.path);
@@ -233,6 +236,16 @@ const StorageSetting = () => {
                     </div>
                 )}
             >
+                {/* 路径不可用时后端会拒绝写入；必须把原因显式露出来，否则用户会以为已经保存 */}
+                {autoSaveStatus === 'error' && autoSaveError && (
+                    <div
+                        role="alert"
+                        className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+                    >
+                        {autoSaveError}
+                    </div>
+                )}
+
                 {/* 媒体库路径卡片 */}
                 <SettingCard
                     title={t('storage.libraryPathTitle')}

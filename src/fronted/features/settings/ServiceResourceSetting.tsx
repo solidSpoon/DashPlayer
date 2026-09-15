@@ -14,7 +14,7 @@ import { Textarea } from '@/fronted/components/ui/textarea';
 import { ResourcePackCard } from '@/fronted/features/settings/components/ResourcePackCard';
 import { LocalLlmCard } from '@/fronted/features/settings/components/LocalLlmCard';
 import { OpenAiCredentialCard } from '@/fronted/features/settings/components/OpenAiCredentialCard';
-import { settingsApi } from '@/fronted/features/settings/settingsApi';
+import { SETTINGS_DETAIL_SWR_OPTIONS, settingsApi } from '@/fronted/features/settings/settingsApi';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
 import { OPENAI_SUBTITLE_DEFAULT_STYLES } from '@/common/constants/openaiSubtitlePrompts';
 import type { LocalAiModelStatus } from '@/common/contracts/local-ai';
@@ -83,8 +83,16 @@ const parseEngineValue = (value: string): { engine: string; model: string | null
 const ServiceResourceSetting: React.FC = () => {
     const { t } = useI18nTranslation('settings');
 
-    const { data: settings } = useSWR('settings/service-credentials/detail', () => settingsApi.getServiceCredentials());
-    const { data: engineSettings } = useSWR('settings/engine-selection/detail', () => settingsApi.getEngineSelection());
+    const { data: settings } = useSWR(
+        'settings/service-credentials/detail',
+        () => settingsApi.getServiceCredentials(),
+        SETTINGS_DETAIL_SWR_OPTIONS,
+    );
+    const { data: engineSettings } = useSWR(
+        'settings/engine-selection/detail',
+        () => settingsApi.getEngineSelection(),
+        SETTINGS_DETAIL_SWR_OPTIONS,
+    );
     /** 资源状态聚合：三项资源包、本地增强、硬件与回退状态都在这一份里。 */
     const { data: resourceStatus, mutate: refreshResourceStatus } = useSWR(
         'settings/resource-status/detail',
@@ -105,6 +113,7 @@ const ServiceResourceSetting: React.FC = () => {
         flush: flushCredentials,
     } = useAutoSaveSettingsForm<ServiceCredentialSettingDetailVO>({
         form: credentialForm,
+        detailKey: 'settings/service-credentials/detail',
         onSave: async (values) => {
             await settingsApi.saveServiceCredentials(values);
         },
@@ -118,6 +127,7 @@ const ServiceResourceSetting: React.FC = () => {
         flush: flushPreferences,
     } = useAutoSaveSettingsForm<EngineSelectionSettingVO>({
         form: preferenceForm,
+        detailKey: 'settings/engine-selection/detail',
         onSave: async (values) => {
             await settingsApi.saveEngineSelection(values);
         },
@@ -538,12 +548,18 @@ const ServiceResourceSetting: React.FC = () => {
                 contentClassName="space-y-6"
             >
                 {credentialSaveStatus === 'error' && credentialSaveError && (
-                    <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                    <div
+                        className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+                        role="alert"
+                    >
                         {credentialSaveError}
                     </div>
                 )}
                 {preferenceSaveStatus === 'error' && preferenceSaveError && (
-                    <div className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+                    <div
+                        className="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+                        role="alert"
+                    >
                         {preferenceSaveError}
                     </div>
                 )}
