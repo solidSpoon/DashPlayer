@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.12.4](https://github.com/solidSpoon/DashPlayer/compare/v6.12.3...v6.12.4) (2026-09-15)
+
+
+### Bug Fixes
+
+* 云端模型清单允许清空，且不再连带拒掉无关偏好的保存 ([84522b3](https://github.com/solidSpoon/DashPlayer/commit/84522b3ff33401f87da8d5d7c4510ea5453e40ef))
+* 设置页收到新详情后把值写回输入框，并去掉详情查询的复用窗口 ([f727ed6](https://github.com/solidSpoon/DashPlayer/commit/f727ed657b177382997d24ebabf8a36e5df77424))
+* 设置页的改动不再丢、不再回显旧值、失败不再静默 ([68def53](https://github.com/solidSpoon/DashPlayer/commit/68def53d846d8fe07bea244e04a481d590ceee65))
+
 ## [6.12.3](https://github.com/solidSpoon/DashPlayer/compare/v6.12.2...v6.12.3) (2026-09-13)
 
 
