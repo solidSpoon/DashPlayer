@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.12.5](https://github.com/solidSpoon/DashPlayer/compare/v6.12.4...v6.12.5) (2026-09-17)
+
+
+### Miscellaneous Chores
+
+* 发一版带上安装包美术改动 ([dafb5e1](https://github.com/solidSpoon/DashPlayer/commit/dafb5e13a829beebeb2ccf152c61a2a468837579))
+
 ## [6.12.4](https://github.com/solidSpoon/DashPlayer/compare/v6.12.3...v6.12.4) (2026-09-15)
 
 
