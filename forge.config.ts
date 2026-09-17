@@ -269,7 +269,10 @@ const config: ForgeConfig = {
     makers: [
         new MakerSquirrel({
             name: 'DashPlayer',
-            loadingGif: './assets/icons/install.png',
+            // 安装动画只在安装耗时超过 4 秒（且非静默安装）时才弹出；窗口尺寸等于 GIF 的像素尺寸，
+            // 且窗口全透明，所以素材必须是自带白色圆角卡片、圆角外全透明的图（详见 Squirrel 的 AnimatedGifWindow）。
+            // install.gif 即按此约定生成：8 帧 × 250ms，325×339，四角透明。
+            loadingGif: './assets/icons/install.gif',
             setupIcon: './assets/icons/icon.ico',
             iconUrl: 'https://raw.githubusercontent.com/solidSpoon/DashPlayer/master/assets/icons/icon.ico',
         }),
