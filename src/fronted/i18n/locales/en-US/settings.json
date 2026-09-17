@@ -331,6 +331,7 @@
             "usageDictionary": "Dictionary"
         },
         "transcription": {
+            "orukeetModelFile": "Orukeet v0.1.0 (ONNX int8, ~671 MB; CC BY-SA 4.0)",
             "whisperCppModelFile": "Parakeet TDT 0.6B v3 (GGUF q8_0, ~640 MB)",
             "sherpaOnnxModelFile": "Parakeet TDT 0.6B v3 (ONNX int8, ~640 MB)"
         },
@@ -413,6 +414,7 @@
             "itemMissing": "Not downloaded",
             "engineLabel": "Recognition mode",
             "engineHardware": "Hardware accelerated (recommended)",
+            "engineOrukeet": "Orukeet (CPU)",
             "engineCompat": "Compatibility mode",
             "manualTitle": "Slow network? See the manual download guide",
             "manualModel": "File needed: {{model}}",

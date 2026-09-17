@@ -297,10 +297,10 @@ interface SettingsDef {
 }
 
 interface ParakeetModelDef {
-    'parakeet/models/status': { params: void, return: ModelInstallationStatusVO };
-    'parakeet/models/download': { params: void, return: { success: boolean; message: string } };
-    'parakeet/models/cancel-download': { params: void, return: { cancelled: boolean } };
-    'parakeet/models/delete': { params: void, return: { success: boolean; message: string } };
+    'parakeet/models/status': { params: { model?: import('@/common/contracts/transcription-engine').ParakeetModelId } | void, return: ModelInstallationStatusVO };
+    'parakeet/models/download': { params: { model?: import('@/common/contracts/transcription-engine').ParakeetModelId } | void, return: { success: boolean; message: string } };
+    'parakeet/models/cancel-download': { params: { model?: import('@/common/contracts/transcription-engine').ParakeetModelId } | void, return: { cancelled: boolean } };
+    'parakeet/models/delete': { params: { model?: import('@/common/contracts/transcription-engine').ParakeetModelId } | void, return: { success: boolean; message: string } };
 }
 
 interface WhisperCppModelDef {

@@ -34,6 +34,7 @@ export class TranscriptionEngineSelectorImpl implements TranscriptionEngineSelec
         @inject(TYPES.SettingsStore) private readonly settingsStore: SettingsStore,
         @inject(TYPES.SherpaOnnxGateway) private readonly sherpaGateway: SpeechRecognitionGateway,
         @inject(TYPES.WhisperCppGateway) private readonly whisperCppGateway: SpeechRecognitionGateway,
+        @inject(TYPES.OrukeetGateway) private readonly orukeetGateway: SpeechRecognitionGateway,
     ) {}
 
     /**
@@ -41,7 +42,9 @@ export class TranscriptionEngineSelectorImpl implements TranscriptionEngineSelec
      * @returns 当前设置对应的识别网关；设置值非法时立即抛错。
      */
     public select(): SpeechRecognitionGateway {
-        return this.currentEngine() === 'whisper-cpp' ? this.whisperCppGateway : this.sherpaGateway;
+        const engine = this.currentEngine();
+        if (engine === 'whisper-cpp') return this.whisperCppGateway;
+        return engine === 'sherpa-onnx-orukeet' ? this.orukeetGateway : this.sherpaGateway;
     }
 
     /**

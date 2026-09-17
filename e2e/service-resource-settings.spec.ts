@@ -24,6 +24,26 @@ const NEW_MODEL = 'e2e-model-alpha';
 const CUSTOM_STYLE = 'E2E 自定义翻译风格：保持原句语序';
 
 test.describe('服务与资源设置', () => {
+    test('[SET-SVC-18] Orukeet 可单独选择并持久化，模型状态与所选引擎一致', async ({ session, userDataDir }, testInfo) => {
+        const page = session.page;
+        await openResourcesSetting(page);
+        await page.getByRole('button', { name: '查看详情' }).click();
+        await chooseInRow(page, '识别方式', 'Orukeet（CPU）');
+        await expect.poll(() => readConfigValue(userDataDir, 'transcription.engine')).toBe('sherpa-onnx-orukeet');
+        await reloadSettingsPage(page, page.getByRole('heading', { name: '服务与资源' }));
+        await page.getByRole('button', { name: '查看详情' }).click();
+        await expect(selectInRow(page, '识别方式')).toHaveText('Orukeet（CPU）');
+        const status = await page.evaluate(async () => (
+            window.electron.call('settings/resource-status/detail')
+        ));
+        expect(status.transcriptionEngine).toBe('sherpa-onnx-orukeet');
+        expect(status.transcription.modelPath).toContain('orukeet-v0.1.0-int8');
+        expect(status.transcription.downloadUrls[0]).toContain('huggingface.co/oruk/orukeet/resolve/');
+        await page.screenshot({ path: testInfo.outputPath('orukeet-settings.png'), fullPage: true });
+        await chooseInRow(page, '识别方式', '兼容模式');
+        await expect.poll(() => readConfigValue(userDataDir, 'transcription.engine')).toBe('sherpa-onnx');
+    });
+
     test('[SET-SVC-01] 云端服务填写的密钥、接口地址与模型清单会落盘，重进页面仍回显', async ({ session, userDataDir }) => {
         const page = session.page;
         await openResourcesSetting(page);

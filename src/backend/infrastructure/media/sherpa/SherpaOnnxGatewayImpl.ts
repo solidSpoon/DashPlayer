@@ -1,4 +1,4 @@
-import { inject, injectable } from 'inversify';
+import { inject, injectable, unmanaged } from 'inversify';
 import * as fs from 'fs';
 import * as path from 'path';
 import SpeechRecognitionGateway, { SpeechRecognitionRequest, SpeechRecognitionResult } from '@/backend/services/gateways/media/SpeechRecognitionGateway';
@@ -11,15 +11,18 @@ import { PARAKEET_MODEL_DIRECTORY } from '@/backend/services/models/parakeetMode
  */
 @injectable()
 export default class SherpaOnnxGatewayImpl implements SpeechRecognitionGateway {
-    constructor(@inject(TYPES.SherpaOnnxCli) private readonly cli: SherpaOnnxCli) {}
+    constructor(
+        @inject(TYPES.SherpaOnnxCli) private readonly cli: SherpaOnnxCli,
+        @unmanaged() private readonly modelDirectory: string = PARAKEET_MODEL_DIRECTORY,
+    ) {}
 
     /**
-     * 使用固定的 Parakeet v3 INT8 模型识别音频。
+     * 使用构造时固定的 INT8 模型识别音频，任务中途切换设置不会更换模型。
      * @param request 音频路径、模型目录与生命周期回调。
      * @returns 完整文本及子词开始时间轴。
      */
     public async transcribe(request: SpeechRecognitionRequest): Promise<SpeechRecognitionResult> {
-        const modelDir = path.join(request.modelsRoot, PARAKEET_MODEL_DIRECTORY);
+        const modelDir = path.join(request.modelsRoot, this.modelDirectory);
         const files = {
             encoder: path.join(modelDir, 'encoder.int8.onnx'),
             decoder: path.join(modelDir, 'decoder.int8.onnx'),

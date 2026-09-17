@@ -239,28 +239,30 @@ export const ResourcePackCard: React.FC<ResourcePackCardProps> = ({
             ready: transcriptionStatus?.ready ?? false,
             modelLabel: transcriptionEngine === 'whisper-cpp'
                 ? t('serviceCredentials.transcription.whisperCppModelFile')
-                : t('serviceCredentials.transcription.sherpaOnnxModelFile'),
+                : t(transcriptionEngine === 'sherpa-onnx-orukeet'
+                    ? 'serviceCredentials.transcription.orukeetModelFile'
+                    : 'serviceCredentials.transcription.sherpaOnnxModelFile'),
             urls: transcriptionStatus?.downloadUrls ?? [],
             targetPath: transcriptionStatus?.archivePath ?? '',
             download: async () => {
                 if (transcriptionEngine === 'whisper-cpp') {
                     await settingsApi.downloadWhisperCppModel();
                 } else {
-                    await settingsApi.downloadParakeetModel();
+                    await settingsApi.downloadParakeetModel(transcriptionEngine === 'sherpa-onnx-orukeet' ? 'orukeet' : 'parakeet');
                 }
             },
             cancel: async () => {
                 if (transcriptionEngine === 'whisper-cpp') {
                     await settingsApi.cancelWhisperCppModelDownload();
                 } else {
-                    await settingsApi.cancelParakeetModelDownload();
+                    await settingsApi.cancelParakeetModelDownload(transcriptionEngine === 'sherpa-onnx-orukeet' ? 'orukeet' : 'parakeet');
                 }
             },
             remove: async () => {
                 if (transcriptionEngine === 'whisper-cpp') {
                     await settingsApi.deleteWhisperCppModel();
                 } else {
-                    await settingsApi.deleteParakeetModel();
+                    await settingsApi.deleteParakeetModel(transcriptionEngine === 'sherpa-onnx-orukeet' ? 'orukeet' : 'parakeet');
                 }
             },
         },
@@ -505,12 +507,14 @@ export const ResourcePackCard: React.FC<ResourcePackCardProps> = ({
                                     <span className="text-xs text-muted-foreground">{t('resources.pack.engineLabel')}</span>
                                     <Select
                                         value={transcriptionEngine}
+                                        disabled={downloading || deleting || transcriptionStatus?.downloading}
                                         onValueChange={(value) => onChangeEngine(value as TranscriptionEngine)}
                                     >
                                         <SelectTrigger className="h-8 w-48 text-xs"><SelectValue /></SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="whisper-cpp">{t('resources.pack.engineHardware')}</SelectItem>
                                             <SelectItem value="sherpa-onnx">{t('resources.pack.engineCompat')}</SelectItem>
+                                            <SelectItem value="sherpa-onnx-orukeet">{t('resources.pack.engineOrukeet')}</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>

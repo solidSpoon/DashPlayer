@@ -3,7 +3,7 @@ import { ProxySettingSaveVO } from '@/common/contracts/proxy-setting-vo';
 import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
 import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 import { ServiceCredentialSettingSaveVO } from '@/common/types/vo/service-credentials-setting-vo';
-import type { TranscriptionEngine } from '@/common/contracts/transcription-engine';
+import type { TranscriptionEngine, ParakeetModelId } from '@/common/contracts/transcription-engine';
 import { ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import type { SWRConfiguration } from 'swr';
@@ -134,28 +134,28 @@ export const settingsApi = {
      *
      * @returns 当前模型状态。
      */
-    getParakeetModelStatus: () => backendClient.call('parakeet/models/status'),
+    getParakeetModelStatus: (model?: ParakeetModelId) => backendClient.call('parakeet/models/status', { model }),
 
     /**
      * 下载 Parakeet 模型。
      *
      * @returns 下载任务结果。
      */
-    downloadParakeetModel: () => backendClient.call('parakeet/models/download'),
+    downloadParakeetModel: (model?: ParakeetModelId) => backendClient.call('parakeet/models/download', { model }),
 
     /**
      * 取消 Parakeet 模型下载。
      *
      * @returns 取消结果。
      */
-    cancelParakeetModelDownload: () => backendClient.call('parakeet/models/cancel-download'),
+    cancelParakeetModelDownload: (model?: ParakeetModelId) => backendClient.call('parakeet/models/cancel-download', { model }),
 
     /**
      * 删除 Parakeet 模型。
      *
      * @returns 删除完成后结束。
      */
-    deleteParakeetModel: () => backendClient.call('parakeet/models/delete'),
+    deleteParakeetModel: (model?: ParakeetModelId) => backendClient.call('parakeet/models/delete', { model }),
 
     /**
      * 查询 whisper.cpp 模型状态。

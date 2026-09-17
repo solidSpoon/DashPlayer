@@ -331,6 +331,7 @@
             "usageDictionary": "词典查询"
         },
         "transcription": {
+            "orukeetModelFile": "Orukeet v0.1.0（ONNX int8，约 671 MB；CC BY-SA 4.0）",
             "whisperCppModelFile": "Parakeet TDT 0.6B v3（GGUF q8_0，约 640 MB）",
             "sherpaOnnxModelFile": "Parakeet TDT 0.6B v3（ONNX int8，约 640 MB）"
         },
@@ -413,6 +414,7 @@
             "itemMissing": "未下载",
             "engineLabel": "识别方式",
             "engineHardware": "硬件加速（推荐）",
+            "engineOrukeet": "Orukeet（CPU）",
             "engineCompat": "兼容模式",
             "manualTitle": "网络不佳？查看手动下载教程",
             "manualModel": "需要的文件：{{model}}",

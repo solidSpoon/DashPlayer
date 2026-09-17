@@ -129,3 +129,8 @@
 
 - 现状：要真实文件系统与统计。
 - 编号：**[SET-SVC-16]**（手动）
+
+### Orukeet 模型选择
+
+- 用例：**[SET-SVC-18]** 选择 Orukeet 后重载页面仍回显，资源状态指向独立模型目录和 Hugging Face 下载地址，切回兼容模式正常落盘。
+- 自动化：`e2e/service-resource-settings.spec.ts`。

@@ -50,7 +50,7 @@ describe('识别引擎选择器', () => {
     it('引擎为 whisper-cpp 时返回 whisper.cpp 网关', () => {
         const sherpa = gatewayStub('sherpa');
         const whisper = gatewayStub('whisper');
-        const selector = new TranscriptionEngineSelectorImpl(buildStore('whisper-cpp'), sherpa, whisper);
+        const selector = new TranscriptionEngineSelectorImpl(buildStore('whisper-cpp'), sherpa, whisper, gatewayStub('orukeet'));
 
         expect(selector.select()).toBe(whisper);
         expect(selector.currentEngine()).toBe('whisper-cpp');
@@ -59,14 +59,24 @@ describe('识别引擎选择器', () => {
     it('引擎为 sherpa-onnx 时返回 sherpa 网关', () => {
         const sherpa = gatewayStub('sherpa');
         const whisper = gatewayStub('whisper');
-        const selector = new TranscriptionEngineSelectorImpl(buildStore('sherpa-onnx'), sherpa, whisper);
+        const selector = new TranscriptionEngineSelectorImpl(buildStore('sherpa-onnx'), sherpa, whisper, gatewayStub('orukeet'));
 
         expect(selector.select()).toBe(sherpa);
         expect(selector.currentEngine()).toBe('sherpa-onnx');
     });
 
+    it('选择 Orukeet 后使用独立网关，不更换原有模型', () => {
+        const orukeet = gatewayStub('orukeet');
+        const store = buildStore('sherpa-onnx-orukeet');
+        const selector = new TranscriptionEngineSelectorImpl(store, gatewayStub('s'), gatewayStub('w'), orukeet);
+        const active = selector.select();
+        store.set('transcription.engine', 'sherpa-onnx');
+        expect(active).toBe(orukeet);
+        expect(selector.select()).not.toBe(orukeet);
+    });
+
     it('设置值非法时立即抛错，不静默回退到任一引擎', () => {
-        const selector = new TranscriptionEngineSelectorImpl(buildStore('whisper'), gatewayStub('s'), gatewayStub('w'));
+        const selector = new TranscriptionEngineSelectorImpl(buildStore('whisper'), gatewayStub('s'), gatewayStub('w'), gatewayStub('o'));
 
         expect(() => selector.select()).toThrow('transcription.engine 非法');
         expect(() => selector.currentEngine()).toThrow('transcription.engine 非法');
