@@ -273,9 +273,18 @@ const config: ForgeConfig = {
             setupIcon: './assets/icons/icon.ico',
             iconUrl: 'https://raw.githubusercontent.com/solidSpoon/DashPlayer/master/assets/icons/icon.ico',
         }),
+        // DMG 窗口尺寸由 1x 背景图的像素尺寸决定（appdmg 读 background.png 的宽高当窗口大小，
+        // background@2x.png 仅用于 retina 渲染），因此下面两个图标坐标用的就是背景图那套 640x500 坐标，
+        // 必须与图上箭头对齐：箭头中心约 (341, 226)，两个图标各留一段间距对称摆在箭头两侧。
         new MakerDMG({
             icon: './assets/icons/icon.icns',
             format: 'ULFO',
+            background: './assets/dmg/background.png',
+            iconSize: 96,
+            contents: (opts) => [
+                { x: 160, y: 226, type: 'file', path: opts.appPath },
+                { x: 480, y: 226, type: 'link', path: '/Applications' },
+            ],
         }),
         new MakerRpm({
             options: {
