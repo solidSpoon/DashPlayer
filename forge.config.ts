@@ -269,13 +269,25 @@ const config: ForgeConfig = {
     makers: [
         new MakerSquirrel({
             name: 'DashPlayer',
-            loadingGif: './assets/icons/install.png',
+            // 安装动画只在安装耗时超过 4 秒（且非静默安装）时才弹出；窗口尺寸等于 GIF 的像素尺寸，
+            // 且窗口全透明，所以素材必须是自带白色圆角卡片、圆角外全透明的图（详见 Squirrel 的 AnimatedGifWindow）。
+            // install.gif 即按此约定生成：8 帧 × 250ms，325×339，四角透明。
+            loadingGif: './assets/icons/install.gif',
             setupIcon: './assets/icons/icon.ico',
             iconUrl: 'https://raw.githubusercontent.com/solidSpoon/DashPlayer/master/assets/icons/icon.ico',
         }),
+        // DMG 窗口尺寸由 1x 背景图的像素尺寸决定（appdmg 读 background.png 的宽高当窗口大小，
+        // background@2x.png 仅用于 retina 渲染），因此下面两个图标坐标用的就是背景图那套 640x500 坐标，
+        // 必须与图上箭头对齐：箭头中心约 (341, 226)，两个图标各留一段间距对称摆在箭头两侧。
         new MakerDMG({
             icon: './assets/icons/icon.icns',
             format: 'ULFO',
+            background: './assets/dmg/background.png',
+            iconSize: 96,
+            contents: (opts) => [
+                { x: 160, y: 226, type: 'file', path: opts.appPath },
+                { x: 480, y: 226, type: 'link', path: '/Applications' },
+            ],
         }),
         new MakerRpm({
             options: {
