@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.12.6](https://github.com/solidSpoon/DashPlayer/compare/v6.12.5...v6.12.6) (2026-09-18)
+
+
+### Bug Fixes
+
+* 增量字幕按下一块切点排除重叠区 ([6c96cf2](https://github.com/solidSpoon/DashPlayer/commit/6c96cf2bdedd8a7f3bc588cca943b2506d67d979))
+* 本地识别断句改为动态规划全局寻优并采用真实词尾时间 ([7a28496](https://github.com/solidSpoon/DashPlayer/commit/7a28496db65cdf5cc44c9c8d260faac50216df05))
+* 英文字幕断句改为动态规划全局寻优 ([7665ee1](https://github.com/solidSpoon/DashPlayer/commit/7665ee1ed561e1b211a1879fb5d743efe0b01c56))
+* 转录子词时间轴带上真实结束时间 ([85c3c43](https://github.com/solidSpoon/DashPlayer/commit/85c3c437a5dd4059f29b3671746a1ac4c0527080))
+
 ## [6.12.5](https://github.com/solidSpoon/DashPlayer/compare/v6.12.4...v6.12.5) (2026-09-17)
 
 
