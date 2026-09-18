@@ -16,7 +16,7 @@ export default class SherpaOnnxGatewayImpl implements SpeechRecognitionGateway {
     /**
      * 使用固定的 Parakeet v3 INT8 模型识别音频。
      * @param request 音频路径、模型目录与生命周期回调。
-     * @returns 完整文本及子词开始时间轴。
+     * @returns 完整文本及子词时间轴（该引擎只提供开始时间）。
      */
     public async transcribe(request: SpeechRecognitionRequest): Promise<SpeechRecognitionResult> {
         const modelDir = path.join(request.modelsRoot, PARAKEET_MODEL_DIRECTORY);
@@ -47,7 +47,12 @@ export default class SherpaOnnxGatewayImpl implements SpeechRecognitionGateway {
         });
         return {
             text: output.text.trim(),
-            tokens: output.tokens.map((text, index) => ({ text, start: output.timestamps[index] })),
+            // tokens.txt 沿用 SentencePiece 的 ▁ 词首标记，统一归一化为前导空格，
+            // 与 whisper.cpp 网关的子词文本契约保持一致。
+            tokens: output.tokens.map((text, index) => ({
+                text: text.replace(/▁/g, ' '),
+                start: output.timestamps[index],
+            })),
         };
     }
 

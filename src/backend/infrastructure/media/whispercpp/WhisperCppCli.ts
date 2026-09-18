@@ -104,7 +104,7 @@ export interface WhisperCppRunRequest {
 export interface WhisperCppOutput {
     /** 完整识别文本。 */
     text: string;
-    /** 子词时间轴，start 单位为秒。 */
+    /** 子词时间轴，start/end 单位为秒。 */
     tokens: SpeechRecognitionToken[];
 }
 
@@ -142,7 +142,7 @@ export function parseWhisperCppOutput(stdout: string, stderr: string): WhisperCp
             // 它不携带词文本，只占位时间轴；直接跳过，不能视为数据损坏。
             continue;
         }
-        tokens.push({ text: tokenText, start: startMs / TOKEN_TIME_UNIT_MS });
+        tokens.push({ text: tokenText, start: startMs / TOKEN_TIME_UNIT_MS, end: endMs / TOKEN_TIME_UNIT_MS });
     }
     if (tokens.length === 0) {
         throw new Error(`whisper.cpp 未返回 token 时间轴：${stderr.slice(-2000)}`);
