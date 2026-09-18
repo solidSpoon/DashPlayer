@@ -6,6 +6,8 @@ export interface SpeechRecognitionToken {
     text: string;
     /** 子词开始时间，单位为秒。 */
     start: number;
+    /** 子词结束时间，单位为秒；引擎只提供开始时间时缺省。 */
+    end?: number;
 }
 
 /**

@@ -507,7 +507,11 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                 job,
                 gateway: speechRecognitionGateway,
             });
-            const timeline = result.tokens.map((token) => ({ ...token, start: token.start + offset }));
+            const timeline = result.tokens.map((token) => ({
+                ...token,
+                start: token.start + offset,
+                end: token.end === undefined ? undefined : token.end + offset,
+            }));
             chunkTimelines[index] = timeline;
             const lines = this.subtitleSegmenter.segment([timeline], [ranges[index].start]);
             if (session) {

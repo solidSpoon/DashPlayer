@@ -27,7 +27,7 @@ export default class WhisperCppGatewayImpl implements SpeechRecognitionGateway {
     /**
      * 使用 Parakeet v3 GGUF（q8_0）模型识别音频。
      * @param request 音频路径、模型目录与生命周期回调。
-     * @returns 完整文本及子词开始时间轴。
+     * @returns 完整文本及带起止时间的子词时间轴。
      */
     public async transcribe(request: SpeechRecognitionRequest): Promise<SpeechRecognitionResult> {
         const modelDir = path.join(request.modelsRoot, WHISPER_CPP_MODEL_DIRECTORY);

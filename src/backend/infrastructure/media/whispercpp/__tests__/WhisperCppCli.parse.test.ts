@@ -39,9 +39,9 @@ describe('whisper.cpp 输出解析', () => {
 
         expect(result.text).toBe(JFK_STDOUT.trim());
         expect(result.tokens).toEqual([
-            { text: ' And', start: 0.24 },
-            { text: ' so', start: 0.56 },
-            { text: ',', start: 0.88 },
+            { text: ' And', start: 0.24, end: 0.56 },
+            { text: ' so', start: 0.56, end: 0.88 },
+            { text: ',', start: 0.88, end: 0.88 },
         ]);
     });
 
@@ -49,6 +49,7 @@ describe('whisper.cpp 输出解析', () => {
         const result = parseWhisperCppOutput('text', '  [37] id= 7883 frame=132 dur_idx= 4 dur_val= 4 p=0.9600 plog=-0.0408 t0=1056 t1=1056 word_start=false "."');
 
         expect(result.tokens[0].start).toBe(10.56);
+        expect(result.tokens[0].end).toBe(10.56);
     });
 
     it('没有识别文本时抛错并带出日志尾部', () => {
@@ -92,8 +93,8 @@ describe('whisper.cpp 输出解析', () => {
         const result = parseWhisperCppOutput('He said', stderr);
 
         expect(result.tokens).toEqual([
-            { text: ' He', start: 53.68 },
-            { text: ' said', start: 53.84 },
+            { text: ' He', start: 53.68, end: 53.76 },
+            { text: ' said', start: 53.84, end: 54.0 },
         ]);
     });
 });
