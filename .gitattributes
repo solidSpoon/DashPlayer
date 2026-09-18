@@ -1,4 +1,5 @@
-*       text    eol=lf
+# text=auto 让 git 按内容判断二进制，避免下面这份白名单漏项时把二进制素材当文本改写换行
+*       text=auto       eol=lf
 *.sqlite binary
 *.exe   binary
 *.png   binary
@@ -6,6 +7,7 @@
 *.jpeg  binary
 *.ico   binary
 *.icns  binary
+*.gif   binary
 *.eot   binary
 *.otf   binary
 *.ttf   binary
