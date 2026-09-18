@@ -513,7 +513,9 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
                 end: token.end === undefined ? undefined : token.end + offset,
             }));
             chunkTimelines[index] = timeline;
-            const lines = this.subtitleSegmenter.segment([timeline], [ranges[index].start]);
+            // 增量展示同样按下一块切点排除重叠区，避免边界词在相邻两块的行里各出现一次。
+            const nextCut = ranges[index + 1]?.start ?? Number.POSITIVE_INFINITY;
+            const lines = this.subtitleSegmenter.segment([timeline], [ranges[index].start, nextCut]);
             if (session) {
                 // 增量阶段使用全局稳定序号，避免各块的局部字幕序号互相覆盖。
                 const chunk: TranscriptChunkResult = { filePath, chunkIndex: index, start: ranges[index].start, end: ranges[index].end, sentences: lines.map((line) => ({ ...line, index: index * 100000 + line.index })) };
