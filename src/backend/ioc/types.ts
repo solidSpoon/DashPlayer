@@ -45,6 +45,7 @@ const TYPES = {
     SherpaOnnxCli: Symbol('SherpaOnnxCli'),
     WhisperCppCli: Symbol('WhisperCppCli'),
     SherpaOnnxGateway: Symbol('SherpaOnnxGateway'),
+    OrukeetGateway: Symbol('OrukeetGateway'),
     WhisperCppGateway: Symbol('WhisperCppGateway'),
     TranscriptionEngineSelector: Symbol('TranscriptionEngineSelector'),
     WhisperCppModelService: Symbol('WhisperCppModelService'),

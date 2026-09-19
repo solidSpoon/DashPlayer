@@ -135,7 +135,7 @@ export class AiFuncServiceImpl implements AiFuncService {
         const engine = this.transcriptionEngineSelector.currentEngine();
         const modelStatus = engine === 'whisper-cpp'
             ? await this.whisperCppModelService.getStatus()
-            : await this.parakeetModelService.getStatus();
+            : await this.parakeetModelService.getStatus(engine === 'sherpa-onnx-orukeet' ? 'orukeet' : 'parakeet');
         if (!modelStatus.ready) {
             this.logger.warn('Transcription model not downloaded', { engine, modelPath: modelStatus?.modelPath });
             const result: TranscriptTaskResult = {

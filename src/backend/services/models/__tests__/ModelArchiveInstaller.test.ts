@@ -303,6 +303,47 @@ describe('模型归档安装器', () => {
             });
         });
 
+        describe('下载清单校验', () => {
+            const manifestUrl = 'https://huggingface.co/example/model/resolve/revision/manifest.json';
+            const archiveSha256 = createHash('sha256').update(RAW_BODY).digest('hex');
+            const manifest = Buffer.from(JSON.stringify({ archive: 'model.bin', archive_sha256: archiveSha256 }));
+            const options: ModelArchiveInstallerOptions = {
+                ...rawOptions, downloadUrls: [OFFICIAL_URL], archiveSha256,
+                verificationManifest: { url: manifestUrl, sha256: createHash('sha256').update(manifest).digest('hex') },
+            };
+
+            it('真实清单匹配后安装成功，重复安装无需网络', async () => {
+                vi.spyOn(axios, 'get').mockImplementation(async (url: string) => {
+                    if (url === manifestUrl) return { data: manifest } as AxiosResponse;
+                    const stream = new PassThrough();
+                    process.nextTick(() => stream.end(RAW_BODY));
+                    return { status: 200, headers: { 'content-length': RAW_BODY.length }, data: stream } as AxiosResponse;
+                });
+                const subject = createRawInstaller(options);
+                expect((await subject.download()).success).toBe(true);
+                expect(fs.readFileSync(installedModelPath(), 'utf8')).toBe(RAW_BODY);
+                vi.mocked(axios.get).mockRejectedValue(new Error('离线'));
+                expect((await subject.download()).success).toBe(true);
+            });
+
+            it('清单被篡改时拒绝安装，保留原有模型内容', async () => {
+                const installed = path.dirname(installedModelPath());
+                fs.mkdirSync(installed, { recursive: true });
+                fs.writeFileSync(path.join(installed, 'old-model.bin'), 'original');
+                vi.spyOn(axios, 'get').mockResolvedValue({ data: Buffer.from('{}') });
+                await expect(createRawInstaller(options).download()).rejects.toThrow('清单校验失败');
+                expect(fs.readFileSync(path.join(installed, 'old-model.bin'), 'utf8')).toBe('original');
+                expect(fs.existsSync(installedModelPath())).toBe(false);
+            });
+
+            it('清单与归档配置不一致时拒绝安装', async () => {
+                vi.spyOn(axios, 'get').mockResolvedValue({ data: manifest });
+                await expect(createRawInstaller({ ...options, archiveSha256: 'f'.repeat(64) }).download())
+                    .rejects.toThrow('清单与归档配置不一致');
+                expect(fs.existsSync(installedModelPath())).toBe(false);
+            });
+        });
+
         it('只有单个候选地址时无需探测直接下载', async () => {
             const headSpy = vi.spyOn(axios, 'head').mockRejectedValue(new Error('单地址不应发起探测'));
             mockDownloadBody();

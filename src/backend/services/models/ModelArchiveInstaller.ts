@@ -28,6 +28,8 @@ export interface ModelArchiveInstallerOptions {
      * 未声明时仅靠解压与必需文件检查兜底。
      */
     archiveSha256?: string;
+    /** 可选的固定版本校验清单；内容摘要与归档身份必须同时匹配。 */
+    verificationManifest?: { url: string; sha256: string };
     /** 下载工作目录名（位于 models 根目录下；断点续传依赖固定路径）。 */
     workDirectoryName: string;
     /** 归档文件名。 */
@@ -172,6 +174,7 @@ export class ModelArchiveInstaller {
         let installed = false;
         try {
             // 多候选地址时先探测可达性择优（按声明顺序），再对选定地址断点续传下载。
+            await this.verifyManifest(workDir, controller.signal);
             const downloadUrl = await this.resolveDownloadUrl(controller.signal, archivePath);
             await this.downloadArchive(downloadUrl, archivePath, controller.signal);
             await this.verifyArchive(archivePath, controller.signal);
@@ -218,6 +221,36 @@ export class ModelArchiveInstaller {
                 await this.fileSystemGateway.removeDirectoryIfExists(workDir);
             }
         }
+    }
+
+    /**
+     * 获取并校验官方清单，拒绝摘要或归档身份不符的下载；重试复用已验证清单。
+     * @param workDir 下载工作目录。
+     * @param signal 取消信号。
+     */
+    private async verifyManifest(workDir: string, signal: AbortSignal): Promise<void> {
+        const manifest = this.options.verificationManifest;
+        if (!manifest) return;
+        const manifestPath = path.join(workDir, 'manifest.json');
+        let content: Buffer;
+        try {
+            content = await fs.promises.readFile(manifestPath);
+        } catch (error) {
+            if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+            const response = await axios.get(manifest.url, {
+                responseType: 'arraybuffer', signal, timeout: 30_000, maxContentLength: 64 * 1024,
+            });
+            content = Buffer.from(response.data);
+        }
+        if (createHash('sha256').update(content).digest('hex') !== manifest.sha256) {
+            await this.fileSystemGateway.removeFileIfExists(manifestPath);
+            throw new Error(`${this.options.modelDisplayName} 清单校验失败（SHA256 不一致）`);
+        }
+        const metadata = JSON.parse(content.toString('utf8'));
+        if (metadata.archive !== this.options.archiveFileName || metadata.archive_sha256 !== this.options.archiveSha256) {
+            throw new Error(`${this.options.modelDisplayName} 清单与归档配置不一致`);
+        }
+        await fs.promises.writeFile(manifestPath, content);
     }
 
     /**

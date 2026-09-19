@@ -13,9 +13,9 @@ export class ParakeetModelController implements Controller {
 
     /** 注册模型状态、下载、取消下载与删除路由。 */
     public registerRoutes(): void {
-        registerRoute('parakeet/models/status', () => this.modelService.getStatus());
-        registerRoute('parakeet/models/download', () => this.modelService.download());
-        registerRoute('parakeet/models/cancel-download', () => this.modelService.cancelDownload());
-        registerRoute('parakeet/models/delete', () => this.modelService.deleteModel());
+        registerRoute('parakeet/models/status', (params) => this.modelService.getStatus(params?.model));
+        registerRoute('parakeet/models/download', (params) => this.modelService.download(params?.model));
+        registerRoute('parakeet/models/cancel-download', (params) => this.modelService.cancelDownload(params?.model));
+        registerRoute('parakeet/models/delete', (params) => this.modelService.deleteModel(params?.model));
     }
 }

@@ -103,7 +103,7 @@ export default class SettingsController implements Controller {
             this.sherpaTtsModelService.getStatus(),
             transcriptionEngine === 'whisper-cpp'
                 ? this.whisperCppModelService.getStatus()
-                : this.parakeetModelService.getStatus(),
+                : this.parakeetModelService.getStatus(transcriptionEngine === 'sherpa-onnx-orukeet' ? 'orukeet' : 'parakeet'),
             this.localMtService.getStatus(),
             this.localAiService.getStatus(),
             readSystemInfo(),

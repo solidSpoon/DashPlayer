@@ -79,6 +79,7 @@ import WhisperCppModelService, { WhisperCppModelServiceImpl } from '@/backend/se
 import TranscriptionEngineSelector, { TranscriptionEngineSelectorImpl } from '@/backend/services/TranscriptionEngineSelector';
 import { LocalTranscriptionServiceImpl, TranscriptionService } from '@/backend/services/TranscriptionService';
 import { SherpaOnnxCli } from '@/backend/infrastructure/media/sherpa/SherpaOnnxCli';
+import { ORUKEET_MODEL_DIRECTORY } from '@/backend/services/models/orukeetModel';
 import SherpaOnnxGatewayImpl from '@/backend/infrastructure/media/sherpa/SherpaOnnxGatewayImpl';
 import { WhisperCppCli } from '@/backend/infrastructure/media/whispercpp/WhisperCppCli';
 import WhisperCppGatewayImpl from '@/backend/infrastructure/media/whispercpp/WhisperCppGatewayImpl';
@@ -197,6 +198,9 @@ container.bind<ParakeetModelService>(TYPES.ParakeetModelService).to(ParakeetMode
 container.bind<SherpaOnnxCli>(TYPES.SherpaOnnxCli).to(SherpaOnnxCli).inSingletonScope();
 container.bind<WhisperCppCli>(TYPES.WhisperCppCli).to(WhisperCppCli).inSingletonScope();
 container.bind<SherpaOnnxGatewayImpl>(TYPES.SherpaOnnxGateway).to(SherpaOnnxGatewayImpl).inSingletonScope();
+container.bind<SherpaOnnxGatewayImpl>(TYPES.OrukeetGateway).toDynamicValue((context) => (
+    new SherpaOnnxGatewayImpl(context.container.get(TYPES.SherpaOnnxCli), ORUKEET_MODEL_DIRECTORY)
+)).inSingletonScope();
 container.bind<WhisperCppGatewayImpl>(TYPES.WhisperCppGateway).to(WhisperCppGatewayImpl).inSingletonScope();
 container.bind<TranscriptionEngineSelector>(TYPES.TranscriptionEngineSelector).to(TranscriptionEngineSelectorImpl).inSingletonScope();
 container.bind<WhisperCppModelService>(TYPES.WhisperCppModelService).to(WhisperCppModelServiceImpl).inSingletonScope();
