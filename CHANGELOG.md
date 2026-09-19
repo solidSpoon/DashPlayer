@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.12.7](https://github.com/solidSpoon/DashPlayer/compare/v6.12.6...v6.12.7) (2026-09-19)
+
+
+### Bug Fixes
+
+* 首页窗口在平铺窗口管理器下不再锁死尺寸 ([e9e1029](https://github.com/solidSpoon/DashPlayer/commit/e9e1029e64c8e702ea1dbddb4dea4b37c28cbd43))
+* 首页窗口在平铺窗口管理器下不再锁死尺寸 ([f8dd658](https://github.com/solidSpoon/DashPlayer/commit/f8dd658e089fbe1ca4de418fe022a8205b7ccca1))
+
 ## [6.12.6](https://github.com/solidSpoon/DashPlayer/compare/v6.12.5...v6.12.6) (2026-09-18)
 
 
