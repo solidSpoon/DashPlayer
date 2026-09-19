@@ -82,6 +82,7 @@ preload 每次 `invoke` 生成一个 trace id，main 在 `registerRoute` 边界�
 |---|---|---|
 | `ipc` | main | 每条 IPC 的 `ipc request started/completed/cancelled/failed`，含 `path`、`durationMs`、`result`/`error` |
 | `MainStartup` | main | `app ready`（含 `runtimeVersions`）、`gpu feature status` |
+| `WindowPort` | main | 首页窗口模式收尾：`home window mode applied`（含 `locked`：是否锁死设计尺寸；`reason`：`size-stable` 锁死、`size-imposed`/`late-resize` 表示几何由窗口管理器主导、已让路；`size`：判定时的窗口尺寸） |
 | `ProcessWatchdog` | main | 崩溃/白屏/卡死类进程事件（见第 5 节） |
 | `RendererGateway` | main | renderer API 调用生命周期：`renderer api call dispatched` / `renderer api call settled`（带 `callId`、`outcome`、`elapsedMs`）/ `renderer api call dropped` |
 | `RendererEvents` | main | main → renderer 的推送；窗口不可用时的 `renderer event dropped`（按通道窗口合并，带 `suppressedCount`）；`task status pushed to renderer` / `repair status pushed to renderer` 只在状态跃迁时记录 |
