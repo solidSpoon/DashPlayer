@@ -213,6 +213,42 @@ export interface RepairArgs {
 }
 
 /**
+ * 配音录音处理参数：掐头去尾静音后转单声道 WAV。
+ */
+export interface ProcessRecordingArgs {
+    /** 输入录音文件路径（renderer MediaRecorder 产出的 webm/opus）。 */
+    inputFile: string;
+    /** 输出 WAV 文件路径。 */
+    outputFile: string;
+}
+
+/**
+ * 配音混音的单句替换片段。
+ */
+export interface DubbingMixSegment {
+    /** 该句在原视频中的起始时间（秒）。 */
+    startSecond: number;
+    /** 该句在原视频中的结束时间（秒）。 */
+    endSecond: number;
+    /** 生效录音的 WAV 文件路径。 */
+    takeFile: string;
+    /** 录音掐头去尾后的实测时长（秒），用于计算变速倍率。 */
+    takeDurationSecond: number;
+}
+
+/**
+ * 配音混音导出参数：原声在已配音区间静音，用户录音经变速对齐后混入，视频流直拷。
+ */
+export interface MixDubbedAudioArgs {
+    /** 源视频文件路径。 */
+    videoFile: string;
+    /** 导出产物输出路径。 */
+    outputFile: string;
+    /** 需要替换为用户录音的句子片段列表。 */
+    segments: DubbingMixSegment[];
+}
+
+/**
  * FFmpeg 基础设施网关。
  */
 export default interface FfmpegGateway {
@@ -252,4 +288,14 @@ export default interface FfmpegGateway {
 
     /** 裁剪音频。 */
     trimAudio(args: TrimAudioArgs, options?: FfmpegRunOptions): Promise<void>;
+
+    /**
+     * 配音录音处理：掐头去尾静音并转为 48kHz 单声道 PCM WAV。
+     */
+    processRecording(args: ProcessRecordingArgs, options?: FfmpegRunOptions): Promise<void>;
+
+    /**
+     * 配音混音导出：视频流直拷，原声在已配音区间静音，用户录音变速对齐后混入其余区间。
+     */
+    mixDubbedAudio(args: MixDubbedAudioArgs, options?: FfmpegRunOptions): Promise<void>;
 }

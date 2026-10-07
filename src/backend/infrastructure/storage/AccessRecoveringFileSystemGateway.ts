@@ -142,6 +142,16 @@ export default class AccessRecoveringFileSystemGateway implements FileSystemGate
     }
 
     /**
+     * 写入二进制文件。
+     * @param filePath 文件绝对路径。
+     * @param data 待写入的字节内容。
+     */
+    public async writeBinaryFile(filePath: string, data: Uint8Array): Promise<void> {
+        await this.ensureAccessible(filePath);
+        await this.inner.writeBinaryFile(filePath, data);
+    }
+
+    /**
      * 移动或重命名文件。
      * @param sourcePath 原文件绝对路径。
      * @param targetPath 目标文件绝对路径。

@@ -1,0 +1,135 @@
+import { create } from 'zustand';
+import {
+    DubbingManifest,
+    DubbingSentenceRecord,
+    DubbingTakeVO,
+} from '@/common/contracts/dubbing';
+import useFile from '@/fronted/features/file-browser/fileStore';
+import { dubbingApi } from './dubbingApi';
+
+/**
+ * 配音录音流程所处阶段。
+ */
+export type DubbingPhase = 'idle' | 'recording' | 'saving' | 'replaying';
+
+interface DubbingState {
+    /** 当前视频的配音清单；无字幕或未加载时为 null。 */
+    manifest: DubbingManifest | null;
+    /** 录音流程阶段。 */
+    phase: DubbingPhase;
+    /** 正在录音/处理/回放的目标句序号。 */
+    targetIndex: number | null;
+    /** 本次录音开始时间戳（毫秒），用于界面计时。 */
+    recordingStartTs: number | null;
+    /** 当前正在回放的录音文件 URL。 */
+    replayUrl: string | null;
+
+    /** 切换视频时加载配音清单。 */
+    loadManifest: (videoKey: string) => Promise<void>;
+    /** 重置录音流程与清单（视频切换/卸载时调用）。 */
+    reset: () => void;
+    /** 标记开始录音。 */
+    beginRecording: (sentenceIndex: number) => void;
+    /** 标记录音处理中。 */
+    setSaving: () => void;
+    /** 标记开始回放录音。 */
+    beginReplay: (url: string) => void;
+    /** 录音流程结束回到空闲。 */
+    setIdle: () => void;
+    /** 新录音保存成功后并入清单。 */
+    addTake: (sentenceIndex: number, take: DubbingTakeVO) => void;
+    /** 用后端返回的最新句子记录替换清单中的对应项；null 表示该句恢复原声。 */
+    replaceSentenceRecord: (sentenceIndex: number, record: DubbingSentenceRecord | null) => void;
+    /** 指定某句的生效录音遍。 */
+    setActiveTake: (videoKey: string, sentenceIndex: number, takeId: string) => Promise<void>;
+    /** 删除某句的一遍录音。 */
+    deleteTake: (videoKey: string, sentenceIndex: number, takeId: string) => Promise<void>;
+    /** 清除某句的全部配音。 */
+    clearSentence: (videoKey: string, sentenceIndex: number) => Promise<void>;
+}
+
+export const useDubbing = create<DubbingState>((set, get) => ({
+    manifest: null,
+    phase: 'idle',
+    targetIndex: null,
+    recordingStartTs: null,
+    replayUrl: null,
+
+    loadManifest: async (videoKey: string) => {
+        const manifest = await dubbingApi.list(videoKey);
+        // 加载期间视频可能已切换，只回填仍然匹配的结果
+        if (useFile.getState().srtHash === videoKey) {
+            set({ manifest });
+        }
+    },
+
+    reset: () => {
+        set({ manifest: null, phase: 'idle', targetIndex: null, recordingStartTs: null, replayUrl: null });
+    },
+
+    beginRecording: (sentenceIndex: number) => {
+        set({ phase: 'recording', targetIndex: sentenceIndex, recordingStartTs: Date.now(), replayUrl: null });
+    },
+
+    setSaving: () => {
+        set({ phase: 'saving', recordingStartTs: null });
+    },
+
+    beginReplay: (url: string) => {
+        set({ phase: 'replaying', replayUrl: url });
+    },
+
+    setIdle: () => {
+        set({ phase: 'idle', targetIndex: null, recordingStartTs: null, replayUrl: null });
+    },
+
+    addTake: (sentenceIndex: number, take: DubbingTakeVO) => {
+        const manifest = get().manifest;
+        if (!manifest) {
+            return;
+        }
+        const key = String(sentenceIndex);
+        const record: DubbingSentenceRecord = manifest.sentences[key] ?? {
+            index: sentenceIndex,
+            takes: [],
+            activeTakeId: '',
+        };
+        record.takes.push(take);
+        record.activeTakeId = take.id;
+        set({
+            manifest: {
+                ...manifest,
+                sentences: { ...manifest.sentences, [key]: record },
+            },
+        });
+    },
+
+    replaceSentenceRecord: (sentenceIndex: number, record: DubbingSentenceRecord | null) => {
+        const manifest = get().manifest;
+        if (!manifest) {
+            return;
+        }
+        const sentences = { ...manifest.sentences };
+        if (record) {
+            sentences[String(sentenceIndex)] = record;
+        } else {
+            delete sentences[String(sentenceIndex)];
+        }
+        set({ manifest: { ...manifest, sentences } });
+    },
+
+    setActiveTake: async (videoKey: string, sentenceIndex: number, takeId: string) => {
+        const record = await dubbingApi.setActiveTake({ videoKey, sentenceIndex, takeId });
+        get().replaceSentenceRecord(sentenceIndex, record);
+    },
+
+    deleteTake: async (videoKey: string, sentenceIndex: number, takeId: string) => {
+        const record = await dubbingApi.deleteTake({ videoKey, sentenceIndex, takeId });
+        get().replaceSentenceRecord(sentenceIndex, record);
+    },
+
+    clearSentence: async (videoKey: string, sentenceIndex: number) => {
+        await dubbingApi.clearSentence({ videoKey, sentenceIndex });
+        get().replaceSentenceRecord(sentenceIndex, null);
+    },
+}));

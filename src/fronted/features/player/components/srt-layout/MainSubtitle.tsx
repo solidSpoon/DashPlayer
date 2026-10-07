@@ -50,6 +50,8 @@ import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useTrainingModeStore } from '@/fronted/features/player/trainingStore';
 import { TrainingSettingsDialog } from '@/fronted/features/player/components/TrainingSettingsDialog';
 import LearningModeButton, { CAPTION_CAPSULE_CLASS } from './LearningModeButton';
+import DubbingRecordButton from '@/fronted/features/player/dubbing/components/DubbingRecordButton';
+import DubbingTakesRow from '@/fronted/features/player/dubbing/components/DubbingTakesRow';
 
 export default function MainSubtitle() {
     const logger = getRendererLogger('MainSubtitle');
@@ -239,7 +241,9 @@ export default function MainSubtitle() {
                 <div className="w-full flex-[3] min-h-0 pointer-events-none" />
 
                 {/* 右下角横向悬浮胶囊控制栏：与下方译文行同层右靠，完全不占垂直空间 */}
-                <div className="absolute right-3 bottom-2 z-20 pointer-events-auto">
+                <div className="absolute right-3 bottom-2 z-20 pointer-events-auto flex flex-col items-end gap-1">
+                    {/* 当前句多遍录音横排：叠在胶囊上方一行，点击卡片切换生效遍 */}
+                    <DubbingTakesRow />
                     <div className={CAPTION_CAPSULE_CLASS}>
                         <TooltipProvider delayDuration={300}>
                             {/* 上一句 */}
@@ -491,6 +495,9 @@ export default function MainSubtitle() {
                                     </DropdownMenuItem>
                                 </DropdownMenuContent>
                             </DropdownMenu>
+
+                            {/* 自配音：录制当前句；已配音句子在胶囊上方展示多遍横排 */}
+                            <DubbingRecordButton />
 
                             {/* 收藏当前句 */}
                             <Tooltip>

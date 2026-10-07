@@ -43,6 +43,8 @@ import VideoLearningOssServiceImpl from '@/backend/infrastructure/storage/VideoL
 import { VideoLearningService, VideoLearningServiceImpl } from '@/backend/services/VideoLearningService';
 import VideoLearningApiController from '@/backend/controllers/VideoLearningApiController';
 import FfmpegService, { FfmpegServiceImpl } from '@/backend/services/FfmpegService';
+import DubbingService, { DubbingServiceImpl } from '@/backend/services/DubbingService';
+import DubbingController from '@/backend/controllers/DubbingController';
 import DpTaskService, { DpTaskServiceImpl } from '@/backend/services/DpTaskService';
 import ChatService, { ChatServiceImpl } from '@/backend/services/ChatService';
 import ChatSessionService, { ChatSessionServiceImpl } from '@/backend/services/ChatSessionService';
@@ -185,6 +187,7 @@ container.bind<ResourceFallbackService>(TYPES.ResourceFallbackService).to(Resour
 container.bind<Controller>(TYPES.Controller).to(SherpaTtsModelController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VocabularyController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VideoLearningApiController).inSingletonScope();
+container.bind<Controller>(TYPES.Controller).to(DubbingController).inSingletonScope();
 // 恢复路由控制器：不绑定到 TYPES.Controller（恢复模式下不解析业务控制器），单独绑定。
 container.bind<MigrationFailureController>(TYPES.MigrationFailureController).to(MigrationFailureController).inSingletonScope();
 // Services
@@ -220,6 +223,7 @@ container.bind<SubtitleTimestampAdjustmentsRepository>(TYPES.SubtitleTimestampAd
 container.bind<ClipOssService>(TYPES.ClipOssService).to(ClipOssServiceImpl).inSingletonScope();
 container.bind<ClipOssService>(TYPES.VideoLearningOssService).to(VideoLearningOssServiceImpl).inSingletonScope();
 container.bind<FavouriteClipsService>(TYPES.FavouriteClips).to(FavouriteClipsServiceImpl).inSingletonScope();
+container.bind<DubbingService>(TYPES.DubbingService).to(DubbingServiceImpl).inSingletonScope();
 container.bind<VideoLearningService>(TYPES.VideoLearningService).to(VideoLearningServiceImpl).inSingletonScope();
 container.bind<TagService>(TYPES.TagService).to(TagServiceImpl).inSingletonScope();
 container.bind<SrtTimeAdjustService>(TYPES.SrtTimeAdjustService).to(SrtTimeAdjustServiceImpl).inSingletonScope();
