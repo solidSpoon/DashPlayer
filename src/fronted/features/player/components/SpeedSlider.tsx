@@ -148,7 +148,7 @@ const SpeedSlider = ({ speed, onSpeedChange, onSelectFinish, triggerClassName, p
                 <div className={CONTROL_POPOVER_SEPARATOR} />
                 <div className="px-0.5 pt-2">
                     <div className="flex items-center gap-1.5 bg-white/5 hover:bg-white/10 focus-within:bg-white/10 border border-white/10 focus-within:border-primary/60 rounded-lg px-2 py-1 transition-colors">
-                        <span className="text-[11px] text-neutral-400 font-sans shrink-0">自定义</span>
+                        <span className="text-[11px] text-neutral-400 font-sans shrink-0">{t('speedSlider.custom')}</span>
                         <Input
                             ref={inputRef}
                             defaultValue={speed}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pin } from 'lucide-react';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { cn } from '@/fronted/lib/utils';
 import {
     Tooltip,
@@ -31,6 +32,7 @@ type ProgressMode = 'loopTimes' | 'loopRates' | 'shadowing';
  * @returns 钉住开关按钮。
  */
 export default function ControlBarPinButton() {
+    const { t } = useI18nTranslation('player');
     const pinned = usePlayerUi((s) => s.controlBarPinned);
     const toggle = usePlayerUi((s) => s.toggleControlBarPinned);
     // 逐句循环（重复×N / 倍速精听）与影子跟读会展示进度；单句循环/句末暂停会清空 sentenceLoop，故天然排除
@@ -67,7 +69,7 @@ export default function ControlBarPinButton() {
                         type="button"
                         onClick={toggle}
                         aria-pressed={pinned}
-                        aria-label={pinned ? '取消钉住控制条' : '钉住控制条'}
+                        aria-label={pinned ? t('controlBar.pinAriaPinned') : t('controlBar.pinAriaIdle')}
                         className={cn(
                             'relative w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors',
                             pinned
@@ -87,7 +89,7 @@ export default function ControlBarPinButton() {
                     </button>
                 </TooltipTrigger>
                 <TooltipContent side="top" align="end">
-                    {pinned ? '取消钉住（恢复自动隐藏）' : '钉住控制条（不再自动隐藏）'}
+                    {pinned ? t('controlBar.pinTooltipPinned') : t('controlBar.pinTooltipIdle')}
                 </TooltipContent>
             </Tooltip>
         </TooltipProvider>

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { Slider } from '@/fronted/components/ui/slider';
 import { Button } from '@/fronted/components/ui/button';
 import { cn } from '@/fronted/lib/utils';
@@ -32,6 +33,7 @@ const VolumeSlider = ({
     sliderRangeClassName,
     sliderThumbClassName
 }: VolumeSliderProps) => {
+    const { t } = useI18nTranslation('player');
     const [localVolume, setLocalVolume] = useState<number>(volume);
 
     const getVolumeIcon = () => {
@@ -55,7 +57,7 @@ const VolumeSlider = ({
                     'h-8 px-2 rounded-lg text-inherit hover:bg-black/5 dark:hover:bg-white/15 transition-colors gap-1.5',
                     triggerClassName
                 )}
-                title={muted ? '取消静音' : '静音'}
+                title={muted ? t('volumeSlider.unmute') : t('volumeSlider.mute')}
             >
                 {getVolumeIcon()}
                 <span className="text-xs font-mono w-6 text-left tabular-nums">

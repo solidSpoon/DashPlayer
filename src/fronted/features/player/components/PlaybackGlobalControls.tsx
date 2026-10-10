@@ -89,6 +89,7 @@ function formatShortcut(key?: string): string {
  * @returns 播放导航控件。
  */
 export function PlaybackNavControls() {
+    const { t } = useI18nTranslation('player');
     const playing = usePlayerState((s) => s.playing);
     const prevShortcut = useSetting((s) => s.setting('shortcut.previousSentence'));
     const nextShortcut = useSetting((s) => s.setting('shortcut.nextSentence'));
@@ -106,7 +107,7 @@ export function PlaybackNavControls() {
                             <SkipBack className="w-3.5 h-3.5" />
                         </button>
                     </TooltipTrigger>
-                    <TooltipContent side="top">上一句{formatShortcut(prevShortcut)}</TooltipContent>
+                    <TooltipContent side="top">{t('controlBar.prevSentence')}{formatShortcut(prevShortcut)}</TooltipContent>
                 </Tooltip>
 
                 <Tooltip>
@@ -118,7 +119,7 @@ export function PlaybackNavControls() {
                             {playing ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current ml-0.5" />}
                         </button>
                     </TooltipTrigger>
-                    <TooltipContent side="top">{playing ? `暂停${formatShortcut(playPauseShortcut)}` : `播放${formatShortcut(playPauseShortcut)}`}</TooltipContent>
+                    <TooltipContent side="top">{playing ? t('controlBar.pause') : t('controlBar.play')}{formatShortcut(playPauseShortcut)}</TooltipContent>
                 </Tooltip>
 
                 <Tooltip>
@@ -130,7 +131,7 @@ export function PlaybackNavControls() {
                             <SkipForward className="w-3.5 h-3.5" />
                         </button>
                     </TooltipTrigger>
-                    <TooltipContent side="top">下一句{formatShortcut(nextShortcut)}</TooltipContent>
+                    <TooltipContent side="top">{t('controlBar.nextSentence')}{formatShortcut(nextShortcut)}</TooltipContent>
                 </Tooltip>
             </div>
         </TooltipProvider>
@@ -198,16 +199,16 @@ export function PlaybackModeControls({
     const trainingActive = sentenceLoop !== null || skipGap || shadowing || rewindOnResume;
     // 模式身份由按钮文字表达（图标固定一颗，不再逐模式换图标、换色），优先级与 tooltip 一致
     const trainingLabel = singleRepeat
-        ? '单句循环'
+        ? t('controlBar.modeSingleRepeat')
         : autoPause
-        ? '句末自动暂停'
+        ? t('controlBar.modeAutoPause')
         : shadowing
-        ? '影子跟读'
+        ? t('controlBar.modeShadowing')
         : loopTimesActive
-        ? `重复 ×${trainingConfig.repeatTimes}`
+        ? t('controlBar.modeLoopTimes', { times: trainingConfig.repeatTimes })
         : loopRatesActive
-        ? '倍速精听'
-        : '训练';
+        ? t('controlBar.modeLoopRates')
+        : t('controlBar.modeTraining');
 
     // 进度徽章里的数字：按总数位数补零，避免 9→10 这类跨位时把按钮撑宽
     const loopCountText = activePlan
@@ -268,18 +269,26 @@ export function PlaybackModeControls({
                         </TooltipTrigger>
                         <TooltipContent side="top">
                             {singleRepeat
-                                ? `训练模式：单句循环${formatShortcut(repeatShortcut)}`
+                                ? `${t('controlBar.tooltipSingleRepeat')}${formatShortcut(repeatShortcut)}`
                                 : autoPause
-                                ? `训练模式：句末自动暂停${formatShortcut(autoPauseShortcut)}`
+                                ? `${t('controlBar.tooltipAutoPause')}${formatShortcut(autoPauseShortcut)}`
                                 : shadowing
-                                ? `训练模式：影子跟读${shadowingPause ? ' (留白中)' : ''}`
+                                ? `${t('controlBar.tooltipShadowing')}${shadowingPause ? t('controlBar.tooltipShadowingPausing') : ''}`
                                 : loopTimesActive
-                                ? `训练模式：每句重复 ×3 (第 ${(activePlan?.loopDone ?? 0) + 1}/${activePlan?.loopTotal ?? 3} 遍)`
+                                ? t('controlBar.tooltipLoopTimes', {
+                                    times: trainingConfig.repeatTimes,
+                                    done: (activePlan?.loopDone ?? 0) + 1,
+                                    total: activePlan?.loopTotal ?? trainingConfig.repeatTimes,
+                                })
                                 : loopRatesActive
-                                ? `训练模式：递进倍速精听 (当前 ${playbackRate}x，第 ${(activePlan?.loopDone ?? 0) + 1}/${activePlan?.loopTotal ?? 3} 遍)`
+                                ? t('controlBar.tooltipLoopRates', {
+                                    rate: playbackRate,
+                                    done: (activePlan?.loopDone ?? 0) + 1,
+                                    total: activePlan?.loopTotal ?? trainingConfig.progressiveRates.length,
+                                })
                                 : trainingActive
-                                ? '训练模式（已启用辅助行为）'
-                                : '训练与精听模式'}
+                                ? t('controlBar.tooltipTrainingActive')
+                                : t('controlBar.tooltipTrainingIdle')}
                         </TooltipContent>
                     </Tooltip>
                     <PopoverContent
@@ -290,39 +299,39 @@ export function PlaybackModeControls({
                     >
                         <div className={cn('flex items-center gap-1.5', CONTROL_POPOVER_LABEL)}>
                             <Sparkles className="w-3.5 h-3.5 text-emerald-500" />
-                            精听与训练模式
+                            {t('controlBar.trainingMenuLabel')}
                         </div>
                         <div className={CONTROL_POPOVER_SEPARATOR} />
                         {/* 句末行为（引擎层互斥：开启任一自动关闭其他） */}
                         <ControlPopoverRow
                             checked={singleRepeat}
                             icon={<Repeat1 className={CONTROL_POPOVER_ICON} />}
-                            label="单句循环"
-                            right={repeatShortcut ? <span className={CONTROL_POPOVER_HINT}>快捷键 {repeatShortcut}</span> : undefined}
+                            label={t('controlBar.rowSingleRepeat')}
+                            right={repeatShortcut ? <span className={CONTROL_POPOVER_HINT}>{t('controlBar.shortcutHint', { shortcut: repeatShortcut })}</span> : undefined}
                             onActivate={() => playerActions.setSingleRepeat(!singleRepeat)}
                         />
                         <ControlPopoverRow
                             checked={autoPause}
                             icon={<CirclePause className={CONTROL_POPOVER_ICON} />}
-                            label="句末自动暂停"
-                            right={autoPauseShortcut ? <span className={CONTROL_POPOVER_HINT}>快捷键 {autoPauseShortcut}</span> : undefined}
+                            label={t('controlBar.rowAutoPause')}
+                            right={autoPauseShortcut ? <span className={CONTROL_POPOVER_HINT}>{t('controlBar.shortcutHint', { shortcut: autoPauseShortcut })}</span> : undefined}
                             onActivate={() => playerActions.setAutoPause(!autoPause)}
                         />
                         <ControlPopoverRow
                             checked={shadowing}
                             icon={<Mic className={CONTROL_POPOVER_ICON} />}
-                            label="影子跟读"
+                            label={t('controlBar.rowShadowing')}
                             right={
-                                <span className={CONTROL_POPOVER_HINT}>留白 {trainingConfig.shadowingRatio.toFixed(1)}x</span>
+                                <span className={CONTROL_POPOVER_HINT}>{t('controlBar.shadowingRatioHint', { ratio: trainingConfig.shadowingRatio.toFixed(1) })}</span>
                             }
-                            title={`句末留白 ${trainingConfig.shadowingRatio.toFixed(1)}x 时长后自动下一句`}
+                            title={t('controlBar.shadowingTitle', { ratio: trainingConfig.shadowingRatio.toFixed(1) })}
                             onActivate={() => playerActions.setShadowing(!shadowing)}
                         />
                         <ControlPopoverRow
                             checked={loopTimesActive}
                             icon={<Repeat className={CONTROL_POPOVER_ICON} />}
-                            label={`每句重复 ×${trainingConfig.repeatTimes}`}
-                            title={`每句连续播放 ${trainingConfig.repeatTimes} 遍后自动下一句`}
+                            label={t('controlBar.rowLoopTimes', { times: trainingConfig.repeatTimes })}
+                            title={t('controlBar.loopTimesTitle', { times: trainingConfig.repeatTimes })}
                             onActivate={() => {
                                 playerActions.setSentenceLoop(loopTimesActive ? null : { times: trainingConfig.repeatTimes });
                             }}
@@ -330,13 +339,13 @@ export function PlaybackModeControls({
                         <ControlPopoverRow
                             checked={loopRatesActive}
                             icon={<Gauge className={CONTROL_POPOVER_ICON} />}
-                            label="递进倍速精听"
+                            label={t('controlBar.rowLoopRates')}
                             right={
                                 <span className={CONTROL_POPOVER_HINT}>
                                     {trainingConfig.progressiveRates.map((r) => `${r}x`).join('→')}
                                 </span>
                             }
-                            title={`每句按 ${trainingConfig.progressiveRates.map((r) => `${r}x`).join(' → ')} 递进播放`}
+                            title={t('controlBar.loopRatesTitle', { rates: trainingConfig.progressiveRates.map((r) => `${r}x`).join(' → ') })}
                             onActivate={() => {
                                 playerActions.setSentenceLoop(
                                     loopRatesActive
@@ -350,21 +359,21 @@ export function PlaybackModeControls({
                         <ControlPopoverRow
                             checked={skipGap}
                             icon={<FastForward className={CONTROL_POPOVER_ICON} />}
-                            label="跳过句间空隙"
-                            title="句末立即跳转到下一句开头"
+                            label={t('controlBar.rowSkipGap')}
+                            title={t('controlBar.skipGapTitle')}
                             onActivate={() => playerActions.setSkipGap(!skipGap)}
                         />
                         <ControlPopoverRow
                             checked={rewindOnResume}
                             icon={<RotateCcw className={CONTROL_POPOVER_ICON} />}
-                            label="暂停后回退句首"
-                            title="继续播放时从当前句开头开始"
+                            label={t('controlBar.rowRewindOnResume')}
+                            title={t('controlBar.rewindTitle')}
                             onActivate={() => playerActions.setRewindOnResume(!rewindOnResume)}
                         />
                         <div className={CONTROL_POPOVER_SEPARATOR} />
                         <ControlPopoverRow
                             icon={<Settings2 className={CONTROL_POPOVER_ICON} />}
-                            label="自定义训练参数..."
+                            label={t('controlBar.rowSettings')}
                             onActivate={() => {
                                 setTrainingMenuOpen(false);
                                 setSettingsOpen(true);
@@ -385,26 +394,25 @@ export function PlaybackModeControls({
                                     {/* 轨道标签: 双语/英/中/隐藏；状态只看这个词，不再给按钮加常驻底色 */}
                                     <span className="font-sans">
                                         {showEn && (showCn || showSourceZh)
-                                            ? '双语'
+                                            ? t('controlBar.tracksBilingual')
                                             : showEn
-                                            ? 'EN'
+                                            ? t('controlBar.tracksEnglish')
                                             : showCn || showSourceZh
-                                            ? '中'
-                                            : '无'}
+                                            ? t('controlBar.tracksChinese')
+                                            : t('controlBar.tracksNone')}
                                     </span>
                                 </button>
                             </PopoverTrigger>
                         </TooltipTrigger>
                         <TooltipContent side="top" align="end">
-                            {`字幕轨道: ${
-                                showEn && (showCn || showSourceZh)
-                                    ? '双语显示'
+                            {t('controlBar.tracksTooltipPrefix') +
+                                (showEn && (showCn || showSourceZh)
+                                    ? t('controlBar.tracksTooltipBilingual')
                                     : showEn
-                                    ? '仅显示英文'
+                                    ? t('controlBar.tracksTooltipEnglish')
                                     : showCn || showSourceZh
-                                    ? '仅显示中文'
-                                    : '已全部隐藏'
-                            }`}
+                                    ? t('controlBar.tracksTooltipChinese')
+                                    : t('controlBar.tracksTooltipNone'))}
                         </TooltipContent>
                     </Tooltip>
                     <PopoverContent
