@@ -149,5 +149,28 @@
             "cancel": "Cancel",
             "cancelledMessage": "Transcription cancelled"
         }
+    },
+    "dubbingExport": {
+        "title": "Dubbing Export",
+        "description": "Review and export videos you have dubbed",
+        "empty": {
+            "title": "No dubbed videos yet",
+            "guide": "Press Q in the player to record sentence by sentence; dubbed videos will show up here"
+        },
+        "recordedCount": "{{count}} sentences dubbed",
+        "updatedAt": "Last recorded {{time}}",
+        "export": "Export",
+        "openFolder": "Open folder",
+        "exporting": "Exporting {{progress}}%",
+        "exported": "Export complete",
+        "exportFailed": "Export failed",
+        "clear": "Clear dubbing",
+        "clearTitle": "Clear this video's dubbing?",
+        "clearDescription": "All recordings for \"{{name}}\" will be deleted and cannot be recovered.",
+        "clearConfirm": "Clear",
+        "cancel": "Cancel",
+        "cleared": "Dubbing cleared",
+        "clearFailed": "Failed to clear, please retry",
+        "loadFailed": "Failed to load the dubbing list"
     }
 }

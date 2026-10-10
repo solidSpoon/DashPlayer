@@ -62,7 +62,7 @@ import { ModelInstallationStatusVO } from '@/common/types/vo/model-installation-
 import { VideoInfo } from '@/common/types/video-info';
 import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
 import { TranscriptTask } from '@/common/contracts/transcript/transcript-task';
-import { DubbingManifest, DubbingTakeVO } from '@/common/contracts/dubbing';
+import { DubbingLibraryEntry, DubbingManifest, DubbingTakeVO } from '@/common/contracts/dubbing';
 
 /** 跨进程请求与返回值契约。 */
 interface ApiDefinition {
@@ -454,18 +454,25 @@ interface VideoLearningDef {
 
 interface DubbingDef {
     'dubbing/save-take': {
-        params: { videoKey: string; sentenceIndex: number; audio: Uint8Array },
+        params: {
+            videoKey: string;
+            sentenceIndex: number;
+            audio: Uint8Array;
+            /** 录音时正在播放的视频绝对路径，记入清单供导出页定位。 */
+            videoPath: string;
+            /** 录音时绑定的字幕文件绝对路径；转录会话期间可能为空。 */
+            subtitlePath: string | null;
+        },
         return: DubbingTakeVO
     };
     'dubbing/list': { params: { videoKey: string }, return: DubbingManifest | null };
+    'dubbing/list-library': { params: void, return: DubbingLibraryEntry[] };
     'dubbing/clear-sentence': { params: { videoKey: string; sentenceIndex: number }, return: void };
     'dubbing/clear-video': { params: { videoKey: string }, return: void };
     'dubbing/export': {
         params: {
             videoKey: string;
-            videoPath: string;
             outputFolder: string;
-            segments: Array<{ index: number; startSecond: number; endSecond: number }>;
         },
         return: string
     };

@@ -45,8 +45,30 @@ export interface DubbingSentenceRecord {
 export interface DubbingManifest {
     /** 字幕内容哈希。 */
     videoKey: string;
+    /** 录音时记录的来源视频绝对路径；导出页据此定位视频，缺失表示无法导出。 */
+    videoPath?: string;
+    /** 录音时绑定的字幕文件绝对路径；导出时据此重新推导每句时间区间，缺失表示无法导出。 */
+    subtitlePath?: string | null;
     /** 已配音句子，key 为句序号。 */
     sentences: Record<string, DubbingSentenceRecord>;
+}
+
+/**
+ * 导出页展示的一条配音记录。
+ *
+ * 仅包含视频文件仍存在的条目；视频被删或移走的不会出现在列表里。
+ */
+export interface DubbingLibraryEntry {
+    /** 字幕内容哈希，配音目录键。 */
+    videoKey: string;
+    /** 视频文件绝对路径。 */
+    videoPath: string;
+    /** 视频文件名，用于展示。 */
+    videoName: string;
+    /** 已配音句数。 */
+    dubbedSentenceCount: number;
+    /** 最近一次录音时间，epoch 毫秒。 */
+    updatedAt: number;
 }
 
 /**

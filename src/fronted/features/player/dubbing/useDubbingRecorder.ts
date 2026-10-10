@@ -118,10 +118,13 @@ export function useDubbingRecorder(): DubbingRecorderControls {
         useDubbing.getState().setSaving();
         try {
             const buffer = await blob.arrayBuffer();
+            const { videoPath, subtitlePath } = useFile.getState();
             const take = await dubbingApi.saveTake({
                 videoKey: useFile.getState().srtHash!,
                 sentenceIndex,
                 audio: new Uint8Array(buffer),
+                videoPath: videoPath!,
+                subtitlePath,
             });
             useDubbing.getState().setSentenceTake(sentenceIndex, take);
 
