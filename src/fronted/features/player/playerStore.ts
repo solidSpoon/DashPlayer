@@ -512,7 +512,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
     return Date.now() - lastSeekAt > OVERDUE_TIME;
   };
 
-  // 时间驱动：尾部预览 → 瞬态播放计划 → autoPause → singleRepeat → 影子跟读/跳过空隙 → 正常回写
+  // 时间驱动：尾部预览 → 瞬态播放计划 → autoPause → singleRepeat → 悬停临时循环 → 影子跟读/跳过空隙 → 正常回写
   const onTimeUpdate = () => {
     const state = get();
     const { playing, autoPause, singleRepeat, hoverRepeat, shadowing, sentenceLoop, currentSentence, srtTender, virtualGroup } = state;
@@ -635,13 +635,12 @@ export const usePlayer = create<PlayerState>((set, get) => {
       return;
     }
 
-    // 4) SingleRepeat（含悬停临时循环）：组优先（保留 overdue；单句冻结，虚拟组内允许高亮随时间移动）
-    //    hoverRepeat 只循环当前句本身（不套用虚拟组），离开胶囊区即还原；无当前句时不参与（避免反复 seek 0）
-    if (playing && (singleRepeat || (hoverRepeat && !!currentSentence))) {
+    // 4) SingleRepeat：组优先（保留 overdue；单句冻结，虚拟组内允许高亮随时间移动）
+    if (playing && singleRepeat) {
       const { start, end } = state.getLoopRange();
       const focusInGroup = isFocusInVirtualGroup();
       if (effectiveTime > end) {
-        if (singleRepeat && focusInGroup && virtualGroup.active && virtualGroup.sentences.length > 0) {
+        if (focusInGroup && virtualGroup.active && virtualGroup.sentences.length > 0) {
           const first = virtualGroup.sentences.slice().sort((a, b) => a.index - b.index)[0];
           state.seekToTarget({ time: start, target: first });
         } else {
@@ -649,7 +648,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
         }
       }
       // 仅在焦点位于虚拟组内时：允许高亮随时间在组内流动；单句循环保持冻结
-      if (singleRepeat && focusInGroup && virtualGroup.active && virtualGroup.sentences.length > 0) {
+      if (focusInGroup && virtualGroup.active && virtualGroup.sentences.length > 0) {
         const vgSet = new Set(virtualGroup.sentences.map((s) => `${s.fileHash}-${s.index}`));
         const next = srtTender.getByTime(effectiveTime);
         const nextKey = `${next.fileHash}-${next.index}`;
@@ -660,7 +659,17 @@ export const usePlayer = create<PlayerState>((set, get) => {
       return; // singleRepeat 分支到此结束（单句冻结 / 组内已更新）
     }
 
-    // 5) 句末处理：影子跟读 / 跳过句间空隙（均要求播放中且已越过当前句结尾）
+    // 5) 悬停临时单句循环：鼠标悬停主字幕胶囊区期间只循环当前句本身（不套用虚拟组），
+    //    离开胶囊区即还原；无当前句时不参与（避免反复 seek 0）
+    if (playing && hoverRepeat && currentSentence && srtTender) {
+      const { start, end } = srtTender.mapSeekTime(currentSentence);
+      if (effectiveTime > end) {
+        state.seekToTarget({ time: start, target: currentSentence });
+      }
+      return;
+    }
+
+    // 6) 句末处理：影子跟读 / 跳过句间空隙（均要求播放中且已越过当前句结尾）
     if (playing && currentSentence) {
       const { start, end } = srtTender.mapSeekTime(currentSentence);
       if (effectiveTime > end) {
@@ -703,7 +712,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
       }
     }
 
-    // 6) 正常模式：按时间回写 currentSentence（若当前未锁定）
+    // 7) 正常模式：按时间回写 currentSentence（若当前未锁定）
     if (!singleRepeat && !hoverRepeat && !autoPause) {
       if (currentLock?.active && Date.now() < currentLock.untilTs) {
         // 锁定期内，不回写，保持 UI 高亮为用户刚选中的句子
