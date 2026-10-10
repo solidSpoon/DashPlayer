@@ -6,10 +6,10 @@
  */
 
 /**
- * 单遍配音录音。
+ * 一句配音的录音。
  */
 export interface DubbingTake {
-    /** 录音遍 ID。 */
+    /** 录音 ID。 */
     id: string;
     /** 视频目录内的文件名。 */
     fileName: string;
@@ -30,15 +30,13 @@ export interface DubbingTakeVO extends DubbingTake {
 }
 
 /**
- * 一句话的配音记录。
+ * 一句话的配音记录。每句只留一份录音，重录即覆盖。
  */
 export interface DubbingSentenceRecord {
     /** 字幕句序号。 */
     index: number;
-    /** 该句的全部录音遍，按创建时间升序。 */
-    takes: DubbingTake[];
-    /** 当前生效的录音遍 ID；默认为最新一遍。 */
-    activeTakeId: string;
+    /** 该句当前的录音。 */
+    take: DubbingTake;
 }
 
 /**

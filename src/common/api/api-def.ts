@@ -62,7 +62,7 @@ import { ModelInstallationStatusVO } from '@/common/types/vo/model-installation-
 import { VideoInfo } from '@/common/types/video-info';
 import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
 import { TranscriptTask } from '@/common/contracts/transcript/transcript-task';
-import { DubbingManifest, DubbingSentenceRecord, DubbingTakeVO } from '@/common/contracts/dubbing';
+import { DubbingManifest, DubbingTakeVO } from '@/common/contracts/dubbing';
 
 /** 跨进程请求与返回值契约。 */
 interface ApiDefinition {
@@ -458,14 +458,6 @@ interface DubbingDef {
         return: DubbingTakeVO
     };
     'dubbing/list': { params: { videoKey: string }, return: DubbingManifest | null };
-    'dubbing/set-active-take': {
-        params: { videoKey: string; sentenceIndex: number; takeId: string },
-        return: DubbingSentenceRecord
-    };
-    'dubbing/delete-take': {
-        params: { videoKey: string; sentenceIndex: number; takeId: string },
-        return: DubbingSentenceRecord | null
-    };
     'dubbing/clear-sentence': { params: { videoKey: string; sentenceIndex: number }, return: void };
     'dubbing/clear-video': { params: { videoKey: string }, return: void };
     'dubbing/export': {

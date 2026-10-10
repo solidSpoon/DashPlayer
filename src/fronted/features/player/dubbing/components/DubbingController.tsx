@@ -10,7 +10,7 @@ const logger = getRendererLogger('DubbingController');
 /**
  * 配音无 UI 控制器：挂载快捷键监听并按视频加载配音清单。
  *
- * 状态展示集中在主字幕区胶囊控制栏（DubbingRecordButton / DubbingTakesRow），
+ * 状态展示集中在主字幕区胶囊控制栏（DubbingRecordButton / DubbingTakeChip），
  * 此组件只负责副作用，随播放舞台常驻挂载（含全屏）。
  */
 export default function DubbingController() {

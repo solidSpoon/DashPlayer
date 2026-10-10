@@ -10,6 +10,7 @@ import { usePlayer } from '@/fronted/features/player/playerStore';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { dubbingApi } from './dubbingApi';
 import { registerDubbingControls } from './dubbingControls';
+import { resumePlaybackFromSentenceStart } from './dubbingPlayback';
 import { useDubbing } from './dubbingStore';
 
 const logger = getRendererLogger('useDubbingRecorder');
@@ -69,7 +70,7 @@ export interface DubbingRecorderControls {
  * - Q 键：点按开始/再按停止；长按松手即停；Esc 取消；
  * - 控制条录制按钮：通过 dubbingControls 全局通道触发相同动作。
  *
- * 录完自动保存为该句最新一遍（默认生效），随后回放一遍，回放结束恢复原来的播放状态。
+ * 录完自动保存为该句录音（覆盖旧录音），随后回放一遍，回放结束恢复原来的播放状态。
  */
 export function useDubbingRecorder(): DubbingRecorderControls {
     const { t } = useTranslation('player');
@@ -93,12 +94,8 @@ export function useDubbingRecorder(): DubbingRecorderControls {
         const resumePlay = wasPlayingBeforeRecording;
         wasPlayingBeforeRecording = false;
         if (backToSentenceStart) {
-            const { currentSentence, srtTender } = usePlayer.getState();
-            if (currentSentence && srtTender) {
-                const { start } = srtTender.mapSeekTime(currentSentence);
-                playerActions.seekToTarget({ time: start, target: currentSentence, play: resumePlay });
-                return;
-            }
+            resumePlaybackFromSentenceStart(resumePlay);
+            return;
         }
         if (resumePlay) {
             playerActions.play();
@@ -126,7 +123,7 @@ export function useDubbingRecorder(): DubbingRecorderControls {
                 sentenceIndex,
                 audio: new Uint8Array(buffer),
             });
-            useDubbing.getState().addTake(sentenceIndex, take);
+            useDubbing.getState().setSentenceTake(sentenceIndex, take);
 
             const ratio = take.durationSec / sentenceDuration;
             if (ratio > TOO_LONG_RATIO) {

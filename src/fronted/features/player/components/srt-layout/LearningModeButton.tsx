@@ -10,15 +10,11 @@ import {
 } from '@/fronted/components/ui/tooltip';
 import useChatPanel from '@/fronted/features/chat/chatStore';
 import useSetting from '@/fronted/features/settings/settingsStore';
-
-/**
- * 字幕悬浮胶囊的外壳样式。
- *
- * 播放画面的胶囊与学习界面右下角的单独胶囊共用这一份：两边锚点相同、内边距相同，
- * 开关按钮又都是它们的最后一个子元素，落点因此与视图切换无关。
- */
-export const CAPTION_CAPSULE_CLASS =
-    'inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-stone-300/60 dark:bg-neutral-700/60 border border-black/5 dark:border-white/5 backdrop-blur-sm shadow-xs';
+import {
+    CAPTION_CARD_BUTTON_CLASS,
+    CAPTION_CARD_IDLE_CLASS,
+    captionCardActiveClass,
+} from '@/fronted/features/player/components/captionCardShell';
 
 /**
  * 整句学习开关按钮。
@@ -26,7 +22,7 @@ export const CAPTION_CAPSULE_CLASS =
  * 与「进入学习页」的快捷键是同一个动作：未打开时按当前字幕句进入学习页，
  * 已打开时只隐藏学习页、保留会话，后台生成不中断。
  * 按钮挂在两处：播放画面胶囊的最右侧、学习界面右下角的单独胶囊里；
- * 自身固定 24px 见方（与胶囊里的播放键同高），两处胶囊的高度因而一致。
+ * 自身为卡片内的 24px 正圆（与胶囊内其余按钮同款），两处胶囊的高度因而一致。
  *
  * @returns 整句学习开关按钮。
  */
@@ -54,10 +50,8 @@ export default function LearningModeButton() {
                         onClick={handleClick}
                         aria-label={label}
                         className={cn(
-                            'w-6 h-6 rounded-full flex items-center justify-center shrink-0 transition-colors',
-                            learningVisible
-                                ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-200/70 dark:bg-emerald-900/60 shadow-xs ring-1 ring-emerald-500/30'
-                                : 'text-stone-600 dark:text-neutral-400 hover:text-stone-900 dark:hover:text-white hover:bg-stone-300/60 dark:hover:bg-neutral-600/60'
+                            CAPTION_CARD_BUTTON_CLASS,
+                            learningVisible ? captionCardActiveClass('emerald') : CAPTION_CARD_IDLE_CLASS
                         )}
                     >
                         <GraduationCap className="w-3.5 h-3.5" />

@@ -1,5 +1,5 @@
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
-import { DubbingManifest, DubbingSentenceRecord, DubbingTakeVO } from '@/common/contracts/dubbing';
+import { DubbingManifest, DubbingTakeVO } from '@/common/contracts/dubbing';
 
 /**
  * 配音功能的 backendClient 封装。
@@ -10,12 +10,6 @@ export const dubbingApi = {
 
     list: (videoKey: string): Promise<DubbingManifest | null> =>
         backendClient.call('dubbing/list', { videoKey }),
-
-    setActiveTake: (params: { videoKey: string; sentenceIndex: number; takeId: string }): Promise<DubbingSentenceRecord> =>
-        backendClient.call('dubbing/set-active-take', params),
-
-    deleteTake: (params: { videoKey: string; sentenceIndex: number; takeId: string }): Promise<DubbingSentenceRecord | null> =>
-        backendClient.call('dubbing/delete-take', params),
 
     clearSentence: (params: { videoKey: string; sentenceIndex: number }): Promise<void> =>
         backendClient.call('dubbing/clear-sentence', params),

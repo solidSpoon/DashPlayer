@@ -16,10 +16,7 @@ interface DubbingMarkProps {
  */
 export default function DubbingMark({ sentenceIndex }: DubbingMarkProps) {
     const { t } = useTranslation('player');
-    const hasTakes = useDubbing((s) => {
-        const record = s.manifest?.sentences[String(sentenceIndex)];
-        return !!record && record.takes.length > 0;
-    });
+    const hasTakes = useDubbing((s) => !!s.manifest?.sentences[String(sentenceIndex)]);
 
     return (
         <div

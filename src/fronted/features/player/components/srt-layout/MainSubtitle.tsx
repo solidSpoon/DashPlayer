@@ -19,9 +19,17 @@ import {
     PopoverTrigger,
 } from '@/fronted/components/ui/popover';
 import { Input } from '@/fronted/components/ui/input';
-import LearningModeButton, { CAPTION_CAPSULE_CLASS } from './LearningModeButton';
+import { cn } from '@/fronted/lib/utils';
+import LearningModeButton from './LearningModeButton';
+import {
+    CAPTION_CARD_ANCHOR_CLASS,
+    CAPTION_CARD_BUTTON_CLASS,
+    CAPTION_CARD_CLASS,
+    CAPTION_CARD_IDLE_CLASS,
+    captionCardActiveClass,
+} from '@/fronted/features/player/components/captionCardShell';
 import DubbingRecordButton from '@/fronted/features/player/dubbing/components/DubbingRecordButton';
-import DubbingTakesRow from '@/fronted/features/player/dubbing/components/DubbingTakesRow';
+import DubbingTakeChip from '@/fronted/features/player/dubbing/components/DubbingTakeChip';
 
 export default function MainSubtitle() {
     const logger = getRendererLogger('MainSubtitle');
@@ -186,9 +194,7 @@ export default function MainSubtitle() {
                 {/* 顶部弹性占位：比底部占位少，让文字动态停留在“中上”黄金位置（约 40% 高度） */}
                 <div className="w-full flex-[2] min-h-0 pointer-events-none" />
 
-                {/* 字幕内容区：永远受到外层 pt-3 顶距保护，绝不削顶。
-                    各字幕行会被逐行量测，只有真会被右下角浮层压住的行才在 wrapper 上加右侧内缩，
-                    让那一行单独重新折行；其余行保持满宽居中 */}
+                {/* 字幕内容区：永远受到外层 pt-3 顶距保护，绝不削顶 */}
                 <div className="flex flex-col justify-start items-center gap-1.5 w-full min-w-0 shrink-0">
                     {ele()}
                 </div>
@@ -196,24 +202,22 @@ export default function MainSubtitle() {
                 {/* 底部弹性占位：比顶部占位更多 */}
                 <div className="w-full flex-[3] min-h-0 pointer-events-none" />
 
-                {/* 右下角悬浮控制栏：绝对定位、完全不占排版空间（浮层上方空白不被浪费）。
-                    只承载绑定当前句的操作（配音/收藏/微调/整句学习）；
-                    鼠标悬停胶囊期间临时切换为当前句循环，离开即还原。
+                {/* 右下角悬浮控制栏：绝对定位、完全不占排版空间。
+                    只承载绑定当前句的操作（录音卡片/配音/收藏/微调/整句学习）；
+                    整条悬停期间临时切换为当前句循环（录音卡片也在内），离开即还原。
                     全局控制（上一句/下一句/播放/训练模式/字幕轨道）在视频底部控制条里，不在这里 */}
                 <div
-                    className="absolute right-3 bottom-2 z-20 pointer-events-auto flex flex-col items-end gap-1"
+                    className={cn(CAPTION_CARD_ANCHOR_CLASS, 'z-20 pointer-events-auto flex items-center gap-1.5')}
+                    onMouseEnter={() => playerActions.setHoverRepeat(true)}
+                    onMouseLeave={() => playerActions.setHoverRepeat(false)}
                 >
-                    {/* 当前句多遍录音横排：叠在胶囊上方一行，点击卡片切换生效遍 */}
-                    <DubbingTakesRow />
+                    {/* 当前句录音卡片：位于胶囊左侧，点击试听、按删除键清除 */}
+                    <DubbingTakeChip />
 
-                    {/* 当前句操作胶囊：配音/收藏/微调/整句学习；悬停期间临时单句循环 */}
-                    <div
-                        className={CAPTION_CAPSULE_CLASS}
-                        onMouseEnter={() => playerActions.setHoverRepeat(true)}
-                        onMouseLeave={() => playerActions.setHoverRepeat(false)}
-                    >
+                    {/* 当前句操作胶囊：配音/收藏/微调/整句学习 */}
+                    <div className={CAPTION_CARD_CLASS}>
                         <TooltipProvider delayDuration={300}>
-                            {/* 自配音：录制当前句；已配音句子在胶囊上方展示多遍横排 */}
+                            {/* 自配音：录制当前句；已配音句子的录音卡片展示在胶囊左侧 */}
                             <DubbingRecordButton />
 
                             {/* 收藏当前句 */}
@@ -221,11 +225,10 @@ export default function MainSubtitle() {
                                 <TooltipTrigger asChild>
                                     <button
                                         onClick={() => { void changeCurrentLineClip(); }}
-                                        className={`p-1 rounded-full transition-colors ${
-                                            isFavourite
-                                                ? 'text-amber-600 dark:text-amber-400 bg-amber-100 dark:bg-amber-950/60'
-                                                : 'text-stone-600 dark:text-neutral-400 hover:text-stone-900 dark:hover:text-white hover:bg-stone-300/60 dark:hover:bg-neutral-600/60'
-                                        }`}
+                                        className={cn(
+                                            CAPTION_CARD_BUTTON_CLASS,
+                                            isFavourite ? captionCardActiveClass('amber') : CAPTION_CARD_IDLE_CLASS
+                                        )}
                                     >
                                         <Bookmark className={`w-3.5 h-3.5 ${isFavourite ? 'fill-current' : ''}`} />
                                     </button>
@@ -233,24 +236,19 @@ export default function MainSubtitle() {
                                 <TooltipContent side="top">收藏当前句{formatShortcut(favShortcut)}</TooltipContent>
                             </Tooltip>
 
-                            {/* 时间戳调整与重置（合并为一个触发器）：未调整时仅展示轻量图标，调整后展示高亮偏移 Badge */}
+                            {/* 时间戳调整与重置（合并为一个触发器）：图标常驻，调整后整颗按钮高亮；
+                                具体偏移量只在 tooltip 与弹窗里给出，不挤进胶囊、不改变按钮宽度 */}
                             <Popover open={adjustPopoverOpen} onOpenChange={handleAdjustPopoverChange}>
                                 <Tooltip>
                                     <TooltipTrigger asChild>
                                         <PopoverTrigger asChild>
                                             <button
-                                                className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full transition-all text-[10px] font-medium leading-none ${
-                                                    adjusted
-                                                        ? 'text-amber-700 dark:text-amber-300 bg-amber-200/70 dark:bg-amber-900/60 shadow-xs ring-1 ring-amber-500/30'
-                                                        : 'text-stone-600 dark:text-neutral-400 hover:text-stone-900 dark:hover:text-white hover:bg-stone-300/60 dark:hover:bg-neutral-600/60'
-                                                }`}
+                                                className={cn(
+                                                    CAPTION_CARD_BUTTON_CLASS,
+                                                    adjusted ? captionCardActiveClass('amber') : CAPTION_CARD_IDLE_CLASS
+                                                )}
                                             >
                                                 <History className="w-3.5 h-3.5 stroke-[2]" />
-                                                {adjusted && (
-                                                    <span className="font-mono text-[10px] font-semibold leading-none tabular-nums">
-                                                        {`${adjustDiff && adjustDiff.start >= 0 ? '+' : ''}${(adjustDiff?.start ?? 0).toFixed(2)}/${adjustDiff && adjustDiff.end >= 0 ? '+' : ''}${(adjustDiff?.end ?? 0).toFixed(2)}s`}
-                                                    </span>
-                                                )}
                                             </button>
                                         </PopoverTrigger>
                                     </TooltipTrigger>

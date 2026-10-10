@@ -5,7 +5,6 @@ import TYPES from '@/backend/ioc/types';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import {
     DubbingManifest,
-    DubbingSentenceRecord,
     DubbingTake,
     DubbingTakeVO,
 } from '@/common/contracts/dubbing';
@@ -18,12 +17,12 @@ import StorageDirectoryProvider, { StorageDirectoryTarget } from '@/backend/serv
  * 配音业务服务。
  *
  * 存储布局：媒体库 `dubbing/<videoKey>/` 目录下，
- * 每遍录音存为 `<句序号>-<takeId>.wav`（掐头去尾后的 48kHz 单声道 PCM），
+ * 每句只留一份录音，存为 `<句序号>-<takeId>.wav`（掐头去尾后的 48kHz 单声道 PCM），
  * 清单持久化在 `dubbing.json`；删除整个目录即清空该视频的配音。
  */
 export default interface DubbingService {
     /**
-     * 保存一遍录音：掐头去尾静音转 WAV、记录时长并设为该句生效遍（默认最新采用）。
+     * 保存该句的录音：掐头去尾静音转 WAV、记录时长；同一句已有录音则覆盖（先删掉旧文件）。
      *
      * @returns 录音信息（含文件绝对路径，供前端回放）。
      */
@@ -35,17 +34,7 @@ export default interface DubbingService {
     list(videoKey: string): Promise<DubbingManifest | null>;
 
     /**
-     * 指定某句的生效录音遍。
-     */
-    setActiveTake(params: { videoKey: string; sentenceIndex: number; takeId: string }): Promise<DubbingSentenceRecord>;
-
-    /**
-     * 删除某句的一遍录音；删掉的是生效遍时自动切到最新剩余遍，全部删完后该句恢复原声并返回 null。
-     */
-    deleteTake(params: { videoKey: string; sentenceIndex: number; takeId: string }): Promise<DubbingSentenceRecord | null>;
-
-    /**
-     * 清除某句的全部配音。
+     * 清除某句的配音。
      */
     clearSentence(params: { videoKey: string; sentenceIndex: number }): Promise<void>;
 
@@ -55,7 +44,7 @@ export default interface DubbingService {
     clearVideo(videoKey: string): Promise<void>;
 
     /**
-     * 导出配音视频：已配音句子的音频替换为生效录音（超长自动变速对齐句长），其余保留原声。
+     * 导出配音视频：已配音句子的音频替换为该句录音（超长自动变速对齐句长），其余保留原声。
      *
      * @param segments 已配音句子的有效时间区间（前端按调轴结果计算）。
      * @returns 导出产物绝对路径。
@@ -138,15 +127,14 @@ export class DubbingServiceImpl implements DubbingService {
                 createdAt: Date.now(),
             };
             const manifest = await this.readManifest(videoKey);
-            const record = manifest.sentences[String(params.sentenceIndex)] ?? {
-                index: params.sentenceIndex,
-                takes: [],
-                activeTakeId: '',
-            };
-            record.takes.push(take);
-            // 默认接收当前这句：最新一遍即生效遍
-            record.activeTakeId = takeId;
-            manifest.sentences[String(params.sentenceIndex)] = record;
+            const previous = manifest.sentences[String(params.sentenceIndex)];
+            // 每句只留一份：先写好指向新录音的清单，成功后再删旧文件；
+            // 这样写清单失败时旧录音与旧清单都还在，不会留下指向已删文件的清单项
+            manifest.sentences[String(params.sentenceIndex)] = { index: params.sentenceIndex, take };
+            await this.writeManifest(folder, manifest);
+            if (previous) {
+                await this.fileSystemGateway.removeFileIfExists(path.join(folder, previous.take.fileName));
+            }
             await this.writeManifest(folder, manifest);
             // 转换与清单都成功后，原始 webm 只是中间产物，立即删除避免双份占用
             await this.fileSystemGateway.removeFileIfExists(rawFile);
@@ -170,50 +158,12 @@ export class DubbingServiceImpl implements DubbingService {
         return await this.readManifest(videoKey);
     }
 
-    public async setActiveTake(params: { videoKey: string; sentenceIndex: number; takeId: string }): Promise<DubbingSentenceRecord> {
-        const { folder, videoKey } = await this.resolveVideoFolder(params.videoKey);
-        const manifest = await this.readManifest(videoKey);
-        const record = manifest.sentences[String(params.sentenceIndex)];
-        if (!record || !record.takes.some((take) => take.id === params.takeId)) {
-            throw new Error(`录音不存在：句子 ${params.sentenceIndex} 的第 ${params.takeId} 遍`);
-        }
-        record.activeTakeId = params.takeId;
-        await this.writeManifest(folder, manifest);
-        return record;
-    }
-
-    public async deleteTake(params: { videoKey: string; sentenceIndex: number; takeId: string }): Promise<DubbingSentenceRecord | null> {
-        const { folder, videoKey } = await this.resolveVideoFolder(params.videoKey);
-        const manifest = await this.readManifest(videoKey);
-        const record = manifest.sentences[String(params.sentenceIndex)];
-        if (!record || !record.takes.some((take) => take.id === params.takeId)) {
-            throw new Error(`录音不存在：句子 ${params.sentenceIndex} 的第 ${params.takeId} 遍`);
-        }
-
-        const take = record.takes.find((item) => item.id === params.takeId)!;
-        await this.fileSystemGateway.removeFileIfExists(path.join(folder, take.fileName));
-
-        record.takes = record.takes.filter((item) => item.id !== params.takeId);
-        if (record.takes.length === 0) {
-            delete manifest.sentences[String(params.sentenceIndex)];
-            await this.writeManifest(folder, manifest);
-            return null;
-        }
-        if (record.activeTakeId === params.takeId) {
-            record.activeTakeId = record.takes[record.takes.length - 1].id;
-        }
-        await this.writeManifest(folder, manifest);
-        return record;
-    }
-
     public async clearSentence(params: { videoKey: string; sentenceIndex: number }): Promise<void> {
         const { folder, videoKey } = await this.resolveVideoFolder(params.videoKey);
         const manifest = await this.readManifest(videoKey);
         const record = manifest.sentences[String(params.sentenceIndex)];
         if (record) {
-            for (const take of record.takes) {
-                await this.fileSystemGateway.removeFileIfExists(path.join(folder, take.fileName));
-            }
+            await this.fileSystemGateway.removeFileIfExists(path.join(folder, record.take.fileName));
             delete manifest.sentences[String(params.sentenceIndex)];
             await this.writeManifest(folder, manifest);
         }
@@ -243,7 +193,7 @@ export class DubbingServiceImpl implements DubbingService {
     }
 
     /**
-     * 执行导出流水线：核对生效录音 → 实测各遍时长 → ffmpeg 混音导出，全程向渲染端推送进度。
+     * 执行导出流水线：核对各句录音 → ffmpeg 混音导出，全程向渲染端推送进度。
      */
     private async runExport(params: {
         videoKey: string;
@@ -259,10 +209,9 @@ export class DubbingServiceImpl implements DubbingService {
 
         const mixSegments: Array<{ startSecond: number; endSecond: number; takeFile: string; takeDurationSecond: number }> = [];
         for (const segment of params.segments) {
-            const record = manifest.sentences[String(segment.index)];
-            const take = record?.takes.find((item) => item.id === record.activeTakeId);
+            const take = manifest.sentences[String(segment.index)]?.take;
             if (!take) {
-                throw new Error(`句子 ${segment.index} 没有生效录音，请重新检查配音状态`);
+                throw new Error(`句子 ${segment.index} 没有录音，请重新检查配音状态`);
             }
             mixSegments.push({
                 startSecond: segment.startSecond,
@@ -339,9 +288,7 @@ export class DubbingServiceImpl implements DubbingService {
             }
             // 回放路径属于派生数据，读取时统一填充，不落盘
             for (const record of Object.values(parsed.sentences)) {
-                for (const take of record.takes) {
-                    take.filePath = path.join(folder, take.fileName);
-                }
+                record.take.filePath = path.join(folder, record.take.fileName);
             }
             return parsed;
         } catch (error) {

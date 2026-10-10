@@ -78,7 +78,7 @@ export default function DubbingExportButton({ className }: DubbingExportButtonPr
     };
 
     /**
-     * 组装导出片段：有生效录音的句子按调轴后的有效时间区间计算。
+     * 组装导出片段：已配音句子按调轴后的有效时间区间计算。
      */
     const buildSegments = (): Array<{ index: number; startSecond: number; endSecond: number }> => {
         const sentences = usePlayer.getState().sentences;
