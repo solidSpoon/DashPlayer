@@ -83,12 +83,24 @@ export function useDubbingRecorder(): DubbingRecorderControls {
         }
     };
 
-    /** 录音流程收尾：回到空闲并按需恢复播放。 */
-    const finishFlow = (): void => {
+    /**
+     * 录音流程收尾：回到空闲并按需恢复播放。
+     * @param backToSentenceStart 回放结束后是否先跳回当前句句首（原声对比场景），再按录音前的状态续播
+     */
+    const finishFlow = (backToSentenceStart = false): void => {
         stopReplay();
         useDubbing.getState().setIdle();
-        if (wasPlayingBeforeRecording) {
-            wasPlayingBeforeRecording = false;
+        const resumePlay = wasPlayingBeforeRecording;
+        wasPlayingBeforeRecording = false;
+        if (backToSentenceStart) {
+            const { currentSentence, srtTender } = usePlayer.getState();
+            if (currentSentence && srtTender) {
+                const { start } = srtTender.mapSeekTime(currentSentence);
+                playerActions.seekToTarget({ time: start, target: currentSentence, play: resumePlay });
+                return;
+            }
+        }
+        if (resumePlay) {
             playerActions.play();
         }
     };
@@ -126,7 +138,8 @@ export function useDubbingRecorder(): DubbingRecorderControls {
             replayAudio = new Audio(replayUrl);
             replayAudio.volume = 0.9;
             replayAudio.onended = () => {
-                finishFlow();
+                // 回放结束跳回当前句句首再续播，方便紧接着听原声对比
+                finishFlow(true);
             };
             await replayAudio.play();
         } catch (error) {
@@ -144,7 +157,9 @@ export function useDubbingRecorder(): DubbingRecorderControls {
         if (useChatPanel.getState().learningVisible) {
             return;
         }
-        // 回放中再次按下：跳过回放直接录下一遍
+        // 回放中再次按下：跳过回放直接录下一遍；连录时保留最初录音前的播放状态，
+        // 避免被回放期间的暂停覆盖导致整段连录结束后不再续播
+        const chainedFromReplay = phase === 'replaying';
         stopReplay();
         useDubbing.getState().setIdle();
 
@@ -171,7 +186,9 @@ export function useDubbingRecorder(): DubbingRecorderControls {
             return;
         }
 
-        wasPlayingBeforeRecording = usePlayer.getState().playing;
+        if (!chainedFromReplay) {
+            wasPlayingBeforeRecording = usePlayer.getState().playing;
+        }
         playerActions.pause();
 
         cancelRequested = false;
@@ -211,7 +228,8 @@ export function useDubbingRecorder(): DubbingRecorderControls {
             return;
         }
         if (phase === 'replaying') {
-            finishFlow();
+            // 跳过回放同样回到句首，便于马上再录下一遍
+            finishFlow(true);
             return;
         }
         void startRecording();

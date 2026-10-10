@@ -108,6 +108,7 @@ export default function MainSubtitle() {
 
     // 句末行为与训练开关的写入统一走 PlayerActions，此处只订阅展示用的值
     const singleRepeat = usePlayer((s) => s.singleRepeat);
+    const hoverRepeat = usePlayer((s) => s.hoverRepeat);
     const autoPause = usePlayer((s) => s.autoPause);
     const shadowing = usePlayer((s) => s.shadowing);
     const shadowingPause = usePlayer((s) => s.shadowingPause);
@@ -159,6 +160,14 @@ export default function MainSubtitle() {
             requestTranslation(sentence.fileHash, sentence.index);
         }
     }, [logger, sentence, engine, openAiMode, activeFileHash, requestTranslation]);
+
+    // 两种不会触发胶囊区 mouseleave 的情况兜底关闭悬停临时循环：当前句清空（切视频，胶囊区随早退分支卸载）、组件卸载（离开播放页）
+    useEffect(() => {
+        if (!sentence) {
+            playerActions.setHoverRepeat(false);
+        }
+    }, [sentence]);
+    useEffect(() => () => { playerActions.setHoverRepeat(false); }, []);
 
     const showEn = usePlayerUi((state) => state.showEn);
     const showCn = usePlayerUi((state) => state.showCn);
@@ -240,8 +249,13 @@ export default function MainSubtitle() {
                 {/* 底部弹性占位：比顶部占位更多 */}
                 <div className="w-full flex-[3] min-h-0 pointer-events-none" />
 
-                {/* 右下角横向悬浮胶囊控制栏：与下方译文行同层右靠，完全不占垂直空间 */}
-                <div className="absolute right-3 bottom-2 z-20 pointer-events-auto flex flex-col items-end gap-1">
+                {/* 右下角横向悬浮胶囊控制栏：与下方译文行同层右靠，完全不占垂直空间。
+                    鼠标悬停整个胶囊区（含上方多遍录音横排）期间临时切换为当前句循环，离开即还原 */}
+                <div
+                    className="absolute right-3 bottom-2 z-20 pointer-events-auto flex flex-col items-end gap-1"
+                    onMouseEnter={() => playerActions.setHoverRepeat(true)}
+                    onMouseLeave={() => playerActions.setHoverRepeat(false)}
+                >
                     {/* 当前句多遍录音横排：叠在胶囊上方一行，点击卡片切换生效遍 */}
                     <DubbingTakesRow />
                     <div className={CAPTION_CAPSULE_CLASS}>
@@ -305,8 +319,8 @@ export default function MainSubtitle() {
                                                         : 'text-stone-600 dark:text-neutral-400 hover:text-stone-900 dark:hover:text-white hover:bg-stone-300/60 dark:hover:bg-neutral-600/60'
                                                 }`}
                                             >
-                                                {/* 复合模式主图标 */}
-                                                {singleRepeat ? (
+                                                {/* 复合模式主图标（悬停临时循环同样显示单句循环图标） */}
+                                                {(singleRepeat || hoverRepeat) ? (
                                                     <Repeat1 className="w-3.5 h-3.5 text-red-600 dark:text-red-400 stroke-[2.2]" />
                                                 ) : autoPause ? (
                                                     <CirclePause className="w-3.5 h-3.5 text-sky-600 dark:text-sky-400" />
@@ -343,8 +357,8 @@ export default function MainSubtitle() {
                                         </DropdownMenuTrigger>
                                     </TooltipTrigger>
                                     <TooltipContent side="top">
-                                        {singleRepeat
-                                            ? `训练模式：单句循环${formatShortcut(repeatShortcut)}`
+                                        {(singleRepeat || hoverRepeat)
+                                            ? `训练模式：单句循环${hoverRepeat && !singleRepeat ? '（悬停临时）' : ''}${formatShortcut(repeatShortcut)}`
                                             : autoPause
                                             ? `训练模式：句末自动暂停${formatShortcut(autoPauseShortcut)}`
                                             : shadowing

@@ -131,6 +131,8 @@ interface PlayerState {
   // 模式
   autoPause: boolean;
   singleRepeat: boolean;
+  /** 悬停临时单句循环：鼠标悬停主字幕胶囊区期间生效，离开即还原，不改动用户既有的句末模式。 */
+  hoverRepeat: boolean;
   autoPlayNext: boolean;
 
   // 训练模式（组合播放行为）
@@ -188,6 +190,7 @@ interface PlayerState {
   // 模式控制
   setAutoPause: (v: boolean) => void;
   setSingleRepeat: (v: boolean) => void;
+  setHoverRepeat: (v: boolean) => void;
   setAutoPlayNext: (v: boolean) => void;
 
   // 训练模式控制
@@ -512,7 +515,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
   // 时间驱动：尾部预览 → 瞬态播放计划 → autoPause → singleRepeat → 影子跟读/跳过空隙 → 正常回写
   const onTimeUpdate = () => {
     const state = get();
-    const { playing, autoPause, singleRepeat, shadowing, sentenceLoop, currentSentence, srtTender, virtualGroup } = state;
+    const { playing, autoPause, singleRepeat, hoverRepeat, shadowing, sentenceLoop, currentSentence, srtTender, virtualGroup } = state;
     // 跳过句间空隙属于持久化的训练偏好，每轮实时读取以保证弹窗/菜单改动即时生效
     const skipGap = useTrainingModeStore.getState().skipGap;
     const { lastSeekAt, tailPreview, currentLock, transientPlan } = state.internal;
@@ -632,12 +635,13 @@ export const usePlayer = create<PlayerState>((set, get) => {
       return;
     }
 
-    // 4) SingleRepeat：组优先（保留 overdue；单句冻结，虚拟组内允许高亮随时间移动）
-    if (playing && singleRepeat) {
+    // 4) SingleRepeat（含悬停临时循环）：组优先（保留 overdue；单句冻结，虚拟组内允许高亮随时间移动）
+    //    hoverRepeat 只循环当前句本身（不套用虚拟组），离开胶囊区即还原；无当前句时不参与（避免反复 seek 0）
+    if (playing && (singleRepeat || (hoverRepeat && !!currentSentence))) {
       const { start, end } = state.getLoopRange();
       const focusInGroup = isFocusInVirtualGroup();
       if (effectiveTime > end) {
-        if (focusInGroup && virtualGroup.active && virtualGroup.sentences.length > 0) {
+        if (singleRepeat && focusInGroup && virtualGroup.active && virtualGroup.sentences.length > 0) {
           const first = virtualGroup.sentences.slice().sort((a, b) => a.index - b.index)[0];
           state.seekToTarget({ time: start, target: first });
         } else {
@@ -645,7 +649,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
         }
       }
       // 仅在焦点位于虚拟组内时：允许高亮随时间在组内流动；单句循环保持冻结
-      if (focusInGroup && virtualGroup.active && virtualGroup.sentences.length > 0) {
+      if (singleRepeat && focusInGroup && virtualGroup.active && virtualGroup.sentences.length > 0) {
         const vgSet = new Set(virtualGroup.sentences.map((s) => `${s.fileHash}-${s.index}`));
         const next = srtTender.getByTime(effectiveTime);
         const nextKey = `${next.fileHash}-${next.index}`;
@@ -700,7 +704,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
     }
 
     // 6) 正常模式：按时间回写 currentSentence（若当前未锁定）
-    if (!singleRepeat && !autoPause) {
+    if (!singleRepeat && !hoverRepeat && !autoPause) {
       if (currentLock?.active && Date.now() < currentLock.untilTs) {
         // 锁定期内，不回写，保持 UI 高亮为用户刚选中的句子
         return;
@@ -811,6 +815,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
 
     autoPause: false,
     singleRepeat: false,
+    hoverRepeat: false,
     autoPlayNext: false,
 
     shadowing: false,
@@ -1036,7 +1041,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
         return;
       }
       clearSentenceLoopMode();
-      set({ autoPause: true, singleRepeat: false, shadowing: false });
+      set({ autoPause: true, singleRepeat: false, shadowing: false, hoverRepeat: false });
     },
     /**
      * 单句循环：当前句（虚拟组为整组）无限循环。
@@ -1044,12 +1049,18 @@ export const usePlayer = create<PlayerState>((set, get) => {
      */
     setSingleRepeat: (v) => {
       if (!v) {
-        set({ singleRepeat: false });
+        set({ singleRepeat: false, hoverRepeat: false });
         return;
       }
       clearSentenceLoopMode();
-      set({ singleRepeat: true, autoPause: false, shadowing: false });
+      set({ singleRepeat: true, autoPause: false, shadowing: false, hoverRepeat: false });
     },
+    /**
+     * 悬停临时单句循环：鼠标悬停主字幕胶囊区期间临时循环当前句。
+     * 只翻转本标志，不改动用户既有的句末模式；离开胶囊区时置回 false 即完整还原。
+     * 用户在悬停期间显式切换任一句末模式时，由对应 setter 顺手清掉本标志（显式选择优先）。
+     */
+    setHoverRepeat: (v) => set({ hoverRepeat: v }),
     setAutoPlayNext: (v) => set({ autoPlayNext: v }),
 
     // 训练模式控制
@@ -1065,7 +1076,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
         return;
       }
       clearSentenceLoopMode();
-      set({ shadowing: true, singleRepeat: false, autoPause: false });
+      set({ shadowing: true, singleRepeat: false, autoPause: false, hoverRepeat: false });
     },
 
     /**
@@ -1083,7 +1094,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
       if (config.times < 1) return;
       // 切换配置时保留最初开启前的倍速作为恢复基准
       const prevRate = get().sentenceLoop?.prevRate ?? get().playbackRate;
-      set({ sentenceLoop: { times: config.times, rates: config.rates, prevRate }, singleRepeat: false, autoPause: false, shadowing: false });
+      set({ sentenceLoop: { times: config.times, rates: config.rates, prevRate }, singleRepeat: false, autoPause: false, shadowing: false, hoverRepeat: false });
       beginSentencePlan(get().sentenceLoop!, true);
     },
 
