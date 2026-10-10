@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { AudioLines, FolderOpen, Loader2, Trash2 } from 'lucide-react';
 
-import { DubbingLibraryEntry } from '@/common/contracts/dubbing';
+import { DubbingExportStatus, DubbingLibraryEntry } from '@/common/contracts/dubbing';
 import { dubbingApi } from '@/fronted/features/player/dubbing/dubbingApi';
 import { registerRendererApi } from '@/fronted/infrastructure/electron/rendererApiRegistry';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
@@ -32,20 +32,39 @@ type RowExportState =
     | { stage: 'failed'; message: string };
 
 /**
+ * 后端导出状态 → 单行界面状态。
+ *
+ * completed 时 outputPath 由后端保证给出（成功即有产物路径）。
+ */
+const statusToRowState = (status: DubbingExportStatus): RowExportState => {
+    if (status.status === 'running') {
+        return { stage: 'running', progress: status.progress };
+    }
+    if (status.status === 'completed') {
+        return { stage: 'done', outputPath: status.outputPath! };
+    }
+    return { stage: 'failed', message: status.message ?? '' };
+};
+
+/**
  * 配音导出页。
  *
  * 列出所有「视频文件仍存在且录过音」的视频，每行可单独导出（已配音句子替换为录音）或清除配音。
  * 播放器控制台的导出按钮只是进入本页的快捷方式，真正的导出动作在这里完成。
+ *
+ * 行状态唯一真相源是后端：导出是后台长任务，用户可能中途离开本页，回来时靠挂载查询
+ * 恢复状态；进行中的进度则由后端持续推送，本页发起导出的 promise 只负责完成/失败 toast。
  */
 export default function DubbingExportPage() {
     const { t } = useTranslation('pages');
 
     const [entries, setEntries] = useState<DubbingLibraryEntry[]>([]);
     const [loading, setLoading] = useState(true);
-    /** 当前正在导出的视频键；同一时间后端只允许一个导出任务。 */
-    const [exportingKey, setExportingKey] = useState<string | null>(null);
     const [rowStates, setRowStates] = useState<Record<string, RowExportState>>({});
     const [pendingClear, setPendingClear] = useState<DubbingLibraryEntry | null>(null);
+
+    // 后端同一时间只允许一个导出任务；有行在跑时禁用所有行的动作按钮
+    const exporting = Object.values(rowStates).some((state) => state.stage === 'running');
 
     const loadEntries = useCallback(async (): Promise<void> => {
         try {
@@ -62,19 +81,21 @@ export default function DubbingExportPage() {
         void loadEntries();
     }, [loadEntries]);
 
-    // 导出进度由后端推送；只更新正处于导出态的那一行，忽略无关事件
+    // 挂载时恢复最近一次导出任务的状态：任务可能在离开本页期间完成或失败
+    useEffect(() => {
+        dubbingApi.exportStatus().then((status) => {
+            if (status) {
+                setRowStates((prev) => ({ ...prev, [status.videoKey]: statusToRowState(status) }));
+            }
+        }, (error) => {
+            logger.warn('查询配音导出状态失败', { error });
+        });
+    }, []);
+
+    // 行状态只来自后端推送；completed/failed 与本页 promise 的结果同源，不会分叉
     useEffect(() => {
         return registerRendererApi('dubbing/export-status-update', (params) => {
-            if (params.status !== 'running') {
-                return;
-            }
-            setRowStates((prev) => {
-                const current = prev[params.videoKey];
-                if (current?.stage !== 'running') {
-                    return prev;
-                }
-                return { ...prev, [params.videoKey]: { stage: 'running', progress: params.progress } };
-            });
+            setRowStates((prev) => ({ ...prev, [params.videoKey]: statusToRowState(params) }));
         });
     }, []);
 
@@ -84,23 +105,12 @@ export default function DubbingExportPage() {
         if (!outputFolder) {
             return;
         }
-        setExportingKey(entry.videoKey);
-        setRowStates((prev) => ({ ...prev, [entry.videoKey]: { stage: 'running', progress: 0 } }));
         try {
-            const outputPath = await dubbingApi.export({ videoKey: entry.videoKey, outputFolder });
-            setRowStates((prev) => ({ ...prev, [entry.videoKey]: { stage: 'done', outputPath } }));
+            await dubbingApi.export({ videoKey: entry.videoKey, outputFolder });
             toast.success(t('dubbingExport.exported'));
         } catch (error) {
             logger.error('配音导出失败', { error, videoKey: entry.videoKey });
-            setRowStates((prev) => ({
-                ...prev,
-                [entry.videoKey]: {
-                    stage: 'failed',
-                    message: error instanceof Error ? error.message : String(error),
-                },
-            }));
-        } finally {
-            setExportingKey(null);
+            toast.error(error instanceof Error ? error.message : String(error));
         }
     };
 
@@ -194,7 +204,7 @@ export default function DubbingExportPage() {
                                         size="sm"
                                         variant="outline"
                                         className="h-8 rounded-lg"
-                                        disabled={exportingKey !== null}
+                                        disabled={exporting}
                                         onClick={() => void handleExport(entry)}
                                     >
                                         {t('dubbingExport.export')}
@@ -203,7 +213,7 @@ export default function DubbingExportPage() {
                                         size="sm"
                                         variant="ghost"
                                         className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
-                                        disabled={exportingKey !== null}
+                                        disabled={exporting}
                                         onClick={() => setPendingClear(entry)}
                                         aria-label={t('dubbingExport.clear')}
                                     >

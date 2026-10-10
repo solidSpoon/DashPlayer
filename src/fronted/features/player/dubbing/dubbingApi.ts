@@ -1,5 +1,5 @@
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
-import { DubbingLibraryEntry, DubbingManifest, DubbingTakeVO } from '@/common/contracts/dubbing';
+import { DubbingExportStatus, DubbingLibraryEntry, DubbingManifest, DubbingTakeVO } from '@/common/contracts/dubbing';
 
 /**
  * 配音功能的 backendClient 封装。
@@ -28,6 +28,10 @@ export const dubbingApi = {
 
     export: (params: { videoKey: string; outputFolder: string }): Promise<string> =>
         backendClient.call('dubbing/export', params),
+
+    /** 查询最近一次导出任务的状态（含进行中）；导出页重进时据此恢复行状态。 */
+    exportStatus: (): Promise<DubbingExportStatus | null> =>
+        backendClient.call('dubbing/export-status'),
 
     selectFolder: (options?: { defaultPath?: string; createDirectory?: boolean }): Promise<string[]> =>
         backendClient.call('system/select-folder', options ?? {}),

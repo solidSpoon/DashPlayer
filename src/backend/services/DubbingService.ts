@@ -4,6 +4,7 @@ import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import {
+    DubbingExportStatus,
     DubbingLibraryEntry,
     DubbingManifest,
     DubbingTake,
@@ -72,6 +73,14 @@ export default interface DubbingService {
         videoKey: string;
         outputFolder: string;
     }): Promise<string>;
+
+    /**
+     * 查询最近一次导出任务的状态（含进行中的任务）。
+     *
+     * 导出是后台长任务：渲染端可能中途离开导出页丢失推送，重进页面时靠本方法恢复行状态。
+     * 应用重启后没有留存（导出进程随应用终止），返回 null。
+     */
+    getExportStatus(): Promise<DubbingExportStatus | null>;
 }
 
 /**
@@ -109,6 +118,9 @@ export class DubbingServiceImpl implements DubbingService {
     /** 是否已有导出任务在执行；同一时间只允许一个导出。 */
     private exporting = false;
 
+    /** 最近一次导出任务的状态；导出页重进时据此恢复行状态（不跨应用重启留存）。 */
+    private lastExportStatus: DubbingExportStatus | null = null;
+
     public async saveTake(params: {
         videoKey: string;
         sentenceIndex: number;
@@ -122,9 +134,10 @@ export class DubbingServiceImpl implements DubbingService {
         const wavFile = path.join(folder, `${params.sentenceIndex}-${takeId}.wav`);
         const job = `dubbing-take:${videoKey}:${params.sentenceIndex}`;
 
-        await this.fileSystemGateway.ensureDirectory(folder);
-        await this.fileSystemGateway.writeBinaryFile(rawFile, params.audio);
+        let committed = false;
         try {
+            await this.fileSystemGateway.ensureDirectory(folder);
+            await this.fileSystemGateway.writeBinaryFile(rawFile, params.audio);
             try {
                 await this.ffmpegService.processRecording({ inputFile: rawFile, outputFile: wavFile, job });
             } catch (error) {
@@ -140,7 +153,7 @@ export class DubbingServiceImpl implements DubbingService {
             try {
                 durationSec = await this.ffmpegService.duration(wavFile);
             } catch {
-                throw new Error('录音内容为空，没有检测到声音');
+                throw new Error(`录音已生成但无法探测时长：${path.basename(wavFile)}`);
             }
             if (durationSec < MIN_TAKE_DURATION_SECOND) {
                 throw new Error('录音内容为空，没有检测到声音');
@@ -157,20 +170,24 @@ export class DubbingServiceImpl implements DubbingService {
             manifest.videoPath = params.videoPath;
             manifest.subtitlePath = params.subtitlePath;
             const previous = manifest.sentences[String(params.sentenceIndex)];
-            // 每句只留一份：先写好指向新录音的清单，成功后再删旧文件；
-            // 这样写清单失败时旧录音与旧清单都还在，不会留下指向已删文件的清单项
             manifest.sentences[String(params.sentenceIndex)] = { index: params.sentenceIndex, take };
+            // 写清单是唯一提交点：此前旧录音与旧清单都未被改动，任何失败都回到录音前状态
             await this.writeManifest(folder, manifest);
-            if (previous) {
-                await this.fileSystemGateway.removeFileIfExists(path.join(folder, previous.take.fileName));
-            }
-            await this.writeManifest(folder, manifest);
-            // 转换与清单都成功后，原始 webm 只是中间产物，立即删除避免双份占用
-            await this.fileSystemGateway.removeFileIfExists(rawFile);
+            committed = true;
+            // 提交后只剩清理（旧录音与原始 webm）：失败只会留下孤儿文件，清单一致性不受影响
+            await this.cleanupCommittedFiles(job, folder, [
+                previous?.take.fileName,
+                path.basename(rawFile),
+            ]);
 
             this.logger.info('配音录音已保存', { job, sentenceIndex: params.sentenceIndex, durationSec: take.durationSec });
             return { ...take, filePath: wavFile };
         } catch (error) {
+            if (committed) {
+                // 清单已指向新录音，任何清理类异常都不能再动已提交的产物
+                this.logger.error('配音录音提交后发生异常', { job, error });
+                throw error;
+            }
             // 失败时清掉半成品，避免残留无效文件混进后续导出
             await this.fileSystemGateway.removeFileIfExists(rawFile);
             await this.fileSystemGateway.removeFileIfExists(wavFile);
@@ -258,9 +275,22 @@ export class DubbingServiceImpl implements DubbingService {
         const job = `dubbing-export:${params.videoKey}`;
         try {
             return await this.runExport(params, job);
+        } catch (error) {
+            const message = error instanceof Error ? error.message : String(error);
+            this.logger.error('配音导出失败', { job, error });
+            // 任何阶段的失败（含启动前的校验失败）都推送 failed，渲染端不依赖本地 promise 也能还原行状态
+            this.pushExportStatus({ videoKey: params.videoKey, status: 'failed', progress: 0, message });
+            throw error;
         } finally {
             this.exporting = false;
         }
+    }
+
+    /**
+     * 查询最近一次导出任务的状态。
+     */
+    public async getExportStatus(): Promise<DubbingExportStatus | null> {
+        return this.lastExportStatus;
     }
 
     /**
@@ -308,26 +338,38 @@ export class DubbingServiceImpl implements DubbingService {
         this.logger.info('配音导出开始', { job, videoPath, segmentCount: mixSegments.length, outputFile });
         this.pushExportStatus({ videoKey, status: 'running', progress: 0 });
 
-        try {
-            await this.ffmpegService.mixDubbedAudio({
-                videoFile: videoPath,
-                outputFile,
-                segments: mixSegments,
-                job,
-                onProgress: (progress) => {
-                    this.pushExportStatus({ videoKey, status: 'running', progress });
-                },
-            });
-        } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            this.logger.error('配音导出失败', { job, error });
-            this.pushExportStatus({ videoKey, status: 'failed', progress: 0, message });
-            throw error;
-        }
+        await this.ffmpegService.mixDubbedAudio({
+            videoFile: videoPath,
+            outputFile,
+            segments: mixSegments,
+            job,
+            onProgress: (progress) => {
+                this.pushExportStatus({ videoKey, status: 'running', progress });
+            },
+        });
 
         this.logger.info('配音导出完成', { job, outputFile });
         this.pushExportStatus({ videoKey, status: 'completed', progress: 100, outputPath: outputFile });
         return outputFile;
+    }
+
+    /**
+     * 清单提交成功后清理不再需要的文件（被覆盖的旧录音、转换用的原始 webm）。
+     *
+     * 清理失败只产生孤儿文件，不破坏「清单指向的文件必须存在」这一不变量，
+     * 因此失败仅记告警日志暴露，不向上抛错、更不回滚清单。
+     */
+    private async cleanupCommittedFiles(job: string, folder: string, fileNames: Array<string | undefined>): Promise<void> {
+        for (const fileName of fileNames) {
+            if (!fileName) {
+                continue;
+            }
+            try {
+                await this.fileSystemGateway.removeFileIfExists(path.join(folder, fileName));
+            } catch (error) {
+                this.logger.warn('配音录音清理残留文件失败', { job, fileName, error });
+            }
+        }
     }
 
     /**
@@ -390,9 +432,10 @@ export class DubbingServiceImpl implements DubbingService {
     }
 
     /**
-     * 推送导出进度到渲染端。
+     * 推送导出进度到渲染端，并留存为最近一次导出状态供导出页重进时查询。
      */
-    private pushExportStatus(status: { videoKey: string; status: 'running' | 'completed' | 'failed'; progress: number; message?: string; outputPath?: string }): void {
+    private pushExportStatus(status: DubbingExportStatus): void {
+        this.lastExportStatus = status;
         this.rendererGateway.fireAndForget('dubbing/export-status-update', status);
     }
 }

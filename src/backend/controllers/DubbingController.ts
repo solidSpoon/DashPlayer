@@ -19,5 +19,6 @@ export default class DubbingController implements Controller {
         registerRoute('dubbing/clear-sentence', (p) => this.dubbingService.clearSentence(p));
         registerRoute('dubbing/clear-video', (p) => this.dubbingService.clearVideo(p.videoKey));
         registerRoute('dubbing/export', (p) => this.dubbingService.exportDubbedVideo(p));
+        registerRoute('dubbing/export-status', () => this.dubbingService.getExportStatus());
     }
 }

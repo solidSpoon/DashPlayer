@@ -62,7 +62,7 @@ import { ModelInstallationStatusVO } from '@/common/types/vo/model-installation-
 import { VideoInfo } from '@/common/types/video-info';
 import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
 import { TranscriptTask } from '@/common/contracts/transcript/transcript-task';
-import { DubbingLibraryEntry, DubbingManifest, DubbingTakeVO } from '@/common/contracts/dubbing';
+import { DubbingExportStatus, DubbingLibraryEntry, DubbingManifest, DubbingTakeVO } from '@/common/contracts/dubbing';
 
 /** 跨进程请求与返回值契约。 */
 interface ApiDefinition {
@@ -476,6 +476,7 @@ interface DubbingDef {
         },
         return: string
     };
+    'dubbing/export-status': { params: void, return: DubbingExportStatus | null };
 }
 
 // 使用交叉类型合并 ApiDefinitions 和 ExtraApiDefinition
