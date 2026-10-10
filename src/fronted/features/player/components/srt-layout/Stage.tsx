@@ -19,12 +19,10 @@ type PlaybackStageProps = {
 
 export default function PlaybackStage({ className, onReady, onEnded, onProvideVideoElement }: PlaybackStageProps): ReactElement {
     const {
-        playing,
         src,
         hasSource
     } = usePlayerState(
         (state) => ({
-            playing: state.playing,
             src: state.src,
             hasSource: !!state.src
         }),
@@ -75,9 +73,6 @@ export default function PlaybackStage({ className, onReady, onEnded, onProvideVi
                     <PlaybackControlBar
                         onTimeChange={(time) => playerActions.seekTo({ time })}
                         className="absolute bottom-2 left-0 z-20"
-                        onPause={() => playerActions.pause()}
-                        onPlay={() => playerActions.play()}
-                        playing={playing}
                     />
                 )}
                 {fullScreen && <FullscreenSubtitleOverlay />}

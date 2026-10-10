@@ -3,6 +3,7 @@ import VolumeSlider from '../VolumeSlider';
 import { usePlayer } from '@/fronted/features/player/playerStore';
 import {cn} from "@/fronted/lib/utils";
 import SpeedSlider from '../SpeedSlider';
+import { CONTROL_POPOVER_OFFSET_STACKED_BAR } from '@/fronted/features/player/components/ControlPopover';
 import { Slider } from '@/fronted/components/ui/slider';
 import { Card } from '@/fronted/components/ui/card';
 import {Pause, Play} from "lucide-react";
@@ -106,6 +107,7 @@ const PodcastControlBar = ({
                     <div className="flex justify-center items-center gap-4 text-zinc-600 dark:text-zinc-400">
                         <SpeedSlider
                             speed={playbackRate}
+                            popoverOffset={CONTROL_POPOVER_OFFSET_STACKED_BAR}
                             onSpeedChange={setPlaybackRate}
                         />
                         <VolumeSlider

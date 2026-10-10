@@ -9,7 +9,13 @@ export interface VolumeSliderProps {
     onVolumeChange: (volume: number) => void;
     muted: boolean;
     onMutedChange: (muted: boolean) => void;
+    /** 整条控件（图标按钮 + 滑杆）的外层样式 */
     className?: string;
+    /**
+     * 静音按钮在宿主控制条上的外观，语义同 SpeedSliderProps.triggerClassName：
+     * 默认跟随应用主题（亮色宿主），恒为深色的视频控制条要传 DARK_BAR_BUTTON_HOVER。
+     */
+    triggerClassName?: string;
     sliderTrackClassName?: string;
     sliderRangeClassName?: string;
     sliderThumbClassName?: string;
@@ -21,6 +27,7 @@ const VolumeSlider = ({
     muted,
     onMutedChange,
     className,
+    triggerClassName,
     sliderTrackClassName,
     sliderRangeClassName,
     sliderThumbClassName
@@ -43,7 +50,11 @@ const VolumeSlider = ({
                 size="sm"
                 variant="ghost"
                 onClick={() => onMutedChange(!muted)}
-                className="h-8 px-2 rounded-lg text-inherit hover:bg-black/5 dark:hover:bg-white/15 transition-colors gap-1.5"
+                className={cn(
+                    // 默认 hover 跟随应用主题（亮色宿主）；深色控制条由 triggerClassName 覆盖
+                    'h-8 px-2 rounded-lg text-inherit hover:bg-black/5 dark:hover:bg-white/15 transition-colors gap-1.5',
+                    triggerClassName
+                )}
                 title={muted ? '取消静音' : '静音'}
             >
                 {getVolumeIcon()}
