@@ -10,6 +10,7 @@ import useSWR from 'swr';
 import { apiPath } from '@/fronted/lib/swr-util';
 import ProjectListItem from '@/fronted/features/file-browser/components/project-list-item';
 import {
+    AudioLines,
     BookOpen,
     Captions,
     ChevronsDown,
@@ -88,6 +89,7 @@ const HomePage = () => {
         { title: t('sentenceSplitter'), path: '/split', icon: Scissors },
         { title: t('playbackRepair'), path: '/repair', icon: Rotate3D },
         { title: t('vocabularyStudio'), path: '/vocabulary', icon: BookOpen },
+        { title: t('dubbingExport'), path: '/dubbing', icon: AudioLines },
         { title: t('settingsCenter'), path: '/settings', icon: Settings },
     ];
 
