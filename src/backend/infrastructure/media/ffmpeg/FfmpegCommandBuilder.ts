@@ -342,14 +342,17 @@ export class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
     /**
      * 构建配音录音处理命令参数。
      *
-     * 掐头去尾策略：前后向各跑一次 silenceremove，首尾各保留至多 0.1s 静音、
-     * 阈值 -40dB；全部内容都低于阈值时产物为空 WAV，由上层按时长校验显式报错。
+     * 掐头去尾策略：前后向各跑一次 silenceremove（RMS 判定 + 0.02s 窗口），首尾各保留
+     * 至多 0.1s 缓冲。阈值 -35dB 的依据：实测用户麦克风底噪/呼吸声约 -37~-55dB（识别为
+     * 静音），语音主体 -15~-30dB（安全保留）；此前 -40dB 时底噪恰好卡在阈值附近、且
+     * 停止录音瞬间的 -37dB 尖峰会挡住尾部修剪。全部内容都低于阈值时产物为空 WAV，
+     * 由上层按时长校验显式报错。
      */
     public buildProcessRecording(args: ProcessRecordingArgs): string[] {
         const trimSilence = [
-            'silenceremove=start_periods=1:start_threshold=-40dB:start_silence=0.1',
+            'silenceremove=start_periods=1:start_threshold=-35dB:start_silence=0.1',
             'areverse',
-            'silenceremove=start_periods=1:start_threshold=-40dB:start_silence=0.1',
+            'silenceremove=start_periods=1:start_threshold=-35dB:start_silence=0.1',
             'areverse',
         ].join(',');
         return [
