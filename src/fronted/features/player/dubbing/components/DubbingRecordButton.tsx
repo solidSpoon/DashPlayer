@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import { Loader2, Mic, Square } from 'lucide-react';
 
 import useFile from '@/fronted/features/file-browser/fileStore';
+import useSetting from '@/fronted/features/settings/settingsStore';
 import { cn } from '@/fronted/lib/utils';
 import {
     CAPTION_CARD_BUTTON_CLASS,
@@ -24,18 +25,20 @@ export default function DubbingRecordButton() {
 
     const phase = useDubbing((s) => s.phase);
     const srtHash = useFile((s) => s.srtHash);
+    const recordShortcut = useSetting((s) => s.setting('shortcut.dubbingRecord'));
 
     if (!srtHash) {
         return null;
     }
 
+    const shortcutSuffix = recordShortcut ? ` (${recordShortcut.split(',')[0].toUpperCase()})` : '';
     const tooltip = phase === 'recording'
         ? t('dubbing.stop')
         : phase === 'saving'
             ? t('dubbing.saving')
             : phase === 'replaying'
                 ? t('dubbing.skipReplay')
-                : t('dubbing.record');
+                : `${t('dubbing.record')}${shortcutSuffix}`;
 
     return (
         <Tooltip>

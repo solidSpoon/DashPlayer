@@ -44,6 +44,8 @@ export interface ShortcutSettingDetailVO {
     addClip: string;
     /** 打开控制面板快捷键。 */
     openControlPanel: string;
+    /** 配音录音快捷键（点按开始/再按停止，长按松手即停）。 */
+    dubbingRecord: string;
 }
 
 /**

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { AudioLines } from 'lucide-react';
 
 import TooltippedButton from '@/fronted/components/shared/common/TooltippedButton';
+import useSetting from '@/fronted/features/settings/settingsStore';
 
 interface DubbingExportButtonProps {
     className?: string;
@@ -17,12 +18,17 @@ interface DubbingExportButtonProps {
 export default function DubbingExportButton({ className }: DubbingExportButtonProps) {
     const { t } = useTranslation('player');
     const navigate = useNavigate();
+    const recordShortcut = useSetting((s) => s.setting('shortcut.dubbingRecord'));
+
+    const recordKeyHint = recordShortcut
+        ? t('dubbing.export.recordKey', { key: recordShortcut.split(',')[0].toUpperCase() })
+        : t('dubbing.export.recordNoKey');
 
     const tooltipMd = codeBlock`
     #### ${t('dubbing.export.tooltipTitle')}
     _${t('dubbing.export.tooltipSubtitle')}_
 
-    1. ${t('dubbing.export.workflow1')}
+    1. ${t('dubbing.export.workflow1', { action: recordKeyHint })}
     2. ${t('dubbing.export.workflow2')}
     `;
 

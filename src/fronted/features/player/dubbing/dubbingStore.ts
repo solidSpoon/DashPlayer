@@ -1,7 +1,6 @@
 import { create } from 'zustand';
 import {
     DubbingManifest,
-    DubbingTakeVO,
 } from '@/common/contracts/dubbing';
 import useFile from '@/fronted/features/file-browser/fileStore';
 import { dubbingApi } from './dubbingApi';
@@ -35,8 +34,6 @@ interface DubbingState {
     beginReplay: (url: string) => void;
     /** 录音流程结束回到空闲。 */
     setIdle: () => void;
-    /** 新录音保存成功后写入清单（每句只留一份，覆盖旧录音）。 */
-    setSentenceTake: (sentenceIndex: number, take: DubbingTakeVO) => void;
     /** 清除某句的配音（本地清单同步移除）。 */
     clearSentence: (videoKey: string, sentenceIndex: number) => Promise<void>;
 }
@@ -74,19 +71,6 @@ export const useDubbing = create<DubbingState>((set, get) => ({
 
     setIdle: () => {
         set({ phase: 'idle', targetIndex: null, recordingStartTs: null, replayUrl: null });
-    },
-
-    setSentenceTake: (sentenceIndex: number, take: DubbingTakeVO) => {
-        // 录音已由后端落盘；即便清单尚未加载完（manifest 为 null）也直接建一份，
-        // 保证刚录好的这一遍立刻出现在界面上，不被静默丢弃
-        const manifest = get().manifest ?? { videoKey: useFile.getState().srtHash ?? '', sentences: {} };
-        const key = String(sentenceIndex);
-        set({
-            manifest: {
-                ...manifest,
-                sentences: { ...manifest.sentences, [key]: { index: sentenceIndex, take } },
-            },
-        });
     },
 
     clearSentence: async (videoKey: string, sentenceIndex: number) => {
