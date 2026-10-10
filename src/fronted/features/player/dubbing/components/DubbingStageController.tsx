@@ -12,8 +12,9 @@ const logger = getRendererLogger('DubbingController');
  *
  * 状态展示集中在主字幕区胶囊控制栏（DubbingRecordButton / DubbingTakeChip），
  * 此组件只负责副作用，随播放舞台常驻挂载（含全屏）。
+ * 命名带 Stage 以区别于后端的 IPC 控制器 DubbingController。
  */
-export default function DubbingController() {
+export default function DubbingStageController() {
     useDubbingRecorder();
     const srtHash = useFile((s) => s.srtHash);
 
