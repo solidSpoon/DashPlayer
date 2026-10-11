@@ -2,6 +2,16 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.13.1](https://github.com/solidSpoon/DashPlayer/compare/v6.13.0...v6.13.1) (2026-10-11)
+
+
+### Bug Fixes
+
+* 配音交互文案对齐长按开录、短按试听的新口径 ([165b9b5](https://github.com/solidSpoon/DashPlayer/commit/165b9b51bbcee2955f9c873178141a0e8a8309a7))
+* 配音按钮提示统一为"长按录音，短按试听"，不再按有无录音分支 ([507631f](https://github.com/solidSpoon/DashPlayer/commit/507631fb1a636a35df02f3a4552f8f3df01de31a))
+* 配音空录音不再报错、交互文案对齐长按口径 ([3a7c78b](https://github.com/solidSpoon/DashPlayer/commit/3a7c78b58e07c090fe8e540226cf541e5f434150))
+* 配音空录音返回 null 走中性提示，不再以错误弹窗吓用户 ([07892dd](https://github.com/solidSpoon/DashPlayer/commit/07892dd1e3a4b5e18e31aa5bc0d9b9c0577a1044))
+
 ## [6.13.0](https://github.com/solidSpoon/DashPlayer/compare/v6.12.6...v6.13.0) (2026-10-11)
 
 
