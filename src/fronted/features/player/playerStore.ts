@@ -159,6 +159,12 @@ interface PlayerState {
   // 源与字幕
   setSource: (src: string | null) => void;
   loadSubtitles: (sentences: Sentence[], tender?: SrtTender<Sentence>) => void;
+  /**
+   * 增量字幕合并：转录进行中每次推送全集时使用。
+   * 只刷新句子列表与索引；保留瞬态播放计划、虚拟组、倍速与影子跟读状态。
+   * @param sentences 到目前为止的全部句子（同一会话内单调追加）
+   */
+  mergeSubtitles: (sentences: Sentence[]) => void;
   clearSubtitles: () => void;
 
   // 播放控制
@@ -299,6 +305,22 @@ export const usePlayer = create<PlayerState>((set, get) => {
       const isCurrent = prev.currentSentence && sentenceKey(prev.currentSentence) === keyU;
       return { sentences, currentSentence: isCurrent ? updated : prev.currentSentence };
     });
+  };
+
+  /**
+   * 按播放时间挑选应高亮的句子。
+   * @returns 该时间所在的句子；无有效进度（含 0/NaN）或查找失败时退回第一句；无句子时返回 null
+   */
+  const pickSentenceAtTime = (srt: SrtTender<Sentence>, list: Sentence[], time: number): Sentence | null => {
+    if (list.length === 0) return null;
+    if (time > 0) {
+      try {
+        return srt.getByTime(time) ?? list[0];
+      } catch {
+        return list[0];
+      }
+    }
+    return list[0];
   };
 
   // 多句范围
@@ -888,21 +910,9 @@ export const usePlayer = create<PlayerState>((set, get) => {
       shadowedSentenceKey = null;
       const srt = tender ?? new SrtTenderImpl(sentences);
       const indexing = buildIndexingCache(sentences);
-      const exactPlayTime = get().internal.exactPlayTime;
 
       // 如果当前已有播放进度且 srt 能找到对应句，保留当前播放位置对应的句子；否则默认使用第一句
-      let targetCurrentSentence: Sentence | null = null;
-      if (sentences.length > 0) {
-        if (exactPlayTime > 0) {
-          try {
-            targetCurrentSentence = srt.getByTime(exactPlayTime) ?? sentences[0];
-          } catch {
-            targetCurrentSentence = sentences[0];
-          }
-        } else {
-          targetCurrentSentence = sentences[0];
-        }
-      }
+      const targetCurrentSentence = pickSentenceAtTime(srt, sentences, get().internal.exactPlayTime);
 
       set((prev) => ({
         srtTender: srt,
@@ -912,6 +922,42 @@ export const usePlayer = create<PlayerState>((set, get) => {
         internal: {
           ...prev.internal,
           indexing // 构建索引
+        }
+      }));
+    },
+
+    /**
+     * 转录进行中的增量字幕合并入口：只刷新句子列表与位置索引，保留全部播放期状态。
+     *
+     * 与 loadSubtitles 的区别是语义而非性能：loadSubtitles 代表"换字幕/换视频，一切重来"，
+     * 会清空瞬态播放计划、虚拟组与影子跟读留白记录。转录期间每完成一个音频块就会推送一次，
+     * 若走那条路径，逐句循环的遍数、每遍倍速与循环进度会被反复重置，播放位置也会被拉回句首。
+     * 因此这里只更新句子列表与索引，不触碰计划/虚拟组/倍速等播放期状态。
+     *
+     * @param sentences 到目前为止的全部句子；同一转录会话内只做追加，长度单调不减
+     */
+    mergeSubtitles: (sentences) => {
+      if (sentences.length === 0) return;
+      const prev = get();
+      // 换了转录会话：句子身份与编号体系都变了，旧句不可复用，按重新加载处理
+      if (prev.sentences.length > 0 && prev.sentences[0].fileHash !== sentences[0].fileHash) {
+        get().loadSubtitles(sentences);
+        return;
+      }
+      // 同一会话内后端只追加已完成块，长度不增说明本次推送没带来新句子，无需重建
+      if (sentences.length <= prev.sentences.length) return;
+
+      const srt = new SrtTenderImpl(sentences);
+      const indexing = buildIndexingCache(sentences);
+      // 已有高亮句保持不变；尚未定位过高亮时才按播放时间补一次
+      const currentSentence = prev.currentSentence ?? pickSentenceAtTime(srt, sentences, prev.internal.exactPlayTime);
+      set((state) => ({
+        srtTender: srt,
+        sentences,
+        currentSentence,
+        internal: {
+          ...state.internal,
+          indexing
         }
       }));
     },
