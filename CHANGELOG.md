@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.13.2](https://github.com/solidSpoon/DashPlayer/compare/v6.13.1...v6.13.2) (2026-10-11)
+
+
+### Bug Fixes
+
+* 增量字幕改走合并入口，不再打断逐句循环等播放期状态 ([3a5f1cc](https://github.com/solidSpoon/DashPlayer/commit/3a5f1cca781867299a5ac2c64e1190bf8bf38bcf))
+* 增量字幕改走合并入口，不再打断逐句循环等播放期状态 ([e41caf8](https://github.com/solidSpoon/DashPlayer/commit/e41caf85198a52fd61a4eeb25d91e177eefc5999))
+
 ## [6.13.1](https://github.com/solidSpoon/DashPlayer/compare/v6.13.0...v6.13.1) (2026-10-11)
 
 
