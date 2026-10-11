@@ -12,6 +12,10 @@ import MakerDMG from '@electron-forge/maker-dmg';
 import packageJson from './package.json';
 import path from 'node:path';
 import fs from 'node:fs/promises';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+
+const execFileAsync = promisify(execFile);
 
 /**
  * 判断路径是否存在（fs/promises 没有 exists）。
@@ -149,6 +153,33 @@ const assertOnnxruntimeVcRuntimePacked = async (packageResult: { platform: strin
             }
         }
         console.log(`[onnxruntime-crt] 产物校验通过：${outputPath}`);
+    }
+};
+
+/**
+ * 把 mac 打包产物就地重签为有效的 ad-hoc 签名。
+ *
+ * 背景：未配置 osxSign 时，electron-packager 的产物保留 Electron 预编译二进制的
+ * ad-hoc 签名（identifier=com.github.Electron），而打包阶段对 Info.plist 的改写
+ * （应用名、extendInfo 用途声明）让这份签名失效（codesign --verify 报
+ * invalid Info.plist）。macOS 对签名无效的应用直接拒绝麦克风等 TCC 授权：
+ * 不弹授权框、系统设置里不出现条目、也不留拒绝记录，授权状态一律 denied。
+ * ad-hoc 重签后系统才会正常弹授权框；identifier 会自动取 Info.plist 的 bundle id。
+ *
+ * @param packageResult postPackage 提供的打包结果（平台与产物目录；mac 的 .app 在目录内）。
+ */
+const adhocResignMacApp = async (packageResult: { platform: string; outputPaths: string[] }): Promise<void> => {
+    if (packageResult.platform !== 'darwin') return;
+    for (const outputPath of packageResult.outputPaths) {
+        const appBundles = (await fs.readdir(outputPath)).filter((entry) => entry.endsWith('.app'));
+        if (appBundles.length === 0) {
+            throw new Error(`mac 产物目录里没有 .app：${outputPath}`);
+        }
+        for (const bundle of appBundles) {
+            const appPath = path.join(outputPath, bundle);
+            console.log(`[mac-sign] ad-hoc 重签 ${appPath}`);
+            await execFileAsync('codesign', ['--force', '--deep', '--sign', '-', appPath]);
+        }
     }
 };
 
@@ -377,9 +408,11 @@ const config: ForgeConfig = {
             await pruneForeignNativeVariants(buildPath, platform, arch);
             await bundleVcRuntimeForOnnxruntime(buildPath, platform, arch);
         },
-        // asar 打包后校验随包运行库确实进了 app.asar.unpacked（unpack 规则/白名单回归时当场失败）
+        // asar 打包后校验随包运行库确实进了 app.asar.unpacked（unpack 规则/白名单回归时当场失败），
+        // 并把 mac 产物重签为有效 ad-hoc 签名（否则 TCC 麦克风授权静默失败，见函数注释）
         postPackage: async (_forgeConfig, packageResult) => {
             await assertOnnxruntimeVcRuntimePacked(packageResult);
+            await adhocResignMacApp(packageResult);
         },
         postMake: async (_forgeConfig, makeResults) => {
             const version = packageJson.version;
