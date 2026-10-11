@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.13.3](https://github.com/solidSpoon/DashPlayer/compare/v6.13.2...v6.13.3) (2026-10-11)
+
+
+### Bug Fixes
+
+* 转录完成先撤会话再上报 DONE，避免前端仍按增量会话重建字幕 ([14fbabf](https://github.com/solidSpoon/DashPlayer/commit/14fbabf1b720848ac00fbbe05b24a6a97a174054))
+* 转录完成后强制重建字幕上下文，修掉配音入口不刷新 ([a6ad4cc](https://github.com/solidSpoon/DashPlayer/commit/a6ad4ccf7531b498faea10b8d9d1c25f5da721ff))
+* 转录完成后强制重建字幕上下文，修掉配音入口不刷新 ([47a0f81](https://github.com/solidSpoon/DashPlayer/commit/47a0f818dc92ce6f1f8e604fa19c4a3b818a29af))
+
 ## [6.13.2](https://github.com/solidSpoon/DashPlayer/compare/v6.13.1...v6.13.2) (2026-10-11)
 
 
