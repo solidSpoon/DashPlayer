@@ -141,7 +141,7 @@ export class DubbingServiceImpl implements DubbingService {
             try {
                 await this.ffmpegService.processRecording({ inputFile: rawFile, outputFile: wavFile, job });
             } catch (error) {
-                // 全静音录音经 silenceremove 后没有可写样本，ffmpeg 以非零退出且不产出文件；
+                // 全静音录音经 silenceremove 后没有可写样本的形态之一：ffmpeg 以非零退出且不产出文件；
                 // 这类失败翻译成业务语义，其余原样透出
                 if (!(await this.fileSystemGateway.fileExists(wavFile))) {
                     throw new Error('录音内容为空，没有检测到声音');
@@ -152,8 +152,13 @@ export class DubbingServiceImpl implements DubbingService {
             let durationSec: number;
             try {
                 durationSec = await this.ffmpegService.duration(wavFile);
-            } catch {
-                throw new Error(`录音已生成但无法探测时长：${path.basename(wavFile)}`);
+            } catch (error) {
+                // 全静音录音的另一种形态：ffmpeg 正常退出，但整段被静音裁剪剪空，
+                // 只写出零样本的空壳 wav（仅文件头），ffprobe 对它报不出时长。
+                // 与上面「非零退出不产出文件」同义，统一翻译成空录音业务语义；
+                // 底层错误单独记日志，避免真实探测故障被业务文案掩盖。
+                this.logger.warn('配音录音时长探测失败，按空录音处理', { job, wavFile, error });
+                throw new Error('录音内容为空，没有检测到声音');
             }
             if (durationSec < MIN_TAKE_DURATION_SECOND) {
                 throw new Error('录音内容为空，没有检测到声音');
