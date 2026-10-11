@@ -542,6 +542,9 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(srtFileName);
         await this.fileSystemGateway.writeTextFile(srtFileName, finalSrt);
 
+        // 先撤会话再宣布完成：前端收到 DONE 会按真实字幕重建上下文，而重建的第一步就是查
+        // 这个会话快照来决定走增量还是走整份解析；宣布时会话若还活着，前端会继续认增量字幕
+        this.sessions.delete(filePath);
         await this.sendProgress(0, filePath, TranscriptTaskState.DONE, 100, { srtPath: srtFileName });
         this.logger.info('transcription done', {
             job,
@@ -549,7 +552,6 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             chunkCount: ranges.length,
             srtPath: srtFileName,
         });
-        this.sessions.delete(filePath);
     }
 
     /**
