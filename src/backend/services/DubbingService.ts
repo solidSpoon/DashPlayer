@@ -20,8 +20,10 @@ import StorageDirectoryProvider, { StorageDirectoryTarget } from '@/backend/serv
  * 配音业务服务。
  *
  * 存储布局：媒体库 `dubbing/<videoKey>/` 目录下，
- * 每句只留一份录音，存为 `<句序号>-<takeId>.wav`（掐头去尾后的 48kHz 单声道 PCM），
- * 清单持久化在 `dubbing.json`；删除整个目录即清空该视频的配音。
+ * 每句只留一份录音，成对存两个文件：`<句序号>-<takeId>.wav`（掐头去尾后的
+ * 48kHz 单声道 PCM）与同名 `.webm`（麦克风直出的原始录音，未做任何处理，
+ * 留存用于排查录音问题），清单持久化在 `dubbing.json`；
+ * 删除整个目录即清空该视频的配音。
  */
 export default interface DubbingService {
     /**
@@ -130,7 +132,8 @@ export class DubbingServiceImpl implements DubbingService {
     }): Promise<DubbingTakeVO> {
         const { folder, videoKey } = await this.resolveVideoFolder(params.videoKey);
         const takeId = randomUUID();
-        const rawFile = path.join(folder, `${takeId}.webm`);
+        // 原始 webm 与成片 wav 同名配对（仅扩展名不同），删除路径据此成对清理
+        const rawFile = path.join(folder, `${params.sentenceIndex}-${takeId}.webm`);
         const wavFile = path.join(folder, `${params.sentenceIndex}-${takeId}.wav`);
         const job = `dubbing-take:${videoKey}:${params.sentenceIndex}`;
 
@@ -179,10 +182,10 @@ export class DubbingServiceImpl implements DubbingService {
             // 写清单是唯一提交点：此前旧录音与旧清单都未被改动，任何失败都回到录音前状态
             await this.writeManifest(folder, manifest);
             committed = true;
-            // 提交后只剩清理（旧录音与原始 webm）：失败只会留下孤儿文件，清单一致性不受影响
+            // 提交后清理被覆盖的旧录音（wav 与原始 webm 成对删）；本遍的原始 webm 留存不删
             await this.cleanupCommittedFiles(job, folder, [
                 previous?.take.fileName,
-                path.basename(rawFile),
+                previous ? this.rawFileNameFor(previous.take.fileName) : undefined,
             ]);
 
             this.logger.info('配音录音已保存', { job, sentenceIndex: params.sentenceIndex, durationSec: take.durationSec });
@@ -258,7 +261,9 @@ export class DubbingServiceImpl implements DubbingService {
         const manifest = await this.readManifest(videoKey);
         const record = manifest.sentences[String(params.sentenceIndex)];
         if (record) {
+            // 成片 wav 与留存的原始 webm 成对删除，不留孤儿
             await this.fileSystemGateway.removeFileIfExists(path.join(folder, record.take.fileName));
+            await this.fileSystemGateway.removeFileIfExists(path.join(folder, this.rawFileNameFor(record.take.fileName)));
             delete manifest.sentences[String(params.sentenceIndex)];
             await this.writeManifest(folder, manifest);
         }
@@ -359,7 +364,7 @@ export class DubbingServiceImpl implements DubbingService {
     }
 
     /**
-     * 清单提交成功后清理不再需要的文件（被覆盖的旧录音、转换用的原始 webm）。
+     * 清单提交成功后清理不再需要的文件（被覆盖的旧录音）。
      *
      * 清理失败只产生孤儿文件，不破坏「清单指向的文件必须存在」这一不变量，
      * 因此失败仅记告警日志暴露，不向上抛错、更不回滚清单。
@@ -434,6 +439,13 @@ export class DubbingServiceImpl implements DubbingService {
             path.join(folder, 'dubbing.json'),
             JSON.stringify(manifest, (key, value) => (key === 'filePath' ? undefined : value), 2),
         );
+    }
+
+    /**
+     * 由成片文件名推出同句原始录音（webm）的文件名：仅扩展名不同。
+     */
+    private rawFileNameFor(wavFileName: string): string {
+        return wavFileName.replace(/\.wav$/, '.webm');
     }
 
     /**
