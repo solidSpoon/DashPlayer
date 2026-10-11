@@ -2,6 +2,34 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.13.0](https://github.com/solidSpoon/DashPlayer/compare/v6.12.6...v6.13.0) (2026-10-11)
+
+
+### Features
+
+* 启动页新增配音导出入口 ([0d91af3](https://github.com/solidSpoon/DashPlayer/commit/0d91af37a1b7b748120ca8042e63d5f6ad5af31f))
+* 视频控制条统一二级弹窗并新增钉住与全局控制 ([4c81010](https://github.com/solidSpoon/DashPlayer/commit/4c81010c024629ca805797d93f1b1329d97ecf29))
+* 自配音功能（Q 键录音、多遍管理、混音导出） ([a76277a](https://github.com/solidSpoon/DashPlayer/commit/a76277a88af487fdb3fad8a5f7a8bdef1e753ae3))
+* 自配音功能（Q 键录音、多遍管理、混音导出） ([e19f31d](https://github.com/solidSpoon/DashPlayer/commit/e19f31db6cb9c4d6d42f8147c9b6d62cde2fbbb7))
+* 自配音每句只留一份录音；卡片移到胶囊左侧并统一字幕区卡片样式 ([7861049](https://github.com/solidSpoon/DashPlayer/commit/7861049d2cac43d494a22469ed48a447abfdf781))
+* 配音回放后回句首续播；悬停胶囊区临时单句循环 ([e544398](https://github.com/solidSpoon/DashPlayer/commit/e5443988fbfb30d84479b979d9b286d99bbfb310))
+* 配音导出改为专门页面 ([e51ccf8](https://github.com/solidSpoon/DashPlayer/commit/e51ccf8e85aa1b06d2cc9ddad4cfddef022df904))
+* 配音录音快捷键可配置并重写录音器为单实例监听 ([edd2940](https://github.com/solidSpoon/DashPlayer/commit/edd2940fd010bdb0ad65354bc6bb2651877c6234))
+* 配音录音改为长按开录、短按试听，并用预备窗与占位卡片避开开流咔哒 ([4bd3fa9](https://github.com/solidSpoon/DashPlayer/commit/4bd3fa948e48c0181acb9f6aa806bd19aab16405))
+* 配音录音留存原始 webm 并与成片成对清理 ([43833fb](https://github.com/solidSpoon/DashPlayer/commit/43833fb9e692cc2e4cb7084f2a30484a51b7d7cc))
+
+
+### Bug Fixes
+
+* mac 打包产物 ad-hoc 重签，无效签名会被 TCC 静默拒绝麦克风授权 ([14d2935](https://github.com/solidSpoon/DashPlayer/commit/14d2935f8c5ff7c5559300564411c37216f337cc))
+* 全静音录音的空壳 wav 形态按空录音提示，不再误报无法探测时长 ([0e25640](https://github.com/solidSpoon/DashPlayer/commit/0e256409e40f878210d353cb3650dc3ee0e75c36))
+* 录音前由主进程请求 macOS 麦克风授权，否则录出的是全静音音轨 ([9475a70](https://github.com/solidSpoon/DashPlayer/commit/9475a70c37251dd8726b1b11909174e1c6b0e201))
+* 打包配置补 macOS 麦克风用途声明，安装包录音才能弹出授权框 ([aa55740](https://github.com/solidSpoon/DashPlayer/commit/aa557402df1d1c64e7141bc286026bb6d0248a1c))
+* 配音录音快捷键加入渲染端设置键白名单，否则 Q 键永远读不到配置 ([f65983f](https://github.com/solidSpoon/DashPlayer/commit/f65983fb40b919b35492a2aa3bbff2b286aee10a))
+* 配音录音静音裁剪阈值改为 -35dB，避免底噪与结束尖峰挡住修剪 ([0ede003](https://github.com/solidSpoon/DashPlayer/commit/0ede0039f2935af3b26f67bfeabcf1337c0dd4f2))
+* 首页窗口在平铺窗口管理器下不再锁死尺寸 ([e9e1029](https://github.com/solidSpoon/DashPlayer/commit/e9e1029e64c8e702ea1dbddb4dea4b37c28cbd43))
+* 首页窗口在平铺窗口管理器下不再锁死尺寸 ([f8dd658](https://github.com/solidSpoon/DashPlayer/commit/f8dd658e089fbe1ca4de418fe022a8205b7ccca1))
+
 ## [6.12.6](https://github.com/solidSpoon/DashPlayer/compare/v6.12.5...v6.12.6) (2026-09-18)
 
 
