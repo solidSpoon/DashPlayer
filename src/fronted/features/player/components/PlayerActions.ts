@@ -21,6 +21,8 @@ export class PlayerActions {
   // 源与字幕
   setSource(src: string | null) { this.s.setSource(src); }
   loadSubtitles(sentences: Sentence[]) { this.s.loadSubtitles(sentences); }
+  /** 转录进行中的增量字幕合并：只刷新列表与索引，保留播放期状态（计划/虚拟组/倍速）。 */
+  mergeSubtitles(sentences: Sentence[]) { this.s.mergeSubtitles(sentences); }
   clearSubtitles() { this.s.clearSubtitles(); }
 
   // 播放控制

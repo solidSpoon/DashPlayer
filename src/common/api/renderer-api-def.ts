@@ -65,6 +65,8 @@ interface DictionaryRendererDef {
 // 转录相关的前端API定义
 interface TranscriptRendererDef {
     'transcript/batch-result': { params: { updates: TranscriptTaskUpdate[] }, return: void };
+    // sentences 为该会话到目前为止的全部句子（已完成块的并集），随块完成单调追加；
+    // 接收方应做合并而非整体替换，避免打断播放期状态
     'transcript/chunk-result': { params: { filePath: string; sessionId: string; sentences: Sentence[] }, return: void };
 }
 

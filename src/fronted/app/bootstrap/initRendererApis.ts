@@ -100,7 +100,8 @@ export function initRendererApis(): () => void {
         if (params.filePath !== useFile.getState().videoPath) return;
         if (params.sentences.length === 0) return;
         useTranslation.getState().setActiveFileHash(params.sessionId);
-        playerActions.loadSubtitles(params.sentences);
+        // 转录期间每完成一块推送一次全集；走合并入口，避免清掉逐句循环等播放期状态
+        playerActions.mergeSubtitles(params.sentences);
     });
 
     register('dictionary/openai-update', async ({ requestId, word, data, isComplete = false }) => {
