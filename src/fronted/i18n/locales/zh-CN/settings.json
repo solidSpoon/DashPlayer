@@ -194,7 +194,7 @@
             },
             "dubbingRecord": {
                 "title": "录制配音",
-                "description": "点按开始/再按停止录制当前句配音，长按松手即停"
+                "description": "长按录制当前句配音（按住说话、松手即停），短按试听本句录音"
             },
             "openControlPanel": {
                 "title": "打开控制面板",
