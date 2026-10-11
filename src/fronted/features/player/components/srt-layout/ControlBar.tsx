@@ -1,36 +1,35 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { shallow } from 'zustand/shallow';
-import { Pause, Play } from 'lucide-react';
 
 import VolumeSlider from '../VolumeSlider';
 import SpeedSlider from '../SpeedSlider';
 import { Slider } from '@/fronted/components/ui/slider';
-import { Card } from '@/fronted/components/ui/card';
-import { Button } from '@/fronted/components/ui/button';
 import { cn } from '@/fronted/lib/utils';
 import useLayout from '@/fronted/hooks/useLayout';
 import TimeUtil from '@/common/utils/TimeUtil';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { usePlayerState } from '@/fronted/features/player/playerState';
+import { usePlayerUi } from '@/fronted/features/player/playerUiStore';
 import { playerActions } from '@/fronted/features/player/components/PlayerActions';
 import FullscreenToggleButton from '@/fronted/features/player/components/subtitles/FullscreenToggleButton';
+import ControlBarPinButton from '@/fronted/features/player/components/subtitles/ControlBarPinButton';
+import {
+    DARK_BAR_BUTTON_HOVER,
+    PlaybackModeControls,
+    PlaybackNavControls
+} from '@/fronted/features/player/components/PlaybackGlobalControls';
+import { CONTROL_POPOVER_OFFSET_STACKED_BAR } from '@/fronted/features/player/components/ControlPopover';
 
 const logger = getRendererLogger('PlaybackControlBar');
 
 export interface PlaybackControlBarProps {
     className?: string;
-    onPause?: () => void;
-    onPlay?: () => void;
-    playing?: boolean;
     onTimeChange?: (time: number) => void;
 }
 
 const PlaybackControlBar = ({
     className,
-    onTimeChange,
-    onPause,
-    onPlay,
-    playing
+    onTimeChange
 }: PlaybackControlBarProps) => {
     const {
         playTime,
@@ -51,8 +50,12 @@ const PlaybackControlBar = ({
 
     const fullScreen = useLayout((s) => s.fullScreen);
     const changeFullScreen = useLayout((s) => s.changeFullScreen);
+    // 用户钉住后控制条常显，不再受鼠标超时隐藏影响
+    const pinned = usePlayerUi((s) => s.controlBarPinned);
 
     const [mouseOverOut, setMouseOverOut] = useState<boolean>(false);
+    // 训练模式/字幕轨道菜单或训练参数弹窗展开期间钉住控制条：鼠标移向菜单会先离开本条区域
+    const [menuOpen, setMenuOpen] = useState<boolean>(false);
     const [currentValue, setCurrentValue] = useState(0);
     const currentValueUpdateTime = useRef<number>(0);
     const [selecting, setSelecting] = useState(false);
@@ -106,7 +109,7 @@ const PlaybackControlBar = ({
             <div
                 className={cn(
                     'w-full px-4 py-3 rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md shadow-2xl transition-opacity duration-200 ease-out pointer-events-auto',
-                    mouseOverOut ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                    mouseOverOut || menuOpen || pinned ? 'opacity-100' : 'opacity-0 pointer-events-none'
                 )}
                 onMouseMove={(e) => {
                     e.stopPropagation();
@@ -138,20 +141,8 @@ const PlaybackControlBar = ({
                     />
                     <div className="w-full flex justify-between items-center">
                         <div className="flex gap-2 items-center">
-                            <Button
-                                onClick={() => {
-                                    if (playing) {
-                                        onPause?.();
-                                    } else {
-                                        onPlay?.();
-                                    }
-                                }}
-                                size="icon"
-                                variant="ghost"
-                                className="w-8 h-8 rounded-lg text-white/90 hover:text-white hover:bg-white/15 transition-colors"
-                            >
-                                {playing ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
-                            </Button>
+                            {/* 上一句 / 播放暂停 / 下一句：与全屏控制条共用同一份控件 */}
+                            <PlaybackNavControls />
                             <div className="h-full flex items-center font-mono text-xs text-white/80 tabular-nums">
                                 <span>{TimeUtil.secondToTimeStr(currentValue)}</span>
                                 <span className="mx-1.5 text-white/40">/</span>
@@ -160,8 +151,15 @@ const PlaybackControlBar = ({
                         </div>
                         <div className="h-full flex-1" />
                         <div className="flex justify-center items-center gap-2">
+                            {/* 训练模式 / 字幕轨道：与全屏控制条共用同一份控件 */}
+                            <PlaybackModeControls
+                                popoverOffset={CONTROL_POPOVER_OFFSET_STACKED_BAR}
+                                onMenuOpenChange={setMenuOpen}
+                            />
                             <SpeedSlider
                                 speed={playbackRate}
+                                popoverOffset={CONTROL_POPOVER_OFFSET_STACKED_BAR}
+                                triggerClassName={DARK_BAR_BUTTON_HOVER}
                                 onSpeedChange={(speed) => playerActions.setPlaybackRate(speed)}
                             />
                             <VolumeSlider
@@ -169,7 +167,9 @@ const PlaybackControlBar = ({
                                 onMutedChange={(nextMuted) => playerActions.setMuted(nextMuted)}
                                 volume={volume}
                                 onVolumeChange={(nextVolume) => playerActions.setVolume(nextVolume)}
+                                triggerClassName={DARK_BAR_BUTTON_HOVER}
                             />
+                            <ControlBarPinButton />
                             <FullscreenToggleButton fullScreen={fullScreen} changeFullScreen={changeFullScreen} />
                         </div>
                     </div>
@@ -183,14 +183,7 @@ PlaybackControlBar.defaultProps = {
     className: '',
     onTimeChange: () => {
         //
-    },
-    onPause: () => {
-        //
-    },
-    onPlay: () => {
-        //
-    },
-    playing: false
+    }
 };
 
 export default PlaybackControlBar;

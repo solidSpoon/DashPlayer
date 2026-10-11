@@ -14,10 +14,11 @@ import { Sentence } from '@/common/types/SentenceC';
 
 export default function Subtitle() {
     const showSideBar = useLayout((state) => state.showSideBar);
-    const { currentSentence, subtitle, singleRepeat, virtualGroup } = usePlayerState((s) => ({
+    const { currentSentence, subtitle, singleRepeat, hoverRepeat, virtualGroup } = usePlayerState((s) => ({
         currentSentence: s.currentSentence,
         subtitle: s.sentences,
         singleRepeat: s.singleRepeat,
+        hoverRepeat: s.hoverRepeat,
         virtualGroup: s.virtualGroup,
     }), shallow);
     const { setBoundaryRef } = useBoundary();
@@ -252,7 +253,7 @@ export default function Subtitle() {
                         // handled via drag finalize logic
                     }}
                     isCurrent={isCurrent}
-                    isRepeat={singleRepeat}
+                    isRepeat={singleRepeat || hoverRepeat}
                     selectionState={
                         isSelected
                             ? {
@@ -276,6 +277,7 @@ export default function Subtitle() {
         handleMouseEnter,
         handleMouseUp,
         singleRepeat,
+        hoverRepeat,
         updateCurrentRef,
         virtualGroupMeta,
     ]);

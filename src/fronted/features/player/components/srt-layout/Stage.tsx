@@ -7,6 +7,7 @@ import { usePlayerState } from '@/fronted/features/player/playerState';
 import useLayout from '@/fronted/hooks/useLayout';
 import PlaybackControlBar from './ControlBar';
 import FullscreenSubtitleOverlay from '@/fronted/features/player/components/subtitles/FullscreenSubtitleOverlay';
+import DubbingStageController from '@/fronted/features/player/dubbing/components/DubbingStageController';
 import { cn } from '@/fronted/lib/utils';
 
 type PlaybackStageProps = {
@@ -18,12 +19,10 @@ type PlaybackStageProps = {
 
 export default function PlaybackStage({ className, onReady, onEnded, onProvideVideoElement }: PlaybackStageProps): ReactElement {
     const {
-        playing,
         src,
         hasSource
     } = usePlayerState(
         (state) => ({
-            playing: state.playing,
             src: state.src,
             hasSource: !!state.src
         }),
@@ -74,12 +73,12 @@ export default function PlaybackStage({ className, onReady, onEnded, onProvideVi
                     <PlaybackControlBar
                         onTimeChange={(time) => playerActions.seekTo({ time })}
                         className="absolute bottom-2 left-0 z-20"
-                        onPause={() => playerActions.pause()}
-                        onPlay={() => playerActions.play()}
-                        playing={playing}
                     />
                 )}
                 {fullScreen && <FullscreenSubtitleOverlay />}
+
+                {/* 配音控制器：快捷键监听与配音清单加载，无 UI */}
+                <DubbingStageController />
             </div>
         </div>
     );

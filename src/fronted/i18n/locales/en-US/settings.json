@@ -192,6 +192,10 @@
                 "title": "Add Favorite Clip",
                 "description": "Bookmark current sentence segment to Saved Clips."
             },
+            "dubbingRecord": {
+                "title": "Record Dubbing",
+                "description": "Tap to start/stop recording the current sentence; hold and release to stop."
+            },
             "openControlPanel": {
                 "title": "Open Control Panel",
                 "description": "Open the playback control panel."

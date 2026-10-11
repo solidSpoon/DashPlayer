@@ -1,5 +1,5 @@
 import registerRoute from '@/backend/controllers/ipc/registerRoute';
-import { app, dialog, shell } from 'electron';
+import { app, dialog, shell, systemPreferences } from 'electron';
 import path from 'path';
 import { clearDB } from '@/backend/infrastructure/db/db';
 import { WindowState } from '@/common/types/Types';
@@ -155,6 +155,26 @@ export default class SystemController implements Controller {
         await shell.openExternal(url);
     }
 
+    /**
+     * 确保应用已获得 macOS 麦克风授权，未决定时弹出系统授权框。
+     *
+     * Electron 渲染进程的 getUserMedia 在 macOS 上不会触发系统 TCC 授权框；
+     * 未授权时 Chromium 也不报错，只会给出一条全静音的音轨（配音会录出无声音频）。
+     * 因此录音前必须由主进程显式请求授权。其余平台没有这道闸门，直接视为已授权。
+     *
+     * @returns 授权状态；仅 'granted' 表示可以录音。
+     */
+    public async ensureMicrophone(): Promise<'granted' | 'denied' | 'restricted' | 'not-determined' | 'unknown'> {
+        if (process.platform !== 'darwin') {
+            return 'granted';
+        }
+        const status = systemPreferences.getMediaAccessStatus('microphone');
+        if (status !== 'not-determined') {
+            return status;
+        }
+        return (await systemPreferences.askForMediaAccess('microphone')) ? 'granted' : 'denied';
+    }
+
     public async appVersion() {
         return app.getVersion();
     }
@@ -193,6 +213,7 @@ export default class SystemController implements Controller {
         registerRoute('system/check-update', (p) => this.checkUpdate(p));
         registerRoute('system/open-url', (p) => this.openUrl(p));
         registerRoute('system/app-version', () => this.appVersion());
+        registerRoute('system/ensure-microphone', () => this.ensureMicrophone());
         registerRoute('system/config/get', (key) => this.getSystemConfig(key));
         registerRoute('system/config/set', (p) => this.setSystemConfig(p));
     }

@@ -62,6 +62,7 @@ import { ModelInstallationStatusVO } from '@/common/types/vo/model-installation-
 import { VideoInfo } from '@/common/types/video-info';
 import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
 import { TranscriptTask } from '@/common/contracts/transcript/transcript-task';
+import { DubbingExportStatus, DubbingLibraryEntry, DubbingManifest, DubbingTakeVO } from '@/common/contracts/dubbing';
 
 /** 跨进程请求与返回值契约。 */
 interface ApiDefinition {
@@ -155,6 +156,13 @@ interface SystemDef {
     'system/check-update': { params: { mode?: 'toast' }, return: UpdateCheckResult };
     'system/open-url': { params: string, return: void };
     'system/app-version': { params: void, return: string };
+    /**
+     * 确保 macOS 麦克风授权已就绪（未决定时主进程弹系统授权框）；仅 'granted' 表示可以录音。
+     */
+    'system/ensure-microphone': {
+        params: void,
+        return: 'granted' | 'denied' | 'restricted' | 'not-determined' | 'unknown';
+    };
     'system/test-renderer-api': { params: void, return: void };
     'system/config/get': { params: string, return: string | null };
     'system/config/set': { params: { key: string; value: string }, return: void };
@@ -451,6 +459,33 @@ interface VideoLearningDef {
 }
 
 
+interface DubbingDef {
+    'dubbing/save-take': {
+        params: {
+            videoKey: string;
+            sentenceIndex: number;
+            audio: Uint8Array;
+            /** 录音时正在播放的视频绝对路径，记入清单供导出页定位。 */
+            videoPath: string;
+            /** 录音时绑定的字幕文件绝对路径；转录会话期间可能为空。 */
+            subtitlePath: string | null;
+        },
+        return: DubbingTakeVO
+    };
+    'dubbing/list': { params: { videoKey: string }, return: DubbingManifest | null };
+    'dubbing/list-library': { params: void, return: DubbingLibraryEntry[] };
+    'dubbing/clear-sentence': { params: { videoKey: string; sentenceIndex: number }, return: void };
+    'dubbing/clear-video': { params: { videoKey: string }, return: void };
+    'dubbing/export': {
+        params: {
+            videoKey: string;
+            outputFolder: string;
+        },
+        return: string
+    };
+    'dubbing/export-status': { params: void, return: DubbingExportStatus | null };
+}
+
 // 使用交叉类型合并 ApiDefinitions 和 ExtraApiDefinition
 export type ApiDefinitions = ApiDefinition
     & AiFuncDef
@@ -474,7 +509,8 @@ export type ApiDefinitions = ApiDefinition
     & FavoriteClipsDef
     & TagDef
     & VocabularyDef
-    & VideoLearningDef;
+    & VideoLearningDef
+    & DubbingDef;
 
 // 更新 ApiMap 类型以使用 CombinedApiDefinitions
 export type ApiMap = {

@@ -95,6 +95,13 @@ export default interface FileSystemGateway {
     writeTextFile(filePath: string, content: string): Promise<void>;
 
     /**
+     * 写入二进制文件。
+     * @param filePath 文件绝对路径。
+     * @param data 待写入的字节内容。
+     */
+    writeBinaryFile(filePath: string, data: Uint8Array): Promise<void>;
+
+    /**
      * 移动或重命名文件。
      * @param sourcePath 原文件绝对路径。
      * @param targetPath 目标文件绝对路径。

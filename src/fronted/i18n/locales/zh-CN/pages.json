@@ -149,5 +149,28 @@
             "cancel": "取消",
             "cancelledMessage": "转录任务已取消"
         }
+    },
+    "dubbingExport": {
+        "title": "配音导出",
+        "description": "查看并导出你录制过配音的视频",
+        "empty": {
+            "title": "还没有配音视频",
+            "guide": "在播放器里按 Q 键逐句录音后，视频会出现在这里"
+        },
+        "recordedCount": "已录 {{count}} 句",
+        "updatedAt": "最近录音 {{time}}",
+        "export": "导出",
+        "openFolder": "打开所在文件夹",
+        "exporting": "导出中 {{progress}}%",
+        "exported": "导出完成",
+        "exportFailed": "导出失败",
+        "clear": "清除配音",
+        "clearTitle": "清除该视频的配音？",
+        "clearDescription": "将删除「{{name}}」的全部录音，且不可恢复。",
+        "clearConfirm": "清除",
+        "cancel": "取消",
+        "cleared": "已清除该视频的配音",
+        "clearFailed": "清除失败，请重试",
+        "loadFailed": "加载配音列表失败"
     }
 }

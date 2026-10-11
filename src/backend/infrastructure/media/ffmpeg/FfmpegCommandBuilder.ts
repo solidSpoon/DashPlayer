@@ -2,7 +2,10 @@ import TimeUtil from '@/common/utils/TimeUtil';
 import type {
     ConvertToWavArgs,
     CreateThumbnailArgs,
+    DubbingMixSegment,
     ExtractSubtitleCommandArgs,
+    MixDubbedAudioArgs,
+    ProcessRecordingArgs,
     RepairArgs,
     SplitVideoByTimesArgs,
     SplitVideoRangeArgs,
@@ -25,6 +28,11 @@ const AUDIO_TRANSCODE_ARGS = ['-ac', '2', '-c:a', 'aac', '-b:a', '128k'];
  * 原本就不超过时，scale 表达式等于原尺寸，不做实际缩放。
  */
 const MAX_TRANSCODE_WIDTH = 1920;
+
+/**
+ * 滤镜图中的时间字面量格式：毫秒级精度，避免科学计数法污染滤镜表达式。
+ */
+const formatSeconds = (value: number): string => value.toFixed(3);
 
 /**
  * FFmpeg 命令构建器接口。
@@ -76,6 +84,16 @@ export interface FfmpegCommandBuilder {
      * 构建音频裁剪命令参数。
      */
     buildTrimAudio(args: TrimAudioArgs): string[];
+
+    /**
+     * 构建配音录音处理命令参数：掐头去尾静音后转 48kHz 单声道 PCM WAV。
+     */
+    buildProcessRecording(args: ProcessRecordingArgs): string[];
+
+    /**
+     * 构建配音混音导出命令参数。
+     */
+    buildDubbingMix(args: MixDubbedAudioArgs): string[];
 }
 
 /**
@@ -319,6 +337,113 @@ export class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
             '-b:a', audioBitrate,
             args.outputFile,
         ];
+    }
+
+    /**
+     * 构建配音录音处理命令参数。
+     *
+     * 掐头去尾策略：前后向各跑一次 silenceremove（RMS 判定 + 0.02s 窗口），首尾各保留
+     * 至多 0.1s 缓冲。阈值 -35dB 的依据：实测用户麦克风底噪/呼吸声约 -37~-55dB（识别为
+     * 静音），语音主体 -15~-30dB（安全保留）；此前 -40dB 时底噪恰好卡在阈值附近、且
+     * 停止录音瞬间的 -37dB 尖峰会挡住尾部修剪。全部内容都低于阈值时产物为空 WAV，
+     * 由上层按时长校验显式报错。
+     */
+    public buildProcessRecording(args: ProcessRecordingArgs): string[] {
+        const trimSilence = [
+            'silenceremove=start_periods=1:start_threshold=-35dB:start_silence=0.1',
+            'areverse',
+            'silenceremove=start_periods=1:start_threshold=-35dB:start_silence=0.1',
+            'areverse',
+        ].join(',');
+        return [
+            '-y',
+            '-i', args.inputFile,
+            '-af', trimSilence,
+            '-ar', '48000',
+            '-ac', '1',
+            '-c:a', 'pcm_s16le',
+            '-f', 'wav',
+            args.outputFile,
+        ];
+    }
+
+    /**
+     * 构建配音混音导出命令参数。
+     *
+     * 滤镜图分三部分：
+     * - 原声：统一 48kHz 立体声，已配音区间逐段静音（句间 BGM 不受影响）；
+     * - 录音：重采样、单声道展开立体声、超长时 atempo 变速压到句长，再补齐/截断到精确句长并按句起点 adelay；
+     * - 合成：amix（normalize=0 不衰减音量，duration=first 以全长原声为准），视频流直拷。
+     */
+    public buildDubbingMix(args: MixDubbedAudioArgs): string[] {
+        if (args.segments.length === 0) {
+            throw new Error('配音混音至少需要一个替换片段');
+        }
+
+        const filters: string[] = [];
+
+        const originalChain = ['aformat=sample_fmts=fltp:sample_rates=48000:channel_layouts=stereo'];
+        for (const segment of args.segments) {
+            this.assertRange(segment.startSecond, segment.endSecond, '配音片段');
+            this.assertNonNegative(segment.takeDurationSecond, '配音录音时长');
+            originalChain.push(
+                `volume=0.0:enable='between(t,${formatSeconds(segment.startSecond)},${formatSeconds(segment.endSecond)})'`,
+            );
+        }
+        filters.push(`[0:a]${originalChain.join(',')}[base]`);
+
+        args.segments.forEach((segment, position) => {
+            const chain: string[] = [
+                'aresample=48000',
+                'pan=stereo|c0=c0|c1=c0',
+                ...this.buildTakeTempoFilters(segment),
+            ];
+            const segmentDuration = formatSeconds(segment.endSecond - segment.startSecond);
+            chain.push(`apad=whole_dur=${segmentDuration}`, `atrim=start=0:end=${segmentDuration}`, 'asetpts=PTS-STARTPTS');
+            const delayMs = Math.round(segment.startSecond * 1000);
+            chain.push(`adelay=${delayMs}|${delayMs}`);
+            filters.push(`[${position + 1}:a]${chain.join(',')}[take${position}]`);
+        });
+
+        const mixInputs = ['[base]', ...args.segments.map((_, position) => `[take${position}]`)].join('');
+        filters.push(`${mixInputs}amix=inputs=${args.segments.length + 1}:duration=first:normalize=0[aout]`);
+
+        const result: string[] = ['-y', '-i', args.videoFile];
+        for (const segment of args.segments) {
+            result.push('-i', segment.takeFile);
+        }
+        result.push(
+            '-filter_complex', filters.join(';'),
+            '-map', '0:v:0',
+            '-map', '[aout]',
+            '-c:v', 'copy',
+            '-c:a', 'aac',
+            '-b:a', '192k',
+            '-movflags', '+faststart',
+            args.outputFile,
+        );
+        return result;
+    }
+
+    /**
+     * 录音超长时的变速滤镜：atempo 单实例只支持 0.5~2.0，超出范围时链式拆分。
+     * @param segment 配音替换片段。
+     * @returns atempo 滤镜列表；录音不超长时为空。
+     */
+    private buildTakeTempoFilters(segment: DubbingMixSegment): string[] {
+        const segmentDuration = segment.endSecond - segment.startSecond;
+        const ratio = segment.takeDurationSecond / segmentDuration;
+        if (ratio <= 1.001) {
+            return [];
+        }
+        const filters: string[] = [];
+        let remaining = ratio;
+        while (remaining > 2.0) {
+            filters.push('atempo=2.0');
+            remaining /= 2.0;
+        }
+        filters.push(`atempo=${Math.min(remaining, 2.0).toFixed(4)}`);
+        return filters;
     }
 
     /**

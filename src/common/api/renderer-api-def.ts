@@ -5,6 +5,7 @@ import { AnalysisStreamEvent } from '@/common/types/analysis';
 import { TranscriptTaskUpdate } from '@/common/contracts/transcript/transcript-task';
 import { Sentence } from '@/common/types/SentenceC';
 import { ModelDownloadPhase } from '@/common/contracts/model-download-phase';
+import { DubbingExportStatus } from '@/common/contracts/dubbing';
 
 /**
  * 前端API定义文件 - 定义后端可以调用的前端方法
@@ -85,6 +86,11 @@ interface VideoLearningRendererDef {
     };
 }
 
+// 配音导出进度更新的前端API定义
+interface DubbingRendererDef {
+    'dubbing/export-status-update': { params: DubbingExportStatus, return: void };
+}
+
 // 聊天流式事件相关的前端API定义
 interface ChatRendererDef {
     'chat/stream': { params: ChatStreamEvent, return: void };
@@ -102,6 +108,7 @@ export type RendererApiDefinitions = RendererApiDefinition
     & DictionaryRendererDef
     & TranscriptRendererDef
     & VideoLearningRendererDef
+    & DubbingRendererDef
     & ChatRendererDef
     & AnalysisRendererDef;
 

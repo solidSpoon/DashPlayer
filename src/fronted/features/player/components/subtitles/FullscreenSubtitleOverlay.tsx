@@ -1,20 +1,15 @@
 import { cn } from '@/fronted/lib/utils';
 import SubtitleStack from './SubtitleStack';
 import OverlayControlBar from './OverlayControlBar';
-import { usePlayerState } from '@/fronted/features/player/playerState';
 import { playerActions } from '@/fronted/features/player/components/PlayerActions';
 
 const FullscreenSubtitleOverlay = () => {
-    const playing = usePlayerState((state) => state.playing);
-
     return (
         <div className={cn('w-full h-full absolute top-0 left-0 z-10 flex flex-col justify-end items-center')}>
             <SubtitleStack />
+            {/* 全屏控制条：播放/上一句/下一句/训练模式/字幕轨道与普通视图同一套控件 */}
             <OverlayControlBar
                 onTimeChange={(time) => playerActions.seekTo({ time })}
-                onPause={() => playerActions.pause()}
-                onPlay={() => playerActions.play()}
-                playing={playing}
             />
         </div>
     );

@@ -10,6 +10,8 @@ import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGat
 export class MemoryFileSystemGateway implements FileSystemGateway {
     /** 文件路径到文本内容的映射。 */
     public readonly files = new Map<string, string>();
+    /** 文件路径到二进制内容的映射，优先于文本映射读取。 */
+    public readonly binaryFiles = new Map<string, Buffer>();
     /** 已存在的目录集合。 */
     public readonly directories = new Set<string>();
 
@@ -43,7 +45,7 @@ export class MemoryFileSystemGateway implements FileSystemGateway {
      * @returns 普通文件存在时返回 `true`。
      */
     public async fileExists(filePath: string): Promise<boolean> {
-        return this.files.has(this.normalize(filePath));
+        return this.files.has(this.normalize(filePath)) || this.binaryFiles.has(this.normalize(filePath));
     }
 
     /**
@@ -87,6 +89,10 @@ export class MemoryFileSystemGateway implements FileSystemGateway {
      * @returns 文件的二进制内容。
      */
     public async readBinaryFile(filePath: string): Promise<Buffer> {
+        const binary = this.binaryFiles.get(this.normalize(filePath));
+        if (binary !== undefined) {
+            return binary;
+        }
         const content = this.files.get(this.normalize(filePath));
         if (content === undefined) {
             throw this.missingPathError(filePath);
@@ -153,6 +159,16 @@ export class MemoryFileSystemGateway implements FileSystemGateway {
      */
     public async writeTextFile(filePath: string, content: string): Promise<void> {
         this.files.set(this.normalize(filePath), content);
+        this.binaryFiles.delete(this.normalize(filePath));
+    }
+
+    /**
+     * 写入二进制文件；内存实现按原始字节保存，读取时优先于文本映射。
+     * @param filePath 文件绝对路径。
+     * @param data 待写入的字节内容。
+     */
+    public async writeBinaryFile(filePath: string, data: Uint8Array): Promise<void> {
+        this.binaryFiles.set(this.normalize(filePath), Buffer.from(data));
     }
 
     /**
@@ -197,6 +213,7 @@ export class MemoryFileSystemGateway implements FileSystemGateway {
      */
     public async removeFileIfExists(filePath: string): Promise<void> {
         this.files.delete(this.normalize(filePath));
+        this.binaryFiles.delete(this.normalize(filePath));
     }
 
     /**
@@ -269,6 +286,8 @@ export class MemoryFileSystemGateway implements FileSystemGateway {
      */
     public async pathIsMissing(targetPath: string): Promise<boolean> {
         const normalizedPath = this.normalize(targetPath);
-        return !this.files.has(normalizedPath) && !this.directories.has(normalizedPath);
+        return !this.files.has(normalizedPath)
+            && !this.binaryFiles.has(normalizedPath)
+            && !this.directories.has(normalizedPath);
     }
 }

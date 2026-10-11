@@ -607,6 +607,7 @@ export class SettingServiceImpl implements SettingService {
             aiChat: this.getValue('shortcut.aiChat'),
             addClip: this.getValue('shortcut.addClip'),
             openControlPanel: this.getValue('shortcut.openControlPanel'),
+            dubbingRecord: this.getValue('shortcut.dubbingRecord'),
         };
     }
 
@@ -642,6 +643,7 @@ export class SettingServiceImpl implements SettingService {
         await this.setValue('shortcut.aiChat', settings.aiChat);
         await this.setValue('shortcut.addClip', settings.addClip);
         await this.setValue('shortcut.openControlPanel', settings.openControlPanel);
+        await this.setValue('shortcut.dubbingRecord', settings.dubbingRecord);
     }
 
     /**

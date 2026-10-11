@@ -535,6 +535,7 @@ const ShortcutSetting = () => {
             items: [
                 { key: 'aiChat', title: t('shortcut.items.aiChat.title'), description: t('shortcut.items.aiChat.description') },
                 { key: 'addClip', title: t('shortcut.items.addClip.title'), description: t('shortcut.items.addClip.description') },
+                { key: 'dubbingRecord', title: t('shortcut.items.dubbingRecord.title'), description: t('shortcut.items.dubbingRecord.description') },
                 { key: 'openControlPanel', title: t('shortcut.items.openControlPanel.title'), description: t('shortcut.items.openControlPanel.description') },
                 { key: 'nextTheme', title: t('shortcut.items.nextTheme.title'), description: t('shortcut.items.nextTheme.description') },
             ],

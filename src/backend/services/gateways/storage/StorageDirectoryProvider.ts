@@ -16,6 +16,7 @@ export enum StorageDirectoryTarget {
     TEMP = 'temp',
     TEMP_OSS = 'temp_oss',
     MODELS = 'models',
+    DUBBING = 'dubbing',
 }
 
 /**

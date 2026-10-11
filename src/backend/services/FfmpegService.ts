@@ -134,6 +134,26 @@ export default interface FfmpegService {
      * 按时间范围裁剪音频并转码为 MP3。
      */
     trimAudio(inputPath: string, startTime: number, endTime: number, outputPath: string): Promise<void>;
+
+    /**
+     * 配音录音处理：掐头去尾静音后转 48kHz 单声道 PCM WAV。
+     *
+     * @param args.job 日志检索键，把一次录音处理的子进程日志串起来。
+     */
+    processRecording(args: { inputFile: string; outputFile: string; job?: string }): Promise<void>;
+
+    /**
+     * 配音混音导出：视频流直拷，原声在已配音区间静音，用户录音变速对齐后混入。
+     *
+     * @param args.onProgress ffmpeg 进度回调，单位为百分比（以视频总时长为分母）。
+     */
+    mixDubbedAudio(args: {
+        videoFile: string;
+        outputFile: string;
+        segments: Array<{ startSecond: number; endSecond: number; takeFile: string; takeDurationSecond: number }>;
+        job?: string;
+        onProgress?: (progress: number) => void;
+    }): Promise<void>;
 }
 
 
@@ -426,6 +446,42 @@ export class FfmpegServiceImpl implements FfmpegService {
             endSecond: endTime,
             audioCodec: 'libmp3lame',
             audioBitrate: '192k',
+        });
+    }
+
+    /**
+     * 配音录音处理：掐头去尾静音后转 WAV。
+     */
+    @WithSemaphore('ffmpeg')
+    public async processRecording(args: { inputFile: string; outputFile: string; job?: string }): Promise<void> {
+        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(args.inputFile);
+        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(args.outputFile);
+        await this.ffmpegGateway.processRecording({
+            inputFile: args.inputFile,
+            outputFile: args.outputFile,
+        }, { job: args.job });
+    }
+
+    /**
+     * 配音混音导出。
+     */
+    @WithSemaphore('ffmpeg')
+    public async mixDubbedAudio(args: {
+        videoFile: string;
+        outputFile: string;
+        segments: Array<{ startSecond: number; endSecond: number; takeFile: string; takeDurationSecond: number }>;
+        job?: string;
+        onProgress?: (progress: number) => void;
+    }): Promise<void> {
+        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(args.videoFile);
+        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(args.outputFile);
+        await this.ffmpegGateway.mixDubbedAudio({
+            videoFile: args.videoFile,
+            outputFile: args.outputFile,
+            segments: args.segments,
+        }, {
+            job: args.job,
+            onProgress: args.onProgress,
         });
     }
 
