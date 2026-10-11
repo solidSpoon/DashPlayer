@@ -38,6 +38,16 @@ export const CAPTION_ICON_SLOT_CLASS = 'w-6 h-6 shrink-0 flex items-center justi
 export const CAPTION_CARD_BUTTON_CLASS = `${CAPTION_ICON_SLOT_CLASS} rounded-full transition-colors`;
 
 /**
+ * 卡片整宽（px），按图标格数推导：n 格 = n×24 + (n−1)×6 + 2×3（图标格 24、按钮间距 6、内边距 3）。
+ *
+ * 只有需要在两种宽度之间做形变的卡片才需要显式宽度（配音占位卡的入场：从单格小胶囊"长"成三格整卡）；
+ * 其余卡片靠自然宽度排版，但两者必须等宽，尺寸口径因此统一放这里。图标格尺寸或内边距/间距一旦
+ * 改动，这两个数值必须同步，否则显式宽度会与自然宽度对不齐。
+ */
+export const CAPTION_CARD_WIDTH_ONE_SLOT = 30;
+export const CAPTION_CARD_WIDTH_THREE_SLOT = 90;
+
+/**
  * 卡片内图标按钮的常态外观：灰阶文字 + 悬停浅底。
  * 胶囊里的按钮共用这一份，避免各写一份后慢慢漂移。
  */

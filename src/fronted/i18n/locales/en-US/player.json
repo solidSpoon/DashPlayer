@@ -207,13 +207,14 @@
             "button": "Dubbing export",
             "tooltipTitle": "Dubbing export",
             "tooltipSubtitle": "Review and export all videos you have dubbed",
-            "workflow1": "While watching, {{action}} to record sentence by sentence (tap to start/stop, or hold and release)",
+            "workflow1": "While watching, {{action}} to record sentence by sentence (hold to talk, release to stop; tap to preview this take)",
             "workflow2": "Click here to open the export page and pick a video",
             "recordKey": "press {{key}}",
             "recordNoKey": "(no record shortcut bound yet — set one in Settings)"
         },
-        "record": "Record this sentence",
-        "stop": "Stop recording",
-        "skipReplay": "Skip replay"
+        "record": "Hold to record",
+        "recordWithTake": "Hold to re-record, tap to preview",
+        "preparing": "Preparing to record…",
+        "stop": "Stop recording"
     }
 }

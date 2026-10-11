@@ -207,13 +207,14 @@
             "button": "配音导出",
             "tooltipTitle": "配音导出",
             "tooltipSubtitle": "查看并导出所有录过配音的视频",
-            "workflow1": "观看时{{action}}逐句录音（点按开始/再按停止，长按松手停）",
+            "workflow1": "观看时{{action}}逐句录音（按住说话、松手即停；短按试听本句录音）",
             "workflow2": "点击此处进入导出页面，选择要导出的视频",
             "recordKey": "按 {{key}} 键",
             "recordNoKey": "（未配置录音快捷键，可在设置中绑定）"
         },
-        "record": "录这一句",
-        "stop": "停止录音",
-        "skipReplay": "跳过回放"
+        "record": "长按录音",
+        "recordWithTake": "长按重录，短按试听",
+        "preparing": "准备录音…",
+        "stop": "停止录音"
     }
 }
