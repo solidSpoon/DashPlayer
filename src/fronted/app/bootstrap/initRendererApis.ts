@@ -80,6 +80,13 @@ export function initRendererApis(): () => void {
                 if (update.status === TranscriptTaskState.DONE && update.result?.srtPath) {
                     await transcriptApi.attachSubtitle(update.filePath, 'same');
                     await swrMutate(SWR_KEY.PLAYER_P);
+                    // 转录产出通常就是视频自己那份同名 SRT，解析出的路径与转录期间一模一样；
+                    // 而字幕上下文的依赖里只有路径与重载令牌，路径没变就不会重建，增量字幕
+                    // 与空 srtHash 会原地留着（配音、收藏、生词、自动切片全按 srtHash 开关）。
+                    // 因此结束事件必须自己把重建意图表达出来，不能指望路径恰好变了。
+                    if (update.filePath === useFile.getState().videoPath) {
+                        useFile.getState().reloadSubtitles();
+                    }
                     toast('Transcript done', { icon: '🚀' });
                     continue;
                 }
