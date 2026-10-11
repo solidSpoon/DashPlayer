@@ -258,6 +258,13 @@ const config: ForgeConfig = {
             unpack: '**/*.{wasm,node,dylib,dll,so,so.*}',
         },
         icon: './assets/icons/icon',
+        // macOS 10.15+ 的 TCC 隐私授权：应用 Info.plist 里声明了用途说明，系统才会在
+        // 首次 getUserMedia 时弹出麦克风授权框；缺这一条时不弹框、请求直接被拒，
+        // 打包版配音录音会报"麦克风权限被拒绝"（开发环境用的是 Electron 壳自身的授权，
+        // 所以只在安装包里复现）。用途文案会原样显示在系统弹框里。
+        extendInfo: {
+            NSMicrophoneUsageDescription: 'DashPlayer 需要使用麦克风录制配音音频。',
+        },
         extraResource: ['./drizzle', './lib', './scripts', './resources'],
         // Linux 命名统一为不带横杠的 dashplayer：此处 executableName、各 Linux maker 的
         // name/bin 与 package.json 的 desktopName 必须一致，桌面环境才能把窗口（Wayland
