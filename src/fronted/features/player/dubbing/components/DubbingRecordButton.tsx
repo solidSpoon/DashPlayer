@@ -9,14 +9,13 @@ import {
     CAPTION_CARD_IDLE_CLASS,
     captionCardActiveClass,
 } from '@/fronted/features/player/components/captionCardShell';
-import { usePlayerState } from '@/fronted/features/player/playerState';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { useDubbing } from '../dubbingStore';
 import { dubbingControls } from '../dubbingControls';
 
 /**
  * 配音录制按钮（主字幕区右下角胶囊控制栏）：按住开始录制当前句（越过长按阈值才开麦），松手即停并保存；
- * 短按则试听本句已有录音，与 Q 键等效。
+ * 短按则试听本句已有录音（没录过则无动作），与 Q 键等效。
  *
  * 按钮始终只放一枚图标，各阶段宽度完全一致（预备中麦克风脉冲、录音中红色方块、
  * 保存中转圈），不出现文字导致的宽度跳变；自身为 24px 正圆，与胶囊内其余按钮同款。
@@ -28,8 +27,6 @@ export default function DubbingRecordButton() {
     const phase = useDubbing((s) => s.phase);
     const srtHash = useFile((s) => s.srtHash);
     const recordShortcut = useSetting((s) => s.setting('shortcut.dubbingRecord'));
-    const sentenceIndex = usePlayerState((s) => s.currentSentence?.index ?? null);
-    const hasTake = useDubbing((s) => s.manifest?.sentences[String(sentenceIndex)] !== undefined);
 
     if (!srtHash) {
         return null;
@@ -42,7 +39,7 @@ export default function DubbingRecordButton() {
             ? t('dubbing.stop')
             : phase === 'saving'
                 ? t('dubbing.saving')
-                : `${hasTake ? t('dubbing.recordWithTake') : t('dubbing.record')}${shortcutSuffix}`;
+                : `${t('dubbing.record')}${shortcutSuffix}`;
 
     return (
         <Tooltip>

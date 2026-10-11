@@ -212,8 +212,7 @@
             "recordKey": "press {{key}}",
             "recordNoKey": "(no record shortcut bound yet — set one in Settings)"
         },
-        "record": "Hold to record",
-        "recordWithTake": "Hold to re-record, tap to preview",
+        "record": "Hold to record, tap to preview",
         "preparing": "Preparing to record…",
         "stop": "Release to stop recording"
     }

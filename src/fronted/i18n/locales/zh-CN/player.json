@@ -212,8 +212,7 @@
             "recordKey": "按 {{key}} 键",
             "recordNoKey": "（未配置录音快捷键，可在设置中绑定）"
         },
-        "record": "长按录音",
-        "recordWithTake": "长按重录，短按试听",
+        "record": "长按录音，短按试听",
         "preparing": "准备录音…",
         "stop": "松手结束录音"
     }
