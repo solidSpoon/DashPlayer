@@ -215,6 +215,6 @@
         "record": "Hold to record",
         "recordWithTake": "Hold to re-record, tap to preview",
         "preparing": "Preparing to record…",
-        "stop": "Stop recording"
+        "stop": "Release to stop recording"
     }
 }

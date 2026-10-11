@@ -194,7 +194,7 @@
             },
             "dubbingRecord": {
                 "title": "Record Dubbing",
-                "description": "Tap to start/stop recording the current sentence; hold and release to stop."
+                "description": "Hold to record the current sentence (hold to talk, release to stop); tap to preview this take."
             },
             "openControlPanel": {
                 "title": "Open Control Panel",

@@ -155,7 +155,7 @@
         "description": "查看并导出你录制过配音的视频",
         "empty": {
             "title": "还没有配音视频",
-            "guide": "在播放器里按 Q 键逐句录音后，视频会出现在这里"
+            "guide": "在播放器里长按 Q 键（或录音按钮）逐句录音后，视频会出现在这里"
         },
         "recordedCount": "已录 {{count}} 句",
         "updatedAt": "最近录音 {{time}}",

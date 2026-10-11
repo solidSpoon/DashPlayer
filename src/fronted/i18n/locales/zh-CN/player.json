@@ -215,6 +215,6 @@
         "record": "长按录音",
         "recordWithTake": "长按重录，短按试听",
         "preparing": "准备录音…",
-        "stop": "停止录音"
+        "stop": "松手结束录音"
     }
 }

@@ -155,7 +155,7 @@
         "description": "Review and export videos you have dubbed",
         "empty": {
             "title": "No dubbed videos yet",
-            "guide": "Press Q in the player to record sentence by sentence; dubbed videos will show up here"
+            "guide": "Hold Q (or the record button) in the player to record sentence by sentence; dubbed videos will show up here"
         },
         "recordedCount": "{{count}} sentences dubbed",
         "updatedAt": "Last recorded {{time}}",
