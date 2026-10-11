@@ -38,4 +38,8 @@ export const dubbingApi = {
 
     openFolder: (path: string): Promise<void> =>
         backendClient.call('system/open-folder', { path }),
+
+    /** 确保 macOS 麦克风授权已就绪（未决定时主进程弹系统授权框）；仅 'granted' 可录音。 */
+    ensureMicrophone: (): Promise<'granted' | 'denied' | 'restricted' | 'not-determined' | 'unknown'> =>
+        backendClient.call('system/ensure-microphone'),
 };

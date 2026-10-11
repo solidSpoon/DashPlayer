@@ -298,6 +298,15 @@ export function useDubbingRecorder(): DubbingRecorderControls {
             return;
         }
 
+        // macOS 的授权框要由主进程请求才会弹（getUserMedia 不触发），未授权时 Chromium
+        // 只给全静音音轨不报错，必须先过这道闸门再开流
+        const micStatus = await dubbingApi.ensureMicrophone();
+        if (micStatus !== 'granted') {
+            logger.warn('麦克风授权未就绪，取消录音', { micStatus });
+            toast.error(t('dubbing.micDenied'));
+            return;
+        }
+
         try {
             mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
         } catch (error) {

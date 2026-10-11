@@ -156,6 +156,13 @@ interface SystemDef {
     'system/check-update': { params: { mode?: 'toast' }, return: UpdateCheckResult };
     'system/open-url': { params: string, return: void };
     'system/app-version': { params: void, return: string };
+    /**
+     * 确保 macOS 麦克风授权已就绪（未决定时主进程弹系统授权框）；仅 'granted' 表示可以录音。
+     */
+    'system/ensure-microphone': {
+        params: void,
+        return: 'granted' | 'denied' | 'restricted' | 'not-determined' | 'unknown';
+    };
     'system/test-renderer-api': { params: void, return: void };
     'system/config/get': { params: string, return: string | null };
     'system/config/set': { params: { key: string; value: string }, return: void };
