@@ -238,7 +238,7 @@ export function useDubbingRecorder(): DubbingRecorderControls {
 
         if (cancelRequestedRef.current || blob.size === 0) {
             if (!cancelRequestedRef.current) {
-                toast.error(t('dubbing.emptyRecording'));
+                toast(t('dubbing.emptyRecording'));
             }
             finishFlow();
             return;
@@ -255,6 +255,12 @@ export function useDubbingRecorder(): DubbingRecorderControls {
                 videoPath: videoPath!,
                 subtitlePath,
             });
+            if (!take) {
+                // 空录音是正常结果（用户没开口）：中性提示即可，不进错误通道
+                toast(t('dubbing.emptyRecording'));
+                finishFlow();
+                return;
+            }
             // 后端刚把这遍录音写进清单，重取即得全量真相；前端不自行拼装清单
             await useDubbing.getState().loadManifest(srtHash!);
 

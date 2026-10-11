@@ -5,13 +5,14 @@ import { DubbingExportStatus, DubbingLibraryEntry, DubbingManifest, DubbingTakeV
  * 配音功能的 backendClient 封装。
  */
 export const dubbingApi = {
+    /** 整段无有效声音（空录音）时返回 null，属正常结果而非错误。 */
     saveTake: (params: {
         videoKey: string;
         sentenceIndex: number;
         audio: Uint8Array;
         videoPath: string;
         subtitlePath: string | null;
-    }): Promise<DubbingTakeVO> => backendClient.call('dubbing/save-take', params),
+    }): Promise<DubbingTakeVO | null> => backendClient.call('dubbing/save-take', params),
 
     list: (videoKey: string): Promise<DubbingManifest | null> =>
         backendClient.call('dubbing/list', { videoKey }),

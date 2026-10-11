@@ -31,7 +31,8 @@ export default interface DubbingService {
      *
      * @param params.videoPath 录音时正在播放的视频绝对路径，记入清单供导出页定位。
      * @param params.subtitlePath 录音时绑定的字幕文件绝对路径；转录会话期间可能为空。
-     * @returns 录音信息（含文件绝对路径，供前端回放）。
+     * @returns 录音信息（含文件绝对路径，供前端回放）；整段无有效声音（用户没开口）
+     *          时返回 null——空录音是正常业务结果，不走异常通道。
      */
     saveTake(params: {
         videoKey: string;
@@ -39,7 +40,7 @@ export default interface DubbingService {
         audio: Uint8Array;
         videoPath: string;
         subtitlePath: string | null;
-    }): Promise<DubbingTakeVO>;
+    }): Promise<DubbingTakeVO | null>;
 
     /**
      * 读取视频配音清单；从未录过音时返回 null。
@@ -129,7 +130,7 @@ export class DubbingServiceImpl implements DubbingService {
         audio: Uint8Array;
         videoPath: string;
         subtitlePath: string | null;
-    }): Promise<DubbingTakeVO> {
+    }): Promise<DubbingTakeVO | null> {
         const { folder, videoKey } = await this.resolveVideoFolder(params.videoKey);
         const takeId = randomUUID();
         // 原始 webm 与成片 wav 同名配对（仅扩展名不同），删除路径据此成对清理
@@ -141,30 +142,32 @@ export class DubbingServiceImpl implements DubbingService {
         try {
             await this.fileSystemGateway.ensureDirectory(folder);
             await this.fileSystemGateway.writeBinaryFile(rawFile, params.audio);
+
+            // 整段静音被裁剪剪空是正常业务结果（用户没开口），统一收敛为 null 返回、
+            // 不走异常通道；三种形态：ffmpeg 非零退出且不产出文件（无样本可写）、
+            // 产出零样本的空壳 wav（ffprobe 报不出时长）、剩余时长低于下限
+            let durationSec: number | null = null;
             try {
                 await this.ffmpegService.processRecording({ inputFile: rawFile, outputFile: wavFile, job });
             } catch (error) {
-                // 全静音录音经 silenceremove 后没有可写样本的形态之一：ffmpeg 以非零退出且不产出文件；
-                // 这类失败翻译成业务语义，其余原样透出
-                if (!(await this.fileSystemGateway.fileExists(wavFile))) {
-                    throw new Error('录音内容为空，没有检测到声音');
+                // 产物文件仍在说明是真实失败而非剪空，原样透出
+                if (await this.fileSystemGateway.fileExists(wavFile)) {
+                    throw error;
                 }
-                throw error;
             }
-
-            let durationSec: number;
-            try {
-                durationSec = await this.ffmpegService.duration(wavFile);
-            } catch (error) {
-                // 全静音录音的另一种形态：ffmpeg 正常退出，但整段被静音裁剪剪空，
-                // 只写出零样本的空壳 wav（仅文件头），ffprobe 对它报不出时长。
-                // 与上面「非零退出不产出文件」同义，统一翻译成空录音业务语义；
-                // 底层错误单独记日志，避免真实探测故障被业务文案掩盖。
-                this.logger.warn('配音录音时长探测失败，按空录音处理', { job, wavFile, error });
-                throw new Error('录音内容为空，没有检测到声音');
+            if (await this.fileSystemGateway.fileExists(wavFile)) {
+                try {
+                    durationSec = await this.ffmpegService.duration(wavFile);
+                } catch (error) {
+                    // 底层探测错误单独记日志，避免真实探测故障被空录音语义掩盖
+                    this.logger.warn('配音录音时长探测失败，按空录音处理', { job, wavFile, error });
+                }
             }
-            if (durationSec < MIN_TAKE_DURATION_SECOND) {
-                throw new Error('录音内容为空，没有检测到声音');
+            if (durationSec === null || durationSec < MIN_TAKE_DURATION_SECOND) {
+                await this.fileSystemGateway.removeFileIfExists(rawFile);
+                await this.fileSystemGateway.removeFileIfExists(wavFile);
+                this.logger.info('配音录音为空，未保存', { job, sentenceIndex: params.sentenceIndex });
+                return null;
             }
 
             const take: DubbingTake = {

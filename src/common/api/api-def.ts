@@ -470,7 +470,8 @@ interface DubbingDef {
             /** 录音时绑定的字幕文件绝对路径；转录会话期间可能为空。 */
             subtitlePath: string | null;
         },
-        return: DubbingTakeVO
+        /** 整段无有效声音（空录音，用户没开口）时返回 null，属正常结果而非错误。 */
+        return: DubbingTakeVO | null
     };
     'dubbing/list': { params: { videoKey: string }, return: DubbingManifest | null };
     'dubbing/list-library': { params: void, return: DubbingLibraryEntry[] };
