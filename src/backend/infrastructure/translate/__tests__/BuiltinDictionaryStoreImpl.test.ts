@@ -18,6 +18,7 @@ import {
     BuiltinDictionaryStoreImpl,
     parseBuiltinTranslation,
 } from '@/backend/infrastructure/translate/BuiltinDictionaryStoreImpl';
+import { parseBuiltinExchangeForms } from '@/backend/infrastructure/translate/builtinDictionarySchema';
 import { createBuiltinDictionaryFixture } from '@/test/builtinDictionaryFixture';
 
 describe('预置词典查询', () => {
@@ -75,7 +76,34 @@ describe('预置词典查询', () => {
         expect(store.lookup('CHINA')?.word).toBe('China');
     });
 
-    it('变体单词未命中时按原形回退查询', () => {
+    it('变体词命中词形索引时返回原形词条', () => {
+        const store = buildStore([
+            {
+                word: 'cat',
+                phonetic: 'kæt',
+                translation: 'n. 猫',
+                collins: 5,
+                exchange: 's:cats/i:catting/p:catted/3:cats/d:catted',
+            },
+        ]);
+
+        expect(store.lookup('cats')?.word).toBe('cat');
+        expect(store.lookup('catting')?.word).toBe('cat');
+        expect(store.lookup('catted')?.collins).toBe(5);
+    });
+
+    it('一个变形对应多个词条时返回词频更高的那个', () => {
+        // some 是两个词条共同的变形（ECDICT 真实标注噪声），分词器不会把 some 还原到 a/an，
+        // 这条只有词形索引能命中，同时钉住一对多时的词频优先规则。
+        const store = buildStore([
+            { word: 'a', phonetic: '', translation: 'art. 一', frq: 5, exchange: 's:some' },
+            { word: 'an', phonetic: '', translation: 'art. 一个', frq: 40, exchange: 's:some' },
+        ]);
+
+        expect(store.lookup('some')?.word).toBe('a');
+    });
+
+    it('变形词无词形索引时按分词器还原的原形回退查询', () => {
         const store = buildStore([
             { word: 'book', phonetic: '', translation: 'n. 书', collins: 4 },
             { word: 'go', phonetic: '', translation: 'vi. 去', bnc: 800 },
@@ -141,5 +169,26 @@ describe('预置词典释义解析', () => {
         expect(parseBuiltinTranslation('（事件）意外地发生')).toEqual([
             { partOfSpeech: '', meaning: '（事件）意外地发生', examples: [] },
         ]);
+    });
+});
+
+describe('预置词典 exchange 展开', () => {
+    it('展开时态、复数等变形词并去重', () => {
+        expect(parseBuiltinExchangeForms('s:cats/i:catting/p:catted/3:cats/d:catted')).toEqual([
+            'cats',
+            'catting',
+            'catted',
+        ]);
+    });
+
+    it('跳过 Lemma 指针与结构不合法的片段', () => {
+        // 0 是 Lemma 指针，1 的值是类型字母而非单词，两者都不进词形索引。
+        expect(parseBuiltinExchangeForms('0:draw/1:d')).toEqual([]);
+        expect(parseBuiltinExchangeForms('x:whatever/p:')).toEqual([]);
+        expect(parseBuiltinExchangeForms('')).toEqual([]);
+    });
+
+    it('变形词统一小写并清理空白', () => {
+        expect(parseBuiltinExchangeForms(' s: Cats / i: Catting ')).toEqual(['cats', 'catting']);
     });
 });

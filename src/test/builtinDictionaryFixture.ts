@@ -7,6 +7,7 @@ import Database from 'better-sqlite3';
 import {
     BUILTIN_DICTIONARY_SCHEMA_SQL,
     BUILTIN_DICTIONARY_SCHEMA_VERSION,
+    parseBuiltinExchangeForms,
 } from '@/backend/infrastructure/translate/builtinDictionarySchema';
 
 /**
@@ -29,7 +30,7 @@ export interface FixtureBuiltinWord {
     frq?: number;
     /** 空格分隔的考试标签。 */
     tags?: string;
-    /** 词形变化原文。 */
+    /** 词形变化原文（ECDICT exchange）；夹具按与构建脚本相同的规则展开进 word_form。 */
     exchange?: string;
 }
 
@@ -47,7 +48,9 @@ export interface BuiltinDictionaryFixture {
  * 在临时目录创建一份符合 schema 契约的预置词典 SQLite。
  *
  * 表结构直接使用 builtinDictionarySchema.ts 的 DDL，保证夹具与运行时契约一致；
- * meta 默认写入当前契约版本，可通过 metaOverrides 覆盖以模拟版本不匹配等异常。
+ * 词形索引与构建脚本同规：由各词条的 exchange 展开，不单独传参，避免夹具与真实产物的
+ * word_form 形态出现偏差。meta 默认写入当前契约版本，可通过 metaOverrides 覆盖以模拟版本
+ * 不匹配等异常。
  *
  * @param words 预置词条列表。
  * @param metaOverrides meta 键值覆盖（如 { schema_version: '99' }）。
@@ -66,9 +69,11 @@ export function createBuiltinDictionaryFixture(
         INSERT INTO entries (word_key, word, phonetic, translation, collins, oxford, bnc, frq, tags, exchange)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
+    const insertWordForm = db.prepare('INSERT INTO word_form (inflected, word_key) VALUES (?, ?)');
     for (const entry of words) {
+        const wordKey = entry.word.toLowerCase();
         insertEntry.run(
-            entry.word.toLowerCase(),
+            wordKey,
             entry.word,
             entry.phonetic ?? '',
             entry.translation ?? '',
@@ -79,6 +84,9 @@ export function createBuiltinDictionaryFixture(
             entry.tags ?? '',
             entry.exchange ?? '',
         );
+        for (const form of parseBuiltinExchangeForms(entry.exchange ?? '')) {
+            insertWordForm.run(form, wordKey);
+        }
     }
 
     const meta: Record<string, string> = {
