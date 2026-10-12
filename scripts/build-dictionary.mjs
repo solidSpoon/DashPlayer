@@ -11,8 +11,10 @@
  * - 过滤策略：BNC 或 COCA 词频排名 <= 30000，或 Collins/Oxford 收录，或带考试标签；
  *   实测约 3.8 万词条、5MB 左右，覆盖日常查词的绝大多数场景。
  * - 考试标签只保留 zk/gk/cet4/cet6/ky/toefl/ielts/gre（与前端 i18n 映射一致）。
+ * - 除 entries 外还产出 word_form 词形索引（由 ECDICT exchange 展开，供变体词直查）。
  * - 产物需要提交到仓库；表结构契约见
- *   src/backend/infrastructure/translate/builtinDictionarySchema.ts（DDL 与 schema_version 必须一致）。
+ *   src/backend/infrastructure/translate/builtinDictionarySchema.ts（DDL、schema_version 与 exchange
+ *   展开规则必须一致）。
  * - 先写同目录临时文件、全部成功后才原子改名到正式路径，中途失败不会损坏已有产物。
  * - node:sqlite 在 node 22.x 需要 --experimental-sqlite，缺 flag 时脚本会以该 flag 自重启。
  */
@@ -51,7 +53,7 @@ const ECDICT_SOURCE = {
 /**
  * 与 builtinDictionarySchema.ts 契约保持一致（该文件是 TS，独立脚本无法 import，改这里时两边都要改）。
  */
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const SCHEMA_SQL = `
 CREATE TABLE meta (
     key TEXT PRIMARY KEY,
@@ -69,10 +71,47 @@ CREATE TABLE entries (
     tags TEXT NOT NULL DEFAULT '',
     exchange TEXT NOT NULL DEFAULT ''
 );
+CREATE TABLE word_form (
+    inflected TEXT NOT NULL,
+    word_key TEXT NOT NULL
+);
+CREATE INDEX idx_word_form_inflected ON word_form (inflected);
 `;
 
 /** 只保留的考试标签；前端 i18n（common.json 的 dictTag* 键）按这份清单做映射。 */
 const KNOWN_TAGS = ['zk', 'gk', 'cet4', 'cet6', 'ky', 'toefl', 'ielts', 'gre'];
+
+/**
+ * 进入 word_form 索引的 exchange 类型码。
+ *
+ * 与 builtinDictionarySchema.ts 的 BUILTIN_DICTIONARY_WORD_FORM_TYPES 一致：只收
+ * p/d/i/3/r/t/s（值一定是单词形态），`0`/`1` 不收（`1` 的值是 "s"/"d" 类型字母而非单词，
+ * `0` 指向的原形词条自身 exchange 已覆盖该变形）。
+ */
+const WORD_FORM_TYPES = ['p', 'd', 'i', '3', 'r', 't', 's'];
+
+/**
+ * 展开 ECDICT exchange 原文里的变形词。
+ *
+ * 与 builtinDictionarySchema.ts 的 parseBuiltinExchangeForms 等价（独立 Node 脚本无法
+ * import TS），改规则时两边都要改。
+ *
+ * @param {string | null | undefined} exchange ECDICT exchange 原文。
+ * @returns {string[]} 去重后的变形词列表（小写）。
+ */
+const parseExchangeForms = (exchange) => {
+    const forms = [];
+    const seen = new Set();
+    for (const rawSegment of String(exchange ?? '').split('/')) {
+        const segment = rawSegment.trim();
+        if (segment.length < 3 || segment[1] !== ':' || !WORD_FORM_TYPES.includes(segment[0])) continue;
+        const form = segment.slice(2).trim().toLowerCase();
+        if (!form || seen.has(form)) continue;
+        seen.add(form);
+        forms.push(form);
+    }
+    return forms;
+};
 
 /** 常用词的词频排名阈值（BNC 与 COCA 均适用）。 */
 const FREQUENCY_LIMIT = 30000;
@@ -237,6 +276,7 @@ const cleanupTemp = () => {
 
 const targetDb = new DatabaseSync(tempPath);
 let insertedCount = 0;
+let wordFormCount = 0;
 try {
     targetDb.exec(SCHEMA_SQL);
 
@@ -244,6 +284,7 @@ try {
         INSERT INTO entries (word_key, word, phonetic, translation, collins, oxford, bnc, frq, tags, exchange)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);
+    const insertFormStmt = targetDb.prepare('INSERT INTO word_form (inflected, word_key) VALUES (?, ?)');
     const metaStmt = targetDb.prepare('INSERT INTO meta (key, value) VALUES (?, ?)');
 
     targetDb.exec('BEGIN');
@@ -267,6 +308,11 @@ try {
             String(row.exchange ?? ''),
         );
         insertedCount += 1;
+
+        for (const form of parseExchangeForms(row.exchange)) {
+            insertFormStmt.run(form, wordKey);
+            wordFormCount += 1;
+        }
     }
     const generatedAt = new Date().toISOString().replace(/\.\d{3}Z$/u, 'Z');
     for (const [key, value] of [
@@ -274,6 +320,7 @@ try {
         ['source', 'ecdict'],
         ['source_version', '1.0.28'],
         ['word_count', String(insertedCount)],
+        ['word_form_count', String(wordFormCount)],
         ['generated_at', generatedAt],
     ]) {
         metaStmt.run(key, value);
@@ -293,4 +340,5 @@ console.info('== 4/4 完成 ==');
 const { size } = fs.statSync(OUTPUT_PATH);
 console.info(`产物: ${OUTPUT_PATH}`);
 console.info(`词条数: ${insertedCount}`);
+console.info(`词形索引: ${wordFormCount}`);
 console.info(`文件大小: ${(size / 1048576).toFixed(1)}MB`);

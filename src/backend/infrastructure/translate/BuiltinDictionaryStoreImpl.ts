@@ -60,6 +60,8 @@ export const parseBuiltinTranslation = (translation: string): OpenAIDictionaryDe
  *
  * 行为说明：
  * - SQLite 连接在首次查询时懒加载（同步、微秒级），避免拖慢启动；
+ * - 查询顺序为「精确键 → 词形索引 → 分词器词形还原」：词形索引来自构建期从 ECDICT
+ *   exchange 展开的 word_form 表，能确定性命中复数、时态等变体，排在分词器兜底之前；
  * - 打开时校验 meta 表的 schema_version，缺失或不匹配立即抛错；
  *   预置数据随应用打包，缺失意味着打包问题，必须显式暴露而不是回退到在线查询；
  * - 依赖通过构造函数注入（dbPath 由 IOC 绑定为运行时资源路径）。
@@ -70,11 +72,21 @@ export class BuiltinDictionaryStoreImpl implements BuiltinDictionaryStore {
     private readonly dbPath: string;
     private db: Database.Database | null = null;
     private selectStmt: Database.Statement | null = null;
+    private selectFormStmt: Database.Statement | null = null;
 
     constructor(@inject(TYPES.BuiltinDictionaryPath) dbPath: string) {
         this.dbPath = dbPath;
     }
 
+    /**
+     * 查词：精确键 → 词形索引 → 分词器词形还原。
+     *
+     * 词形索引命中时返回的是原形词条（查 "cats" 得到 "cat" 的单词卡），
+     * 一个变形对应多个词条时按词频取首位（见 open 内的排序规则）。
+     *
+     * @param word 用户点击的单词原文。
+     * @returns 命中的单词卡；未命中返回 null。
+     */
     public lookup(word: string): OpenAIDictionaryResult | null {
         const normalized = (word ?? '').toLowerCase().trim();
         if (!normalized) {
@@ -82,8 +94,9 @@ export class BuiltinDictionaryStoreImpl implements BuiltinDictionaryStore {
         }
 
         this.open();
-        const selectStmt = this.selectStmt!;
-        const row = this.select(selectStmt, normalized) ?? this.select(selectStmt, lemmatizeWord(normalized));
+        const row = this.select(this.selectStmt!, normalized)
+            ?? this.select(this.selectFormStmt!, normalized)
+            ?? this.select(this.selectStmt!, lemmatizeWord(normalized));
         if (!row) {
             return null;
         }
@@ -136,6 +149,15 @@ export class BuiltinDictionaryStoreImpl implements BuiltinDictionaryStore {
         this.selectStmt = db.prepare(
             'SELECT word, phonetic, translation, collins, oxford, bnc, frq, tags, exchange FROM entries WHERE word_key = ?'
         );
+        // 一个变形可能对应多个词条，按「词频优先、BNC 兜底、词键收尾」取首个：
+        // 词频信息缺失时统一排到末尾，保证同一份数据每次查询结果相同。
+        this.selectFormStmt = db.prepare(
+            `SELECT e.word, e.phonetic, e.translation, e.collins, e.oxford, e.bnc, e.frq, e.tags, e.exchange
+             FROM word_form f JOIN entries e ON e.word_key = f.word_key
+             WHERE f.inflected = ?
+             ORDER BY CASE WHEN e.frq > 0 THEN e.frq WHEN e.bnc > 0 THEN e.bnc ELSE 999999 END, e.word_key
+             LIMIT 1`
+        );
         this.logger.debug('预置词典已加载', { dbPath: this.dbPath, wordCount: meta.wordCount });
         return db;
     }
@@ -170,10 +192,12 @@ export class BuiltinDictionaryStoreImpl implements BuiltinDictionaryStore {
     }
 
     /**
-     * 按小写键查询单条词条；查询失败视为未命中而不是错误。
+     * 用预编译语句查询单条词条；查询失败视为未命中而不是错误。
      *
-     * @param selectStmt 预编译查询语句。
-     * @param key 小写化的查询键。
+     * 两个语句返回的列与顺序一致，因此共用本方法的行映射。
+     *
+     * @param selectStmt 预编译查询语句（精确键或词形索引）。
+     * @param key 查询键：精确查传小写词，词形查传小写变形词。
      * @returns 命中的词条行；未命中返回 null。
      */
     private select(selectStmt: Database.Statement, key: string): BuiltinDictionaryRow | null {
