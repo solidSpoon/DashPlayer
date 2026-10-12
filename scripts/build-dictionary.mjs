@@ -13,6 +13,7 @@
  * - 考试标签只保留 zk/gk/cet4/cet6/ky/toefl/ielts/gre（与前端 i18n 映射一致）。
  * - 产物需要提交到仓库；表结构契约见
  *   src/backend/infrastructure/translate/builtinDictionarySchema.ts（DDL 与 schema_version 必须一致）。
+ * - 先写同目录临时文件、全部成功后才原子改名到正式路径，中途失败不会损坏已有产物。
  * - node:sqlite 在 node 22.x 需要 --experimental-sqlite，缺 flag 时脚本会以该 flag 自重启。
  */
 
@@ -206,60 +207,87 @@ const filterSql = `
   OR oxford >= 1
   OR (tag IS NOT NULL AND TRIM(tag) != '')
 `;
-const rows = sourceDb.prepare(`
-    SELECT word, phonetic, translation, collins, oxford, tag, bnc, frq, exchange
-    FROM stardict
-    WHERE ${filterSql}
-    ORDER BY word COLLATE NOCASE
-`).all();
+let rows;
+try {
+    rows = sourceDb.prepare(`
+        SELECT word, phonetic, translation, collins, oxford, tag, bnc, frq, exchange
+        FROM stardict
+        WHERE ${filterSql}
+        ORDER BY word COLLATE NOCASE
+    `).all();
+} finally {
+    sourceDb.close();
+}
 console.info(`源库命中 ${rows.length} 条词条`);
 
-fs.rmSync(OUTPUT_PATH, { force: true });
-const targetDb = new DatabaseSync(OUTPUT_PATH);
-targetDb.exec(SCHEMA_SQL);
+// 先写同目录临时文件、全部成功后再原子改名到 OUTPUT_PATH。旧实现直接在输出路径上
+// 删旧建新，中途失败（源库损坏、磁盘满、中断）会把仓库里可用的 dictionary.sqlite
+// 换成半成品；临时名带 .tmp 后缀，即使清理失败也不会被应用或后续构建误认。
+const tempPath = `${OUTPUT_PATH}.${process.pid}.tmp`;
+/** 清理临时库及其回滚日志（Windows 上未关闭的连接会占住文件，失败就留给系统清理）。 */
+const cleanupTemp = () => {
+    for (const suffix of ['', '-journal', '-wal']) {
+        try {
+            fs.rmSync(`${tempPath}${suffix}`, { force: true });
+        } catch {
+            // 尽力而为
+        }
+    }
+};
 
-const insertStmt = targetDb.prepare(`
-    INSERT INTO entries (word_key, word, phonetic, translation, collins, oxford, bnc, frq, tags, exchange)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-`);
-const metaStmt = targetDb.prepare('INSERT INTO meta (key, value) VALUES (?, ?)');
-
-targetDb.exec('BEGIN');
+const targetDb = new DatabaseSync(tempPath);
 let insertedCount = 0;
-for (const row of rows) {
-    const word = String(row.word ?? '').trim();
-    if (!word) continue;
-    const wordKey = word.toLowerCase();
-    const translation = String(row.translation ?? '');
-    if (!translation.trim()) continue;
+try {
+    targetDb.exec(SCHEMA_SQL);
 
-    insertStmt.run(
-        wordKey,
-        word,
-        String(row.phonetic ?? ''),
-        translation,
-        Number(row.collins ?? 0),
-        Number(row.oxford ?? 0),
-        Number(row.bnc ?? 0),
-        Number(row.frq ?? 0),
-        normalizeTags(row.tag),
-        String(row.exchange ?? ''),
-    );
-    insertedCount += 1;
+    const insertStmt = targetDb.prepare(`
+        INSERT INTO entries (word_key, word, phonetic, translation, collins, oxford, bnc, frq, tags, exchange)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `);
+    const metaStmt = targetDb.prepare('INSERT INTO meta (key, value) VALUES (?, ?)');
+
+    targetDb.exec('BEGIN');
+    for (const row of rows) {
+        const word = String(row.word ?? '').trim();
+        if (!word) continue;
+        const wordKey = word.toLowerCase();
+        const translation = String(row.translation ?? '');
+        if (!translation.trim()) continue;
+
+        insertStmt.run(
+            wordKey,
+            word,
+            String(row.phonetic ?? ''),
+            translation,
+            Number(row.collins ?? 0),
+            Number(row.oxford ?? 0),
+            Number(row.bnc ?? 0),
+            Number(row.frq ?? 0),
+            normalizeTags(row.tag),
+            String(row.exchange ?? ''),
+        );
+        insertedCount += 1;
+    }
+    const generatedAt = new Date().toISOString().replace(/\.\d{3}Z$/u, 'Z');
+    for (const [key, value] of [
+        ['schema_version', String(SCHEMA_VERSION)],
+        ['source', 'ecdict'],
+        ['source_version', '1.0.28'],
+        ['word_count', String(insertedCount)],
+        ['generated_at', generatedAt],
+    ]) {
+        metaStmt.run(key, value);
+    }
+    targetDb.exec('COMMIT');
+} catch (error) {
+    targetDb.close();
+    cleanupTemp();
+    throw error;
 }
-const generatedAt = new Date().toISOString().replace(/\.\d{3}Z$/u, 'Z');
-for (const [key, value] of [
-    ['schema_version', String(SCHEMA_VERSION)],
-    ['source', 'ecdict'],
-    ['source_version', '1.0.28'],
-    ['word_count', String(insertedCount)],
-    ['generated_at', generatedAt],
-]) {
-    metaStmt.run(key, value);
-}
-targetDb.exec('COMMIT');
 targetDb.close();
-sourceDb.close();
+
+// 全部成功才替换正式产物：替换窗口从整个构建期收窄为一次 rename。
+fs.renameSync(tempPath, OUTPUT_PATH);
 
 console.info('== 4/4 完成 ==');
 const { size } = fs.statSync(OUTPUT_PATH);
