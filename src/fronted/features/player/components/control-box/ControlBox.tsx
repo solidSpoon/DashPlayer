@@ -5,6 +5,8 @@ import { swrMutate, SWR_KEY } from '@/fronted/lib/swr-util';
 import { cn } from '@/fronted/lib/utils';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
 import { usePlayerUi } from '@/fronted/features/player/playerUiStore';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
+import type { HardsubMaskStyle } from '@/fronted/features/player/components/hardsubMaskVisuals';
 import { usePlayer } from '@/fronted/features/player/playerStore';
 import { playerActions } from '@/fronted/features/player/components/PlayerActions';
 import useLayout from '@/fronted/hooks/useLayout';
@@ -72,7 +74,9 @@ export default function ControlBox() {
 
   // 遮挡贴片：播放控制面板里唯一的一处开关，开/关与贴片位置尺寸都会记住上次的选择
   const hardsubMaskOn = usePlayerUi((s) => s.hardsubMaskOn);
+  const hardsubMaskStyle = usePlayerUi((s) => s.hardsubMaskStyle);
   const toggleHardsubMask = usePlayerUi((s) => s.toggleHardsubMask);
+  const setHardsubMaskStyle = usePlayerUi((s) => s.setHardsubMaskStyle);
 
   const setSetting = useSetting((s) => s.setSetting);
   const setting = useSetting((s) => s.setting);
@@ -201,6 +205,27 @@ export default function ControlBox() {
             className="h-9 px-3 py-1 rounded-xl"
             labelClassName="text-xs font-medium"
           />
+          {/* 遮挡样式：同一个开关下的五种盖法，方便现场对比挑选 */}
+          <div className="flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-1.5 min-h-[38px]">
+            <span className="text-xs font-medium text-muted-foreground select-none shrink-0">
+              {t('hardsubMask.styleLabel')}
+            </span>
+            <Select
+              value={hardsubMaskStyle}
+              onValueChange={(value) => setHardsubMaskStyle(value as HardsubMaskStyle)}
+            >
+              <SelectTrigger className="h-7 w-[150px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="blur">{t('hardsubMask.styleBlur')}</SelectItem>
+                <SelectItem value="blurSampled">{t('hardsubMask.styleBlurSampled')}</SelectItem>
+                <SelectItem value="sampled">{t('hardsubMask.styleSampled')}</SelectItem>
+                <SelectItem value="stretch">{t('hardsubMask.styleStretch')}</SelectItem>
+                <SelectItem value="solid">{t('hardsubMask.styleSolid')}</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <SettingToggle
             id="singleRepeat"
             label={t('controlBox.singleRepeat')}

@@ -3,6 +3,7 @@ import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 import { cn } from '@/fronted/lib/utils';
 import { DEFAULT_HARDSUB_MASK_RECT, usePlayerUi, type HardsubMaskRect } from '@/fronted/features/player/playerUiStore';
+import HardsubMaskVisual from '@/fronted/features/player/components/HardsubMaskVisual';
 
 /** 画面矩形：视频按 `object-fit: contain` 缩放居中后，真正有像素的那块区域，单位与容器一致。 */
 interface PictureRect {
@@ -133,6 +134,7 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
     const { t } = useI18nTranslation('player');
     const maskOn = usePlayerUi((s) => s.hardsubMaskOn);
     const maskRect = usePlayerUi((s) => s.hardsubMaskRect);
+    const maskStyle = usePlayerUi((s) => s.hardsubMaskStyle);
     const setMaskRect = usePlayerUi((s) => s.setHardsubMaskRect);
     const setMaskHovering = usePlayerUi((s) => s.setHardsubMaskHovering);
     const setPatchTopInset = usePlayerUi((s) => s.setHardsubMaskPatchTopInset);
@@ -327,8 +329,14 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
                         }}
                         onDoubleClick={() => setMaskRect({ ...DEFAULT_HARDSUB_MASK_RECT })}
                     >
-                        {/* 单层失焦：把底下的字幕糊掉就够了，边缘靠圆角收口 */}
-                        <div className="pointer-events-none absolute inset-0 rounded-xl backdrop-blur-[36px]" />
+                        {/* 视觉层：按所选样式渲染（模糊 / 取色块 / 延展 / 纯色） */}
+                        <HardsubMaskVisual
+                            video={video}
+                            rect={rectNow}
+                            style={maskStyle}
+                            width={patchWidth}
+                            height={patchHeight}
+                        />
                         {/* 悬停/拖动时一层很淡的白雾：让它能被找到，又不改变画面明暗 */}
                         <div
                             className={cn(
