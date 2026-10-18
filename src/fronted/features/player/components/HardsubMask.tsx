@@ -1,19 +1,18 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 import { cn } from '@/fronted/lib/utils';
 import { DEFAULT_HARDSUB_MASK_RECT, usePlayerUi, type HardsubMaskRect } from '@/fronted/features/player/playerUiStore';
-
-/** 画面矩形：视频按 `object-fit: contain` 缩放居中后，真正有像素的那块区域，单位与容器一致。 */
-interface PictureRect {
-    left: number;
-    top: number;
-    width: number;
-    height: number;
-}
-
-/** 贴片的拖动形态：整体移动，或拉动某条边/某个角缩放。 */
-type DragKind = 'move' | 'n' | 's' | 'e' | 'w' | 'ne' | 'nw' | 'se' | 'sw';
+import {
+    applyDrag,
+    computePictureRect,
+    fromPatchBox,
+    HARDSUB_MASK_HANDLES,
+    HANDLE_THICKNESS,
+    toPatchBox,
+    type DragKind,
+    type PatchBox,
+} from '@/fronted/features/player/components/hardsubMaskGeometry';
 
 export interface HardsubMaskProps {
     /**
@@ -26,92 +25,13 @@ export interface HardsubMaskProps {
     video: HTMLVideoElement | null;
 }
 
-/** 贴片最小尺寸（画面内像素）：再小就既盖不住字也抓不住了。 */
-const MIN_PATCH_WIDTH = 48;
-const MIN_PATCH_HEIGHT = 16;
-
-/** 边与角上拖拽热区的厚度（像素）。 */
-const HANDLE_THICKNESS = 12;
-
-/**
- * 计算视频在容器内实际渲染的画面矩形（等价于 `object-fit: contain` 的居中留黑）。
- *
- * @param containerWidth 容器宽度（像素）。
- * @param containerHeight 容器高度（像素）。
- * @param videoWidth 视频固有宽度（像素），0 表示元数据未就绪。
- * @param videoHeight 视频固有高度（像素），0 表示元数据未就绪。
- * @returns 画面矩形；任一维度不可用时退化为整个容器。
- */
-function computePictureRect(
-    containerWidth: number,
-    containerHeight: number,
-    videoWidth: number,
-    videoHeight: number
-): PictureRect {
-    if (containerWidth <= 0 || containerHeight <= 0) {
-        return { left: 0, top: 0, width: 0, height: 0 };
+/** 判断指针是否落在某元素的可视矩形内（松手后重算悬停态用）。 */
+function isPointerInside(element: HTMLElement | null, clientX: number, clientY: number): boolean {
+    if (!element) {
+        return false;
     }
-    if (videoWidth <= 0 || videoHeight <= 0) {
-        return { left: 0, top: 0, width: containerWidth, height: containerHeight };
-    }
-    const scale = Math.min(containerWidth / videoWidth, containerHeight / videoHeight);
-    const width = videoWidth * scale;
-    const height = videoHeight * scale;
-    return {
-        left: (containerWidth - width) / 2,
-        top: (containerHeight - height) / 2,
-        width,
-        height,
-    };
-}
-
-/**
- * 把一次拖拽换算成新的贴片矩形，并夹在画面内、保证不小于最小尺寸。
- *
- * @param start 拖拽开始时的矩形（画面内像素）。
- * @param kind 拖动形态。
- * @param dx 指针水平位移（像素）。
- * @param dy 指针垂直位移（像素）。
- * @param picture 画面矩形：宽高用于夹紧边界。
- * @returns 新的矩形（画面内像素）。
- */
-function applyDrag(
-    start: { left: number; top: number; width: number; height: number },
-    kind: DragKind,
-    dx: number,
-    dy: number,
-    picture: PictureRect
-): { left: number; top: number; width: number; height: number } {
-    let { left, top, width, height } = start;
-
-    if (kind === 'move') {
-        left = Math.min(Math.max(0, start.left + dx), Math.max(0, picture.width - width));
-        top = Math.min(Math.max(0, start.top + dy), Math.max(0, picture.height - height));
-        return { left, top, width, height };
-    }
-
-    const movesLeft = kind === 'w' || kind === 'nw' || kind === 'sw';
-    const movesRight = kind === 'e' || kind === 'ne' || kind === 'se';
-    const movesTop = kind === 'n' || kind === 'ne' || kind === 'nw';
-    const movesBottom = kind === 's' || kind === 'se' || kind === 'sw';
-
-    if (movesLeft) {
-        const nextLeft = Math.min(Math.max(0, start.left + dx), start.left + start.width - MIN_PATCH_WIDTH);
-        width = start.width + (start.left - nextLeft);
-        left = nextLeft;
-    }
-    if (movesRight) {
-        width = Math.min(Math.max(MIN_PATCH_WIDTH, start.width + dx), picture.width - start.left);
-    }
-    if (movesTop) {
-        const nextTop = Math.min(Math.max(0, start.top + dy), start.top + start.height - MIN_PATCH_HEIGHT);
-        height = start.height + (start.top - nextTop);
-        top = nextTop;
-    }
-    if (movesBottom) {
-        height = Math.min(Math.max(MIN_PATCH_HEIGHT, start.height + dy), picture.height - start.top);
-    }
-    return { left, top, width, height };
+    const box = element.getBoundingClientRect();
+    return clientX >= box.left && clientX <= box.right && clientY >= box.top && clientY <= box.bottom;
 }
 
 /**
@@ -123,9 +43,11 @@ function applyDrag(
  *
  * 交互约定：
  * - 鼠标只有贴片自己接管，画面其余区域点/拖照常（外层容器 `pointer-events-none`）；
- * - 悬停时贴片浮出虚线描边与边/角热区，平时就是一块干净黑块；拖动中描边与热区常显；
+ * - 悬停时贴片浮出边/角热区，平时就是一块干净黑块；拖动中热区常显；
  * - 双击贴片恢复默认（画面底部通栏），拖飞了能找回来；
- * - 开与关只由「播放控制」面板里的「挡字幕」开关负责，贴片上不挂任何按钮或提示。
+ * - 开与关只由控制条与「播放控制」面板里的「挡字幕」开关负责，贴片上不挂任何按钮或提示。
+ *
+ * 几何换算在 `hardsubMaskGeometry.ts`，控制条让位在 `hardsubMaskBarLayout.ts`，这里只管交互与渲染。
  *
  * @returns 遮挡贴片；未开启遮挡时不渲染任何内容。
  */
@@ -133,25 +55,26 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
     const { t } = useI18nTranslation('player');
     const maskOn = usePlayerUi((s) => s.hardsubMaskOn);
     const maskRect = usePlayerUi((s) => s.hardsubMaskRect);
+    const dragging = usePlayerUi((s) => s.hardsubMaskDragging);
     const setMaskRect = usePlayerUi((s) => s.setHardsubMaskRect);
     const setMaskHovering = usePlayerUi((s) => s.setHardsubMaskHovering);
+    const setMaskDragging = usePlayerUi((s) => s.setHardsubMaskDragging);
     const setPatchTopInset = usePlayerUi((s) => s.setHardsubMaskPatchTopInset);
     const setPatchBottomInset = usePlayerUi((s) => s.setHardsubMaskPatchBottomInset);
-    const setMaskDragging = usePlayerUi((s) => s.setHardsubMaskDragging);
     const setStageHeight = usePlayerUi((s) => s.setHardsubMaskStageHeight);
 
     const containerRef = useRef<HTMLDivElement>(null);
+    const patchRef = useRef<HTMLDivElement>(null);
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
     const [videoSize, setVideoSize] = useState({ width: 0, height: 0 });
     // 拖动期间用本地草稿渲染，松手才写回 store：避免每帧都往 localStorage 落一份
     const [draft, setDraft] = useState<HardsubMaskRect | null>(null);
     const draftRef = useRef<HardsubMaskRect | null>(null);
-    const [dragging, setDragging] = useState(false);
     const dragRef = useRef<{
         kind: DragKind;
         pointerX: number;
         pointerY: number;
-        start: { left: number; top: number; width: number; height: number };
+        start: PatchBox;
     } | null>(null);
 
     // 容器尺寸与视频固有尺寸都可能在播放期间变化（窗口缩放、切换源），两者都要跟踪
@@ -187,75 +110,82 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
         [containerSize, videoSize]
     );
 
-    /** 结束一次拖拽：把本地草稿落盘、清掉拖拽态。 */
-    const finishDrag = useCallback(() => {
-        if (draftRef.current) {
-            setMaskRect(draftRef.current);
-        }
-        draftRef.current = null;
-        dragRef.current = null;
-        setDraft(null);
-        setDragging(false);
-        setMaskDragging(false);
-        setMaskHovering(false);
-    }, [setMaskRect, setMaskHovering, setMaskDragging]);
+    /**
+     * 结束一次拖拽：本地草稿落盘、清掉拖拽态，并按指针当前位置重算悬停态。
+     *
+     * 这里不能直接把悬停态置 false：松手时指针通常还压在贴片上，DOM 不会再补发
+     * pointerenter，控制条就会立刻跑回贴片上方，得把鼠标移出再移入才恢复。
+     */
+    const finishDrag = useCallback(
+        (event?: ReactPointerEvent<HTMLDivElement>) => {
+            if (draftRef.current) {
+                setMaskRect(draftRef.current);
+            }
+            draftRef.current = null;
+            dragRef.current = null;
+            setDraft(null);
+            setMaskDragging(false);
+            setMaskHovering(
+                event ? isPointerInside(patchRef.current, event.clientX, event.clientY) : false
+            );
+        },
+        [setMaskRect, setMaskDragging, setMaskHovering]
+    );
 
-    const beginDrag = useCallback((kind: DragKind) => (event: React.PointerEvent<HTMLDivElement>) => {
-        if (event.button !== 0) {
-            return;
-        }
-        event.preventDefault();
-        event.stopPropagation();
-        event.currentTarget.setPointerCapture(event.pointerId);
-        dragRef.current = {
-            kind,
-            pointerX: event.clientX,
-            pointerY: event.clientY,
-            start: {
-                left: maskRect.x * picture.width,
-                top: maskRect.y * picture.height,
-                width: maskRect.w * picture.width,
-                height: maskRect.h * picture.height,
-            },
-        };
-        setDragging(true);
-        setMaskDragging(true);
-        setMaskHovering(true);
-    }, [maskRect, picture.height, picture.width, setMaskHovering, setMaskDragging]);
+    const beginDrag = useCallback(
+        (kind: DragKind) => (event: ReactPointerEvent<HTMLDivElement>) => {
+            if (event.button !== 0) {
+                return;
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            event.currentTarget.setPointerCapture(event.pointerId);
+            dragRef.current = {
+                kind,
+                pointerX: event.clientX,
+                pointerY: event.clientY,
+                start: toPatchBox(maskRect, picture),
+            };
+            setMaskDragging(true);
+            setMaskHovering(true);
+        },
+        [maskRect, picture, setMaskDragging, setMaskHovering]
+    );
 
-    const moveDrag = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
-        const drag = dragRef.current;
-        if (!drag || picture.width <= 0 || picture.height <= 0) {
-            return;
-        }
-        const next = applyDrag(
-            drag.start,
-            drag.kind,
-            event.clientX - drag.pointerX,
-            event.clientY - drag.pointerY,
-            picture
-        );
-        const normalized: HardsubMaskRect = {
-            x: next.left / picture.width,
-            y: next.top / picture.height,
-            w: next.width / picture.width,
-            h: next.height / picture.height,
-        };
-        draftRef.current = normalized;
-        setDraft(normalized);
-    }, [picture]);
+    const moveDrag = useCallback(
+        (event: ReactPointerEvent<HTMLDivElement>) => {
+            const drag = dragRef.current;
+            if (!drag || picture.width <= 0 || picture.height <= 0) {
+                return;
+            }
+            const next = applyDrag(
+                drag.start,
+                drag.kind,
+                event.clientX - drag.pointerX,
+                event.clientY - drag.pointerY,
+                picture
+            );
+            const normalized = fromPatchBox(next, picture);
+            draftRef.current = normalized;
+            setDraft(normalized);
+        },
+        [picture]
+    );
 
     // 贴片卸载（关掉遮挡/切走）时复位，别让控制条一直以为鼠标还压在贴片上
-    useEffect(() => () => {
-        setMaskHovering(false);
-        setMaskDragging(false);
-    }, [setMaskHovering, setMaskDragging]);
+    useEffect(
+        () => () => {
+            setMaskHovering(false);
+            setMaskDragging(false);
+        },
+        [setMaskHovering, setMaskDragging]
+    );
 
     const showMask = maskOn && picture.width > 0 && picture.height > 0;
     const rectNow = draft ?? maskRect;
     const patchWidth = rectNow.w * picture.width;
     const patchHeight = rectNow.h * picture.height;
-    // 贴片上沿 / 下沿到舞台底部的距离：控制条只看下沿判断要不要让位，看下沿决定抬多高
+    // 贴片上沿 / 下沿到舞台底部的距离：控制条按下沿判断要不要让位，按上沿决定抬多高
     const patchTopInset = showMask
         ? Math.max(0, containerSize.height - (picture.top + rectNow.y * picture.height))
         : 0;
@@ -266,28 +196,30 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
         setPatchTopInset(patchTopInset);
         setPatchBottomInset(patchBottomInset);
         setStageHeight(showMask ? containerSize.height : 0);
-    }, [patchTopInset, patchBottomInset, showMask, containerSize.height, setPatchTopInset, setPatchBottomInset, setStageHeight]);
-    useEffect(() => () => {
-        setPatchTopInset(0);
-        setPatchBottomInset(0);
-        setStageHeight(0);
-    }, [setPatchTopInset, setPatchBottomInset, setStageHeight]);
-    const rect = rectNow;
-
-    /** 边/角热区：平时不可见也不拦截指针，悬停或拖动时才浮出来接管缩放。 */
-    const handles: Array<{ kind: DragKind; className: string; grip: 'dot' | 'horizontal' | 'vertical' }> = [
-        { kind: 'nw', className: 'left-0 top-0 cursor-nwse-resize', grip: 'dot' },
-        { kind: 'ne', className: 'right-0 top-0 cursor-nesw-resize', grip: 'dot' },
-        { kind: 'sw', className: 'left-0 bottom-0 cursor-nesw-resize', grip: 'dot' },
-        { kind: 'se', className: 'right-0 bottom-0 cursor-nwse-resize', grip: 'dot' },
-        { kind: 'n', className: 'left-1/2 top-0 -translate-x-1/2 cursor-ns-resize', grip: 'horizontal' },
-        { kind: 's', className: 'left-1/2 bottom-0 -translate-x-1/2 cursor-ns-resize', grip: 'horizontal' },
-        { kind: 'w', className: 'left-0 top-1/2 -translate-y-1/2 cursor-ew-resize', grip: 'vertical' },
-        { kind: 'e', className: 'right-0 top-1/2 -translate-y-1/2 cursor-ew-resize', grip: 'vertical' },
-    ];
+    }, [
+        patchTopInset,
+        patchBottomInset,
+        showMask,
+        containerSize.height,
+        setPatchTopInset,
+        setPatchBottomInset,
+        setStageHeight,
+    ]);
+    useEffect(
+        () => () => {
+            setPatchTopInset(0);
+            setPatchBottomInset(0);
+            setStageHeight(0);
+        },
+        [setPatchTopInset, setPatchBottomInset, setStageHeight]
+    );
 
     return (
-        <div ref={containerRef} data-hardsub-mask="root" className="absolute inset-0 z-[15] pointer-events-none select-none">
+        <div
+            ref={containerRef}
+            data-hardsub-mask="root"
+            className="absolute inset-0 z-[15] pointer-events-none select-none"
+        >
             {showMask && (
                 <div
                     className="absolute"
@@ -301,15 +233,17 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
                     {/* 遮挡贴片：本体拖动移动，边/角拖拽缩放。
                         视觉上就是一块直角纯色块，不做模糊、渐变和羽化 */}
                     <div
+                        ref={patchRef}
                         data-hardsub-mask="patch"
+                        role="group"
                         aria-label={t('hardsubMask.patchAria')}
                         className={cn(
                             'group absolute pointer-events-auto touch-none',
                             dragging ? 'cursor-grabbing' : 'cursor-grab'
                         )}
                         style={{
-                            left: rect.x * picture.width,
-                            top: rect.y * picture.height,
+                            left: rectNow.x * picture.width,
+                            top: rectNow.y * picture.height,
                             width: patchWidth,
                             height: patchHeight,
                         }}
@@ -342,13 +276,14 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
                             )}
                         />
 
-                        {handles.map((handle) => (
+                        {HARDSUB_MASK_HANDLES.map((handle) => (
                             <div
                                 key={handle.kind}
                                 data-hardsub-mask-handle={handle.kind}
                                 className={cn(
-                                    'absolute flex items-center justify-center',
-                                    'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 transition-opacity duration-150',
+                                    'absolute flex items-center justify-center touch-none',
+                                    'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100',
+                                    'transition-opacity duration-150',
                                     dragging && 'pointer-events-auto opacity-100',
                                     handle.className
                                 )}

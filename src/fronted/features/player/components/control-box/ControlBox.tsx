@@ -3,7 +3,7 @@ import { useShallow } from 'zustand/react/shallow';
 import useSWR from 'swr';
 import { swrMutate, SWR_KEY } from '@/fronted/lib/swr-util';
 import { cn } from '@/fronted/lib/utils';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/fronted/components/ui/card';
 import { usePlayerUi } from '@/fronted/features/player/playerUiStore';
 import { usePlayer } from '@/fronted/features/player/playerStore';
 import { playerActions } from '@/fronted/features/player/components/PlayerActions';

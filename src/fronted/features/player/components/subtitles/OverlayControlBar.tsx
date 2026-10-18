@@ -19,13 +19,16 @@ import {
     PlaybackNavControls
 } from '@/fronted/features/player/components/PlaybackGlobalControls';
 import { CONTROL_POPOVER_OFFSET_SINGLE_ROW_BAR } from '@/fronted/features/player/components/ControlPopover';
-import { FULLSCREEN_CONTROL_BAR_ZONE_PX } from '@/fronted/features/player/components/controlBarZone';
+import {
+    FULLSCREEN_CONTROL_BAR_PANEL_HEIGHT_PX,
+    FULLSCREEN_CONTROL_BAR_ZONE_PX,
+} from '@/fronted/features/player/components/controlBarZone';
+import { useHardsubMaskBarAdjust } from '@/fronted/features/player/components/hardsubMaskBarLayout';
 
 export interface OverlayControlBarProps {
     className?: string;
     onTimeChange?: (time: number) => void;
 }
-
 
 const OverlayControlBar = ({
     className,
@@ -67,18 +70,13 @@ const OverlayControlBar = ({
     const changeFullScreen = useLayout((s) => s.changeFullScreen);
     // 用户钉住后控制条常显，不再受鼠标移出隐藏影响（与普通视图条共用同一开关）
     const pinned = usePlayerUi((s) => s.controlBarPinned);
-    // 与普通视图条一致：鼠标压在遮挡贴片上时让位，并抬到贴片之上
-    const maskHovering = usePlayerUi((s) => s.hardsubMaskHovering);
-    const maskOn = usePlayerUi((s) => s.hardsubMaskOn);
-    const patchTopInset = usePlayerUi((s) => s.hardsubMaskPatchTopInset);
-    const patchBottomInset = usePlayerUi((s) => s.hardsubMaskPatchBottomInset);
-    const stageHeight = usePlayerUi((s) => s.hardsubMaskStageHeight);
-    // 与普通视图条同一套判断：贴片没压进这条的感应区时，就待在原位
-    const maskOccupiesBarZone = maskOn && patchBottomInset < FULLSCREEN_CONTROL_BAR_ZONE_PX;
-    // 与普通视图条一致：拖贴片时降为半透明幽灵，充当自己的位置替身
-    const ghost = usePlayerUi((s) => s.hardsubMaskDragging);
-    const maxLift = Math.max(0, stageHeight - 180);
-    const liftPx = maskOccupiesBarZone ? Math.min(maxLift, Math.max(0, patchTopInset)) : 0;
+    // 遮挡贴片对本条的让位 / 幽灵态 / 抬起量：与普通视图条共用同一份判断
+    const maskAdjust = useHardsubMaskBarAdjust({
+        panelHeightPx: FULLSCREEN_CONTROL_BAR_PANEL_HEIGHT_PX,
+        zonePx: FULLSCREEN_CONTROL_BAR_ZONE_PX,
+        gapPx: 0,
+    });
+    const barVisible = (mouseOver || menuOpen || pinned) && !maskAdjust.hiddenByMask;
 
     return (
         <div
@@ -88,15 +86,21 @@ const OverlayControlBar = ({
             onMouseLeave={() => {
                 setMouseOver(false);
             }}
-            style={{ marginBottom: liftPx }}
-            className={cn('w-full flex flex-col justify-end h-32 p-4 pointer-events-auto transition-[margin] duration-200 ease-out')}
+            style={{ marginBottom: maskAdjust.liftPx }}
+            // 这条感应区整块都能收指针，而全屏遮罩层整体压在贴片（z-15）之上：
+            // 贴片压到底部时，落在感应区里的那部分贴片抓不到（从贴片靠上的部分起拖不受影响）。
+            // 彻底解法是把「感应区」拆成压在贴片之下的独立图层，与面板分开渲染，属于单独一次改动。
+            className={cn(
+                'w-full flex flex-col justify-end h-32 p-4 pointer-events-auto',
+                'transition-[margin] duration-200 ease-out'
+            )}
         >
             <div
                 className={cn(
                     'w-full px-4 py-2.5 rounded-2xl border border-white/10 bg-black/65 backdrop-blur-md shadow-2xl transition-opacity duration-200 ease-out pointer-events-auto',
-                    ghost
+                    maskAdjust.ghost
                         ? 'opacity-40 pointer-events-none'
-                        : (mouseOver || menuOpen || pinned) && !(maskHovering && maskOccupiesBarZone && !pinned)
+                        : barVisible
                         ? 'opacity-100'
                         : 'opacity-0 pointer-events-none',
                     className

@@ -19,10 +19,14 @@ import {
     PlaybackNavControls
 } from '@/fronted/features/player/components/PlaybackGlobalControls';
 import { CONTROL_POPOVER_OFFSET_STACKED_BAR } from '@/fronted/features/player/components/ControlPopover';
-import { CONTROL_BAR_ZONE_PX } from '@/fronted/features/player/components/controlBarZone';
+import {
+    CONTROL_BAR_GAP_PX,
+    CONTROL_BAR_PANEL_HEIGHT_PX,
+    CONTROL_BAR_ZONE_PX,
+} from '@/fronted/features/player/components/controlBarZone';
+import { useHardsubMaskBarAdjust } from '@/fronted/features/player/components/hardsubMaskBarLayout';
 
 const logger = getRendererLogger('PlaybackControlBar');
-
 
 export interface PlaybackControlBarProps {
     className?: string;
@@ -54,21 +58,12 @@ const PlaybackControlBar = ({
     const changeFullScreen = useLayout((s) => s.changeFullScreen);
     // 用户钉住后控制条常显，不再受鼠标超时隐藏影响
     const pinned = usePlayerUi((s) => s.controlBarPinned);
-    // 鼠标压在遮挡贴片上时让位：贴片与这条控制条都是悬停才现身的浮层，压在同一块区域会互相抢事件
-    const maskHovering = usePlayerUi((s) => s.hardsubMaskHovering);
-    const maskOn = usePlayerUi((s) => s.hardsubMaskOn);
-    const patchTopInset = usePlayerUi((s) => s.hardsubMaskPatchTopInset);
-    const patchBottomInset = usePlayerUi((s) => s.hardsubMaskPatchBottomInset);
-    const stageHeight = usePlayerUi((s) => s.hardsubMaskStageHeight);
-    // 只有贴片压进控制条地盘（底部 152px ≈ 感应区 144 + 间距）时才让位；
-    // 贴片挪到画面中上部、底部空出来时，控制条就待在原位
-    const maskOccupiesBarZone = maskOn && patchBottomInset < CONTROL_BAR_ZONE_PX;
-    // 拖动遮挡贴片期间，整条控制栏降为「幽灵」：留在原地、半透明、不可交互，
-    // 用户能直接看到它此刻在哪、有没有让位，不需要再画一个假的替身
-    const ghost = usePlayerUi((s) => s.hardsubMaskDragging);
-    // 抬起量：让整条控制条落在贴片上沿之上；上限保证它不会被顶出画面（条高约 144 + 余量）
-    const maxLift = Math.max(0, stageHeight - 200);
-    const liftPx = maskOccupiesBarZone ? Math.min(maxLift, Math.max(0, patchTopInset)) : 0;
+    // 遮挡贴片对本条的让位 / 幽灵态 / 抬起量：与全屏条共用同一份判断，只是面板尺寸不同
+    const maskAdjust = useHardsubMaskBarAdjust({
+        panelHeightPx: CONTROL_BAR_PANEL_HEIGHT_PX,
+        zonePx: CONTROL_BAR_ZONE_PX,
+        gapPx: CONTROL_BAR_GAP_PX,
+    });
 
     const [mouseOverOut, setMouseOverOut] = useState<boolean>(false);
     // 训练模式/字幕轨道菜单或训练参数弹窗展开期间钉住控制条：鼠标移向菜单会先离开本条区域
@@ -77,6 +72,8 @@ const PlaybackControlBar = ({
     const currentValueUpdateTime = useRef<number>(0);
     const [selecting, setSelecting] = useState(false);
     const mouseOverTimeout = useRef<number[]>([0]);
+    // 本条是否该显形：钉住/鼠标在条上/菜单展开才算「想显示」，且鼠标压到贴片上时要让位
+    const barVisible = (mouseOverOut || menuOpen || pinned) && !maskAdjust.hiddenByMask;
 
     useEffect(() => {
         if (selecting || Date.now() - currentValueUpdateTime.current < 500) {
@@ -118,7 +115,7 @@ const PlaybackControlBar = ({
         <div
             onMouseMove={handleMouseMove}
             onMouseLeave={onMouseLeave}
-            style={{ bottom: liftPx + 8 }}
+            style={{ bottom: maskAdjust.liftPx + CONTROL_BAR_GAP_PX }}
             className={cn(
                 'w-full flex flex-col-reverse h-36 text-white/90 px-4 pb-8 pt-2 pointer-events-auto',
                 'transition-[bottom] duration-200 ease-out',
@@ -128,9 +125,9 @@ const PlaybackControlBar = ({
             <div
                 className={cn(
                     'relative z-20 w-full px-4 py-3 rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md shadow-2xl transition-opacity duration-200 ease-out pointer-events-auto',
-                    ghost
+                    maskAdjust.ghost
                         ? 'opacity-40 pointer-events-none'
-                        : (mouseOverOut || menuOpen || pinned) && !(maskHovering && maskOccupiesBarZone && !pinned)
+                        : barVisible
                         ? 'opacity-100'
                         : 'opacity-0 pointer-events-none'
                 )}
