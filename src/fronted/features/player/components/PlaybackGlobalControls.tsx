@@ -36,6 +36,7 @@ import { usePlayer } from '@/fronted/features/player/playerStore';
 import { usePlayerUi } from '@/fronted/features/player/playerUiStore';
 import { useTrainingModeStore } from '@/fronted/features/player/trainingStore';
 import { TrainingSettingsDialog } from '@/fronted/features/player/components/TrainingSettingsDialog';
+import useLayout from '@/fronted/hooks/useLayout';
 import useSetting from '@/fronted/features/settings/settingsStore';
 
 /**
@@ -469,13 +470,19 @@ export function PlaybackModeControls({
  *
  * 与「播放控制」面板里的开关是同一个状态，两处互相同步；这里只负责开与关，
  * 贴片的位置与大小靠画面里直接拖拽（见 HardsubMask），所以不挂二级弹窗。
+ * 播客模式不看画面，遮挡无意义，直接不渲染。
  *
- * @returns 遮挡开关按钮。
+ * @returns 遮挡开关按钮；播客模式下什么都不渲染。
  */
 function HardsubMaskButton() {
     const { t } = useI18nTranslation('player');
     const maskOn = usePlayerUi((s) => s.hardsubMaskOn);
     const toggleMask = usePlayerUi((s) => s.toggleHardsubMask);
+    const podcastMode = useLayout((s) => s.podcastMode);
+
+    if (podcastMode) {
+        return null;
+    }
 
     return (
         <TooltipProvider delayDuration={300}>

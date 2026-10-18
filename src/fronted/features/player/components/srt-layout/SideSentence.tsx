@@ -87,7 +87,11 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
             shallow
         );
         const translationKey = sentence?.translationKey || '';
-        const newTranslation = useTranslation(state => state.translations.get(translationKey)) || '';
+        // 关闭侧栏译文时选择器恒返回 undefined，避免白白跟着译文库重渲染
+        const newTranslation =
+            useTranslation((state) =>
+                showSideTranslation ? state.translations.get(translationKey) : undefined
+            ) || '';
         
         const primaryText = sentence.text || '';
         // 译文行受侧栏译文开关控制：原文行始终显示，关掉译文时整行不占位
