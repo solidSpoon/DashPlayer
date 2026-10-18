@@ -52,6 +52,14 @@ const PlaybackControlBar = ({
     const changeFullScreen = useLayout((s) => s.changeFullScreen);
     // 用户钉住后控制条常显，不再受鼠标超时隐藏影响
     const pinned = usePlayerUi((s) => s.controlBarPinned);
+    // 鼠标压在遮挡贴片上时让位：贴片与这条控制条都是悬停才现身的浮层，压在同一块区域会互相抢事件
+    const maskHovering = usePlayerUi((s) => s.hardsubMaskHovering);
+    const maskOn = usePlayerUi((s) => s.hardsubMaskOn);
+    const patchTopInset = usePlayerUi((s) => s.hardsubMaskPatchTopInset);
+    const stageHeight = usePlayerUi((s) => s.hardsubMaskStageHeight);
+    // 抬起量：让整条控制条落在贴片上沿之上；上限保证它不会被顶出画面（条高约 144 + 余量）
+    const maxLift = Math.max(0, stageHeight - 200);
+    const liftPx = maskOn ? Math.min(maxLift, Math.max(0, patchTopInset)) : 0;
 
     const [mouseOverOut, setMouseOverOut] = useState<boolean>(false);
     // 训练模式/字幕轨道菜单或训练参数弹窗展开期间钉住控制条：鼠标移向菜单会先离开本条区域
@@ -101,15 +109,19 @@ const PlaybackControlBar = ({
         <div
             onMouseMove={handleMouseMove}
             onMouseLeave={onMouseLeave}
+            style={{ bottom: liftPx + 8 }}
             className={cn(
                 'w-full flex flex-col-reverse h-36 text-white/90 px-4 pb-8 pt-2 pointer-events-auto',
+                'transition-[bottom] duration-200 ease-out',
                 className
             )}
         >
             <div
                 className={cn(
                     'relative z-20 w-full px-4 py-3 rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md shadow-2xl transition-opacity duration-200 ease-out pointer-events-auto',
-                    mouseOverOut || menuOpen || pinned ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                    (mouseOverOut || menuOpen || pinned) && !(maskHovering && !pinned)
+                        ? 'opacity-100'
+                        : 'opacity-0 pointer-events-none'
                 )}
                 onMouseMove={(e) => {
                     e.stopPropagation();

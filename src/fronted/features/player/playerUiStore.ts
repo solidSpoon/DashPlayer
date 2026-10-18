@@ -21,6 +21,18 @@ type PlayerUiState = {
   hardsubMaskOn: boolean;
   /** 遮挡贴片在画面内的相对位置与尺寸（均为 0~1 的比例，随画面尺寸缩放）。 */
   hardsubMaskRect: HardsubMaskRect;
+  /**
+   * 遮挡贴片上沿到播放舞台底部的距离（像素）。控制条据此抬高到贴片之上，
+   * 否则两者叠在同一块区域：面板压在贴片上，鼠标够不到贴片，贴片也挡住面板。
+   */
+  hardsubMaskPatchTopInset: number;
+  /** 播放舞台高度（像素），控制条据此限制最多能抬多高，避免被顶出画面。 */
+  hardsubMaskStageHeight: number;
+  /**
+   * 鼠标是否压在遮挡贴片上（含拖动中）。
+   * 视频控制条据此让位：两者都是「悬停才现身」的浮层，压在同一块区域会互相抢事件。
+   */
+  hardsubMaskHovering: boolean;
 };
 
 type PlayerUiActions = {
@@ -34,6 +46,9 @@ type PlayerUiActions = {
   toggleControlBarPinned: () => void;
   toggleHardsubMask: () => void;
   setHardsubMaskRect: (rect: HardsubMaskRect) => void;
+  setHardsubMaskHovering: (hovering: boolean) => void;
+  setHardsubMaskPatchTopInset: (inset: number) => void;
+  setHardsubMaskStageHeight: (height: number) => void;
 };
 
 /** 遮挡贴片的矩形：x/y 为左上角、w/h 为宽高，均为相对画面尺寸的比例。 */
@@ -59,6 +74,9 @@ export const usePlayerUi = create(
       controlBarPinned: false,
       hardsubMaskOn: false,
       hardsubMaskRect: { ...DEFAULT_HARDSUB_MASK_RECT },
+      hardsubMaskPatchTopInset: 0,
+      hardsubMaskStageHeight: 0,
+      hardsubMaskHovering: false,
 
       changeShowEn: () => set((s) => ({ showEn: !s.showEn })),
       changeShowCn: () => set((s) => ({ showCn: !s.showCn })),
@@ -69,6 +87,9 @@ export const usePlayerUi = create(
       changeShowWordLevel: () => set((s) => ({ showWordLevel: !s.showWordLevel })),
       toggleControlBarPinned: () => set((s) => ({ controlBarPinned: !s.controlBarPinned })),
       toggleHardsubMask: () => set((s) => ({ hardsubMaskOn: !s.hardsubMaskOn })),
+      setHardsubMaskHovering: (hovering) => set(() => ({ hardsubMaskHovering: hovering })),
+      setHardsubMaskPatchTopInset: (inset) => set(() => ({ hardsubMaskPatchTopInset: inset })),
+      setHardsubMaskStageHeight: (height) => set(() => ({ hardsubMaskStageHeight: height })),
       setHardsubMaskRect: (rect) =>
         set(() => ({
           hardsubMaskRect: {

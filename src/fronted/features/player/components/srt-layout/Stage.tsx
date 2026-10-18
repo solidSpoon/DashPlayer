@@ -79,7 +79,7 @@ export default function PlaybackStage({ className, onReady, onEnded, onProvideVi
                 {!fullScreen && !podcastMode && (
                     <PlaybackControlBar
                         onTimeChange={(time) => playerActions.seekTo({ time })}
-                        className="absolute bottom-2 left-0"
+                        className="absolute left-0"
                     />
                 )}
                 {fullScreen && <FullscreenSubtitleOverlay />}

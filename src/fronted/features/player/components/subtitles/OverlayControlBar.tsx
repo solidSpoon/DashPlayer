@@ -65,6 +65,13 @@ const OverlayControlBar = ({
     const changeFullScreen = useLayout((s) => s.changeFullScreen);
     // 用户钉住后控制条常显，不再受鼠标移出隐藏影响（与普通视图条共用同一开关）
     const pinned = usePlayerUi((s) => s.controlBarPinned);
+    // 与普通视图条一致：鼠标压在遮挡贴片上时让位，并抬到贴片之上
+    const maskHovering = usePlayerUi((s) => s.hardsubMaskHovering);
+    const maskOn = usePlayerUi((s) => s.hardsubMaskOn);
+    const patchTopInset = usePlayerUi((s) => s.hardsubMaskPatchTopInset);
+    const stageHeight = usePlayerUi((s) => s.hardsubMaskStageHeight);
+    const maxLift = Math.max(0, stageHeight - 180);
+    const liftPx = maskOn ? Math.min(maxLift, Math.max(0, patchTopInset)) : 0;
 
     return (
         <div
@@ -74,12 +81,15 @@ const OverlayControlBar = ({
             onMouseLeave={() => {
                 setMouseOver(false);
             }}
-            className="w-full flex flex-col justify-end h-32 p-4 pointer-events-auto"
+            style={{ marginBottom: liftPx }}
+            className={cn('w-full flex flex-col justify-end h-32 p-4 pointer-events-auto transition-[margin] duration-200 ease-out')}
         >
             <div
                 className={cn(
                     'w-full px-4 py-2.5 rounded-2xl border border-white/10 bg-black/65 backdrop-blur-md shadow-2xl transition-opacity duration-200 ease-out pointer-events-auto',
-                    mouseOver || menuOpen || pinned ? 'opacity-100' : 'opacity-0 pointer-events-none',
+                    (mouseOver || menuOpen || pinned) && !(maskHovering && !pinned)
+                        ? 'opacity-100'
+                        : 'opacity-0 pointer-events-none',
                     className
                 )}
             >

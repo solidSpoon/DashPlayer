@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import {
     CirclePause,
     Dumbbell,
+    EyeOff,
     FastForward,
     Gauge,
     Languages,
@@ -453,9 +454,51 @@ export function PlaybackModeControls({
                     </PopoverContent>
                 </Popover>
 
+                {/* 硬字幕遮挡：一键开关，位置与大小在画面里直接拖贴片 */}
+                <HardsubMaskButton />
+
                 {/* 训练模式参数配置弹窗 */}
                 <TrainingSettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} />
             </div>
+        </TooltipProvider>
+    );
+}
+
+/**
+ * 硬字幕遮挡开关：视频控制条上的一键开关。
+ *
+ * 与「播放控制」面板里的开关是同一个状态，两处互相同步；这里只负责开与关，
+ * 贴片的位置与大小靠画面里直接拖拽（见 HardsubMask），所以不挂二级弹窗。
+ *
+ * @returns 遮挡开关按钮。
+ */
+function HardsubMaskButton() {
+    const { t } = useI18nTranslation('player');
+    const maskOn = usePlayerUi((s) => s.hardsubMaskOn);
+    const toggleMask = usePlayerUi((s) => s.toggleHardsubMask);
+
+    return (
+        <TooltipProvider delayDuration={300}>
+            <Tooltip>
+                <TooltipTrigger asChild>
+                    <button
+                        onClick={toggleMask}
+                        aria-pressed={maskOn}
+                        className={cn(
+                            TEXT_BUTTON_CLASS,
+                            maskOn
+                                ? 'text-amber-100 bg-amber-500/25 ring-1 ring-amber-400/30'
+                                : cn('text-white/80', DARK_BAR_BUTTON_HOVER)
+                        )}
+                    >
+                        <EyeOff className="w-3.5 h-3.5" />
+                        <span className="font-sans">{t('hardsubMask.label')}</span>
+                    </button>
+                </TooltipTrigger>
+                <TooltipContent side="top" align="end">
+                    {t('hardsubMask.label')}
+                </TooltipContent>
+            </Tooltip>
         </TooltipProvider>
     );
 }

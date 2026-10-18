@@ -134,6 +134,9 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
     const maskOn = usePlayerUi((s) => s.hardsubMaskOn);
     const maskRect = usePlayerUi((s) => s.hardsubMaskRect);
     const setMaskRect = usePlayerUi((s) => s.setHardsubMaskRect);
+    const setMaskHovering = usePlayerUi((s) => s.setHardsubMaskHovering);
+    const setPatchTopInset = usePlayerUi((s) => s.setHardsubMaskPatchTopInset);
+    const setStageHeight = usePlayerUi((s) => s.setHardsubMaskStageHeight);
 
     const containerRef = useRef<HTMLDivElement>(null);
     const [containerSize, setContainerSize] = useState({ width: 0, height: 0 });
@@ -191,7 +194,8 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
         dragRef.current = null;
         setDraft(null);
         setDragging(false);
-    }, [setMaskRect]);
+        setMaskHovering(false);
+    }, [setMaskRect, setMaskHovering]);
 
     const beginDrag = useCallback((kind: DragKind) => (event: React.PointerEvent<HTMLDivElement>) => {
         if (event.button !== 0) {
@@ -212,7 +216,8 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
             },
         };
         setDragging(true);
-    }, [maskRect, picture.height, picture.width]);
+        setMaskHovering(true);
+    }, [maskRect, picture.height, picture.width, setMaskHovering]);
 
     const moveDrag = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
         const drag = dragRef.current;
@@ -236,8 +241,25 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
         setDraft(normalized);
     }, [picture]);
 
+    // 贴片卸载（关掉遮挡/切走）时复位，别让控制条一直以为鼠标还压在贴片上
+    useEffect(() => () => setMaskHovering(false), [setMaskHovering]);
+
     const showMask = maskOn && picture.width > 0 && picture.height > 0;
-    const rect = draft ?? maskRect;
+    const rectNow = draft ?? maskRect;
+    // 播报贴片上沿位置：控制条据此抬高，避免与贴片叠在一起互相抢事件
+    // 贴片上沿到舞台底部的距离
+    const patchTopInset = showMask
+        ? Math.max(0, containerSize.height - (picture.top + rectNow.y * picture.height))
+        : 0;
+    useEffect(() => {
+        setPatchTopInset(patchTopInset);
+        setStageHeight(showMask ? containerSize.height : 0);
+    }, [patchTopInset, showMask, containerSize.height, setPatchTopInset, setStageHeight]);
+    useEffect(() => () => {
+        setPatchTopInset(0);
+        setStageHeight(0);
+    }, [setPatchTopInset, setStageHeight]);
+    const rect = rectNow;
 
     /** 边/角热区：平时不可见也不拦截指针，悬停或拖动时才浮出来接管缩放。 */
     const handles: Array<{ kind: DragKind; className: string; grip: 'dot' | 'horizontal' | 'vertical' }> = [
@@ -286,6 +308,12 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
                         onPointerUp={finishDrag}
                         onPointerCancel={finishDrag}
                         onLostPointerCapture={finishDrag}
+                        onPointerEnter={() => setMaskHovering(true)}
+                        onPointerLeave={() => {
+                            if (!dragRef.current) {
+                                setMaskHovering(false);
+                            }
+                        }}
                         onDoubleClick={() => setMaskRect({ ...DEFAULT_HARDSUB_MASK_RECT })}
                     >
                         {handles.map((handle) => (
