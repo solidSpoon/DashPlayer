@@ -136,6 +136,7 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
     const setMaskRect = usePlayerUi((s) => s.setHardsubMaskRect);
     const setMaskHovering = usePlayerUi((s) => s.setHardsubMaskHovering);
     const setPatchTopInset = usePlayerUi((s) => s.setHardsubMaskPatchTopInset);
+    const setPatchBottomInset = usePlayerUi((s) => s.setHardsubMaskPatchBottomInset);
     const setStageHeight = usePlayerUi((s) => s.setHardsubMaskStageHeight);
 
     const containerRef = useRef<HTMLDivElement>(null);
@@ -247,18 +248,23 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
     const showMask = maskOn && picture.width > 0 && picture.height > 0;
     const rectNow = draft ?? maskRect;
     // 播报贴片上沿位置：控制条据此抬高，避免与贴片叠在一起互相抢事件
-    // 贴片上沿到舞台底部的距离
+    // 贴片上沿 / 下沿到舞台底部的距离：控制条只看下沿判断要不要让位，看下沿决定抬多高
     const patchTopInset = showMask
         ? Math.max(0, containerSize.height - (picture.top + rectNow.y * picture.height))
         : 0;
+    const patchBottomInset = showMask
+        ? Math.max(0, containerSize.height - (picture.top + (rectNow.y + rectNow.h) * picture.height))
+        : 0;
     useEffect(() => {
         setPatchTopInset(patchTopInset);
+        setPatchBottomInset(patchBottomInset);
         setStageHeight(showMask ? containerSize.height : 0);
-    }, [patchTopInset, showMask, containerSize.height, setPatchTopInset, setStageHeight]);
+    }, [patchTopInset, patchBottomInset, showMask, containerSize.height, setPatchTopInset, setPatchBottomInset, setStageHeight]);
     useEffect(() => () => {
         setPatchTopInset(0);
+        setPatchBottomInset(0);
         setStageHeight(0);
-    }, [setPatchTopInset, setStageHeight]);
+    }, [setPatchTopInset, setPatchBottomInset, setStageHeight]);
     const rect = rectNow;
 
     /** 边/角热区：平时不可见也不拦截指针，悬停或拖动时才浮出来接管缩放。 */

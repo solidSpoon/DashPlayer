@@ -22,6 +22,9 @@ import { CONTROL_POPOVER_OFFSET_STACKED_BAR } from '@/fronted/features/player/co
 
 const logger = getRendererLogger('PlaybackControlBar');
 
+/** 控制条的感应区高度（含与画面底部的间距）：贴片压进这块区域时才需要让位。 */
+const BAR_ZONE_PX = 152;
+
 export interface PlaybackControlBarProps {
     className?: string;
     onTimeChange?: (time: number) => void;
@@ -56,10 +59,14 @@ const PlaybackControlBar = ({
     const maskHovering = usePlayerUi((s) => s.hardsubMaskHovering);
     const maskOn = usePlayerUi((s) => s.hardsubMaskOn);
     const patchTopInset = usePlayerUi((s) => s.hardsubMaskPatchTopInset);
+    const patchBottomInset = usePlayerUi((s) => s.hardsubMaskPatchBottomInset);
     const stageHeight = usePlayerUi((s) => s.hardsubMaskStageHeight);
+    // 只有贴片压进控制条地盘（底部 152px ≈ 感应区 144 + 间距）时才让位；
+    // 贴片挪到画面中上部、底部空出来时，控制条就待在原位
+    const maskOccupiesBarZone = maskOn && patchBottomInset < BAR_ZONE_PX;
     // 抬起量：让整条控制条落在贴片上沿之上；上限保证它不会被顶出画面（条高约 144 + 余量）
     const maxLift = Math.max(0, stageHeight - 200);
-    const liftPx = maskOn ? Math.min(maxLift, Math.max(0, patchTopInset)) : 0;
+    const liftPx = maskOccupiesBarZone ? Math.min(maxLift, Math.max(0, patchTopInset)) : 0;
 
     const [mouseOverOut, setMouseOverOut] = useState<boolean>(false);
     // 训练模式/字幕轨道菜单或训练参数弹窗展开期间钉住控制条：鼠标移向菜单会先离开本条区域
@@ -119,7 +126,7 @@ const PlaybackControlBar = ({
             <div
                 className={cn(
                     'relative z-20 w-full px-4 py-3 rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md shadow-2xl transition-opacity duration-200 ease-out pointer-events-auto',
-                    (mouseOverOut || menuOpen || pinned) && !(maskHovering && !pinned)
+                    (mouseOverOut || menuOpen || pinned) && !(maskHovering && maskOccupiesBarZone && !pinned)
                         ? 'opacity-100'
                         : 'opacity-0 pointer-events-none'
                 )}

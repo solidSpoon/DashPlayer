@@ -25,6 +25,9 @@ export interface OverlayControlBarProps {
     onTimeChange?: (time: number) => void;
 }
 
+/** 全屏控制条的感应区高度（h-32 + 内边距）：贴片压进这块区域时才让位。 */
+const OVERLAY_BAR_ZONE_PX = 132;
+
 const OverlayControlBar = ({
     className,
     onTimeChange
@@ -69,9 +72,12 @@ const OverlayControlBar = ({
     const maskHovering = usePlayerUi((s) => s.hardsubMaskHovering);
     const maskOn = usePlayerUi((s) => s.hardsubMaskOn);
     const patchTopInset = usePlayerUi((s) => s.hardsubMaskPatchTopInset);
+    const patchBottomInset = usePlayerUi((s) => s.hardsubMaskPatchBottomInset);
     const stageHeight = usePlayerUi((s) => s.hardsubMaskStageHeight);
+    // 与普通视图条同一套判断：贴片没压进这条的感应区时，就待在原位
+    const maskOccupiesBarZone = maskOn && patchBottomInset < OVERLAY_BAR_ZONE_PX;
     const maxLift = Math.max(0, stageHeight - 180);
-    const liftPx = maskOn ? Math.min(maxLift, Math.max(0, patchTopInset)) : 0;
+    const liftPx = maskOccupiesBarZone ? Math.min(maxLift, Math.max(0, patchTopInset)) : 0;
 
     return (
         <div
@@ -87,7 +93,7 @@ const OverlayControlBar = ({
             <div
                 className={cn(
                     'w-full px-4 py-2.5 rounded-2xl border border-white/10 bg-black/65 backdrop-blur-md shadow-2xl transition-opacity duration-200 ease-out pointer-events-auto',
-                    (mouseOver || menuOpen || pinned) && !(maskHovering && !pinned)
+                    (mouseOver || menuOpen || pinned) && !(maskHovering && maskOccupiesBarZone && !pinned)
                         ? 'opacity-100'
                         : 'opacity-0 pointer-events-none',
                     className

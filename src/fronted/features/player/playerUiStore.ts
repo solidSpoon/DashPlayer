@@ -26,6 +26,11 @@ type PlayerUiState = {
    * 否则两者叠在同一块区域：面板压在贴片上，鼠标够不到贴片，贴片也挡住面板。
    */
   hardsubMaskPatchTopInset: number;
+  /**
+   * 遮挡贴片下沿到播放舞台底部的距离（像素）。
+   * 控制条按它判断要不要让位：贴片整体在控制条地盘之上时，控制条就该待在原位。
+   */
+  hardsubMaskPatchBottomInset: number;
   /** 播放舞台高度（像素），控制条据此限制最多能抬多高，避免被顶出画面。 */
   hardsubMaskStageHeight: number;
   /**
@@ -48,6 +53,7 @@ type PlayerUiActions = {
   setHardsubMaskRect: (rect: HardsubMaskRect) => void;
   setHardsubMaskHovering: (hovering: boolean) => void;
   setHardsubMaskPatchTopInset: (inset: number) => void;
+  setHardsubMaskPatchBottomInset: (inset: number) => void;
   setHardsubMaskStageHeight: (height: number) => void;
 };
 
@@ -75,6 +81,7 @@ export const usePlayerUi = create(
       hardsubMaskOn: false,
       hardsubMaskRect: { ...DEFAULT_HARDSUB_MASK_RECT },
       hardsubMaskPatchTopInset: 0,
+      hardsubMaskPatchBottomInset: 0,
       hardsubMaskStageHeight: 0,
       hardsubMaskHovering: false,
 
@@ -89,6 +96,7 @@ export const usePlayerUi = create(
       toggleHardsubMask: () => set((s) => ({ hardsubMaskOn: !s.hardsubMaskOn })),
       setHardsubMaskHovering: (hovering) => set(() => ({ hardsubMaskHovering: hovering })),
       setHardsubMaskPatchTopInset: (inset) => set(() => ({ hardsubMaskPatchTopInset: inset })),
+      setHardsubMaskPatchBottomInset: (inset) => set(() => ({ hardsubMaskPatchBottomInset: inset })),
       setHardsubMaskStageHeight: (height) => set(() => ({ hardsubMaskStageHeight: height })),
       setHardsubMaskRect: (rect) =>
         set(() => ({
