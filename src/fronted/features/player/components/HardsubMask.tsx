@@ -299,14 +299,13 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
                     }}
                 >
                     {/* 遮挡贴片：本体拖动移动，边/角拖拽缩放。
-                        不用 mask 羽化——Chromium 里 mask 会把 backdrop-filter 的结果按 alpha 削掉，
-                        边缘就变成「半糊半清」。改用三层嵌套的渐进模糊：外层轻、内层重，
-                        每层都只是小圆角矩形，模糊强度逐级加深，边界因此读起来像失焦而不是切边 */}
+                        只有一层失焦：不做阶梯、不用 mask 羽化（Chromium 里 mask 会把
+                        backdrop-filter 的结果按 alpha 削掉，边缘会变成「半糊半清」） */}
                     <div
                         data-hardsub-mask="patch"
                         aria-label={t('hardsubMask.patchAria')}
                         className={cn(
-                            'group absolute pointer-events-auto touch-none rounded-2xl',
+                            'group absolute pointer-events-auto touch-none rounded-xl',
                             dragging ? 'cursor-grabbing' : 'cursor-grab'
                         )}
                         style={{
@@ -328,14 +327,12 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
                         }}
                         onDoubleClick={() => setMaskRect({ ...DEFAULT_HARDSUB_MASK_RECT })}
                     >
-                        {/* 渐进模糊：每层往外扩一点、模糊更轻，叠出自然的景深过渡 */}
-                        <div className="pointer-events-none absolute inset-0 rounded-2xl backdrop-blur-[6px]" />
-                        <div className="pointer-events-none absolute inset-[7%] rounded-xl backdrop-blur-[20px]" />
-                        <div className="pointer-events-none absolute inset-[15%] rounded-lg backdrop-blur-[44px]" />
+                        {/* 单层失焦：把底下的字幕糊掉就够了，边缘靠圆角收口 */}
+                        <div className="pointer-events-none absolute inset-0 rounded-xl backdrop-blur-[36px]" />
                         {/* 悬停/拖动时一层很淡的白雾：让它能被找到，又不改变画面明暗 */}
                         <div
                             className={cn(
-                                'pointer-events-none absolute inset-0 rounded-2xl transition-colors duration-200',
+                                'pointer-events-none absolute inset-0 rounded-xl transition-colors duration-200',
                                 dragging ? 'bg-white/[0.09]' : 'bg-transparent group-hover:bg-white/[0.05]'
                             )}
                         />
