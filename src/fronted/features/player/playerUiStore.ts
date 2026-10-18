@@ -4,7 +4,7 @@
  * 使用 persist 中间件自动持久化到本地浏览器 localStorage。
  */
 import { create } from 'zustand';
-import { persist, subscribeWithSelector } from 'zustand/middleware';
+import { createJSONStorage, persist, subscribeWithSelector, type StateStorage } from 'zustand/middleware';
 import { useStoreWithEqualityFn } from 'zustand/traditional';
 
 type PlayerUiState = {
@@ -102,6 +102,39 @@ const PERSISTED_DEFAULTS: Pick<PlayerUiState, PersistedPreferenceKey> = {
 };
 
 /**
+ * localStorage 适配层：要写入的内容与上次完全相同时直接跳过。
+ *
+ * persist 中间件每次 `set` 都会同步写一遍存储，而这个 store 有高频的运行时状态：
+ * 拖动遮挡贴片时每帧都在改 hovering / dragging / insets，它们不在 partialize 的落盘字段里，
+ * 序列化结果一字不变，写入却照样发生。这里按「内容没变就不写」挡掉。
+ *
+ * @returns 可直接交给 `createJSONStorage` 的存储实现。
+ */
+function createContentDedupedStorage(): StateStorage {
+  const lastPayload = new Map<string, string>();
+  return {
+    getItem: (name) => {
+      const value = window.localStorage.getItem(name);
+      if (value !== null) {
+        lastPayload.set(name, value);
+      }
+      return value;
+    },
+    setItem: (name, value) => {
+      if (lastPayload.get(name) === value) {
+        return;
+      }
+      lastPayload.set(name, value);
+      window.localStorage.setItem(name, value);
+    },
+    removeItem: (name) => {
+      lastPayload.delete(name);
+      window.localStorage.removeItem(name);
+    },
+  };
+}
+
+/**
  * 把任意来源的贴片矩形收敛成合法值。
  *
  * 非法数据（NaN、缺失字段、旧版本残留）会让贴片尺寸变成 NaN 而彻底消失，所以这里兜住三件事：
@@ -178,6 +211,8 @@ export const usePlayerUi = create(
     })),
     {
       name: 'dash-player-subtitle-tracks',
+      /** 内容没变就不落盘：运行时状态高频变化时避开每帧一次同步写。 */
+      storage: createJSONStorage(createContentDedupedStorage),
       /** 老版本把运行时状态也写进了同一个 key，升一版把它们清掉。 */
       version: 1,
       partialize: (state) => pickPersisted(state),
