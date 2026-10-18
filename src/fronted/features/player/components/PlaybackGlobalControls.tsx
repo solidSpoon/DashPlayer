@@ -189,9 +189,11 @@ export function PlaybackModeControls({
     const showEn = usePlayerUi((state) => state.showEn);
     const showCn = usePlayerUi((state) => state.showCn);
     const showSourceZh = usePlayerUi((state) => state.showSourceZh);
+    const showSideTranslation = usePlayerUi((state) => state.showSideTranslation);
     const changeShowEn = usePlayerUi((state) => state.changeShowEn);
     const changeShowCn = usePlayerUi((state) => state.changeShowCn);
     const changeShowSourceZh = usePlayerUi((state) => state.changeShowSourceZh);
+    const changeShowSideTranslation = usePlayerUi((state) => state.changeShowSideTranslation);
 
     // 两种逐句循环配置互斥：×N 模式不带倍速表，精听模式带倍速表
     const loopTimesActive = sentenceLoop !== null && !sentenceLoop.rates;
@@ -439,6 +441,14 @@ export function PlaybackModeControls({
                             checked={showSourceZh}
                             label={t('controlBox.showSourceZh')}
                             onActivate={() => changeShowSourceZh()}
+                        />
+                        {/* 侧栏译文单独一档：主字幕区与右侧字幕列表的译文互不牵连 */}
+                        <div className={CONTROL_POPOVER_SEPARATOR} />
+                        <ControlPopoverRow
+                            checked={showSideTranslation}
+                            label={t('controlBox.showSideTranslation')}
+                            title={t('controlBox.sideTranslationHint')}
+                            onActivate={() => changeShowSideTranslation()}
                         />
                     </PopoverContent>
                 </Popover>

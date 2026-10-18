@@ -133,7 +133,9 @@
         "autoPauseHint": "Automatically pause when current sentence ends (`{{shortcut}}`)",
         "autoPlayNextHint": "In folder mode, automatically plays the next video when the current one ends.",
         "fullScreenHint": "Click to toggle fullscreen.",
-        "podcastModeHint": "Recommended when playing audio-only files."
+        "podcastModeHint": "Recommended when playing audio-only files.",
+        "showSideTranslation": "Side translation",
+        "sideTranslationHint": "Turn off to hide translations in the sidebar list only; the main subtitle area keeps them."
     },
     "clearAdjust": {
         "button": "Clear timing adjustments",

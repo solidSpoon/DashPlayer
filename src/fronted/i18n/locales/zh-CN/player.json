@@ -133,7 +133,9 @@
         "autoPauseHint": "当前句子结束后自动暂停（快捷键 `{{shortcut}}`）",
         "autoPlayNextHint": "文件夹播放模式下，当前视频结束后自动播放下一个视频。",
         "fullScreenHint": "点击进入或退出全屏。",
-        "podcastModeHint": "播放纯音频文件时建议开启播客模式。"
+        "podcastModeHint": "播放纯音频文件时建议开启播客模式。",
+        "showSideTranslation": "侧栏译文",
+        "sideTranslationHint": "关闭后右侧字幕列表只显示原文，主字幕区的译文不受影响。"
     },
     "clearAdjust": {
         "button": "清除时间调整",

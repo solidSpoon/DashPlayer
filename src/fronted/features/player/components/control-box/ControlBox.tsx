@@ -43,20 +43,24 @@ export default function ControlBox() {
     showEn,
     showCn,
     showSourceZh,
+    showSideTranslation,
     syncSide,
     changeShowEn,
     changeShowCn,
     changeShowSourceZh,
+    changeShowSideTranslation,
     changeSyncSide,
   } = usePlayerUi(
     useShallow((s) => ({
       showEn: s.showEn,
       showCn: s.showCn,
       showSourceZh: s.showSourceZh,
+      showSideTranslation: s.showSideTranslation,
       syncSide: s.syncSide,
       changeShowEn: s.changeShowEn,
       changeShowCn: s.changeShowCn,
       changeShowSourceZh: s.changeShowSourceZh,
+      changeShowSideTranslation: s.changeShowSideTranslation,
       changeSyncSide: s.changeSyncSide,
     }))
   );
@@ -162,6 +166,21 @@ export default function ControlBox() {
                 </button>
               </WithMarkdownTooltip>
 
+              {/* 侧栏译文：只管右侧字幕列表，不影响主字幕区的三条字幕轨道 */}
+              <WithMarkdownTooltip md={t('controlBox.sideTranslationHint')}>
+                <button
+                  type="button"
+                  onClick={changeShowSideTranslation}
+                  className={cn(
+                    'px-2.5 py-1 text-xs rounded-lg border transition-all duration-150 select-none font-medium',
+                    showSideTranslation
+                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
+                      : 'bg-transparent text-muted-foreground border-border/60 hover:border-border hover:text-foreground hover:bg-muted/40'
+                  )}
+                >
+                  {t('controlBox.showSideTranslation')}
+                </button>
+              </WithMarkdownTooltip>
             </div>
           </div>
 

@@ -11,6 +11,8 @@ type PlayerUiState = {
   showEn: boolean;
   showCn: boolean;
   showSourceZh: boolean;
+  /** 右侧字幕列表是否显示译文（原文行恒显示）。与主字幕区的 showCn / showSourceZh 互不影响。 */
+  showSideTranslation: boolean;
   syncSide: boolean;
   showWordLevel: boolean;
   /** 视频控制条是否钉住常显（关闭时普通视图条超时淡出、全屏条鼠标移出淡出）。 */
@@ -25,6 +27,7 @@ type PlayerUiActions = {
   changeShowEn: () => void;
   changeShowCn: () => void;
   changeShowSourceZh: () => void;
+  changeShowSideTranslation: () => void;
   changeShowEnCn: () => void;
   changeSyncSide: () => void;
   changeShowWordLevel: () => void;
@@ -50,6 +53,7 @@ export const usePlayerUi = create(
       showEn: true,
       showCn: true,
       showSourceZh: true,
+      showSideTranslation: true,
       syncSide: false,
       showWordLevel: false,
       controlBarPinned: false,
@@ -59,6 +63,7 @@ export const usePlayerUi = create(
       changeShowEn: () => set((s) => ({ showEn: !s.showEn })),
       changeShowCn: () => set((s) => ({ showCn: !s.showCn })),
       changeShowSourceZh: () => set((s) => ({ showSourceZh: !s.showSourceZh })),
+      changeShowSideTranslation: () => set((s) => ({ showSideTranslation: !s.showSideTranslation })),
       changeShowEnCn: () => set((s) => ({ showEn: !s.showEn, showCn: !s.showEn })),
       changeSyncSide: () => set((s) => ({ syncSide: !s.syncSide })),
       changeShowWordLevel: () => set((s) => ({ showWordLevel: !s.showWordLevel })),
