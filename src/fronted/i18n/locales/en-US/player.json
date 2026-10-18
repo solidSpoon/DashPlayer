@@ -93,6 +93,10 @@
         "pinTooltipPinned": "Unpin (restore auto-hide)",
         "pinTooltipIdle": "Pin control bar (keep visible)"
     },
+    "hardsubMask": {
+        "label": "Mask subs",
+        "patchAria": "Subtitle masking patch"
+    },
     "trainingSettings": {
         "title": "Training Parameters",
         "shadowingRatio": "Shadowing pause ratio",

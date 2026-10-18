@@ -1,5 +1,6 @@
 /**
- * 管理播放器界面展示偏好，例如中英显示、侧栏联动、逐词模式，以及视频控制条是否常驻。
+ * 管理播放器界面展示偏好，例如中英显示、侧栏联动、侧栏译文、逐词模式、硬字幕遮挡，
+ * 以及视频控制条是否常驻。
  * 使用 persist 中间件自动持久化到本地浏览器 localStorage。
  */
 import { create } from 'zustand';
@@ -14,6 +15,10 @@ type PlayerUiState = {
   showWordLevel: boolean;
   /** 视频控制条是否钉住常显（关闭时普通视图条超时淡出、全屏条鼠标移出淡出）。 */
   controlBarPinned: boolean;
+  /** 是否用遮挡带盖住画面内嵌的硬字幕（画面自带、无法通过关闭字幕轨道去掉的那种）。 */
+  hardsubMaskOn: boolean;
+  /** 遮挡贴片在画面内的相对位置与尺寸（均为 0~1 的比例，随画面尺寸缩放）。 */
+  hardsubMaskRect: HardsubMaskRect;
 };
 
 type PlayerUiActions = {
@@ -24,7 +29,20 @@ type PlayerUiActions = {
   changeSyncSide: () => void;
   changeShowWordLevel: () => void;
   toggleControlBarPinned: () => void;
+  toggleHardsubMask: () => void;
+  setHardsubMaskRect: (rect: HardsubMaskRect) => void;
 };
+
+/** 遮挡贴片的矩形：x/y 为左上角、w/h 为宽高，均为相对画面尺寸的比例。 */
+export interface HardsubMaskRect {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+/** 默认贴片：画面底部一条通栏，对准绝大多数硬字幕的位置。 */
+export const DEFAULT_HARDSUB_MASK_RECT: HardsubMaskRect = { x: 0.04, y: 0.82, w: 0.92, h: 0.12 };
 
 export const usePlayerUi = create(
   persist(
@@ -35,6 +53,8 @@ export const usePlayerUi = create(
       syncSide: false,
       showWordLevel: false,
       controlBarPinned: false,
+      hardsubMaskOn: false,
+      hardsubMaskRect: { ...DEFAULT_HARDSUB_MASK_RECT },
 
       changeShowEn: () => set((s) => ({ showEn: !s.showEn })),
       changeShowCn: () => set((s) => ({ showCn: !s.showCn })),
@@ -43,6 +63,16 @@ export const usePlayerUi = create(
       changeSyncSide: () => set((s) => ({ syncSide: !s.syncSide })),
       changeShowWordLevel: () => set((s) => ({ showWordLevel: !s.showWordLevel })),
       toggleControlBarPinned: () => set((s) => ({ controlBarPinned: !s.controlBarPinned })),
+      toggleHardsubMask: () => set((s) => ({ hardsubMaskOn: !s.hardsubMaskOn })),
+      setHardsubMaskRect: (rect) =>
+        set(() => ({
+          hardsubMaskRect: {
+            x: Math.min(Math.max(0, rect.x), 1),
+            y: Math.min(Math.max(0, rect.y), 1),
+            w: Math.min(Math.max(0, rect.w), 1),
+            h: Math.min(Math.max(0, rect.h), 1),
+          },
+        })),
     })),
     {
       name: 'dash-player-subtitle-tracks',

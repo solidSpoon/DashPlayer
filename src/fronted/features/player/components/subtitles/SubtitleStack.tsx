@@ -72,7 +72,7 @@ const SubtitleStack = () => {
     return (
         <div
             key={`trans-sub:${sentence.key}`}
-            className="flex flex-col w-full text-center text-textColor justify-center items-center gap-2"
+            className="flex flex-col w-full text-center text-textColor justify-center items-center gap-2 pointer-events-auto"
         >
             {renderLines()}
         </div>

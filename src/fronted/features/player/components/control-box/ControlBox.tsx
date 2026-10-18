@@ -66,6 +66,10 @@ export default function ControlBox() {
   const autoPause = usePlayer((s) => s.autoPause);
   const autoPlayNext = usePlayer((s) => s.autoPlayNext);
 
+  // 遮挡贴片：播放控制面板里唯一的一处开关，开/关与贴片位置尺寸都会记住上次的选择
+  const hardsubMaskOn = usePlayerUi((s) => s.hardsubMaskOn);
+  const toggleHardsubMask = usePlayerUi((s) => s.toggleHardsubMask);
+
   const setSetting = useSetting((s) => s.setSetting);
   const setting = useSetting((s) => s.setting);
   const autoPlayNextSetting = useSetting((s) => s.setting('player.autoPlayNext'));
@@ -157,6 +161,7 @@ export default function ControlBox() {
                   {t('controlBox.showSourceZh')}
                 </button>
               </WithMarkdownTooltip>
+
             </div>
           </div>
 
@@ -166,6 +171,14 @@ export default function ControlBox() {
             checked={syncSide}
             onCheckedChange={() => changeSyncSide()}
             tooltipMd={t('controlBox.syncSideHint')}
+            className="h-9 px-3 py-1 rounded-xl"
+            labelClassName="text-xs font-medium"
+          />
+          <SettingToggle
+            id="hardsubMask"
+            label={t('hardsubMask.label')}
+            checked={hardsubMaskOn}
+            onCheckedChange={() => toggleHardsubMask()}
             className="h-9 px-3 py-1 rounded-xl"
             labelClassName="text-xs font-medium"
           />

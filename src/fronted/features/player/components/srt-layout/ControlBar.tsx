@@ -108,7 +108,7 @@ const PlaybackControlBar = ({
         >
             <div
                 className={cn(
-                    'w-full px-4 py-3 rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md shadow-2xl transition-opacity duration-200 ease-out pointer-events-auto',
+                    'relative z-20 w-full px-4 py-3 rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md shadow-2xl transition-opacity duration-200 ease-out pointer-events-auto',
                     mouseOverOut || menuOpen || pinned ? 'opacity-100' : 'opacity-0 pointer-events-none'
                 )}
                 onMouseMove={(e) => {

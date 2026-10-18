@@ -5,7 +5,7 @@ import { playerActions } from '@/fronted/features/player/components/PlayerAction
 
 const FullscreenSubtitleOverlay = () => {
     return (
-        <div className={cn('w-full h-full absolute top-0 left-0 z-10 flex flex-col justify-end items-center')}>
+        <div className={cn('w-full h-full absolute top-0 left-0 z-20 flex flex-col justify-end items-center pointer-events-none')}>
             <SubtitleStack />
             {/* 全屏控制条：播放/上一句/下一句/训练模式/字幕轨道与普通视图同一套控件 */}
             <OverlayControlBar

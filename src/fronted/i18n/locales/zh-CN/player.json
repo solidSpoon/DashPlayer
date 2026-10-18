@@ -93,6 +93,10 @@
         "pinTooltipPinned": "取消钉住（恢复自动隐藏）",
         "pinTooltipIdle": "钉住控制条（不再自动隐藏）"
     },
+    "hardsubMask": {
+        "label": "挡字幕",
+        "patchAria": "遮挡字幕的贴片"
+    },
     "trainingSettings": {
         "title": "精听与训练模式参数配置",
         "shadowingRatio": "影子跟读留白倍率",
