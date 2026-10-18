@@ -26,6 +26,15 @@ export interface HardsubMaskProps {
     video: HTMLVideoElement | null;
 }
 
+/** 贴片四边的羽化宽度（像素）：边缘这么宽的一条带里，模糊与暗色都渐隐，看不出方块边界。 */
+const FEATHER_PX = 22;
+
+/** 四边羽化的遮罩：横向、纵向各一条渐变，取交集即得四边渐隐的矩形。 */
+const FEATHER_MASK = [
+    `linear-gradient(to right, transparent 0, black ${FEATHER_PX}px, black calc(100% - ${FEATHER_PX}px), transparent 100%)`,
+    `linear-gradient(to bottom, transparent 0, black ${FEATHER_PX}px, black calc(100% - ${FEATHER_PX}px), transparent 100%)`,
+].join(', ');
+
 /** 贴片最小尺寸（画面内像素）：再小就既盖不住字也抓不住了。 */
 const MIN_PATCH_WIDTH = 48;
 const MIN_PATCH_HEIGHT = 16;
@@ -302,18 +311,26 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
                         data-hardsub-mask="patch"
                         aria-label={t('hardsubMask.patchAria')}
                         className={cn(
-                            // 轻盈的磨砂：靠模糊把字幕糊掉，只叠一层很淡的暗色，不描边、不投影；
-                            // 悬停/拖动只把底色略微加深并浮出抓手，避免一块「板子」压在画面上
-                            'group absolute rounded-lg pointer-events-auto touch-none',
-                            'bg-neutral-950/28 backdrop-blur-xl transition-colors duration-200',
-                            'hover:bg-neutral-950/38',
-                            dragging ? 'cursor-grabbing bg-neutral-950/45' : 'cursor-grab'
+                            // 一片会褪进画面的雾：靠模糊糊掉字幕，只叠极淡的暗色，不描边不投影。
+                            // 四边用 mask 羽化（见下方 style），所以看不出方形边界，也不会像贴了张贴纸；
+                            // 出现时淡入、悬停/拖动只是略微加深，避免「突然虚一块」的突兀感
+                            'group absolute pointer-events-auto touch-none',
+                            'bg-neutral-950/22 backdrop-blur-2xl',
+                            'transition-[background-color,opacity] duration-300 ease-out',
+                            'animate-in fade-in-0',
+                            'hover:bg-neutral-950/32',
+                            dragging ? 'cursor-grabbing bg-neutral-950/38' : 'cursor-grab'
                         )}
                         style={{
                             left: rect.x * picture.width,
                             top: rect.y * picture.height,
                             width: rect.w * picture.width,
                             height: rect.h * picture.height,
+                            // 四边各羽化 FEATHER_PX：模糊与暗色都从中间向边缘渐隐，看不出硬边
+                            maskImage: FEATHER_MASK,
+                            WebkitMaskImage: FEATHER_MASK,
+                            maskComposite: 'intersect',
+                            WebkitMaskComposite: 'source-in',
                         }}
                         onPointerDown={beginDrag('move')}
                         onPointerMove={moveDrag}
