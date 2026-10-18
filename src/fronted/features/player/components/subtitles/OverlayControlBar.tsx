@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import VolumeSlider from '../VolumeSlider';
@@ -19,14 +19,13 @@ import {
     PlaybackNavControls
 } from '@/fronted/features/player/components/PlaybackGlobalControls';
 import { CONTROL_POPOVER_OFFSET_SINGLE_ROW_BAR } from '@/fronted/features/player/components/ControlPopover';
+import { FULLSCREEN_CONTROL_BAR_ZONE_PX, measureControlBarPanelMetrics } from '@/fronted/features/player/components/controlBarZone';
 
 export interface OverlayControlBarProps {
     className?: string;
     onTimeChange?: (time: number) => void;
 }
 
-/** 全屏控制条的感应区高度（h-32 + 内边距）：贴片压进这块区域时才让位。 */
-const OVERLAY_BAR_ZONE_PX = 132;
 
 const OverlayControlBar = ({
     className,
@@ -75,12 +74,36 @@ const OverlayControlBar = ({
     const patchBottomInset = usePlayerUi((s) => s.hardsubMaskPatchBottomInset);
     const stageHeight = usePlayerUi((s) => s.hardsubMaskStageHeight);
     // 与普通视图条同一套判断：贴片没压进这条的感应区时，就待在原位
-    const maskOccupiesBarZone = maskOn && patchBottomInset < OVERLAY_BAR_ZONE_PX;
+    const maskOccupiesBarZone = maskOn && patchBottomInset < FULLSCREEN_CONTROL_BAR_ZONE_PX;
+    const setControlBarPanelZone = usePlayerUi((s) => s.setControlBarPanelZone);
+    const wrapperRef = useRef<HTMLDivElement>(null);
+    const panelRef = useRef<HTMLDivElement>(null);
     const maxLift = Math.max(0, stageHeight - 180);
     const liftPx = maskOccupiesBarZone ? Math.min(maxLift, Math.max(0, patchTopInset)) : 0;
 
+    // 与普通视图条一致：播报面板实际位置，供贴片拖动时画出控制栏位置
+    useLayoutEffect(() => {
+        const wrapper = wrapperRef.current;
+        const panel = panelRef.current;
+        if (!wrapper || !panel) {
+            return;
+        }
+        const metrics = measureControlBarPanelMetrics(panel, wrapper);
+        if (!metrics) {
+            return;
+        }
+        setControlBarPanelZone({
+            bottom: Math.round(liftPx + metrics.fromWrapperBottom),
+            height: metrics.height,
+            left: metrics.left,
+            right: metrics.right,
+        });
+    }, [liftPx, setControlBarPanelZone]);
+    useEffect(() => () => setControlBarPanelZone(null), [setControlBarPanelZone]);
+
     return (
         <div
+            ref={wrapperRef}
             onMouseOver={() => {
                 setMouseOver(true);
             }}
@@ -91,6 +114,7 @@ const OverlayControlBar = ({
             className={cn('w-full flex flex-col justify-end h-32 p-4 pointer-events-auto transition-[margin] duration-200 ease-out')}
         >
             <div
+                ref={panelRef}
                 className={cn(
                     'w-full px-4 py-2.5 rounded-2xl border border-white/10 bg-black/65 backdrop-blur-md shadow-2xl transition-opacity duration-200 ease-out pointer-events-auto',
                     (mouseOver || menuOpen || pinned) && !(maskHovering && maskOccupiesBarZone && !pinned)
