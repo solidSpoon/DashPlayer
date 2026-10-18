@@ -95,13 +95,7 @@
     },
     "hardsubMask": {
         "label": "Mask subs",
-        "patchAria": "Subtitle masking patch",
-        "styleLabel": "Mask style",
-        "styleBlur": "Blur",
-        "styleBlurSampled": "Blur + tint",
-        "styleSampled": "Sampled color",
-        "styleStretch": "Stretched scene",
-        "styleSolid": "Solid color"
+        "patchAria": "Subtitle masking patch"
     },
     "trainingSettings": {
         "title": "Training Parameters",

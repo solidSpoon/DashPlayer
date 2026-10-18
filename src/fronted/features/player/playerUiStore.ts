@@ -6,7 +6,6 @@
 import { create } from 'zustand';
 import { persist, subscribeWithSelector } from 'zustand/middleware';
 import { useStoreWithEqualityFn } from 'zustand/traditional';
-import type { HardsubMaskStyle } from '@/fronted/features/player/components/hardsubMaskVisuals';
 
 type PlayerUiState = {
   showEn: boolean;
@@ -22,8 +21,6 @@ type PlayerUiState = {
   hardsubMaskOn: boolean;
   /** 遮挡贴片在画面内的相对位置与尺寸（均为 0~1 的比例，随画面尺寸缩放）。 */
   hardsubMaskRect: HardsubMaskRect;
-  /** 遮挡贴片的视觉样式（模糊 / 取色块 / 延展 / 纯色等），用于对比挑选。 */
-  hardsubMaskStyle: HardsubMaskStyle;
   /**
    * 遮挡贴片上沿到播放舞台底部的距离（像素）。控制条据此抬高到贴片之上，
    * 否则两者叠在同一块区域：面板压在贴片上，鼠标够不到贴片，贴片也挡住面板。
@@ -60,7 +57,6 @@ type PlayerUiActions = {
   toggleControlBarPinned: () => void;
   toggleHardsubMask: () => void;
   setHardsubMaskRect: (rect: HardsubMaskRect) => void;
-  setHardsubMaskStyle: (style: HardsubMaskStyle) => void;
   setHardsubMaskHovering: (hovering: boolean) => void;
   setHardsubMaskPatchTopInset: (inset: number) => void;
   setHardsubMaskPatchBottomInset: (inset: number) => void;
@@ -91,7 +87,6 @@ export const usePlayerUi = create(
       controlBarPinned: false,
       hardsubMaskOn: false,
       hardsubMaskRect: { ...DEFAULT_HARDSUB_MASK_RECT },
-      hardsubMaskStyle: 'blur',
       hardsubMaskPatchTopInset: 0,
       hardsubMaskPatchBottomInset: 0,
       hardsubMaskStageHeight: 0,
@@ -107,7 +102,6 @@ export const usePlayerUi = create(
       changeShowWordLevel: () => set((s) => ({ showWordLevel: !s.showWordLevel })),
       toggleControlBarPinned: () => set((s) => ({ controlBarPinned: !s.controlBarPinned })),
       toggleHardsubMask: () => set((s) => ({ hardsubMaskOn: !s.hardsubMaskOn })),
-      setHardsubMaskStyle: (style) => set(() => ({ hardsubMaskStyle: style })),
       setHardsubMaskHovering: (hovering) => set(() => ({ hardsubMaskHovering: hovering })),
       setHardsubMaskPatchTopInset: (inset) => set(() => ({ hardsubMaskPatchTopInset: inset })),
       setHardsubMaskPatchBottomInset: (inset) => set(() => ({ hardsubMaskPatchBottomInset: inset })),

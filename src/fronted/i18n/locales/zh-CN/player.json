@@ -95,13 +95,7 @@
     },
     "hardsubMask": {
         "label": "挡字幕",
-        "patchAria": "遮挡字幕的贴片",
-        "styleLabel": "遮挡样式",
-        "styleBlur": "模糊",
-        "styleBlurSampled": "模糊 + 取色",
-        "styleSampled": "取色块",
-        "styleStretch": "画面延展",
-        "styleSolid": "纯色块"
+        "patchAria": "遮挡字幕的贴片"
     },
     "trainingSettings": {
         "title": "精听与训练模式参数配置",

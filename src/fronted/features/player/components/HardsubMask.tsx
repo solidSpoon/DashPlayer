@@ -3,7 +3,6 @@ import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 import { cn } from '@/fronted/lib/utils';
 import { DEFAULT_HARDSUB_MASK_RECT, usePlayerUi, type HardsubMaskRect } from '@/fronted/features/player/playerUiStore';
-import HardsubMaskVisual from '@/fronted/features/player/components/HardsubMaskVisual';
 
 /** 画面矩形：视频按 `object-fit: contain` 缩放居中后，真正有像素的那块区域，单位与容器一致。 */
 interface PictureRect {
@@ -134,7 +133,6 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
     const { t } = useI18nTranslation('player');
     const maskOn = usePlayerUi((s) => s.hardsubMaskOn);
     const maskRect = usePlayerUi((s) => s.hardsubMaskRect);
-    const maskStyle = usePlayerUi((s) => s.hardsubMaskStyle);
     const setMaskRect = usePlayerUi((s) => s.setHardsubMaskRect);
     const setMaskHovering = usePlayerUi((s) => s.setHardsubMaskHovering);
     const setPatchTopInset = usePlayerUi((s) => s.setHardsubMaskPatchTopInset);
@@ -301,13 +299,12 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
                     }}
                 >
                     {/* 遮挡贴片：本体拖动移动，边/角拖拽缩放。
-                        只有一层失焦：不做阶梯、不用 mask 羽化（Chromium 里 mask 会把
-                        backdrop-filter 的结果按 alpha 削掉，边缘会变成「半糊半清」） */}
+                        视觉上就是一块直角纯色块，不做模糊、渐变和羽化 */}
                     <div
                         data-hardsub-mask="patch"
                         aria-label={t('hardsubMask.patchAria')}
                         className={cn(
-                            'group absolute pointer-events-auto touch-none rounded-xl',
+                            'group absolute pointer-events-auto touch-none',
                             dragging ? 'cursor-grabbing' : 'cursor-grab'
                         )}
                         style={{
@@ -329,18 +326,18 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
                         }}
                         onDoubleClick={() => setMaskRect({ ...DEFAULT_HARDSUB_MASK_RECT })}
                     >
-                        {/* 视觉层：按所选样式渲染（模糊 / 取色块 / 延展 / 纯色） */}
-                        <HardsubMaskVisual
-                            video={video}
-                            rect={rectNow}
-                            style={maskStyle}
-                            width={patchWidth}
-                            height={patchHeight}
+                        {/* 纯黑块：不拖拽时完全不透明（不透明才真能挡住字幕）；
+                            拖动时透一点，方便边拖边对位；不加圆角，四个边保持直角 */}
+                        <div
+                            className={cn(
+                                'pointer-events-none absolute inset-0 transition-colors duration-200',
+                                dragging ? 'bg-black/85' : 'bg-black'
+                            )}
                         />
                         {/* 悬停/拖动时一层很淡的白雾：让它能被找到，又不改变画面明暗 */}
                         <div
                             className={cn(
-                                'pointer-events-none absolute inset-0 rounded-xl transition-colors duration-200',
+                                'pointer-events-none absolute inset-0 transition-colors duration-200',
                                 dragging ? 'bg-white/[0.09]' : 'bg-transparent group-hover:bg-white/[0.05]'
                             )}
                         />
