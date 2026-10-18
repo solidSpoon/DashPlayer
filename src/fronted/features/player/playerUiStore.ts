@@ -75,17 +75,84 @@ export interface HardsubMaskRect {
 /** 默认贴片：画面底部一条通栏，对准绝大多数硬字幕的位置。 */
 export const DEFAULT_HARDSUB_MASK_RECT: HardsubMaskRect = { x: 0.04, y: 0.82, w: 0.92, h: 0.12 };
 
+/** 贴片宽高的比例下限：防止被拖成零尺寸后彻底抓不到。 */
+const MIN_HARDSUB_MASK_SIZE = 0.005;
+
+/** 需要落入 localStorage 的偏好字段。 */
+type PersistedPreferenceKey =
+  | 'showEn'
+  | 'showCn'
+  | 'showSourceZh'
+  | 'showSideTranslation'
+  | 'syncSide'
+  | 'showWordLevel'
+  | 'controlBarPinned'
+  | 'hardsubMaskOn';
+
+/** 需要写入 localStorage 的用户偏好：取值与 store 初始值同源，rehydrate 与迁移都用它。 */
+const PERSISTED_DEFAULTS: Pick<PlayerUiState, PersistedPreferenceKey> = {
+  showEn: true,
+  showCn: true,
+  showSourceZh: true,
+  showSideTranslation: true,
+  syncSide: false,
+  showWordLevel: false,
+  controlBarPinned: false,
+  hardsubMaskOn: false,
+};
+
+/**
+ * 把任意来源的贴片矩形收敛成合法值。
+ *
+ * 非法数据（NaN、缺失字段、旧版本残留）会让贴片尺寸变成 NaN 而彻底消失，所以这里兜住三件事：
+ * 非有限数退回默认值、宽高有下限、右沿与下沿收进画面。
+ *
+ * @param rect 待校验的矩形，允许缺字段。
+ * @returns 合法矩形，`x + w <= 1`、`y + h <= 1` 恒成立。
+ */
+export function normalizeHardsubMaskRect(rect: Partial<HardsubMaskRect> | null | undefined): HardsubMaskRect {
+  const pick = (value: unknown, fallback: number): number =>
+    typeof value === 'number' && Number.isFinite(value) ? value : fallback;
+  const clamp = (value: number, min: number, max: number): number => Math.min(Math.max(value, min), max);
+  const w = clamp(pick(rect?.w, DEFAULT_HARDSUB_MASK_RECT.w), MIN_HARDSUB_MASK_SIZE, 1);
+  const h = clamp(pick(rect?.h, DEFAULT_HARDSUB_MASK_RECT.h), MIN_HARDSUB_MASK_SIZE, 1);
+  return {
+    w,
+    h,
+    x: clamp(pick(rect?.x, DEFAULT_HARDSUB_MASK_RECT.x), 0, 1 - w),
+    y: clamp(pick(rect?.y, DEFAULT_HARDSUB_MASK_RECT.y), 0, 1 - h),
+  };
+}
+
+/**
+ * 从完整 store 状态里挑出要落盘的偏好字段。
+ *
+ * 不能整个 store 落盘：hovering / dragging / insets 这些运行时状态一旦写入，
+ * 拖动中途退出会让控制条重启后卡在幽灵态，拖动时还会每帧同步写一次 localStorage。
+ *
+ * @param state 可能是完整的 store 状态，也可能是从磁盘读回来的旧对象。
+ * @returns 只含偏好字段的对象（矩形已校验）。
+ */
+function pickPersisted(
+  state: Partial<PlayerUiState>
+): Pick<PlayerUiState, PersistedPreferenceKey> & { hardsubMaskRect: HardsubMaskRect } {
+  return {
+    showEn: state.showEn ?? PERSISTED_DEFAULTS.showEn,
+    showCn: state.showCn ?? PERSISTED_DEFAULTS.showCn,
+    showSourceZh: state.showSourceZh ?? PERSISTED_DEFAULTS.showSourceZh,
+    showSideTranslation: state.showSideTranslation ?? PERSISTED_DEFAULTS.showSideTranslation,
+    syncSide: state.syncSide ?? PERSISTED_DEFAULTS.syncSide,
+    showWordLevel: state.showWordLevel ?? PERSISTED_DEFAULTS.showWordLevel,
+    controlBarPinned: state.controlBarPinned ?? PERSISTED_DEFAULTS.controlBarPinned,
+    hardsubMaskOn: state.hardsubMaskOn ?? PERSISTED_DEFAULTS.hardsubMaskOn,
+    hardsubMaskRect: normalizeHardsubMaskRect(state.hardsubMaskRect),
+  };
+}
+
 export const usePlayerUi = create(
   persist(
     subscribeWithSelector<PlayerUiState & PlayerUiActions>((set) => ({
-      showEn: true,
-      showCn: true,
-      showSourceZh: true,
-      showSideTranslation: true,
-      syncSide: false,
-      showWordLevel: false,
-      controlBarPinned: false,
-      hardsubMaskOn: false,
+      ...PERSISTED_DEFAULTS,
       hardsubMaskRect: { ...DEFAULT_HARDSUB_MASK_RECT },
       hardsubMaskPatchTopInset: 0,
       hardsubMaskPatchBottomInset: 0,
@@ -107,18 +174,18 @@ export const usePlayerUi = create(
       setHardsubMaskPatchBottomInset: (inset) => set(() => ({ hardsubMaskPatchBottomInset: inset })),
       setHardsubMaskStageHeight: (height) => set(() => ({ hardsubMaskStageHeight: height })),
       setHardsubMaskDragging: (dragging) => set(() => ({ hardsubMaskDragging: dragging })),
-      setHardsubMaskRect: (rect) =>
-        set(() => ({
-          hardsubMaskRect: {
-            x: Math.min(Math.max(0, rect.x), 1),
-            y: Math.min(Math.max(0, rect.y), 1),
-            w: Math.min(Math.max(0, rect.w), 1),
-            h: Math.min(Math.max(0, rect.h), 1),
-          },
-        })),
+      setHardsubMaskRect: (rect) => set(() => ({ hardsubMaskRect: normalizeHardsubMaskRect(rect) })),
     })),
     {
       name: 'dash-player-subtitle-tracks',
+      /** 老版本把运行时状态也写进了同一个 key，升一版把它们清掉。 */
+      version: 1,
+      partialize: (state) => pickPersisted(state),
+      /**
+       * 只留偏好字段：`partialize` 只影响写入，存储里已有的旧键仍会被 merge 合并回来，
+       * 所以读回来时也在这里挑一遍，顺带校验贴片矩形。
+       */
+      migrate: (persistedState) => pickPersisted((persistedState ?? {}) as Partial<PlayerUiState>),
     }
   )
 );
