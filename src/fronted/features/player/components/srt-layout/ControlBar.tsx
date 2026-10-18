@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import VolumeSlider from '../VolumeSlider';
@@ -19,7 +19,7 @@ import {
     PlaybackNavControls
 } from '@/fronted/features/player/components/PlaybackGlobalControls';
 import { CONTROL_POPOVER_OFFSET_STACKED_BAR } from '@/fronted/features/player/components/ControlPopover';
-import { CONTROL_BAR_ZONE_PX, measureControlBarPanelMetrics } from '@/fronted/features/player/components/controlBarZone';
+import { CONTROL_BAR_ZONE_PX } from '@/fronted/features/player/components/controlBarZone';
 
 const logger = getRendererLogger('PlaybackControlBar');
 
@@ -63,9 +63,9 @@ const PlaybackControlBar = ({
     // 只有贴片压进控制条地盘（底部 152px ≈ 感应区 144 + 间距）时才让位；
     // 贴片挪到画面中上部、底部空出来时，控制条就待在原位
     const maskOccupiesBarZone = maskOn && patchBottomInset < CONTROL_BAR_ZONE_PX;
-    const setControlBarPanelZone = usePlayerUi((s) => s.setControlBarPanelZone);
-    const wrapperRef = useRef<HTMLDivElement>(null);
-    const panelRef = useRef<HTMLDivElement>(null);
+    // 拖动遮挡贴片期间，整条控制栏降为「幽灵」：留在原地、半透明、不可交互，
+    // 用户能直接看到它此刻在哪、有没有让位，不需要再画一个假的替身
+    const ghost = usePlayerUi((s) => s.hardsubMaskDragging);
     // 抬起量：让整条控制条落在贴片上沿之上；上限保证它不会被顶出画面（条高约 144 + 余量）
     const maxLift = Math.max(0, stageHeight - 200);
     const liftPx = maskOccupiesBarZone ? Math.min(maxLift, Math.max(0, patchTopInset)) : 0;
@@ -114,30 +114,8 @@ const PlaybackControlBar = ({
         }
     };
 
-    // 把面板的实际位置播报出去：拖动贴片时按这块真实矩形画框，抬到哪就画到哪
-    useLayoutEffect(() => {
-        const wrapper = wrapperRef.current;
-        const panel = panelRef.current;
-        if (!wrapper || !panel) {
-            return;
-        }
-        const metrics = measureControlBarPanelMetrics(panel, wrapper);
-        if (!metrics) {
-            return;
-        }
-        // 面板绝对位置 = 基础间距 + 当前抬升量 + 面板相对外层底边的固定偏移
-        setControlBarPanelZone({
-            bottom: Math.round(liftPx + 8 + metrics.fromWrapperBottom),
-            height: metrics.height,
-            left: metrics.left,
-            right: metrics.right,
-        });
-    }, [liftPx, setControlBarPanelZone]);
-    useEffect(() => () => setControlBarPanelZone(null), [setControlBarPanelZone]);
-
     return (
         <div
-            ref={wrapperRef}
             onMouseMove={handleMouseMove}
             onMouseLeave={onMouseLeave}
             style={{ bottom: liftPx + 8 }}
@@ -148,10 +126,11 @@ const PlaybackControlBar = ({
             )}
         >
             <div
-                ref={panelRef}
                 className={cn(
                     'relative z-20 w-full px-4 py-3 rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md shadow-2xl transition-opacity duration-200 ease-out pointer-events-auto',
-                    (mouseOverOut || menuOpen || pinned) && !(maskHovering && maskOccupiesBarZone && !pinned)
+                    ghost
+                        ? 'opacity-40 pointer-events-none'
+                        : (mouseOverOut || menuOpen || pinned) && !(maskHovering && maskOccupiesBarZone && !pinned)
                         ? 'opacity-100'
                         : 'opacity-0 pointer-events-none'
                 )}

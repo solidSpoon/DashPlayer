@@ -34,10 +34,11 @@ type PlayerUiState = {
   /** 播放舞台高度（像素），控制条据此限制最多能抬多高，避免被顶出画面。 */
   hardsubMaskStageHeight: number;
   /**
-   * 控制条面板当前在哪（舞台内像素，从舞台四边量起）。
-   * 拖动贴片时用它把控制栏位置画出来，所以必须是实测值，不能按常量推。
+   * 是否正在拖动遮挡贴片。
+   * 拖动期间控制条进入「幽灵态」：原地降为半透明、不可交互，充当自己的替身，
+   * 让用户看到控制栏此刻在哪、会不会让位，而不用另画一个假的。
    */
-  controlBarPanelZone: ControlBarPanelZone | null;
+  hardsubMaskDragging: boolean;
   /**
    * 鼠标是否压在遮挡贴片上（含拖动中）。
    * 视频控制条据此让位：两者都是「悬停才现身」的浮层，压在同一块区域会互相抢事件。
@@ -60,16 +61,8 @@ type PlayerUiActions = {
   setHardsubMaskPatchTopInset: (inset: number) => void;
   setHardsubMaskPatchBottomInset: (inset: number) => void;
   setHardsubMaskStageHeight: (height: number) => void;
-  setControlBarPanelZone: (zone: ControlBarPanelZone | null) => void;
+  setHardsubMaskDragging: (dragging: boolean) => void;
 };
-
-/** 控制条面板在舞台内的位置：bottom/left/right 为内缩量，height 为面板高度（均为像素）。 */
-export interface ControlBarPanelZone {
-  bottom: number;
-  left: number;
-  right: number;
-  height: number;
-}
 
 /** 遮挡贴片的矩形：x/y 为左上角、w/h 为宽高，均为相对画面尺寸的比例。 */
 export interface HardsubMaskRect {
@@ -97,7 +90,7 @@ export const usePlayerUi = create(
       hardsubMaskPatchTopInset: 0,
       hardsubMaskPatchBottomInset: 0,
       hardsubMaskStageHeight: 0,
-      controlBarPanelZone: null,
+      hardsubMaskDragging: false,
       hardsubMaskHovering: false,
 
       changeShowEn: () => set((s) => ({ showEn: !s.showEn })),
@@ -113,14 +106,7 @@ export const usePlayerUi = create(
       setHardsubMaskPatchTopInset: (inset) => set(() => ({ hardsubMaskPatchTopInset: inset })),
       setHardsubMaskPatchBottomInset: (inset) => set(() => ({ hardsubMaskPatchBottomInset: inset })),
       setHardsubMaskStageHeight: (height) => set(() => ({ hardsubMaskStageHeight: height })),
-      setControlBarPanelZone: (zone) => set((s) => (
-        s.controlBarPanelZone?.bottom === zone?.bottom &&
-        s.controlBarPanelZone?.left === zone?.left &&
-        s.controlBarPanelZone?.right === zone?.right &&
-        s.controlBarPanelZone?.height === zone?.height
-            ? s
-            : { controlBarPanelZone: zone }
-      )),
+      setHardsubMaskDragging: (dragging) => set(() => ({ hardsubMaskDragging: dragging })),
       setHardsubMaskRect: (rect) =>
         set(() => ({
           hardsubMaskRect: {

@@ -3,11 +3,6 @@ import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 import { cn } from '@/fronted/lib/utils';
 import { DEFAULT_HARDSUB_MASK_RECT, usePlayerUi, type HardsubMaskRect } from '@/fronted/features/player/playerUiStore';
-import {
-    CONTROL_BAR_ZONE_PX,
-    FULLSCREEN_CONTROL_BAR_ZONE_PX,
-} from '@/fronted/features/player/components/controlBarZone';
-import useLayout from '@/fronted/hooks/useLayout';
 
 /** 画面矩形：视频按 `object-fit: contain` 缩放居中后，真正有像素的那块区域，单位与容器一致。 */
 interface PictureRect {
@@ -136,13 +131,13 @@ function applyDrag(
  */
 export default function HardsubMask({ video }: HardsubMaskProps) {
     const { t } = useI18nTranslation('player');
-    const fullScreen = useLayout((s) => s.fullScreen);
     const maskOn = usePlayerUi((s) => s.hardsubMaskOn);
     const maskRect = usePlayerUi((s) => s.hardsubMaskRect);
     const setMaskRect = usePlayerUi((s) => s.setHardsubMaskRect);
     const setMaskHovering = usePlayerUi((s) => s.setHardsubMaskHovering);
     const setPatchTopInset = usePlayerUi((s) => s.setHardsubMaskPatchTopInset);
     const setPatchBottomInset = usePlayerUi((s) => s.setHardsubMaskPatchBottomInset);
+    const setMaskDragging = usePlayerUi((s) => s.setHardsubMaskDragging);
     const setStageHeight = usePlayerUi((s) => s.setHardsubMaskStageHeight);
 
     const containerRef = useRef<HTMLDivElement>(null);
@@ -201,8 +196,9 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
         dragRef.current = null;
         setDraft(null);
         setDragging(false);
+        setMaskDragging(false);
         setMaskHovering(false);
-    }, [setMaskRect, setMaskHovering]);
+    }, [setMaskRect, setMaskHovering, setMaskDragging]);
 
     const beginDrag = useCallback((kind: DragKind) => (event: React.PointerEvent<HTMLDivElement>) => {
         if (event.button !== 0) {
@@ -223,8 +219,9 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
             },
         };
         setDragging(true);
+        setMaskDragging(true);
         setMaskHovering(true);
-    }, [maskRect, picture.height, picture.width, setMaskHovering]);
+    }, [maskRect, picture.height, picture.width, setMaskHovering, setMaskDragging]);
 
     const moveDrag = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
         const drag = dragRef.current;
@@ -249,7 +246,10 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
     }, [picture]);
 
     // 贴片卸载（关掉遮挡/切走）时复位，别让控制条一直以为鼠标还压在贴片上
-    useEffect(() => () => setMaskHovering(false), [setMaskHovering]);
+    useEffect(() => () => {
+        setMaskHovering(false);
+        setMaskDragging(false);
+    }, [setMaskHovering, setMaskDragging]);
 
     const showMask = maskOn && picture.width > 0 && picture.height > 0;
     const rectNow = draft ?? maskRect;
@@ -272,10 +272,6 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
         setStageHeight(0);
     }, [setPatchTopInset, setPatchBottomInset, setStageHeight]);
     const rect = rectNow;
-    // 贴片下沿是否压进控制条待命区（与两个控制条用的是同一份判断）
-    const barZone = usePlayerUi((s) => s.controlBarPanelZone);
-    const zoneHeight = fullScreen ? FULLSCREEN_CONTROL_BAR_ZONE_PX : CONTROL_BAR_ZONE_PX;
-    const maskOccupiesBarZone = showMask && patchBottomInset < zoneHeight;
 
     /** 边/角热区：平时不可见也不拦截指针，悬停或拖动时才浮出来接管缩放。 */
     const handles: Array<{ kind: DragKind; className: string; grip: 'dot' | 'horizontal' | 'vertical' }> = [
@@ -291,26 +287,6 @@ export default function HardsubMask({ video }: HardsubMaskProps) {
 
     return (
         <div ref={containerRef} data-hardsub-mask="root" className="absolute inset-0 z-[15] pointer-events-none select-none">
-            {dragging && showMask && barZone && (
-                <div
-                    data-hardsub-mask="bar-zone"
-                    aria-hidden="true"
-                    className={cn(
-                        'pointer-events-none absolute rounded-2xl border border-dashed',
-                        'transition-[bottom,height,opacity] duration-200 ease-out',
-                        maskOccupiesBarZone
-                            ? 'border-amber-300/60 bg-amber-200/[0.05]'
-                            : 'border-white/30 bg-white/[0.03]'
-                    )}
-                    style={{
-                        bottom: barZone.bottom,
-                        left: barZone.left,
-                        right: barZone.right,
-                        height: barZone.height,
-                    }}
-                />
-            )}
-
             {showMask && (
                 <div
                     className="absolute"
