@@ -145,5 +145,18 @@
     "clipGridEmptyDesc": "请先添加一些视频片段到收藏",
     "clipGridPlaying": "播放中",
     "clipGridProcessing": "处理中",
-    "clipGridDone": "已完成"
+    "clipGridDone": "已完成",
+    "audioPlayer": "音频播放器",
+    "aiTool": {
+        "approvalRequested": "等待确认",
+        "approvalResponded": "已确认",
+        "inputAvailable": "运行中",
+        "inputStreaming": "准备中",
+        "outputAvailable": "已完成",
+        "outputDenied": "已拒绝",
+        "outputError": "出错",
+        "parameters": "参数",
+        "error": "错误",
+        "result": "结果"
+    }
 }

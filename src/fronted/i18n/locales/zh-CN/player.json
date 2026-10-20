@@ -226,7 +226,8 @@
         "endLabel": "句尾 (结束)",
         "beginShortcutHint": "句首提前/延后:",
         "endShortcutHint": "句尾提前/延后:",
-        "resetShortcutHint": "重置本句微调:"
+        "resetShortcutHint": "重置本句微调:",
+        "resetTimingTooltip": "点击重置当前句子时间戳"
     },
     "sideSentence": {
         "playing": "正在播放",
@@ -263,5 +264,6 @@
         "prevVideo": "上一个视频",
         "nextVideo": "下一个视频",
         "repeatSentence": "重复当前句"
-    }
+    },
+    "translationFailed": "字幕翻译失败"
 }

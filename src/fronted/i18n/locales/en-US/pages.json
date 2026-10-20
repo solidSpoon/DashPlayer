@@ -119,7 +119,9 @@
             "unnamed": "(untitled segment)"
         },
         "videoSuffix": "(video)",
-        "subtitleSuffix": "(subtitle)"
+        "subtitleSuffix": "(subtitle)",
+        "aiFormatFailed": "AI formatting failed",
+        "aiFormatParseFailed": "Could not parse the AI response. Please try again"
     },
     "subtitleWorkspace": {
         "title": "Subtitle Generator",

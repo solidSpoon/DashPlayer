@@ -4,6 +4,7 @@ import useSetting from '@/fronted/features/settings/settingsStore';
 import useTranslation from '@/fronted/features/player/translationStore';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import toast from 'react-hot-toast';
+import i18n from '@/fronted/i18n';
 import {
     RuntimeSettingKey,
     RuntimeSettingsSnapshot,
@@ -45,12 +46,12 @@ export function initSettingsSync(): () => void {
         // 存储值非法（常见于多分支开发后枚举残留）时不抛错中断：
         // 其余设置已初始化完成，这里显式提示用户去设置页重新选择并保存。
         if (!isSubtitleEngine(subtitleProvider)) {
-            toast.error(`字幕翻译引擎设置值无效（${subtitleProvider}），请到“功能设置”重新选择并保存`);
+            toast.error(i18n.t('settings:runtime.subtitleEngineInvalid', { value: subtitleProvider }));
             logger.error('invalid subtitle translation provider', { value: subtitleProvider });
             return;
         }
         if (subtitleMode !== 'zh' && subtitleMode !== 'simple_en' && subtitleMode !== 'custom') {
-            toast.error(`字幕翻译风格设置值无效（${subtitleMode}），请到“功能设置”重新选择并保存`);
+            toast.error(i18n.t('settings:runtime.subtitleModeInvalid', { value: subtitleMode }));
             logger.error('invalid OpenAI subtitle translation mode', { value: subtitleMode });
             return;
         }

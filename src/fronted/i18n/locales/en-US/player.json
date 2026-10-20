@@ -226,7 +226,8 @@
         "endLabel": "Sentence end",
         "beginShortcutHint": "Sentence start earlier/later:",
         "endShortcutHint": "Sentence end earlier/later:",
-        "resetShortcutHint": "Reset this sentence:"
+        "resetShortcutHint": "Reset this sentence:",
+        "resetTimingTooltip": "Reset the current sentence timing"
     },
     "sideSentence": {
         "playing": "Playing",
@@ -263,5 +264,6 @@
         "prevVideo": "Previous video",
         "nextVideo": "Next video",
         "repeatSentence": "Loop current sentence"
-    }
+    },
+    "translationFailed": "Subtitle translation failed"
 }

@@ -145,5 +145,18 @@
     "clipGridEmptyDesc": "Add some video clips to your saved clips first",
     "clipGridPlaying": "Playing",
     "clipGridProcessing": "Processing",
-    "clipGridDone": "Done"
+    "clipGridDone": "Done",
+    "audioPlayer": "Audio player",
+    "aiTool": {
+        "approvalRequested": "Awaiting approval",
+        "approvalResponded": "Approved",
+        "inputAvailable": "Running",
+        "inputStreaming": "Preparing",
+        "outputAvailable": "Done",
+        "outputDenied": "Denied",
+        "outputError": "Failed",
+        "parameters": "Parameters",
+        "error": "Error",
+        "result": "Result"
+    }
 }

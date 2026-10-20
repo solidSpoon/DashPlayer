@@ -119,7 +119,9 @@
             "unnamed": "(未命名字段)"
         },
         "videoSuffix": "(视频)",
-        "subtitleSuffix": "(字幕)"
+        "subtitleSuffix": "(字幕)",
+        "aiFormatFailed": "AI 整理失败",
+        "aiFormatParseFailed": "AI 整理结果无法解析，请重试"
     },
     "subtitleWorkspace": {
         "title": "视频字幕生成",

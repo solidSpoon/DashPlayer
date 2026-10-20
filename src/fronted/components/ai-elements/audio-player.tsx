@@ -8,6 +8,7 @@ import {
   ButtonGroupText,
 } from "@/fronted/components/ui/button-group";
 import { cn } from "@/fronted/lib/utils";
+import i18n from "@/fronted/i18n";
 import type { Experimental_SpeechResult as SpeechResult } from "ai";
 import {
   MediaControlBar,
@@ -80,7 +81,7 @@ export type AudioPlayerElementProps = Omit<ComponentProps<"audio">, "src"> &
 export const AudioPlayerElement = ({ ...props }: AudioPlayerElementProps) => (
   // oxlint-disable-next-line eslint-plugin-jsx-a11y(media-has-caption) -- audio player captions are provided by consumer
   <audio
-    aria-label="音频播放器"
+    aria-label={i18n.t('common:audioPlayer')}
     data-slot="audio-player-element"
     slot="media"
     src={

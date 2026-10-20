@@ -22,6 +22,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { isValidElement } from "react";
 
 import { CodeBlock } from "./code-block";
+import i18n from "@/fronted/i18n";
 
 export type ToolProps = ComponentProps<typeof Collapsible>;
 
@@ -46,14 +47,14 @@ export type ToolHeaderProps = {
     }
 );
 
-const statusLabels: Record<ToolPart["state"], string> = {
-  "approval-requested": "等待确认",
-  "approval-responded": "已确认",
-  "input-available": "运行中",
-  "input-streaming": "准备中",
-  "output-available": "已完成",
-  "output-denied": "已拒绝",
-  "output-error": "出错",
+const statusLabelKeys: Record<ToolPart["state"], string> = {
+  "approval-requested": "common:aiTool.approvalRequested",
+  "approval-responded": "common:aiTool.approvalResponded",
+  "input-available": "common:aiTool.inputAvailable",
+  "input-streaming": "common:aiTool.inputStreaming",
+  "output-available": "common:aiTool.outputAvailable",
+  "output-denied": "common:aiTool.outputDenied",
+  "output-error": "common:aiTool.outputError",
 };
 
 const statusIcons: Record<ToolPart["state"], ReactNode> = {
@@ -69,7 +70,7 @@ const statusIcons: Record<ToolPart["state"], ReactNode> = {
 export const getStatusBadge = (status: ToolPart["state"]) => (
   <Badge className="gap-1 rounded-full px-1.5 py-0 text-[10px] font-normal" variant="secondary">
     {statusIcons[status]}
-    {statusLabels[status]}
+    {i18n.t(statusLabelKeys[status])}
   </Badge>
 );
 
@@ -121,7 +122,7 @@ export type ToolInputProps = ComponentProps<"div"> & {
 export const ToolInput = ({ className, input, ...props }: ToolInputProps) => (
   <div className={cn("space-y-2 overflow-hidden", className)} {...props}>
     <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-      参数
+      {i18n.t('common:aiTool.parameters')}
     </h4>
     <div className="rounded-md bg-muted/50">
       <CodeBlock code={JSON.stringify(input, null, 2)} language="json" />
@@ -157,7 +158,7 @@ export const ToolOutput = ({
   return (
     <div className={cn("space-y-2", className)} {...props}>
       <h4 className="font-medium text-muted-foreground text-xs uppercase tracking-wide">
-        {errorText ? "错误" : "结果"}
+        {i18n.t(errorText ? 'common:aiTool.error' : 'common:aiTool.result')}
       </h4>
       <div
         className={cn(

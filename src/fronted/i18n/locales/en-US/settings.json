@@ -481,5 +481,9 @@
             "configurableHint": "{{name}} — change it in “{{card}}” below",
             "fallbackHint": "Cloud is unavailable right now; fell back to base resources"
         }
+    },
+    "runtime": {
+        "subtitleEngineInvalid": "Invalid subtitle translation engine ({{value}}). Pick one again in Feature Settings and save.",
+        "subtitleModeInvalid": "Invalid subtitle translation style ({{value}}). Pick one again in Feature Settings and save."
     }
 }

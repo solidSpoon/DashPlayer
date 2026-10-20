@@ -481,5 +481,9 @@
             "configurableHint": "{{name}}：可在下方「{{card}}」里修改",
             "fallbackHint": "云端暂时不可用，已回退到基础资源"
         }
+    },
+    "runtime": {
+        "subtitleEngineInvalid": "字幕翻译引擎设置值无效（{{value}}），请到“功能设置”重新选择并保存",
+        "subtitleModeInvalid": "字幕翻译风格设置值无效（{{value}}），请到“功能设置”重新选择并保存"
     }
 }
