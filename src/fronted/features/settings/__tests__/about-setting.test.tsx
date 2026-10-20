@@ -2,21 +2,9 @@ import React from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { SWRConfig } from 'swr';
+import '@/fronted/i18n';
 import AboutSetting from '../AboutSetting';
 import { settingsApi } from '../settingsApi';
-
-vi.mock('react-i18next', () => ({
-    useTranslation: () => ({
-        t: (key: string, options?: any) => {
-            if (options?.defaultValue) {
-                return typeof options.defaultValue === 'string' && options?.version
-                    ? options.defaultValue.replace('{{version}}', options.version)
-                    : options.defaultValue;
-            }
-            return key;
-        },
-    }),
-}));
 
 vi.mock('../settingsStore', () => ({
     default: (selector: any) => selector({ values: new Map([['appearance.theme', 'dark']]) }),
@@ -49,8 +37,8 @@ describe('AboutSetting', () => {
         renderWithFreshSWR(<AboutSetting />);
 
         expect(screen.getByText('DashPlayer')).toBeDefined();
-        expect(await screen.findByText('当前已是最新版本')).toBeDefined();
-        expect(screen.getByRole('button', { name: /检查更新/ })).toBeDefined();
+        expect(await screen.findByText("You're up to date")).toBeDefined();
+        expect(screen.getByRole('button', { name: /Check for Updates/ })).toBeDefined();
     });
 
     it('renders release changelog when a newer version is available', async () => {
@@ -68,7 +56,7 @@ describe('AboutSetting', () => {
 
         renderWithFreshSWR(<AboutSetting />);
 
-        expect(await screen.findByText('前往下载新版本')).toBeDefined();
+        expect(await screen.findByText('Download New Release')).toBeDefined();
         expect(screen.getAllByText(/v0.16.0/).length).toBeGreaterThan(0);
     });
 });
