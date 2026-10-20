@@ -332,7 +332,7 @@ const RecordDialog = ({
                                 </div>
                             ) : (
                                 <span className="text-xs text-muted-foreground/60 italic select-none">
-                                    {t('shortcut.listeningPrompt')}
+                                    {t('shortcut.listeningPromptHint')}
                                 </span>
                             )}
                         </div>

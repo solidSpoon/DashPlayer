@@ -202,7 +202,8 @@
             }
         },
         "rerecord": "Record again",
-        "cancel": "Cancel"
+        "cancel": "Cancel",
+        "listeningPromptHint": "Waiting for a keypress... (you can press a new combination any time)"
     },
     "about": {
         "title": "About & Updates",

@@ -202,7 +202,8 @@
             }
         },
         "rerecord": "重新录制",
-        "cancel": "取消"
+        "cancel": "取消",
+        "listeningPromptHint": "等待按键输入...（可随时直接按下新按键）"
     },
     "about": {
         "title": "关于与更新",
