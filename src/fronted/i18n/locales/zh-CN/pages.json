@@ -38,7 +38,8 @@
         "pagination": {
             "summary": "显示第 {{start}}-{{end}} 个片段，共 {{total}} 个",
             "empty": "暂无视频片段"
-        }
+        },
+        "exportTemplateFileName": "单词管理模板.xlsx"
     },
     "playbackRepair": {
         "title": "修复播放问题",
@@ -114,8 +115,11 @@
             "endTime": "结束时间",
             "title": "标题",
             "empty": "暂无切分配置，请在左侧输入时间戳",
-            "shortDuration": "片段时长小于 1 分钟"
-        }
+            "shortDuration": "片段时长小于 1 分钟",
+            "unnamed": "(未命名字段)"
+        },
+        "videoSuffix": "(视频)",
+        "subtitleSuffix": "(字幕)"
     },
     "subtitleWorkspace": {
         "title": "视频字幕生成",
@@ -172,5 +176,8 @@
         "cleared": "已清除该视频的配音",
         "clearFailed": "清除失败，请重试",
         "loadFailed": "加载配音列表失败"
+    },
+    "videoLearning": {
+        "playbackGuide": "点击上方片段开始播放"
     }
 }

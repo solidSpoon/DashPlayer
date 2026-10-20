@@ -215,5 +215,53 @@
         "record": "Hold to record, tap to preview",
         "preparing": "Preparing to record…",
         "stop": "Release to stop recording"
+    },
+    "subtitle": {
+        "favoriteCurrent": "Save current sentence",
+        "adjustApplied": "Subtitle timing adjusted ({{start}} / {{end}})",
+        "adjustTooltip": "Adjust the current sentence's subtitle timing",
+        "adjustTitle": "Subtitle timing",
+        "reset": "Reset",
+        "beginLabel": "Sentence start",
+        "endLabel": "Sentence end",
+        "beginShortcutHint": "Sentence start earlier/later:",
+        "endShortcutHint": "Sentence end earlier/later:",
+        "resetShortcutHint": "Reset this sentence:"
+    },
+    "sideSentence": {
+        "playing": "Playing",
+        "singleLoop": "Single-sentence loop",
+        "paused": "Paused"
+    },
+    "sourceLine": {
+        "aiTranslation": "AI translation",
+        "originalSubtitle": "Original subtitle"
+    },
+    "controlButton": {
+        "backToPlayhead": "Back to current position",
+        "openPanel": "Open control panel",
+        "closePanel": "Close control panel"
+    },
+    "fullscreenHint": {
+        "toggle": "Click to hide / show the subtitle list",
+        "title": "Fullscreen tip:",
+        "windows": "right-click the title bar maximize button",
+        "mac": "click the green button at the top-left of the window"
+    },
+    "subtitleList": {
+        "pause": "Pause",
+        "play": "Play",
+        "autoPauseOn": "Turn off auto-pause",
+        "autoPauseOff": "Turn on auto-pause",
+        "singleRepeatOn": "Turn off single-sentence loop",
+        "singleRepeatOff": "Turn on single-sentence loop"
+    },
+    "favouritePlayer": {
+        "selectClip": "Select a clip on the left to play",
+        "pause": "Pause",
+        "play": "Play",
+        "prevVideo": "Previous video",
+        "nextVideo": "Next video",
+        "repeatSentence": "Loop current sentence"
     }
 }

@@ -200,7 +200,9 @@
                 "title": "打开控制面板",
                 "description": "打开播放器控制面板"
             }
-        }
+        },
+        "rerecord": "重新录制",
+        "cancel": "取消"
     },
     "about": {
         "title": "关于与更新",
@@ -225,7 +227,8 @@
                 "rate_limited": "GitHub 请求频率受限，请几分钟后再试。",
                 "network": "暂时无法连接 GitHub，请检查网络后重试。",
                 "payload": "GitHub 返回了无法解析的数据，请稍后重试。"
-            }
+            },
+            "checking": "正在检查更新..."
         },
         "features": {
             "asrTitle": "离线语音识别",

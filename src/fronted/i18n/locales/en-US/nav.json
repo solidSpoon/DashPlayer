@@ -7,5 +7,9 @@
     "vocabularyStudio": "Vocabulary Studio",
     "dubbingExport": "Dubbing Export",
     "settingsCenter": "Settings Center",
-    "productStory": "About DashPlayer"
+    "productStory": "About DashPlayer",
+    "backNavRecent": "Recently opened",
+    "backNavUp": "Go up one level",
+    "backNavRecentHint": "Browse recently opened projects",
+    "backNavCurrentDir": "Current folder: {{dir}}"
 }

@@ -7,5 +7,9 @@
     "vocabularyStudio": "词汇工坊",
     "dubbingExport": "配音导出",
     "settingsCenter": "设置中心",
-    "productStory": "关于 DashPlayer"
+    "productStory": "关于 DashPlayer",
+    "backNavRecent": "最近浏览",
+    "backNavUp": "返回上一级",
+    "backNavRecentHint": "查看最近打开的项目",
+    "backNavCurrentDir": "当前目录：{{dir}}"
 }

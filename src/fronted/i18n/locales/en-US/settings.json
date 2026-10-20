@@ -200,7 +200,9 @@
                 "title": "Open Control Panel",
                 "description": "Open the playback control panel."
             }
-        }
+        },
+        "rerecord": "Record again",
+        "cancel": "Cancel"
     },
     "about": {
         "title": "About & Updates",
@@ -225,7 +227,8 @@
                 "rate_limited": "GitHub request limit reached. Please try again in a few minutes.",
                 "network": "Can't reach GitHub right now. Check your connection and try again.",
                 "payload": "GitHub returned an unreadable response. Please try again later."
-            }
+            },
+            "checking": "Checking for updates..."
         },
         "features": {
             "asrTitle": "Offline Speech Recognition",
