@@ -145,7 +145,7 @@ const AboutSetting = () => {
                 {checking && !updateResult ? (
                     <div className="flex items-center gap-2 px-4 py-2.5 border-t border-border/50 bg-muted/20 text-xs text-muted-foreground">
                         <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                        <span>正在检查更新...</span>
+                        <span>{t('about.update.checking')}</span>
                     </div>
                 ) : hasError ? (
                     <div className="flex items-center justify-between gap-3 px-4 py-2.5 border-t border-border/50 bg-destructive/5 text-xs text-destructive">
@@ -156,7 +156,7 @@ const AboutSetting = () => {
                             variant="outline"
                             className="h-6 px-2 text-xs"
                         >
-                            重试
+                            {t('about.update.retry')}
                         </Button>
                     </div>
                 ) : hasNewRelease ? (
@@ -165,7 +165,7 @@ const AboutSetting = () => {
                         <div className="flex items-center justify-between gap-3">
                             <div className="flex items-center gap-2 text-xs">
                                 <span className="font-semibold text-foreground">
-                                    新版本可用
+                                    {t('about.update.newVersionFound')}
                                 </span>
                                 <span className="font-mono text-muted-foreground">
                                     {updateResult?.releases[0]?.version}
@@ -179,7 +179,7 @@ const AboutSetting = () => {
                                 className="gap-1 h-7 px-2.5 text-xs font-medium shrink-0"
                             >
                                 <ExternalLink className="h-3 w-3" />
-                                前往下载新版本
+                                {t('about.update.downloadNow')}
                             </Button>
                         </div>
 

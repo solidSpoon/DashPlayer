@@ -191,6 +191,7 @@ const RecordDialog = ({
     listeningPrompt: string;
     clearAllLabel: string;
 }) => {
+    const { t } = useI18nTranslation('settings');
     const [keys, { start, stop }] = useRecordHotkeys();
     const [open, setOpen] = React.useState(false);
     const [shortcuts, setShortcuts] = React.useState<string[]>([]);
@@ -314,7 +315,7 @@ const RecordDialog = ({
                                     {listeningPrompt}
                                 </span>
                             ) : (
-                                <span>点击此处激活按键录制</span>
+                                <span>{t('shortcut.clickToListen')}</span>
                             )}
                         </div>
 
@@ -331,7 +332,7 @@ const RecordDialog = ({
                                 </div>
                             ) : (
                                 <span className="text-xs text-muted-foreground/60 italic select-none">
-                                    等待按键输入...（可随时直接按下新按键）
+                                    {t('shortcut.listeningPrompt')}
                                 </span>
                             )}
                         </div>
@@ -346,7 +347,7 @@ const RecordDialog = ({
                                     className="h-7 text-xs gap-1"
                                 >
                                     <RotateCcw className="w-3 h-3" />
-                                    重新录制
+                                    {t('shortcut.rerecord')}
                                 </Button>
                                 <Button
                                     type="button"
@@ -429,7 +430,7 @@ const RecordDialog = ({
 
                 <DialogFooter className="gap-2 sm:gap-0">
                     <Button type="button" variant="outline" onClick={() => setOpen(false)}>
-                        取消
+                        {t('shortcut.cancel')}
                     </Button>
                     <Button type="button" onClick={submitChanges}>
                         {saveChangesLabel}

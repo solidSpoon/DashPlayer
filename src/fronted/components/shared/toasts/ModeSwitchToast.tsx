@@ -1,5 +1,6 @@
 import { Button } from '@/fronted/components/ui/button';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface ModeSwitchToastProps {
     mode: 'podcast' | 'video';
@@ -12,11 +13,12 @@ const icons = {
 } as const;
 
 export function ModeSwitchToast({ mode, onCancel }: ModeSwitchToastProps) {
+    const { t } = useTranslation('toast');
     return (
         <div className="flex items-center gap-3 text-xs font-medium">
             <span className="flex items-center gap-1.5 text-foreground">
                 <span>{icons[mode]}</span>
-                <span>{mode === 'podcast' ? '已自动切换至播客模式' : '已自动切换至视频模式'}</span>
+                <span>{mode === 'podcast' ? t('modeSwitchedPodcast') : t('modeSwitchedVideo')}</span>
             </span>
             <Button
                 variant="ghost"
@@ -24,7 +26,7 @@ export function ModeSwitchToast({ mode, onCancel }: ModeSwitchToastProps) {
                 className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground hover:bg-muted"
                 onClick={onCancel}
             >
-                恢复
+                {t('restore')}
             </Button>
         </div>
     );

@@ -122,7 +122,7 @@ const TagQuery = ({
           }}
           className="h-6 px-2 text-[11px] font-medium rounded-lg text-muted-foreground hover:text-foreground"
         >
-          {relation === 'and' ? 'AND (全部匹配)' : 'OR (任一匹配)'}
+          {relation === 'and' ? t('andAllMatch') : t('orAnyMatch')}
         </Button>
       </div>
     </div>

@@ -24,6 +24,7 @@ const logger = getRendererLogger('SplitRow');
  * 当标题较长或窗口较窄时，优先在表格内部换行/滚动，避免把父布局撑宽。
  */
 const SplitRow = ({ line, shortDurationLabel }: { line: TaskChapterParseResult; shortDurationLabel: string }) => {
+    const { t } = useI18nTranslation('pages');
     logger.debug('Rendering split row', {
         timestampStart: line.timestampStart,
         timestampEnd: line.timestampEnd,
@@ -69,7 +70,7 @@ const SplitRow = ({ line, shortDurationLabel }: { line: TaskChapterParseResult; 
                     StrUtil.isBlank(line.title) && 'bg-destructive/10 text-destructive italic'
                 )}
             >
-                {line.title || '(未命名字段)'}
+                {line.title || t('sentenceSplitter.preview.unnamed')}
             </TableCell>
         </TableRow>
     );

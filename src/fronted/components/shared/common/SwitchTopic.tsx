@@ -1,4 +1,5 @@
 import { cn } from '@/fronted/lib/utils';
+import { useTranslation } from 'react-i18next';
 import useChatPanel from '@/fronted/features/chat/chatStore';
 import { useMemo } from 'react';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
@@ -19,6 +20,7 @@ export interface SwitchTopicProps {
  * 渲染“完整版原文 + 切换按钮”组合，便于用户先看到完整句子，再决定是否切换学习主题。
  */
 const SwitchTopic = ({ encoded, label, className }: SwitchTopicProps) => {
+    const { t } = useTranslation('common');
     const logger = getRendererLogger('SwitchTopic');
     const createFromSelect = useChatPanel(s => s.createFromSelect);
     const decoded = useMemo(() => {
@@ -28,7 +30,7 @@ const SwitchTopic = ({ encoded, label, className }: SwitchTopicProps) => {
             return encoded;
         }
     }, [encoded]);
-    const text = label && label.trim().length > 0 ? label : '点击切换';
+    const text = label && label.trim().length > 0 ? label : t('clickToSwitch');
     return (
         <span
             className={cn('inline-flex flex-wrap items-center gap-x-2 gap-y-1', className)}
@@ -57,7 +59,6 @@ const SwitchTopic = ({ encoded, label, className }: SwitchTopicProps) => {
 };
 
 SwitchTopic.defaultProps = {
-    label: '点击切换',
     className: '',
 };
 
