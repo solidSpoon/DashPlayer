@@ -40,8 +40,8 @@ export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip, d
       <div className="flex items-center justify-center h-64 text-muted-foreground">
         <div className="text-center">
           <Play className="w-12 h-12 mx-auto mb-4 opacity-70" />
-          <p className="text-lg mb-2">暂无视频片段</p>
-          <p className="text-sm">请先添加一些视频片段到收藏</p>
+          <p className="text-lg mb-2">{t('clipGridEmptyTitle')}</p>
+          <p className="text-sm">{t('clipGridEmptyDesc')}</p>
         </div>
       </div>
     );
@@ -109,13 +109,13 @@ export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip, d
                     {/* 状态标识 */}
                     {isPlaying && (
                       <div className="absolute top-2 left-2 bg-primary text-primary-foreground text-[11px] font-medium px-2 py-0.5 rounded-md shadow-2xs">
-                        播放中
+                        {t('clipGridPlaying')}
                       </div>
                     )}
                     {clip.sourceType === 'local' && !isPlaying && (
                       <div className="absolute top-2 left-2 bg-amber-500/90 text-white text-[11px] font-medium px-2 py-0.5 rounded-md flex items-center gap-1 shadow-2xs backdrop-blur-xs">
                         <div className="w-1.5 h-1.5 bg-current rounded-full animate-pulse"></div>
-                        处理中
+                        {t('clipGridProcessing')}
                       </div>
                     )}
 
@@ -140,17 +140,17 @@ export default function ClipGrid({ clips, playingKey, thumbnails, onClickClip, d
                           <TooltipContent className="max-w-xs text-xs">
                             <div className="space-y-1">
                               <div>
-                                <strong>状态:</strong> {clip.sourceType === 'local' ? '处理中' : '已完成'}
+                                <strong>{t('status')}:</strong> {clip.sourceType === 'local' ? t('clipGridProcessing') : t('clipGridDone')}
                               </div>
                               <div>
-                                <strong>视频名称:</strong> {title}
+                                <strong>{t('videoName')}:</strong> {title}
                               </div>
                               <div>
-                                <strong>时间范围:</strong> {TimeUtil.secondToTimeStrCompact(mainClip?.start || 0)} -{' '}
+                                <strong>{t('timeRange')}:</strong> {TimeUtil.secondToTimeStrCompact(mainClip?.start || 0)} -{' '}
                                 {TimeUtil.secondToTimeStrCompact(mainClip?.end || 0)}
                               </div>
                               <div>
-                                <strong>创建时间:</strong> {new Date(clip.createdAt).toLocaleString()}
+                                <strong>{t('createdAt')}:</strong> {new Date(clip.createdAt).toLocaleString()}
                               </div>
                             </div>
                           </TooltipContent>

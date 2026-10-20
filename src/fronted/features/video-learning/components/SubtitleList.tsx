@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ClipSrtLine } from '@/common/types/clipMeta';
 import { Play, Pause, CirclePause, Repeat } from 'lucide-react';
 import { useVocabularyState } from '@/fronted/features/player/vocabularyStore';
@@ -34,6 +35,7 @@ export default function SubtitleList({
   onToggleAutoPause,
   onToggleSingleRepeat
 }: Props) {
+  const { t } = useTranslation('player');
   const containerRef = useRef<HTMLDivElement>(null);
   const itemRefs = useRef<(HTMLDivElement | null)[]>([]);
   const vocabularyVersion = useVocabularyState((state) => state.version);
@@ -126,7 +128,7 @@ export default function SubtitleList({
                         onTogglePlay?.();
                       }}
                       className="p-1 rounded hover:bg-muted transition-colors"
-                      title={playing ? "暂停" : "播放"}
+                      title={playing ? t('subtitleList.pause') : t('subtitleList.play')}
                     >
                       {playing ? (
                         <Pause className="w-3 h-3 text-muted-foreground" />
@@ -146,7 +148,7 @@ export default function SubtitleList({
                           ? 'bg-primary/10'
                           : 'hover:bg-muted'
                       }`}
-                      title={autoPause ? "关闭自动暂停" : "开启自动暂停"}
+                      title={autoPause ? t('subtitleList.autoPauseOn') : t('subtitleList.autoPauseOff')}
                     >
                       <CirclePause className={`w-3 h-3 ${
                         autoPause
@@ -166,7 +168,7 @@ export default function SubtitleList({
                           ? 'bg-emerald-100 dark:bg-emerald-900/30'
                           : 'hover:bg-muted'
                       }`}
-                      title={singleRepeat ? "关闭单句循环" : "开启单句循环"}
+                      title={singleRepeat ? t('subtitleList.singleRepeatOn') : t('subtitleList.singleRepeatOff')}
                     >
                       <Repeat className={`w-3 h-3 ${
                         singleRepeat

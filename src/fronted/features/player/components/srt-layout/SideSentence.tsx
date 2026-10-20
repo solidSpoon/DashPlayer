@@ -1,4 +1,5 @@
 import React, { forwardRef } from 'react';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 import useSetting from '@/fronted/features/settings/settingsStore';
 import { usePlayerUiState } from '@/fronted/features/player/playerUiStore';
 import { usePlayerState } from '@/fronted/features/player/playerState';
@@ -35,6 +36,7 @@ interface Part {
 }
 
 const IconTip = ({ tip, children }: { tip: string; children: React.ReactNode }) => {
+    const { t } = useI18nTranslation('player');
     return (
         <TooltipProvider delayDuration={300}>
             <Tooltip>
@@ -42,7 +44,7 @@ const IconTip = ({ tip, children }: { tip: string; children: React.ReactNode }) 
                     {children}
                 </TooltipTrigger>
                 <TooltipContent side="top" sideOffset={4} className="text-xs">
-                    {tip}
+                    {t(tip)}
                 </TooltipContent>
             </Tooltip>
         </TooltipProvider>
@@ -51,7 +53,7 @@ const IconTip = ({ tip, children }: { tip: string; children: React.ReactNode }) 
 
 // 精致跳动的音频声波小动效
 const PlayingAudioWave = () => (
-    <IconTip tip="正在播放">
+    <IconTip tip="sideSentence.playing">
         <div className="flex items-end justify-center gap-[2px] w-4 h-4 text-rose-600 dark:text-rose-400">
             <span className="w-[2.5px] h-3.5 bg-current rounded-full animate-[pulse_0.8s_ease-in-out_infinite]" />
             <span className="w-[2.5px] h-2 bg-current rounded-full animate-[pulse_0.6s_ease-in-out_0.2s_infinite]" />
@@ -61,7 +63,7 @@ const PlayingAudioWave = () => (
 );
 
 const RepeatAudioWave = () => (
-    <IconTip tip="单句循环中">
+    <IconTip tip="sideSentence.singleLoop">
         <div className="flex items-center justify-center w-4 h-4 text-rose-600 dark:text-rose-400">
             <Repeat1 className="w-3.5 h-3.5" />
         </div>
@@ -69,7 +71,7 @@ const RepeatAudioWave = () => (
 );
 
 const PausedIcon = () => (
-    <IconTip tip="已暂停">
+    <IconTip tip="sideSentence.paused">
         <div className="flex items-center justify-center w-4 h-4 text-stone-400 dark:text-neutral-500">
             <Pause className="w-3 h-3 fill-current" />
         </div>

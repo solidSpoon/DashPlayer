@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '@/fronted/lib/utils';
 import useLayout from '@/fronted/hooks/useLayout';
@@ -24,6 +25,7 @@ const process = (values: string) => values
  *    - 消失：以强力位移下坠缩回主按钮背后中心（y: 0 -> y: 50, scale: 0.1），并在最后 10% 才淡出，确保人眼能完整清晰看到缩回动效
  */
 export default function ControlButton() {
+    const { t } = useTranslation('player');
     const changeSideBar = useLayout((s) => s.changeSideBar);
     const showSideBar = useLayout((s) => s.showSideBar);
     const pauseMeasurement = useSubtitleScrollState((state) => state.pauseMeasurement);
@@ -99,13 +101,13 @@ export default function ControlButton() {
                                                     'dark:bg-neutral-900/90 dark:text-amber-400 dark:border-white/15',
                                                     'hover:scale-110 active:scale-95 transition-[transform,background-color] duration-150'
                                                 )}
-                                                aria-label="回到当前播放位置"
+                                                aria-label={t('controlButton.backToPlayhead')}
                                             >
                                                 <LocateFixed className="w-4 h-4 animate-pulse" />
                                             </button>
                                         </TooltipTrigger>
                                         <TooltipContent side="left" className="text-xs">
-                                            回到当前播放位置
+                                            {t('controlButton.backToPlayhead')}
                                         </TooltipContent>
                                     </Tooltip>
                                 </motion.div>
@@ -147,13 +149,13 @@ export default function ControlButton() {
                                             'dark:bg-neutral-100/90 dark:text-neutral-900 dark:border-black/10',
                                             'opacity-80 hover:opacity-100 hover:scale-105 active:scale-95 transition-[transform,opacity,background-color] duration-150'
                                         )}
-                                        aria-label="打开控制面板"
+                                        aria-label={showSideBar ? t('controlButton.closePanel') : t('controlButton.openPanel')}
                                     >
                                         <LayoutGrid className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />
                                     </button>
                                 </TooltipTrigger>
                                 <TooltipContent side="left" className="text-xs">
-                                    {showSideBar ? '收起控制面板' : '打开控制面板'}
+                                    {showSideBar ? t('controlButton.closePanel') : t('controlButton.openPanel')}
                                     {openControlPanelShortcut ? ` (${openControlPanelShortcut})` : ''}
                                 </TooltipContent>
                             </Tooltip>

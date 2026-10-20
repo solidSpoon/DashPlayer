@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { usePlayerUi } from '@/fronted/features/player/playerUiStore';
 import { cn } from "@/fronted/lib/utils";
 import useSetting from '@/fronted/features/settings/settingsStore';
@@ -10,6 +11,7 @@ interface NormalLineParam {
 }
 
 const NormalLine = ({ text, order, source }: NormalLineParam) => {
+    const { t } = useTranslation('player');
     const fontSize = useSetting((state) => state.values.get('appearance.fontSize'));
 
     if (text === undefined) {
@@ -32,7 +34,7 @@ const NormalLine = ({ text, order, source }: NormalLineParam) => {
                             ? "text-indigo-600 dark:text-indigo-300 bg-indigo-500/10 border border-indigo-500/20"
                             : "text-stone-500 dark:text-neutral-400 bg-stone-500/10 border border-stone-500/20"
                     )}
-                    title={source === 'ai' ? 'AI 翻译' : '原片字幕'}
+                    title={source === 'ai' ? t('sourceLine.aiTranslation') : t('sourceLine.originalSubtitle')}
                 >
                     {source === 'ai' ? 'AI' : 'SRT'}
                 </span>
