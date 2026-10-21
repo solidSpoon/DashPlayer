@@ -352,4 +352,60 @@ describe('useSubtitleScroll', () => {
         expect(virtuoso.scrollBy).toHaveBeenCalledWith({ top: 140 });
         expect(useSubtitleScroll.getState().internal.lastSyncIndex).toBe(3);
     });
+
+    it('浏览态下同一行重挂 ref 不会在恢复跟读后被同步回当前句', () => {
+        const virtuoso = mockVirtuoso();
+        useSubtitleScroll.setState({
+            scrollState: 'USER_BROWSING',
+            internal: {
+                ...useSubtitleScroll.getState().internal,
+                virtuoso: virtuoso.handle,
+                currentListPosition: 5,
+                currentRefPosition: 5,
+                currentRef: mockRow(600, 640), // 用户滚开时当前句在下边界之外
+                lastSyncedPosition: 5,
+                lastSyncIndex: -1, // 浏览态期间从未同步过
+            },
+        });
+
+        // 切换译文后行高变小，当前句被推进安全边界内：这里自动恢复跟读
+        useSubtitleScroll.getState().updateCurrentRef(mockRow(100, 140), 5);
+        vi.advanceTimersByTime(150);
+        expect(useSubtitleScroll.getState().scrollState).toBe('NORMAL');
+
+        // Virtuoso 重排后重挂同一行的 ref：目标下标没变，不能把用户滚到的位置拉回当前句
+        useSubtitleScroll.getState().updateCurrentRef(mockRow(600, 640), 5);
+        vi.advanceTimersByTime(0);
+
+        expect(virtuoso.scrollToIndex).not.toHaveBeenCalled();
+        expect(virtuoso.scrollBy).not.toHaveBeenCalled();
+    });
+
+    it('浏览态下切到新句子仍会恢复跟读并同步新目标', () => {
+        const virtuoso = mockVirtuoso();
+        useSubtitleScroll.setState({
+            scrollState: 'USER_BROWSING',
+            internal: {
+                ...useSubtitleScroll.getState().internal,
+                virtuoso: virtuoso.handle,
+                currentListPosition: 5,
+                currentRefPosition: 5,
+                currentRef: mockRow(600, 640),
+                lastSyncedPosition: 5,
+                lastSyncIndex: 5,
+            },
+        });
+
+        // 播放推进到下一句且新句已在边界内：仍应恢复跟读
+        useSubtitleScroll.getState().updateCurrentRef(mockRow(100, 140), 6);
+        vi.advanceTimersByTime(150);
+        expect(useSubtitleScroll.getState().scrollState).toBe('NORMAL');
+
+        // 再切一句（下标又变）：目标变了，照常同步
+        useSubtitleScroll.getState().updateCurrentRef(mockRow(600, 640), 7);
+        vi.advanceTimersByTime(0);
+
+        expect(virtuoso.scrollBy).toHaveBeenCalledWith({ top: 140 });
+        expect(useSubtitleScroll.getState().internal.lastSyncIndex).toBe(7);
+    });
 });

@@ -240,6 +240,10 @@ const useSubtitleScroll = create(
 
                     // 浏览态下若播放自然推进使新的当前句进入边界，自动恢复跟读
                     if (currentScrollState === 'USER_BROWSING') {
+                        // 记下这个下标：浏览态期间我们已经知道它且决定不同步，
+                        // 否则重排后状态回落 NORMAL、Virtuoso 重挂 ref 时，
+                        // 同一下标会被当成「新目标」而把用户滚到的位置拉回当前句
+                        internal.lastSyncIndex = listPosition;
                         if (ref && inBoundary()) {
                             delaySetNormal(TIMING.RESUME_NORMAL);
                         }
