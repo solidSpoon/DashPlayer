@@ -15,31 +15,6 @@ import useBoundary from '@/fronted/features/player/hooks/useBoundary';
 import useChatPanel from '@/fronted/features/chat/chatStore';
 import { Sentence } from '@/common/types/SentenceC';
 
-/**
- * 切「侧栏译文」那一瞬的位置快照，也是补偿窗口的生命周期句柄。
- */
-type SideTranslationSnapshot = {
-    /** 当前句的 DOM 节点；补偿时通过它重新量位置 */
-    element: HTMLElement;
-    /** 点击那一刻当前句的视口纵坐标（视觉像素） */
-    top: number;
-    /** 点击那一刻滚动容器的 scrollTop（滚动像素） */
-    scrollTop: number;
-    /** 本世代的编号：世代变了说明又点了一次开关，这份快照作废 */
-    generation: number;
-    /** 监听 scroll 的那个滚动容器 */
-    scroller: HTMLElement;
-    /**
-     * 期望的 scrollTop：用来区分「我自己写进去的滚动」与「用户滚的」。
-     * 写回后立即同步，所以随后那个 scroll 事件会被认成自己写的。
-     */
-    expectedScrollTop: number;
-    /** 用户已经接管了位置，本次补偿不写任何东西 */
-    cancelled: boolean;
-    /** 注销 scroll 监听（幂等） */
-    detach: () => void;
-};
-
 export default function Subtitle() {
     const showSideBar = useLayout((state) => state.showSideBar);
     const showEn = usePlayerUi((state) => state.showEn);
@@ -97,76 +72,10 @@ export default function Subtitle() {
     }, [currentListPosition, syncIntoView]);
 
     /**
-     * 切换「侧栏译文」前的视觉快照（含本次切换的世代号）。
-     */
-    const sideTranslationToggleSnapshotRef = useRef<SideTranslationSnapshot | null>(null);
-    /**
-     * 侧栏译文切换的世代号：每次 toggle 递增。旧世代的补偿与 scroll 监听一律作废，
-     * 否则连续切换时上一次写的 scrollTop 会落到新一次切换之后（实测会累积成位移）。
+     * 侧栏译文切换的世代号：每次 toggle 递增。连续切换时只让最后一次的重定位落地，
+     * 早期的 pending 回调直接作废，避免几次定位排队打架（实测会来回跳）。
      */
     const sideTranslationToggleGenerationRef = useRef(0);
-
-    /**
-     * 捕获阶段监听三个切换入口：先量位置，再让 React 去改行高。
-     * 用捕获阶段是因为这些入口各自挂着 onClick / Radix 的关闭逻辑，冒泡阶段布局可能已经变过了。
-     * 入口靠 data-side-translation-toggle 标记，不靠组件实例引用，因为三个入口分属三个组件。
-     */
-    useEffect(() => {
-        const handleCaptureClick = (event: MouseEvent) => {
-            const target = event.target;
-            if (!(target instanceof Element) || !target.closest('[data-side-translation-toggle]')) {
-                return;
-            }
-            const element = useSubtitleScroll.getState().internal.currentRef;
-            const scroller = scrollerRef.current;
-            if (!element || !(scroller instanceof HTMLElement)) {
-                return;
-            }
-
-            // 上一次还没走完的快照先作废，旧监听不留在滚动容器上
-            sideTranslationToggleSnapshotRef.current?.detach();
-            const generation = sideTranslationToggleGenerationRef.current + 1;
-            sideTranslationToggleGenerationRef.current = generation;
-            const scrollTop = scroller.scrollTop;
-
-            /**
-             * 窗口内收到「不是自己写的」滚动，就说明用户接管了位置：直接放弃本次补偿。
-             * 事件驱动而不是「写回前采样一次」：用户滚动落在两次 rAF 之间时，采样可能还看到旧值，
-             * 于是一次性地把用户滚到的位置拽回去（实测 3 轮里有 1 轮）。
-             */
-            const handleUserScroll = () => {
-                if (snapshot.cancelled) {
-                    return;
-                }
-                // 自己写回的那一次滚动不算用户滚动：预期值在写回后立即同步
-                if (Math.abs(scroller.scrollTop - snapshot.expectedScrollTop) <= 1) {
-                    return;
-                }
-                snapshot.cancelled = true;
-                snapshot.detach();
-            };
-
-            const snapshot: SideTranslationSnapshot = {
-                element,
-                top: element.getBoundingClientRect().top,
-                scrollTop,
-                generation,
-                scroller,
-                expectedScrollTop: scrollTop,
-                cancelled: false,
-                detach: () => scroller.removeEventListener('scroll', handleUserScroll),
-            };
-            scroller.addEventListener('scroll', handleUserScroll, { passive: true });
-            sideTranslationToggleSnapshotRef.current = snapshot;
-        };
-        document.addEventListener('click', handleCaptureClick, true);
-        return () => {
-            document.removeEventListener('click', handleCaptureClick, true);
-            // 组件卸载：监听不能留在滚动容器上
-            sideTranslationToggleSnapshotRef.current?.detach();
-            sideTranslationToggleSnapshotRef.current = null;
-        };
-    }, []);
 
     /**
      * 上一次渲染时的「侧栏译文」开关值；用于区分「用户刚切了开关」与「首次挂载/其他重渲染」。
@@ -177,70 +86,44 @@ export default function Subtitle() {
             return;
         }
         prevShowSideTranslationRef.current = showSideTranslation;
-        const snapshot = sideTranslationToggleSnapshotRef.current;
-        sideTranslationToggleSnapshotRef.current = null;
+        const generation = sideTranslationToggleGenerationRef.current + 1;
+        sideTranslationToggleGenerationRef.current = generation;
 
-        // 译文行增减会整体改变行高，scrollTop 却不变：当前句会跟着内容一起位移（观感是来回跳）。
-        // 所以不是「把它锚回视野」而是「把它放回原来的视口位置」：量同一个 DOM 节点移动了多少，
-        // 再把这个位移从 scrollTop 里读回来。只写一次（多轮写回会重复叠加位移，已经回退过）。
+        // 译文行增减会把整张列表的行高一起改掉，重排后必须把当前句重新定到视野中央，
+        // 否则它会跟着内容一起滑走。
+        // 这里刻意**不**按点击前后的位移去写 scrollTop（delta 补偿）：补偿与跟随两个写入方
+        // 在同一段 rAF 里抢 scrollTop，逐帧采样能看到位置在 527↔620 之间来回跳、2.2s 不稳，
+        // 靠 delta 补偿无法收敛。改成「重排后做一次确定性的重定位」，一次到位。
         // 等两帧是因为 Virtuoso 的重测自己也在 rAF 里跑。
         let innerFrameId = 0;
-        let settleFrameId = 0;
         const outerFrameId = requestAnimationFrame(() => {
             innerFrameId = requestAnimationFrame(() => {
-                const scroller = scrollerRef.current;
-                const internal = useSubtitleScroll.getState().internal;
-                const position = internal.currentListPosition;
-                // 世代变了（又点了一次开关）或用户已抢走滚动：位置以新状态为准，一个字都不写
-                const stale = !!snapshot
-                    && (snapshot.generation !== sideTranslationToggleGenerationRef.current || snapshot.cancelled);
-                if (stale) {
-                    snapshot.detach();
+                // 世代变了说明又点了一次开关：以新一次为准，这次不插手
+                if (generation !== sideTranslationToggleGenerationRef.current) {
                     return;
                 }
-                // 必须确认量的还是同一行：两帧的间隔里 Virtuoso 可能把当前句的节点回收给了别的句子，
-                // 那时拿旧节点量出来的位移与当前句无关，只能退回锚定
-                const sameRow = !!snapshot && internal.currentRef === snapshot.element && snapshot.element.isConnected;
-                if (!snapshot || !(scroller instanceof HTMLElement) || !sameRow) {
-                    snapshot?.detach();
-                    // 量不到原节点时退回旧兜底：至少把当前句锚回视野里
-                    if (position >= 0) {
-                        syncIntoView(position);
-                    }
+                const state = useSubtitleScroll.getState();
+                const { internal, boundary } = state;
+                const { virtuoso, currentRef, currentListPosition } = internal;
+                if (!virtuoso || !boundary || !currentRef || currentListPosition < 0) {
                     return;
                 }
-                // 二次保险：scroll 事件可能还没送达，写回前再比一次数
-                if (Math.abs(scroller.scrollTop - snapshot.expectedScrollTop) > 1) {
-                    snapshot.detach();
+                // 只在当前句此刻还在可视边界内（说明在跟读）时才重新居中；
+                // 它已被滚出视野，说明用户自己翻到了别处，此时一个字都不改，不把用户拽回来
+                const rect = currentRef.getBoundingClientRect();
+                if (rect.bottom <= boundary.yt || rect.top >= boundary.yb) {
                     return;
                 }
-                // rect 是视觉像素，scrollTop 是布局像素：侧栏打开时整块面板被 CSS scale 过，必须先换算
-                const scale = scroller.clientHeight > 0
-                    ? scroller.getBoundingClientRect().height / scroller.clientHeight
-                    : 1;
-                const delta = (snapshot.element.getBoundingClientRect().top - snapshot.top) / scale;
-                if (Math.abs(delta) >= 1) {
-                    // 登记一次「这次 scroll 是我写的」，否则 onScroll 会把它当用户滚动
-                    useSubtitleScroll.getState().skipNextScrollJudgement();
-                    scroller.scrollTop += delta;
-                    // 写回后立即同步预期值：随后那个 scroll 事件就是「自己写的」
-                    snapshot.expectedScrollTop = scroller.scrollTop;
-                }
-                // 兜底：补偿后若当前句仍被挤出视野（如补偿被用户滚动打断），再锚一次
-                if (position >= 0) {
-                    syncIntoView(position);
-                }
-                // 写完再多守一帧才注销监听：这一帧里用户滚动仍应能生效
-                settleFrameId = requestAnimationFrame(() => snapshot.detach());
+                // 这次 scroll 是程序写入的：登记一次，onScroll 读掉后不做用户滚动判定
+                state.skipNextScrollJudgement();
+                virtuoso.scrollToIndex({ index: currentListPosition, align: 'center', behavior: 'auto' });
             });
         });
         return () => {
             cancelAnimationFrame(outerFrameId);
             cancelAnimationFrame(innerFrameId);
-            cancelAnimationFrame(settleFrameId);
-            snapshot?.detach();
         };
-    }, [showSideTranslation, syncIntoView]);
+    }, [showSideTranslation]);
 
     useEffect(() => {
         return () => {
@@ -495,7 +378,6 @@ export default function Subtitle() {
                     <div className="absolute right-2 top-2 z-10 pointer-events-none">
                         <button
                             type="button"
-                            data-side-translation-toggle
                             onClick={() => changeShowSideTranslation()}
                             title={sidebarHiddenByEnglish ? t('controlBox.sidebarHiddenNow') : undefined}
                             className="pointer-events-auto inline-flex items-center gap-1 rounded-full bg-muted/80 px-2 py-0.5 text-[10px] leading-tight text-muted-foreground backdrop-blur transition-colors hover:text-foreground"

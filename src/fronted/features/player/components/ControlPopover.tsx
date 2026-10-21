@@ -61,11 +61,6 @@ export interface ControlPopoverRowProps {
     right?: ReactNode;
     /** 悬停原生长提示：单行放不下的补充说明放这里，别撑高行 */
     title?: string;
-    /**
-     * 标记「这是切侧栏译文的入口」：侧栏列表靠这个属性在点击时量位置，以便重排后把当前句放回原视觉位置。
-     * 属性名与面板药丸、侧栏 chip 保持一致，三处必须同一判定。
-     */
-    dataSideTranslationToggle?: boolean;
     /** 点击或键盘回车/空格触发 */
     onActivate: () => void;
     className?: string;
@@ -86,7 +81,6 @@ export function ControlPopoverRow({
     label,
     right,
     title,
-    dataSideTranslationToggle,
     onActivate,
     className,
 }: ControlPopoverRowProps) {
@@ -96,7 +90,6 @@ export function ControlPopoverRow({
             tabIndex={0}
             aria-pressed={checked}
             title={title}
-            data-side-translation-toggle={dataSideTranslationToggle ? '' : undefined}
             onClick={onActivate}
             onKeyDown={(event) => {
                 if (event.key === 'Enter' || event.key === ' ') {
