@@ -142,7 +142,7 @@
         "autoPlayNextHint": "In folder mode, automatically plays the next video when the current one ends.",
         "fullScreenHint": "Click to toggle fullscreen.",
         "podcastModeHint": "Recommended when playing audio-only files.",
-        "showSideTranslation": "Side translation",
+        "showSideTranslation": "Sidebar translation",
         "sideTranslationHint": "Affects the sidebar list only; the main subtitle area is untouched.",
         "sideTranslationHiddenChip": "Sidebar translation hidden",
         "sideTranslationShowAction": "Show"
