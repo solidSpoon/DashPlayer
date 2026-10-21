@@ -170,7 +170,7 @@ export default function ControlBox() {
           style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}
         >
           {/* 字幕轨道：并入网格中，在有空间时占 2 列，跟随系统主色；窄宽时整组换行而不压缩药丸 */}
-          <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-1.5 min-h-[38px]">
+          <div className="col-span-full sm:col-span-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-1.5 min-h-[38px]">
             <span className="text-xs font-medium text-muted-foreground select-none shrink-0 whitespace-nowrap">
               {t('controlBox.subtitleTracks')}
             </span>
@@ -197,7 +197,7 @@ export default function ControlBox() {
           </div>
 
           {/* 侧栏：译文与「随英文字幕隐藏」管的是同一块右侧字幕栏，收成一组，不再一处药丸一处开关 */}
-          <div className="sm:col-span-2 flex flex-col justify-center gap-0.5 rounded-xl border border-border/60 bg-muted/20 px-3 py-1.5 min-h-[38px]">
+          <div className="col-span-full sm:col-span-2 flex flex-col justify-center gap-0.5 rounded-xl border border-border/60 bg-muted/20 px-3 py-1.5 min-h-[38px]">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-xs font-medium text-muted-foreground select-none shrink-0 whitespace-nowrap">
                 {t('controlBox.sideGroupLabel')}
