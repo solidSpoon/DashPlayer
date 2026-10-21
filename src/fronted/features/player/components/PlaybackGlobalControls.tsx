@@ -486,6 +486,10 @@ export function PlaybackModeControls({
  * 开启态用中性白底而不是彩色：控制条上已经有绿（训练）一种语义色，
  * 再添一种色会让「这个按钮是开着还是被禁用」变成要辨色的谜题。
  *
+ * 文字在 lg 以下隐藏：窄窗（≤1000 CSS px）时控制条本来就摆不下，多这一截文字会把最右的图标挤出可视区；
+ * 隐藏后仅留图标，无障碍名称改由 aria-label 提供（display:none 的文字节点不在无障碍树里），
+ * 视觉用户靠 tooltip 与图标认。
+ *
  * @returns 遮挡开关按钮。
  */
 function HardsubMaskButton() {
@@ -500,6 +504,7 @@ function HardsubMaskButton() {
                     <button
                         onClick={toggleMask}
                         aria-pressed={maskOn}
+                        aria-label={t('hardsubMask.label')}
                         className={cn(
                             TEXT_BUTTON_CLASS,
                             maskOn
@@ -508,7 +513,7 @@ function HardsubMaskButton() {
                         )}
                     >
                         <SquareDashedBottom className="w-3.5 h-3.5" />
-                        <span className="font-sans">{t('hardsubMask.label')}</span>
+                        <span className="font-sans hidden lg:inline">{t('hardsubMask.label')}</span>
                     </button>
                 </TooltipTrigger>
                 <TooltipContent side="top" align="end">

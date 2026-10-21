@@ -71,6 +71,24 @@ export default function Subtitle() {
         syncIntoView(currentListPosition);
     }, [currentListPosition, syncIntoView]);
 
+    /**
+     * 上一次渲染时的「侧栏译文」开关值；用于区分「用户刚切了开关」与「首次挂载/其他重渲染」。
+     */
+    const prevShowSideTranslationRef = useRef(showSideTranslation);
+    useEffect(() => {
+        if (prevShowSideTranslationRef.current === showSideTranslation) {
+            return;
+        }
+        prevShowSideTranslationRef.current = showSideTranslation;
+        if (currentListPosition < 0) {
+            return;
+        }
+        // 译文行增减会整体改变行高，而 scrollTop 不变：不锚定的话当前句会被顶出视野（观感是内容上蹿）。
+        // 等一帧再锚，让 Virtuoso 先按新行高重测，syncIntoView 才不会拿着旧尺寸算滚动量。
+        const frameId = requestAnimationFrame(() => syncIntoView(currentListPosition));
+        return () => cancelAnimationFrame(frameId);
+    }, [showSideTranslation, currentListPosition, syncIntoView]);
+
     useEffect(() => {
         return () => {
             detachUserInputRef.current?.();

@@ -29,9 +29,11 @@ import { useTranslation as useI18nTranslation } from 'react-i18next';
  *
  * 两行说的是同一类常驻开关（哪些轨道/哪块侧栏常亮），观感必须一致；
  * 抽成常量而不是各写一份，否则以后调圆角内边距只会改到其中一行。
+ * shrink-0 + whitespace-nowrap 是硬要求：面板可以窄到 300px 上下，药丸一旦被压缩，
+ * 中文会逐字竖排、文字会压到左侧标签上；宁可让这一行换行变高。
  */
 const TRACK_PILL_CLASS =
-  'px-2.5 py-1 text-xs rounded-lg border transition-all duration-150 select-none font-medium';
+  'px-2.5 py-1 text-xs rounded-lg border transition-all duration-150 select-none font-medium shrink-0 whitespace-nowrap';
 const TRACK_PILL_ACTIVE_CLASS = 'bg-primary text-primary-foreground border-primary shadow-xs';
 const TRACK_PILL_IDLE_CLASS =
   'bg-transparent text-muted-foreground border-border/60 hover:border-border hover:text-foreground hover:bg-muted/40';
@@ -167,12 +169,12 @@ export default function ControlBox() {
           className="grid min-h-0 content-start auto-rows-min gap-2"
           style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}
         >
-          {/* 字幕轨道：并入网格中，在有空间时占 2 列，跟随系统主色 */}
-          <div className="sm:col-span-2 flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-1.5 min-h-[38px]">
-            <span className="text-xs font-medium text-muted-foreground select-none shrink-0">
+          {/* 字幕轨道：并入网格中，在有空间时占 2 列，跟随系统主色；窄宽时整组换行而不压缩药丸 */}
+          <div className="sm:col-span-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-1.5 min-h-[38px]">
+            <span className="text-xs font-medium text-muted-foreground select-none shrink-0 whitespace-nowrap">
               {t('controlBox.subtitleTracks')}
             </span>
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               <PanelPill
                 active={showEn}
                 hint={t('controlBox.trackEnHint', { shortcut: getShortcut('shortcut.toggleEnglishDisplay') })}
@@ -196,11 +198,11 @@ export default function ControlBox() {
 
           {/* 侧栏：译文与「随英文字幕隐藏」管的是同一块右侧字幕栏，收成一组，不再一处药丸一处开关 */}
           <div className="sm:col-span-2 flex flex-col justify-center gap-0.5 rounded-xl border border-border/60 bg-muted/20 px-3 py-1.5 min-h-[38px]">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-xs font-medium text-muted-foreground select-none shrink-0">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-medium text-muted-foreground select-none shrink-0 whitespace-nowrap">
                 {t('controlBox.sideGroupLabel')}
               </span>
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-wrap items-center gap-1.5">
                 <PanelPill
                   active={showSideTranslation}
                   hint={t('controlBox.sideTranslationHint')}
