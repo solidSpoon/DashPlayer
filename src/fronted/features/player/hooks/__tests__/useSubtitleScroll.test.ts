@@ -37,9 +37,6 @@ const resetStore = () => {
             lastSyncedPosition: -1,
             syncPending: false,
             interrupted: false,
-            programmaticScrollSkips: 0,
-            followQuietUntil: 0,
-            quietFollowTimer: undefined,
         },
     });
 };

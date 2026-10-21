@@ -34,12 +34,6 @@ const TIMING = {
     TOP_SETTLE: 500,
     /** 模式切换期间冻结测量的时长 */
     PAUSE_MEASUREMENT: 500,
-    /**
-     * 侧栏译文切换后的「跟随让位窗口」（毫秒）。
-     * 程序定位（scrollToIndex）刚写完时，跟随又在同一帧里把位置拉回默认锚点，
-     * 于是刚定位好的落点被抢走；只推迟这一小段（2–3 帧 + 确认那一次），窗口过后照常。
-     */
-    FOLLOW_QUIET: 120,
 };
 
 export type SubtitleScrollState = {
@@ -65,19 +59,6 @@ export type SubtitleScrollState = {
         syncPending: boolean;
         /** 用户通过输入中断了自动滚动，下一次 onScroll 应跳过状态判断 */
         interrupted: boolean;
-        /**
-         * 已登记的「接下来这次 scroll 是程序自己写的」次数（0 或 1）。
-         * 布局补偿会直接改 scrollTop，若不登记，onScroll 会把这次位移当成用户滚动 /
-         * 越界，把跟读态错切成浏览态（或把浏览态拉回跟读）。
-         */
-        programmaticScrollSkips: number;
-        /**
-         * 「跟随让位窗口」的截止时间戳（Date.now() 毫秒）。窗口内跟随类滚动（含两阶段归顶的第二段）
-         * 一律推迟，避免它们在程序定位之后又把位置拉回去。
-         */
-        followQuietUntil: number;
-        /** 窗口内被推迟的跟随请求：窗口结束后补发一次，否则窗口内切句就没人跟了 */
-        quietFollowTimer: number | undefined | NodeJS.Timeout;
     };
     scrollState: ScrollState;
     /** 字幕容器可视安全边界；组件挂载、useBoundary 测量完成前为 null */
@@ -97,18 +78,6 @@ export type SubtitleScrollActions = {
     delaySetNormal: () => void;
     /** 用户输入（滚轮/滚动条/翻页键）中断自动滚动时调用，立即切换到浏览模式 */
     onUserInterrupt: () => void;
-    /**
-     * 登记「下一次 scroll 由程序写入」：onScroll 读完后不做任何状态判定。
-     * 只登记一次且不累加，避免某个 scroll 事件没来时把后面真实的用户滚动误吞。
-     */
-    skipNextScrollJudgement: () => void;
-    /**
-     * 开启一段「跟随让位窗口」：窗口内的跟随类滚动一律推迟（不取消、不改判定语义），
-     * 给刚写完的程序定位留出稳定时间。只在侧栏译文切换这种布局突变时调用。
-     *
-     * @param durationMs 窗口时长，默认 TIMING.FOLLOW_QUIET
-     */
-    beginFollowQuietWindow: (durationMs?: number) => void;
 };
 
 const getEle = (ele: HTMLDivElement): Ele => {
@@ -188,17 +157,6 @@ const useSubtitleScroll = create(
              */
             const scheduleSync = () => {
                 const internal = get().internal;
-                // 跟随让位窗口内不排队：程序定位正在落点；但请求不能丢，窗口结束后补发一次
-                const wait = internal.followQuietUntil - Date.now();
-                if (wait > 0) {
-                    if (internal.quietFollowTimer === undefined) {
-                        internal.quietFollowTimer = setTimeout(() => {
-                            get().internal.quietFollowTimer = undefined;
-                            scheduleSync();
-                        }, wait + 16);
-                    }
-                    return;
-                }
                 if (internal.syncPending) {
                     return;
                 }
@@ -221,19 +179,10 @@ const useSubtitleScroll = create(
                     lastSyncedPosition: -1,
                     syncPending: false,
                     interrupted: false,
-                    programmaticScrollSkips: 0,
-                    followQuietUntil: 0,
-                    quietFollowTimer: undefined,
                 },
                 scrollState: 'NORMAL',
                 boundary: null,
                 onScrolling: () => {
-                    // 程序自己写的 scrollTop（布局补偿）既不是用户输入，也不该引发状态迁移
-                    const skips = get().internal.programmaticScrollSkips;
-                    if (skips > 0) {
-                        get().internal.programmaticScrollSkips = skips - 1;
-                        return;
-                    }
                     const cs = get().scrollState;
                     if (cs === 'PAUSE_MEASUREMENT') {
                         return;
@@ -371,10 +320,6 @@ const useSubtitleScroll = create(
                         if (cs === 'USER_BROWSING' || cs === 'PAUSE_MEASUREMENT') {
                             return;
                         }
-                        // 跟随让位窗口内不归顶：这一步会把当前句拉去顶部，正好吃掉刚算好的落点
-                        if (Date.now() < internal.followQuietUntil) {
-                            return;
-                        }
                         set({ scrollState: 'AUTO_SCROLLING' });
                         virtuoso.scrollToIndex({
                             index: listPosition,
@@ -446,12 +391,6 @@ const useSubtitleScroll = create(
                     internal.interrupted = true;
                     cancelPendingTimers();
                     set({ scrollState: 'USER_BROWSING' });
-                },
-                skipNextScrollJudgement: () => {
-                    get().internal.programmaticScrollSkips = 1;
-                },
-                beginFollowQuietWindow: (durationMs = TIMING.FOLLOW_QUIET) => {
-                    get().internal.followQuietUntil = Date.now() + durationMs;
                 },
             };
         }
