@@ -72,6 +72,39 @@ export default function Subtitle() {
     }, [currentListPosition, syncIntoView]);
 
     /**
+     * 切换「侧栏译文」前的视觉快照：点击那一刻当前句的视口纵坐标与容器 scrollTop。
+     * 只在三个切换入口（侧栏 chip、面板药丸、控制条弹窗行）被点中时写入，
+     * 并在下一次重排完成、补偿完毕后清空。
+     */
+    const sideTranslationToggleSnapshotRef = useRef<{ element: HTMLElement; top: number; scrollTop: number } | null>(null);
+
+    /**
+     * 捕获阶段监听三个切换入口：先量位置，再让 React 去改行高。
+     * 用捕获阶段是因为这些入口各自挂着 onClick / Radix 的关闭逻辑，冒泡阶段布局可能已经变过了。
+     * 入口靠 data-side-translation-toggle 标记，不靠组件实例引用，因为三个入口分属三个组件。
+     */
+    useEffect(() => {
+        const handleCaptureClick = (event: MouseEvent) => {
+            const target = event.target;
+            if (!(target instanceof Element) || !target.closest('[data-side-translation-toggle]')) {
+                return;
+            }
+            const element = useSubtitleScroll.getState().internal.currentRef;
+            const scroller = scrollerRef.current;
+            if (!element || !(scroller instanceof HTMLElement)) {
+                return;
+            }
+            sideTranslationToggleSnapshotRef.current = {
+                element,
+                top: element.getBoundingClientRect().top,
+                scrollTop: scroller.scrollTop,
+            };
+        };
+        document.addEventListener('click', handleCaptureClick, true);
+        return () => document.removeEventListener('click', handleCaptureClick, true);
+    }, []);
+
+    /**
      * 上一次渲染时的「侧栏译文」开关值；用于区分「用户刚切了开关」与「首次挂载/其他重渲染」。
      */
     const prevShowSideTranslationRef = useRef(showSideTranslation);
@@ -80,14 +113,53 @@ export default function Subtitle() {
             return;
         }
         prevShowSideTranslationRef.current = showSideTranslation;
-        if (currentListPosition < 0) {
-            return;
-        }
-        // 译文行增减会整体改变行高，而 scrollTop 不变：不锚定的话当前句会被顶出视野（观感是内容上蹿）。
-        // 等一帧再锚，让 Virtuoso 先按新行高重测，syncIntoView 才不会拿着旧尺寸算滚动量。
-        const frameId = requestAnimationFrame(() => syncIntoView(currentListPosition));
-        return () => cancelAnimationFrame(frameId);
-    }, [showSideTranslation, currentListPosition, syncIntoView]);
+        const snapshot = sideTranslationToggleSnapshotRef.current;
+        sideTranslationToggleSnapshotRef.current = null;
+
+        // 译文行增减会整体改变行高，scrollTop 却不变：当前句会跟着内容一起位移（观感是来回跳）。
+        // 所以不是「把它锚回视野」而是「把它放回原来的视口位置」：量同一个 DOM 节点移动了多少，
+        // 再把这个位移从 scrollTop 里读回来。等两帧是因为 Virtuoso 的重测自己也在 rAF 里跑。
+        let innerFrameId = 0;
+        const outerFrameId = requestAnimationFrame(() => {
+            innerFrameId = requestAnimationFrame(() => {
+                const scroller = scrollerRef.current;
+                const internal = useSubtitleScroll.getState().internal;
+                const position = internal.currentListPosition;
+                // 必须确认量的还是同一行：两帧的间隔里 Virtuoso 可能把当前句的节点回收给了别的句子，
+                // 那时拿旧节点量出来的位移与当前句无关，只能退回锚定
+                const sameRow = !!snapshot && internal.currentRef === snapshot.element && snapshot.element.isConnected;
+                if (!snapshot || !(scroller instanceof HTMLElement) || !sameRow) {
+                    // 量不到原节点时退回旧兜底：至少把当前句锚回视野里
+                    if (position >= 0) {
+                        syncIntoView(position);
+                    }
+                    return;
+                }
+                // 期间若用户自己滚过（两帧内 scrollTop 变了），以用户的新位置为准，不去抢
+                if (Math.abs(scroller.scrollTop - snapshot.scrollTop) > 1) {
+                    return;
+                }
+                // rect 是视觉像素，scrollTop 是布局像素：侧栏打开时整块面板被 CSS scale 过，必须先换算
+                const scale = scroller.clientHeight > 0
+                    ? scroller.getBoundingClientRect().height / scroller.clientHeight
+                    : 1;
+                const delta = (snapshot.element.getBoundingClientRect().top - snapshot.top) / scale;
+                if (Math.abs(delta) >= 1) {
+                    // 登记一次「这次 scroll 是我写的」，否则 onScroll 会把它当用户滚动
+                    useSubtitleScroll.getState().skipNextScrollJudgement();
+                    scroller.scrollTop += delta;
+                }
+                // 兜底：补偿后若当前句仍被挤出视野（如补偿被用户滚动打断），再锚一次
+                if (position >= 0) {
+                    syncIntoView(position);
+                }
+            });
+        });
+        return () => {
+            cancelAnimationFrame(outerFrameId);
+            cancelAnimationFrame(innerFrameId);
+        };
+    }, [showSideTranslation, syncIntoView]);
 
     useEffect(() => {
         return () => {
@@ -342,6 +414,7 @@ export default function Subtitle() {
                     <div className="absolute right-2 top-2 z-10 pointer-events-none">
                         <button
                             type="button"
+                            data-side-translation-toggle
                             onClick={() => changeShowSideTranslation()}
                             title={sidebarHiddenByEnglish ? t('controlBox.sidebarHiddenNow') : undefined}
                             className="pointer-events-auto inline-flex items-center gap-1 rounded-full bg-muted/80 px-2 py-0.5 text-[10px] leading-tight text-muted-foreground backdrop-blur transition-colors hover:text-foreground"

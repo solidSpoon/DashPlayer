@@ -59,6 +59,12 @@ export type SubtitleScrollState = {
         syncPending: boolean;
         /** 用户通过输入中断了自动滚动，下一次 onScroll 应跳过状态判断 */
         interrupted: boolean;
+        /**
+         * 已登记的「接下来这次 scroll 是程序自己写的」次数（0 或 1）。
+         * 布局补偿会直接改 scrollTop，若不登记，onScroll 会把这次位移当成用户滚动 /
+         * 越界，把跟读态错切成浏览态（或把浏览态拉回跟读）。
+         */
+        programmaticScrollSkips: number;
     };
     scrollState: ScrollState;
     /** 字幕容器可视安全边界；组件挂载、useBoundary 测量完成前为 null */
@@ -78,6 +84,11 @@ export type SubtitleScrollActions = {
     delaySetNormal: () => void;
     /** 用户输入（滚轮/滚动条/翻页键）中断自动滚动时调用，立即切换到浏览模式 */
     onUserInterrupt: () => void;
+    /**
+     * 登记「下一次 scroll 由程序写入」：onScroll 读完后不做任何状态判定。
+     * 只登记一次且不累加，避免某个 scroll 事件没来时把后面真实的用户滚动误吞。
+     */
+    skipNextScrollJudgement: () => void;
 };
 
 const getEle = (ele: HTMLDivElement): Ele => {
@@ -179,10 +190,17 @@ const useSubtitleScroll = create(
                     lastSyncedPosition: -1,
                     syncPending: false,
                     interrupted: false,
+                    programmaticScrollSkips: 0,
                 },
                 scrollState: 'NORMAL',
                 boundary: null,
                 onScrolling: () => {
+                    // 程序自己写的 scrollTop（布局补偿）既不是用户输入，也不该引发状态迁移
+                    const skips = get().internal.programmaticScrollSkips;
+                    if (skips > 0) {
+                        get().internal.programmaticScrollSkips = skips - 1;
+                        return;
+                    }
                     const cs = get().scrollState;
                     if (cs === 'PAUSE_MEASUREMENT') {
                         return;
@@ -391,6 +409,9 @@ const useSubtitleScroll = create(
                     internal.interrupted = true;
                     cancelPendingTimers();
                     set({ scrollState: 'USER_BROWSING' });
+                },
+                skipNextScrollJudgement: () => {
+                    get().internal.programmaticScrollSkips = 1;
                 },
             };
         }

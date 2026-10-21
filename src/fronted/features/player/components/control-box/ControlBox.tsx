@@ -45,23 +45,28 @@ const TRACK_PILL_IDLE_CLASS =
  * @param hint Markdown 提示文案，悬停时展示。
  * @param label 药丸文字。
  * @param onClick 点击切换。
+ * @param dataSideTranslationToggle 标记「这是切侧栏译文的入口」：侧栏列表靠这个属性在点击时量位置，
+ *                                  以便重排后把当前句放回原视觉位置（属性名与另外两个入口一致）。
  */
 function PanelPill({
   active,
   hint,
   label,
   onClick,
+  dataSideTranslationToggle,
 }: {
   active: boolean;
   hint: string;
   label: string;
   onClick: () => void;
+  dataSideTranslationToggle?: boolean;
 }) {
   return (
     <WithMarkdownTooltip md={hint}>
       <button
         type="button"
         onClick={onClick}
+        data-side-translation-toggle={dataSideTranslationToggle ? '' : undefined}
         className={cn(TRACK_PILL_CLASS, active ? TRACK_PILL_ACTIVE_CLASS : TRACK_PILL_IDLE_CLASS)}
       >
         {label}
@@ -208,6 +213,7 @@ export default function ControlBox() {
                   hint={t('controlBox.sideTranslationHint')}
                   label={t('controlBox.showSideTranslation')}
                   onClick={changeShowSideTranslation}
+                  dataSideTranslationToggle
                 />
                 <PanelPill
                   active={syncSide}

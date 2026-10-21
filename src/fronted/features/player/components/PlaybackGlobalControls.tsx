@@ -457,6 +457,7 @@ export function PlaybackModeControls({
                             checked={showSideTranslation}
                             label={t('controlBox.showSideTranslation')}
                             title={t('controlBox.sideTranslationHint')}
+                            dataSideTranslationToggle
                             onActivate={() => changeShowSideTranslation()}
                         />
                         <ControlPopoverRow

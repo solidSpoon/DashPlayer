@@ -138,7 +138,8 @@ const OverlayControlBar = ({
                             }}
                         />
                     </div>
-                    <div className="flex justify-center items-center gap-2 shrink-0">
+                    {/* 右侧按钮组：与普通控制条保持同样的间隙收紧策略（xl 以下 gap-1），两条条子不能长得不一样 */}
+                    <div className="flex justify-center items-center gap-1 xl:gap-2 shrink-0">
                         {/* 训练模式 / 字幕轨道：与普通控制条共用同一份控件 */}
                         <PlaybackModeControls
                             popoverOffset={CONTROL_POPOVER_OFFSET_SINGLE_ROW_BAR}
