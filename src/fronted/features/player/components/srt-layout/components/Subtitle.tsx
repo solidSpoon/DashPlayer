@@ -72,10 +72,16 @@ export default function Subtitle() {
     }, [currentListPosition, syncIntoView]);
 
     /**
-     * 侧栏译文切换的世代号：每次 toggle 递增。连续切换时只让最后一次的重定位落地，
-     * 早期的 pending 回调直接作废，避免几次定位排队打架（实测会来回跳）。
+     * 切换时的世代号：每次 toggle 递增。一次切换只触发自己那串定位，
+     * 旧世代的 pending 回调直接作废（连续切换以最后一次为准）。
      */
     const sideTranslationToggleGenerationRef = useRef(0);
+    /**
+     * 用户自己动了滚动的标记：切换瞬间及其后几帧内收到滚轮/拖拽/翻页就置位，
+     * 本次切换不再重新定位（目标用户自己的位置）。只认输入事件，不去比 scrollTop，
+     * 省得把自己写进去的滚动当成用户操作。
+     */
+    const sideTranslationUserScrollRef = useRef(false);
 
     /**
      * 上一次渲染时的「侧栏译文」开关值；用于区分「用户刚切了开关」与「首次挂载/其他重渲染」。
@@ -88,41 +94,132 @@ export default function Subtitle() {
         prevShowSideTranslationRef.current = showSideTranslation;
         const generation = sideTranslationToggleGenerationRef.current + 1;
         sideTranslationToggleGenerationRef.current = generation;
+        sideTranslationUserScrollRef.current = false;
 
-        // 译文行增减会把整张列表的行高一起改掉，重排后必须把当前句重新定到视野中央，
-        // 否则它会跟着内容一起滑走。
-        // 这里刻意**不**按点击前后的位移去写 scrollTop（delta 补偿）：补偿与跟随两个写入方
-        // 在同一段 rAF 里抢 scrollTop，逐帧采样能看到位置在 527↔620 之间来回跳、2.2s 不稳，
-        // 靠 delta 补偿无法收敛。改成「重排后做一次确定性的重定位」，一次到位。
-        // 等两帧是因为 Virtuoso 的重测自己也在 rAF 里跑。
-        let innerFrameId = 0;
-        const outerFrameId = requestAnimationFrame(() => {
-            innerFrameId = requestAnimationFrame(() => {
-                // 世代变了说明又点了一次开关：以新一次为准，这次不插手
-                if (generation !== sideTranslationToggleGenerationRef.current) {
-                    return;
-                }
-                const state = useSubtitleScroll.getState();
-                const { internal, boundary } = state;
-                const { virtuoso, currentRef, currentListPosition } = internal;
-                if (!virtuoso || !boundary || !currentRef || currentListPosition < 0) {
-                    return;
-                }
-                // 只在当前句此刻还在可视边界内（说明在跟读）时才重新居中；
-                // 它已被滚出视野，说明用户自己翻到了别处，此时一个字都不改，不把用户拽回来
-                const rect = currentRef.getBoundingClientRect();
-                if (rect.bottom <= boundary.yt || rect.top >= boundary.yb) {
-                    return;
-                }
-                // 这次 scroll 是程序写入的：登记一次，onScroll 读掉后不做用户滚动判定
-                state.skipNextScrollJudgement();
-                virtuoso.scrollToIndex({ index: currentListPosition, align: 'center', behavior: 'auto' });
+        /** 目标落点：当前句放到视野从上往下约 1/3 处（不看 ±center，不受列表尾部剩余内容影响） */
+        const TARGET_RATIO = 0.33;
+        /** 可接受落点带：视野 20%–45%（向外各让 5 个百分点作为不重写阈值） */
+        const RATIO_MIN = 0.15;
+        const RATIO_MAX = 0.5;
+
+        const store = useSubtitleScroll.getState();
+        // 程序定位后的几帧里，跟随先让位：否则它会又把位置拉回默认锚点（实测被抢回 180px）
+        store.beginFollowQuietWindow();
+
+        let frameId = 0;
+        let attempts = 0;
+        /** 第一次写完之后（隔一帧）读到的 scrollTop：用来识别中间有没有别人插手 */
+        let ownScrollTop = 0;
+
+        /**
+         * 量当前句在可视边界内的相对位置（0 = 边界顶，1 = 边界底）。
+         *
+         * @returns 相对位置；量不到（节点未渲染/边界未就绪）时返回 null。
+         */
+        const measureRatio = (): number | null => {
+            const { internal, boundary } = useSubtitleScroll.getState();
+            const ref = internal.currentRef;
+            if (!boundary || !ref) {
+                return null;
+            }
+            const height = boundary.yb - boundary.yt;
+            if (height <= 0) {
+                return null;
+            }
+            return (ref.getBoundingClientRect().top - boundary.yt) / height;
+        };
+
+        /**
+         * 现在能不能重新定位：世代没变、用户没自己滚、且当前句仍在可视边界内。
+         * 当前句已被滚出视野说明用户翻到了别处，此时一个字都不改。
+         */
+        const canRecenter = (): boolean => {
+            if (generation !== sideTranslationToggleGenerationRef.current) {
+                return false;
+            }
+            if (sideTranslationUserScrollRef.current) {
+                return false;
+            }
+            const { internal, boundary } = useSubtitleScroll.getState();
+            const ref = internal.currentRef;
+            if (!boundary || !ref) {
+                return false;
+            }
+            const rect = ref.getBoundingClientRect();
+            return rect.bottom > boundary.yt && rect.top < boundary.yb;
+        };
+
+        /**
+         * 写一次定位：align 'start' + 负偏移，把当前句钉在视野从上往下 1/3 处。
+         * 不自己算 delta、不写 scrollTop；靠头/尾被夹紧也只在 Virtuoso 内部处理。
+         */
+        const writeLocate = () => {
+            const state = useSubtitleScroll.getState();
+            const { internal } = state;
+            const target = scrollerRef.current;
+            if (!internal.virtuoso || !(target instanceof HTMLElement) || internal.currentListPosition < 0) {
+                return false;
+            }
+            attempts += 1;
+            // 这次 scroll 是程序写入的：登记一次，onScroll 读掉后不做用户滚动判定
+            state.skipNextScrollJudgement();
+            internal.virtuoso.scrollToIndex({
+                index: internal.currentListPosition,
+                align: 'start',
+                offset: -Math.round(target.clientHeight * TARGET_RATIO),
+                behavior: 'auto',
+            });
+            return true;
+        };
+
+        /**
+         * 等指定帧数后执行；逐帧递归，保证中间真的过了几帧（Virtuoso 的重测也在 rAF 里）。
+         *
+         * @param frames 还要等几帧（从 1 起算）。
+         * @param run 最后一帧要执行的动作。
+         */
+        const afterFrames = (frames: number, run: () => void) => {
+            const step = (left: number) => {
+                frameId = requestAnimationFrame(() => {
+                    if (left <= 1) {
+                        run();
+                    } else {
+                        step(left - 1);
+                    }
+                });
+            };
+            step(frames);
+        };
+
+        // 两帧：等 React 重排 + Virtuoso 按新行高重测完，再算落点
+        afterFrames(2, () => {
+            if (!canRecenter() || !writeLocate()) {
+                return;
+            }
+            // 隔一帧再把落地值记下来（Virtuoso 可能晚一拍才真正写进去），作为后面判断「有没有别人插手」的基准
+            afterFrames(1, () => {
+                const target = scrollerRef.current;
+                ownScrollTop = target instanceof HTMLElement ? target.scrollTop : 0;
+                // 再隔一帧确认落点：Virtuoso 分批重测会把位置再推走，偏出目标带就再定位一次
+                afterFrames(1, () => {
+                    if (!canRecenter() || attempts >= 2) {
+                        return;
+                    }
+                    const scroller = scrollerRef.current;
+                    // 中间 scrollTop 自己走了（用户或别的写入方），说明位置已不在我们手上，不去擦
+                    if (!(scroller instanceof HTMLElement) || Math.abs(scroller.scrollTop - ownScrollTop) > 8) {
+                        return;
+                    }
+                    const ratio = measureRatio();
+                    if (ratio === null || (ratio >= RATIO_MIN && ratio <= RATIO_MAX)) {
+                        return;
+                    }
+                    writeLocate();
+                });
             });
         });
-        return () => {
-            cancelAnimationFrame(outerFrameId);
-            cancelAnimationFrame(innerFrameId);
-        };
+
+        return () => cancelAnimationFrame(frameId);
     }, [showSideTranslation]);
 
     useEffect(() => {
@@ -270,7 +367,21 @@ export default function Subtitle() {
         const interruptAutoScroll = () => {
             useSubtitleScroll.getState().onUserInterrupt();
         };
+        /**
+         * 用户主动滚动的信号：置位后本次「侧栏译文」切换不再重新定位。
+         * 只认输入事件（滚轮/按下列表或滚动条/翻页键），不去比 scrollTop——
+         * 自己写进去的程序滚动量不出来，比数值容易把自己当成用户。
+         */
+        const markUserScroll = () => {
+            sideTranslationUserScrollRef.current = true;
+        };
+        const handleWheel = () => {
+            markUserScroll();
+            interruptAutoScroll();
+        };
         const handlePointerDown = (e: PointerEvent) => {
+            // 按下列表或滚动条都算用户接管了位置（点击字幕行也会跳句，同样不该被拉回）
+            markUserScroll();
             // 事件 target 为滚动容器本身说明按下的是滚动条区域，而非字幕行
             if (e.target === scroller) {
                 interruptAutoScroll();
@@ -278,14 +389,15 @@ export default function Subtitle() {
         };
         const handleKeyDown = (e: KeyboardEvent) => {
             if (['PageUp', 'PageDown', 'Home', 'End', 'ArrowUp', 'ArrowDown'].includes(e.key)) {
+                markUserScroll();
                 interruptAutoScroll();
             }
         };
-        scroller.addEventListener('wheel', interruptAutoScroll, { passive: true });
+        scroller.addEventListener('wheel', handleWheel, { passive: true });
         scroller.addEventListener('pointerdown', handlePointerDown);
         scroller.addEventListener('keydown', handleKeyDown);
         detachUserInputRef.current = () => {
-            scroller.removeEventListener('wheel', interruptAutoScroll);
+            scroller.removeEventListener('wheel', handleWheel);
             scroller.removeEventListener('pointerdown', handlePointerDown);
             scroller.removeEventListener('keydown', handleKeyDown);
         };
