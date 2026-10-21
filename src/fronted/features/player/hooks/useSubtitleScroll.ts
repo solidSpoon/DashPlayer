@@ -34,12 +34,6 @@ const TIMING = {
     TOP_SETTLE: 500,
     /** 模式切换期间冻结测量的时长 */
     PAUSE_MEASUREMENT: 500,
-    /**
-     * 侧栏译文切换后的「跟随让位窗口」（毫秒）。
-     * 布局补偿要把当前句放回原位，而跟随逻辑（含两阶段归顶的第二段）也在写 scrollTop，
-     * 两边同时追就会来回拉；把跟随推迟过这一小段，等补偿收敛后再由跟随自行接手。
-     */
-    FOLLOW_QUIET: 600,
 };
 
 export type SubtitleScrollState = {
@@ -71,13 +65,6 @@ export type SubtitleScrollState = {
          * 越界，把跟读态错切成浏览态（或把浏览态拉回跟读）。
          */
         programmaticScrollSkips: number;
-        /**
-         * 「跟随让位窗口」的截止时间戳（Date.now() 毫秒）。窗口内跟随类滚动（含两阶段归顶的第二段）
-         * 一律推迟，因为此刻布局补偿正在收敛当前句的位置，两边同时写 scrollTop 只会互相拉扯。
-         */
-        followQuietUntil: number;
-        /** 窗口内被推迟的跟随请求：窗口结束后补发一次，否则窗口内切句就没人跟了 */
-        quietFollowTimer: number | undefined | NodeJS.Timeout;
     };
     scrollState: ScrollState;
     /** 字幕容器可视安全边界；组件挂载、useBoundary 测量完成前为 null */
@@ -102,13 +89,6 @@ export type SubtitleScrollActions = {
      * 只登记一次且不累加，避免某个 scroll 事件没来时把后面真实的用户滚动误吞。
      */
     skipNextScrollJudgement: () => void;
-    /**
-     * 开启一段「跟随让位窗口」：窗口内的跟随类滚动一律推迟（不取消、不改判定语义），
-     * 让布局补偿先把当前句放回原位。只在侧栏译文切换这种布局突变时调用。
-     *
-     * @param durationMs 窗口时长，默认 TIMING.FOLLOW_QUIET
-     */
-    beginFollowQuietWindow: (durationMs?: number) => void;
 };
 
 const getEle = (ele: HTMLDivElement): Ele => {
@@ -188,17 +168,6 @@ const useSubtitleScroll = create(
              */
             const scheduleSync = () => {
                 const internal = get().internal;
-                // 跟随让位窗口内不排队：补偿正在收敛位置；但请求不能丢，窗口结束后补发一次
-                const wait = internal.followQuietUntil - Date.now();
-                if (wait > 0) {
-                    if (internal.quietFollowTimer === undefined) {
-                        internal.quietFollowTimer = setTimeout(() => {
-                            get().internal.quietFollowTimer = undefined;
-                            scheduleSync();
-                        }, wait + 16);
-                    }
-                    return;
-                }
                 if (internal.syncPending) {
                     return;
                 }
@@ -222,8 +191,6 @@ const useSubtitleScroll = create(
                     syncPending: false,
                     interrupted: false,
                     programmaticScrollSkips: 0,
-                    followQuietUntil: 0,
-                    quietFollowTimer: undefined,
                 },
                 scrollState: 'NORMAL',
                 boundary: null,
@@ -371,10 +338,6 @@ const useSubtitleScroll = create(
                         if (cs === 'USER_BROWSING' || cs === 'PAUSE_MEASUREMENT') {
                             return;
                         }
-                        // 跟随让位窗口内也不归顶：这一步会把当前句拉去顶部，正好和布局补偿撞车
-                        if (Date.now() < internal.followQuietUntil) {
-                            return;
-                        }
                         set({ scrollState: 'AUTO_SCROLLING' });
                         virtuoso.scrollToIndex({
                             index: listPosition,
@@ -449,9 +412,6 @@ const useSubtitleScroll = create(
                 },
                 skipNextScrollJudgement: () => {
                     get().internal.programmaticScrollSkips = 1;
-                },
-                beginFollowQuietWindow: (durationMs = TIMING.FOLLOW_QUIET) => {
-                    get().internal.followQuietUntil = Date.now() + durationMs;
                 },
             };
         }

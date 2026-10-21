@@ -38,8 +38,6 @@ const resetStore = () => {
             syncPending: false,
             interrupted: false,
             programmaticScrollSkips: 0,
-            followQuietUntil: 0,
-            quietFollowTimer: undefined,
         },
     });
 };

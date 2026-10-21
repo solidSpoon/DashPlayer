@@ -196,6 +196,7 @@ const PlaybackControlBar = ({
                                 volume={volume}
                                 onVolumeChange={(nextVolume) => playerActions.setVolume(nextVolume)}
                                 triggerClassName={DARK_BAR_BUTTON_HOVER}
+                                collapseSliderBelowXl
                             />
                             <ControlBarPinButton />
                             <FullscreenToggleButton fullScreen={fullScreen} changeFullScreen={changeFullScreen} />
