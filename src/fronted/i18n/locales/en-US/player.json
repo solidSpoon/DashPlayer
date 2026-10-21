@@ -127,7 +127,10 @@
         "trackEnHint": "Original subtitles (`{{shortcut}}`)",
         "trackCnHint": "Machine/AI translation (`{{shortcut}}`)",
         "trackSourceZhHint": "Original Chinese from SRT source",
-        "syncSideSubtitles": "Sync sidebar subtitles",
+        "sideGroupLabel": "Sidebar",
+        "sidebarFollowsEnglish": "Hide with English",
+        "sidebarFollowsEnglishHint": "Hide the sidebar together with English subtitles; hover the sidebar to peek.",
+        "sidebarHiddenNow": "The sidebar is hidden right now — this switch takes effect once it shows.",
         "singleRepeat": "Replay current line",
         "autoPause": "Auto-pause",
         "autoPlayNext": "Auto-play next",
@@ -135,13 +138,14 @@
         "fullScreen": "Fullscreen",
         "podcastMode": "Podcast mode",
         "shortcutHint": "Shortcut `{{shortcut}}`",
-        "syncSideHint": "Hide sidebar subtitles when English subtitles are hidden; hover over sidebar to reveal.",
         "autoPauseHint": "Automatically pause when current sentence ends (`{{shortcut}}`)",
         "autoPlayNextHint": "In folder mode, automatically plays the next video when the current one ends.",
         "fullScreenHint": "Click to toggle fullscreen.",
         "podcastModeHint": "Recommended when playing audio-only files.",
         "showSideTranslation": "Side translation",
-        "sideTranslationHint": "Turn off to hide translations in the sidebar list only; the main subtitle area keeps them."
+        "sideTranslationHint": "Affects the sidebar list only; the main subtitle area is untouched.",
+        "sideTranslationHiddenChip": "Sidebar translation hidden",
+        "sideTranslationShowAction": "Show"
     },
     "clearAdjust": {
         "button": "Clear timing adjustments",
