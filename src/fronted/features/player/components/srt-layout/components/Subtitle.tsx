@@ -71,6 +71,12 @@ export default function Subtitle() {
         syncIntoView(currentListPosition);
     }, [currentListPosition, syncIntoView]);
 
+    // 字幕列表整体换掉（换视频/重新加载）时清掉「上次同步下标」的去重记忆：
+    // 新列表里同一下标代表的是另一句，必须允许重新同步一次。
+    useEffect(() => {
+        useSubtitleScroll.getState().resetSyncDedupe();
+    }, [subtitle]);
+
     // 「侧栏译文」切换后**不**做任何滚动调整。
     // 试过的三代做法（锚回视野、按位移写回 scrollTop、重排后让 Virtuoso 定位到指定行）都会与
     // Virtuoso 的分批重测抢 scrollTop：实测落点偏到 52%–110%、单次位移最好 +36 最差 +428、
