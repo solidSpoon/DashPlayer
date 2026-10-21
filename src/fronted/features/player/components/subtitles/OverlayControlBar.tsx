@@ -93,7 +93,7 @@ const OverlayControlBar = ({
         >
             <div
                 className={cn(
-                    'w-full px-4 py-2.5 rounded-2xl border border-white/10 bg-black/65 backdrop-blur-md shadow-2xl transition-opacity duration-200 ease-out pointer-events-auto',
+                    'w-full px-2 lg:px-4 py-2.5 rounded-2xl border border-white/10 bg-black/65 backdrop-blur-md shadow-2xl transition-opacity duration-200 ease-out pointer-events-auto',
                     ghost
                         ? 'opacity-40 pointer-events-none'
                         : (mouseOver || menuOpen || pinned) && !(maskHovering && maskOccupiesBarZone && !pinned)
@@ -108,8 +108,11 @@ const OverlayControlBar = ({
                         <PlaybackNavControls />
                         <div className="h-full flex items-center font-mono text-xs text-white/80 tabular-nums shrink-0">
                             <span>{TimeUtil.secondToTimeStr(currentValue)}</span>
-                            <span className="mx-1 text-white/40">/</span>
-                            <span className="text-white/60">{TimeUtil.secondToTimeStr(duration)}</span>
+                            {/* lg 以下只留当前时间：与普通控制条一致，窄窗里先让位给右侧按钮 */}
+                            <span className="hidden lg:inline-flex items-center">
+                                <span className="mx-1 text-white/40">/</span>
+                                <span className="text-white/60">{TimeUtil.secondToTimeStr(duration)}</span>
+                            </span>
                         </div>
                     </div>
                     <div className="flex-1 px-2 flex items-center">

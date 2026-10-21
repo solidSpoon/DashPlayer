@@ -127,7 +127,7 @@ const PlaybackControlBar = ({
         >
             <div
                 className={cn(
-                    'relative z-20 w-full px-4 py-3 rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md shadow-2xl transition-opacity duration-200 ease-out pointer-events-auto',
+                    'relative z-20 w-full px-2 lg:px-4 py-3 rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md shadow-2xl transition-opacity duration-200 ease-out pointer-events-auto',
                     ghost
                         ? 'opacity-40 pointer-events-none'
                         : (mouseOverOut || menuOpen || pinned) && !(maskHovering && maskOccupiesBarZone && !pinned)
@@ -168,8 +168,11 @@ const PlaybackControlBar = ({
                             <PlaybackNavControls />
                             <div className="h-full flex items-center font-mono text-xs text-white/80 tabular-nums">
                                 <span>{TimeUtil.secondToTimeStr(currentValue)}</span>
-                                <span className="mx-1.5 text-white/40">/</span>
-                                <span className="text-white/60">{TimeUtil.secondToTimeStr(duration)}</span>
+                                {/* lg 以下只留当前时间：总时长在窄窗里是纯装饰，却要为它挤掉最右的图标 */}
+                                <span className="hidden lg:inline-flex items-center">
+                                    <span className="mx-1.5 text-white/40">/</span>
+                                    <span className="text-white/60">{TimeUtil.secondToTimeStr(duration)}</span>
+                                </span>
                             </div>
                         </div>
                         <div className="h-full flex-1" />

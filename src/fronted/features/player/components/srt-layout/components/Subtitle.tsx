@@ -118,14 +118,58 @@ export default function Subtitle() {
 
         // 译文行增减会整体改变行高，scrollTop 却不变：当前句会跟着内容一起位移（观感是来回跳）。
         // 所以不是「把它锚回视野」而是「把它放回原来的视口位置」：量同一个 DOM 节点移动了多少，
-        // 再把这个位移从 scrollTop 里读回来。等两帧是因为 Virtuoso 的重测自己也在 rAF 里跑。
-        let innerFrameId = 0;
-        const outerFrameId = requestAnimationFrame(() => {
-            innerFrameId = requestAnimationFrame(() => {
+        // 再把这个位移从 scrollTop 里读回来。
+        // Virtuoso 是分批重测的：它在多帧里继续改总高度，一次算不准（实测残差 21–62px），所以要迭代。
+        const store = useSubtitleScroll.getState();
+        store.beginFollowQuietWindow();
+
+        /** 最多写几次 scrollTop；写完之后还会再做一次只测量不写的核对 */
+        const MAX_WRITES = 3;
+        /**
+         * 每轮测量前的等待帧数：前两轮紧跟重排，最后一轮多等一会，
+         * 让 Virtuoso 把视口外的行也重测完（它持续改总高度正是残差的来源）。
+         */
+        const ROUND_FRAME_GAPS = [2, 2, 8];
+
+        let cancelled = false;
+        let frameId = 0;
+        // 自己写进去的 scrollTop 预期值：用来分辨「这个变化是我写的」还是用户自己滚的
+        let expectedScrollTop = snapshot ? snapshot.scrollTop : 0;
+
+        /**
+         * 等指定帧数后执行；帧数大于 1 时逐帧递归，保证每一帧都让图刷新一次。
+         *
+         * @param frames 还要等几帧（从 1 起算）。
+         * @param run 最后一帧回调里要执行的动作。
+         */
+        const afterFrames = (frames: number, run: () => void) => {
+            const step = (left: number) => {
+                frameId = requestAnimationFrame(() => {
+                    if (cancelled) {
+                        return;
+                    }
+                    if (left <= 1) {
+                        run();
+                    } else {
+                        step(left - 1);
+                    }
+                });
+            };
+            step(frames);
+        };
+
+        /**
+         * 补一轮：量当前句距快照位置还差多少，还差就写回 scrollTop，然后进下一轮。
+         * 最后一轮之后的那次调用只测量不写（作核对），写完就交给 syncIntoView 兜底。
+         *
+         * @param roundIndex 当前轮次（0 起）；>= MAX_WRITES 时不再写。
+         */
+        const compensateRound = (roundIndex: number) => {
+            afterFrames(ROUND_FRAME_GAPS[roundIndex] ?? 2, () => {
                 const scroller = scrollerRef.current;
                 const internal = useSubtitleScroll.getState().internal;
                 const position = internal.currentListPosition;
-                // 必须确认量的还是同一行：两帧的间隔里 Virtuoso 可能把当前句的节点回收给了别的句子，
+                // 必须确认量的还是同一行：几帧的间隔里 Virtuoso 可能把当前句的节点回收给了别的句子，
                 // 那时拿旧节点量出来的位移与当前句无关，只能退回锚定
                 const sameRow = !!snapshot && internal.currentRef === snapshot.element && snapshot.element.isConnected;
                 if (!snapshot || !(scroller instanceof HTMLElement) || !sameRow) {
@@ -135,8 +179,8 @@ export default function Subtitle() {
                     }
                     return;
                 }
-                // 期间若用户自己滚过（两帧内 scrollTop 变了），以用户的新位置为准，不去抢
-                if (Math.abs(scroller.scrollTop - snapshot.scrollTop) > 1) {
+                // 期间若用户自己滚过，以用户的新位置为准，不去抢
+                if (Math.abs(scroller.scrollTop - expectedScrollTop) > 1) {
                     return;
                 }
                 // rect 是视觉像素，scrollTop 是布局像素：侧栏打开时整块面板被 CSS scale 过，必须先换算
@@ -144,20 +188,25 @@ export default function Subtitle() {
                     ? scroller.getBoundingClientRect().height / scroller.clientHeight
                     : 1;
                 const delta = (snapshot.element.getBoundingClientRect().top - snapshot.top) / scale;
-                if (Math.abs(delta) >= 1) {
-                    // 登记一次「这次 scroll 是我写的」，否则 onScroll 会把它当用户滚动
-                    useSubtitleScroll.getState().skipNextScrollJudgement();
-                    scroller.scrollTop += delta;
+                if (Math.abs(delta) < 2 || roundIndex >= MAX_WRITES) {
+                    // 残差已到 1px 量级或写入次数用完：再追只是抽动，交给兜底锚定收尾
+                    if (position >= 0) {
+                        syncIntoView(position);
+                    }
+                    return;
                 }
-                // 兜底：补偿后若当前句仍被挤出视野（如补偿被用户滚动打断），再锚一次
-                if (position >= 0) {
-                    syncIntoView(position);
-                }
+                // 登记一次「这次 scroll 是我写的」，否则 onScroll 会把它当用户滚动
+                useSubtitleScroll.getState().skipNextScrollJudgement();
+                scroller.scrollTop += delta;
+                expectedScrollTop = scroller.scrollTop;
+                compensateRound(roundIndex + 1);
             });
-        });
+        };
+        compensateRound(0);
+
         return () => {
-            cancelAnimationFrame(outerFrameId);
-            cancelAnimationFrame(innerFrameId);
+            cancelled = true;
+            cancelAnimationFrame(frameId);
         };
     }, [showSideTranslation, syncIntoView]);
 
