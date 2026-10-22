@@ -132,5 +132,31 @@
     "videoName": "视频名称",
     "timeRange": "时间范围",
     "createdAt": "创建时间",
-    "generatingDefinition": "正在生成释义..."
+    "generatingDefinition": "正在生成释义...",
+    "quickStartTitle": "快速开始播放",
+    "quickStartDesc": "选择音视频及对应字幕文件，或直接打开媒体文件夹",
+    "clickToSwitch": "点击切换",
+    "andAllMatch": "AND (全部匹配)",
+    "orAnyMatch": "OR (任一匹配)",
+    "moreActions": "更多操作",
+    "fileSelectorHint": "可以同时选择一个视频文件及其对应的字幕文件",
+    "folderPairingHint": "文件夹内的视频和对应的字幕文件名称最好保持一致",
+    "clipGridEmptyTitle": "暂无视频片段",
+    "clipGridEmptyDesc": "请先添加一些视频片段到收藏",
+    "clipGridPlaying": "播放中",
+    "clipGridProcessing": "处理中",
+    "clipGridDone": "已完成",
+    "audioPlayer": "音频播放器",
+    "aiTool": {
+        "approvalRequested": "等待确认",
+        "approvalResponded": "已确认",
+        "inputAvailable": "运行中",
+        "inputStreaming": "准备中",
+        "outputAvailable": "已完成",
+        "outputDenied": "已拒绝",
+        "outputError": "出错",
+        "parameters": "参数",
+        "error": "错误",
+        "result": "结果"
+    }
 }

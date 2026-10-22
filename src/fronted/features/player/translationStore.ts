@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import i18n from '@/fronted/i18n';
 import { subscribeWithSelector } from 'zustand/middleware';
 import hash from 'object-hash';
 import { RendererTranslationItem, TranslationMode } from '@/common/types/TranslationResult';
@@ -125,7 +126,7 @@ const showRequestFailure = (
     logger.error('subtitle translation demand request failed', { error });
     const message = error instanceof Error ? error.message : String(error);
     showNotification({
-        title: '字幕翻译失败',
+        title: i18n.t('player:translationFailed'),
         message,
         variant: 'error',
         bubble: true,

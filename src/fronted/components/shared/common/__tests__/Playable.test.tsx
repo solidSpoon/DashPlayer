@@ -3,6 +3,7 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import Playable from '@/fronted/components/shared/common/Playable';
 import * as AudioPlayer from '@/fronted/infrastructure/audio/AudioPlayer';
+import i18n from '@/fronted/i18n';
 
 vi.mock('@/fronted/infrastructure/audio/AudioPlayer', () => ({
     getTtsUrl: vi.fn().mockResolvedValue('http://mock-tts-url'),
@@ -48,7 +49,7 @@ describe('Playable Component', () => {
 
     it('plays audio when clicking the volume button', async () => {
         render(<Playable showIcon={true}>Click button to play</Playable>);
-        const button = screen.getByTitle('朗读');
+        const button = screen.getByTitle(i18n.t('speakText', { ns: 'common' }));
 
         fireEvent.click(button);
 

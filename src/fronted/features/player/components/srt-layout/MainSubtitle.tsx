@@ -2,6 +2,7 @@ import React, { ReactElement, useEffect, useMemo, useState } from 'react';
 import TranslatableLine from '@/fronted/features/player/components/subtitles/TranslatableLineWrapper';
 import NormalLine from './NormalLine';
 import useTranslation from '@/fronted/features/player/translationStore';
+import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { usePlayerUi } from '@/fronted/features/player/playerUiStore';
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
@@ -32,6 +33,7 @@ import DubbingRecordButton from '@/fronted/features/player/dubbing/components/Du
 import DubbingTakeChip from '@/fronted/features/player/dubbing/components/DubbingTakeChip';
 
 export default function MainSubtitle() {
+    const { t } = useI18nTranslation('player');
     const logger = getRendererLogger('MainSubtitle');
     const sentence = usePlayerState((s) => s.currentSentence);
     const srtTender = usePlayerState((s) => s.srtTender);
@@ -233,7 +235,7 @@ export default function MainSubtitle() {
                                         <Bookmark className={`w-3.5 h-3.5 ${isFavourite ? 'fill-current' : ''}`} />
                                     </button>
                                 </TooltipTrigger>
-                                <TooltipContent side="top">收藏当前句{formatShortcut(favShortcut)}</TooltipContent>
+                                <TooltipContent side="top">{t('subtitle.favoriteCurrent')}{formatShortcut(favShortcut)}</TooltipContent>
                             </Tooltip>
 
                             {/* 时间戳调整与重置（合并为一个触发器）：图标常驻，调整后整颗按钮高亮；
@@ -254,15 +256,18 @@ export default function MainSubtitle() {
                                     </TooltipTrigger>
                                     <TooltipContent side="top">
                                         {adjusted
-                                            ? `字幕微调已生效 (${(adjustDiff?.start ?? 0) >= 0 ? '+' : ''}${(adjustDiff?.start ?? 0).toFixed(2)}s / ${(adjustDiff?.end ?? 0) >= 0 ? '+' : ''}${(adjustDiff?.end ?? 0).toFixed(2)}s)`
-                                            : '调整当前句字幕时间轴'}
+                                            ? t('subtitle.adjustApplied', {
+                                                  start: `${(adjustDiff?.start ?? 0) >= 0 ? '+' : ''}${(adjustDiff?.start ?? 0).toFixed(2)}s`,
+                                                  end: `${(adjustDiff?.end ?? 0) >= 0 ? '+' : ''}${(adjustDiff?.end ?? 0).toFixed(2)}s`,
+                                              })
+                                            : t('subtitle.adjustTooltip')}
                                     </TooltipContent>
                                 </Tooltip>
                                 <PopoverContent side="top" align="end" className="w-72 p-3.5 gap-3 shadow-xl border-border/80 bg-popover/95 backdrop-blur-md">
                                     <div className="flex items-center justify-between border-b border-border/50 pb-2">
                                         <div className="flex items-center gap-1.5 text-xs font-semibold text-foreground">
                                             <History className="w-3.5 h-3.5 text-amber-500" />
-                                            <span>字幕时间微调</span>
+                                            <span>{t('subtitle.adjustTitle')}</span>
                                         </div>
                                         <button
                                             onClick={() => {
@@ -279,14 +284,14 @@ export default function MainSubtitle() {
                                             }`}
                                         >
                                             <RotateCcw className="w-3 h-3" />
-                                            <span>重置</span>
+                                            <span>{t('subtitle.reset')}</span>
                                         </button>
                                     </div>
 
                                     {/* 句首时间调整 */}
                                     <div className="flex flex-col gap-1.5">
                                         <div className="flex items-center justify-between text-xs">
-                                            <span className="text-muted-foreground font-medium">句首 (开始)</span>
+                                            <span className="text-muted-foreground font-medium">{t('subtitle.beginLabel')}</span>
                                             <span className="font-mono text-xs font-semibold text-foreground tabular-nums">
                                                 {`${(adjustDiff?.start ?? 0) >= 0 ? '+' : ''}${(adjustDiff?.start ?? 0).toFixed(2)}s`}
                                             </span>
@@ -324,7 +329,7 @@ export default function MainSubtitle() {
                                     {/* 句尾时间调整 */}
                                     <div className="flex flex-col gap-1.5">
                                         <div className="flex items-center justify-between text-xs">
-                                            <span className="text-muted-foreground font-medium">句尾 (结束)</span>
+                                            <span className="text-muted-foreground font-medium">{t('subtitle.endLabel')}</span>
                                             <span className="font-mono text-xs font-semibold text-foreground tabular-nums">
                                                 {`${(adjustDiff?.end ?? 0) >= 0 ? '+' : ''}${(adjustDiff?.end ?? 0).toFixed(2)}s`}
                                             </span>
@@ -362,20 +367,20 @@ export default function MainSubtitle() {
                                     {/* 快捷键指引 */}
                                     <div className="border-t border-border/50 pt-2 text-[10px] text-muted-foreground/80 flex flex-col gap-1 leading-normal">
                                         <div className="flex items-center justify-between">
-                                            <span>句首提前/延后:</span>
+                                            <span>{t('subtitle.beginShortcutHint')}</span>
                                             <span className="font-mono text-[10px] text-foreground/80">
                                                 {adjustBeginMinusShortcut || '['} / {adjustBeginPlusShortcut || ']'}
                                             </span>
                                         </div>
                                         <div className="flex items-center justify-between">
-                                            <span>句尾提前/延后:</span>
+                                            <span>{t('subtitle.endShortcutHint')}</span>
                                             <span className="font-mono text-[10px] text-foreground/80">
                                                 {adjustEndMinusShortcut || '{'} / {adjustEndPlusShortcut || '}'}
                                             </span>
                                         </div>
                                         {clearAdjustShortcut && (
                                             <div className="flex items-center justify-between">
-                                                <span>重置本句微调:</span>
+                                                <span>{t('subtitle.resetShortcutHint')}</span>
                                                 <span className="font-mono text-[10px] text-foreground/80">{clearAdjustShortcut}</span>
                                             </div>
                                         )}

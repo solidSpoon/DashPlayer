@@ -186,7 +186,7 @@ const SplitPage = () => {
                                             }
                                         }}
                                     >
-                                        {t('sentenceSplitter.clickToSelect')} (视频)
+                                        {t('sentenceSplitter.clickToSelect')} {t('sentenceSplitter.videoSuffix')}
                                     </span>
                                 )}
                             </div>
@@ -226,7 +226,7 @@ const SplitPage = () => {
                                             }
                                         }}
                                     >
-                                        {t('sentenceSplitter.clickToSelect')} (字幕)
+                                        {t('sentenceSplitter.clickToSelect')} {t('sentenceSplitter.subtitleSuffix')}
                                     </span>
                                 )}
                             </div>

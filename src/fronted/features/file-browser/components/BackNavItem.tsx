@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/fronted/lib/utils';
 import { CornerUpLeft, History } from 'lucide-react';
 import PathUtil from '@/common/utils/PathUtil';
@@ -10,6 +11,7 @@ interface BackNavItemProps {
 }
 
 const BackNavItem = ({ root, currentPath, onClick }: BackNavItemProps) => {
+    const { t } = useTranslation('nav');
     const label = React.useMemo(() => {
         if (root || !currentPath) {
             return '';
@@ -22,8 +24,8 @@ const BackNavItem = ({ root, currentPath, onClick }: BackNavItemProps) => {
     }, [currentPath, root]);
 
     const icon = root ? History : CornerUpLeft;
-    const title = root ? '最近浏览' : '返回上一级';
-    const subtitle = root ? '查看最近打开的项目' : label ? `当前目录：${label}` : '';
+    const title = root ? t('backNavRecent') : t('backNavUp');
+    const subtitle = root ? t('backNavRecentHint') : label ? t('backNavCurrentDir', { dir: label }) : '';
 
     const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
         if (event.key === 'Enter' || event.key === ' ') {

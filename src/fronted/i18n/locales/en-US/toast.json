@@ -1,4 +1,7 @@
 {
     "updateAvailableTitle": "New version {{version}} is available",
-    "updateAvailableAction": "View details"
+    "updateAvailableAction": "View details",
+    "modeSwitchedPodcast": "Switched to podcast mode automatically",
+    "modeSwitchedVideo": "Switched to video mode automatically",
+    "restore": "Restore"
 }

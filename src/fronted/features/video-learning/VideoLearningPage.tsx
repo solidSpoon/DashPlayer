@@ -291,7 +291,7 @@ export default function VideoLearningPage() {
         const dataUrl = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${result.data}`;
         const a = document.createElement('a');
         a.href = dataUrl;
-        a.download = '单词管理模板.xlsx';
+        a.download = t('vocabularyStudio.exportTemplateFileName');
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);

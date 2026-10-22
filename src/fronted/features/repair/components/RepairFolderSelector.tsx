@@ -34,7 +34,7 @@ const RepairFolderSelector = ({ onSelected, className }: FolderSelectorProps) =>
                     >{t('addFolder')}</Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                    文件夹内的视频和对应的字幕文件名称最好保持一致
+                    {t('folderPairingHint')}
                 </TooltipContent>
             </Tooltip>
         </TooltipProvider>

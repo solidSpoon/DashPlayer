@@ -1,4 +1,5 @@
 import { cn } from '@/fronted/lib/utils';
+import { useTranslation } from 'react-i18next';
 import { getTtsUrl, playAudioUrl } from '@/fronted/infrastructure/audio/AudioPlayer';
 import React, { useRef, useState } from 'react';
 import { Loader2, Volume2 } from 'lucide-react';
@@ -11,6 +12,7 @@ export interface PlayableProps {
 }
 
 const Playable = ({ className, children, showIcon = true }: PlayableProps) => {
+    const { t } = useTranslation('common');
     const logger = getRendererLogger('Playable');
     const [loading, setLoading] = useState(false);
     const mouseDownPos = useRef<{ x: number; y: number } | null>(null);
@@ -85,7 +87,7 @@ const Playable = ({ className, children, showIcon = true }: PlayableProps) => {
                     disabled={loading}
                     tabIndex={-1}
                     className="inline-flex items-center justify-center p-0.5 ml-1 rounded text-muted-foreground/60 hover:text-foreground hover:bg-muted/70 align-middle transition-colors cursor-pointer disabled:opacity-50 select-none"
-                    title="朗读"
+                    title={t('speakText')}
                 >
                     {loading ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" />
