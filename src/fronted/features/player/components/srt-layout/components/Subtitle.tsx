@@ -11,6 +11,8 @@ import { playerActions } from '@/fronted/features/player/components/PlayerAction
 import useLayout from '@/fronted/hooks/useLayout';
 import { cn } from '@/fronted/lib/utils';
 import useSubtitleScroll, { useSubtitleScrollState } from '@/fronted/features/player/hooks/useSubtitleScroll';
+import { useSideTranslationHold } from '@/fronted/features/player/hooks/useSideTranslationHold';
+import { PLAYER_SIDEBAR_SCROLLER_TESTID } from '@/fronted/features/player/dev/scrollWriteLog';
 import useBoundary from '@/fronted/features/player/hooks/useBoundary';
 import useChatPanel from '@/fronted/features/chat/chatStore';
 import { Sentence } from '@/common/types/SentenceC';
@@ -77,11 +79,14 @@ export default function Subtitle() {
         useSubtitleScroll.getState().resetSyncDedupe();
     }, [subtitle]);
 
-    // 「侧栏译文」切换后**不**做任何滚动调整。
-    // 试过的三代做法（锚回视野、按位移写回 scrollTop、重排后让 Virtuoso 定位到指定行）都会与
-    // Virtuoso 的分批重测抢 scrollTop：实测落点偏到 52%–110%、单次位移最好 +36 最差 +428、
-    // 偶发把当前句顶出视野，与跟随互相拉扯时还不稳定。宁可不调：行高变化后内容整体位移，
-    // 当前句可能移出视野，由用户自行滚动恢复（用户主动滚动优先级高于任何自动定位）。
+    // 「侧栏译文」切换后保持阅读位置：行高变化会让整个列表位移，这里把用户正在读的那一行钉回原处。
+    // 具体策略（等布局稳定 → 逐轮逼近 → 收敛/放弃）在 useSideTranslationHold 里，
+    // 不要在组件里另行写 scrollTop，否则又会和 Virtuoso 的分批重测抢位置。
+    const getScroller = useCallback(() => {
+        const scroller = scrollerRef.current;
+        return scroller instanceof HTMLElement ? scroller : null;
+    }, []);
+    useSideTranslationHold(getScroller);
 
     useEffect(() => {
         return () => {
@@ -225,6 +230,8 @@ export default function Subtitle() {
         if (!scroller) {
             return;
         }
+        // 稳定标识：滚动容器是自动化用例进入滚动世界的唯一入口
+        scroller.setAttribute('data-testid', PLAYER_SIDEBAR_SCROLLER_TESTID);
         const interruptAutoScroll = () => {
             useSubtitleScroll.getState().onUserInterrupt();
         };
@@ -268,6 +275,9 @@ export default function Subtitle() {
                 onMouseDown={handleMouseDown(item, listPosition)}
                 onMouseEnter={handleMouseEnter(item, listPosition)}
                 onMouseUp={handleMouseUp}
+                data-testid="sentence-card"
+                data-index={item.index}
+                data-current={isCurrent ? 'true' : 'false'}
             >
                 <SideSentence
                     sentence={item}
