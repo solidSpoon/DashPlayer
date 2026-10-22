@@ -473,7 +473,7 @@ test.describe('侧栏译文切换后的阅读位置保持', () => {
         await openPlayer(page);
 
         for (let round = 1; round <= ROUNDS; round += 1) {
-            // 起始态：译文开启（双行），切换后行变矮；起点更深，行高收缩把锚点行推出渲染范围
+            // 起始态：译文开启（双行）；切换后立刻把列表甩到深处，让刚捕获的锚点行被虚拟列表回收
             const observation = await runRound(page, {
                 round,
                 case: 'shrink-anchor-unmounted',
@@ -490,8 +490,12 @@ test.describe('侧栏译文切换后的阅读位置保持', () => {
             if (observation.instrumentation === 'absent') {
                 continue;
             }
-            // fail closed：锚不住就一次都不许滚（不论策略，都不该出现请求）
+            // fail closed：锚不住就一次都不许滚（不论策略，请求与直接写都必须为 0）
             expect(observation.requestCount, '锚点缺失时不允许请求滚动').toBe(0);
+            expect(observation.writeCount, '锚点缺失时不允许直接写 scrollTop').toBe(0);
+            expect(observation.appReportedHold, '应用应把这一轮记成 anchor-missing').toMatchObject({
+                outcome: 'anchor-missing',
+            });
         }
     });
 });
