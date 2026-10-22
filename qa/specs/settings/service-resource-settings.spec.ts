@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test';
-import { readConfigValue, launchAppSession, test } from './fixtures';
-import { openSettingsSection, reloadSettingsPage, switchSettingsSection, chooseInRow, selectInRow } from './settings-page';
+import { readConfigValue, launchAppSession, test } from '../../support/fixtures';
+import { openSettingsSection, reloadSettingsPage, switchSettingsSection, chooseInRow, selectInRow } from '../../support/settings-page';
 
 /** 进入服务与资源设置页。 */
 async function openResourcesSetting(page: Page): Promise<void> {

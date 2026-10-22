@@ -21,12 +21,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
 
-/** 仓库根目录（本文件在 scripts/ 下）。 */
-const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+/** 仓库根目录（本文件在 qa/tools/ 下）。 */
+const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
 /** 用例文档目录；README.md 只讲规范，但也登记跨页面的机制性缺口。 */
-const CASES_DIR = path.join(REPO_ROOT, 'docs', 'test-cases');
-/** e2e 用例目录。 */
-const E2E_DIR = path.join(REPO_ROOT, 'e2e');
+const CASES_DIR = path.join(REPO_ROOT, 'qa', 'test-cases');
+/** 用例代码目录（用例文件按 settings / player 分子目录）。 */
+const SPECS_DIR = path.join(REPO_ROOT, 'qa', 'specs');
 
 /**
  * ID 形态：SET-<页面或范围>-<序号>。
@@ -48,6 +48,28 @@ const listFiles = (dir, ext) =>
         .readdirSync(dir)
         .filter((name) => name.endsWith(ext))
         .map((name) => path.join(dir, name));
+
+/**
+ * 递归列出全部用例文件（`qa/specs/` 下按 settings / player 分了子目录）。
+ *
+ * @returns 用例文件绝对路径数组。
+ */
+const listSpecs = () => {
+    const found = [];
+    const stack = [SPECS_DIR];
+    while (stack.length > 0) {
+        const current = stack.pop();
+        for (const entry of fs.readdirSync(current, {withFileTypes: true})) {
+            const full = path.join(current, entry.name);
+            if (entry.isDirectory()) {
+                stack.push(full);
+            } else if (entry.name.endsWith('.ts')) {
+                found.push(full);
+            }
+        }
+    }
+    return found.sort();
+};
 
 /**
  * 去掉围栏代码块（``` 之间）的内容。
@@ -139,7 +161,7 @@ const scanSpecs = () => {
     const hits = [];
     const problems = [];
 
-    for (const file of listFiles(E2E_DIR, '.ts')) {
+    for (const file of listSpecs()) {
         const relFile = path.relative(REPO_ROOT, file);
         const lines = fs.readFileSync(file, 'utf8').split('\n');
         lines.forEach((line, index) => {

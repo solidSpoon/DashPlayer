@@ -1,6 +1,6 @@
 import { expect, type Page, type Locator } from '@playwright/test';
-import { launchAppSession, readConfigValue, test } from './fixtures';
-import { openSettingsSection, reloadSettingsPage, selectInRow, switchSettingsSection } from './settings-page';
+import { launchAppSession, readConfigValue, test } from '../../support/fixtures';
+import { openSettingsSection, reloadSettingsPage, selectInRow, switchSettingsSection } from '../../support/settings-page';
 
 /** 主题按钮文案到根节点主题类名的映射。 */
 const THEME_CLASS = { 深色: 'dark', 浅色: 'light' } as const;

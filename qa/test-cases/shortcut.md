@@ -1,6 +1,6 @@
 # 快捷键
 
-用例文件：`e2e/shortcut-settings.spec.ts`（本页所有自动化用例都在这里）
+用例文件：`qa/specs/settings/shortcut-settings.spec.ts`（本页所有自动化用例都在这里）
 
 规范与状态含义见 [README.md](./README.md)。
 

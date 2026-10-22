@@ -11,6 +11,7 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import { useStoreWithEqualityFn } from 'zustand/traditional';
 import { Ele } from './useBoundary';
 import useLayout from '@/fronted/hooks/useLayout';
+import { recordScrollRequest } from '@/fronted/features/player/dev/scrollWriteLog';
 
 export type ScrollState =
     /** 用户正在浏览，自动滚动完全让位 */
@@ -66,6 +67,12 @@ export type SubtitleScrollState = {
          * 否则重排会被误认为切句，把用户已经滚开的位置又拉回当前句。
          */
         lastSyncIndex: number;
+        /**
+         * 「保持阅读位置」意图执行中。
+         * hold 期间把自动跟随整体挂起：两者都想决定滚动位置，同时跑只会互相拉扯，
+         * hold 结束后也不补算——用户主动切换布局时，位置以 hold 的结果为准。
+         */
+        holdActive: boolean;
     };
     scrollState: ScrollState;
     /** 字幕容器可视安全边界；组件挂载、useBoundary 测量完成前为 null */
@@ -90,6 +97,8 @@ export type SubtitleScrollActions = {
      * 字幕列表整体换掉（换视频/重新加载）后，同一下标代表的是另一句，必须允许重新同步一次。
      */
     resetSyncDedupe: () => void;
+    /** 挂起/恢复自动跟随；由「侧栏译文」hold 意图在自身生命周期内调用。 */
+    setHoldActive: (active: boolean) => void;
 };
 
 const getEle = (ele: HTMLDivElement): Ele => {
@@ -138,6 +147,8 @@ const useSubtitleScroll = create(
             ) => {
                 cancelPendingTimers();
                 set({ scrollState: 'AUTO_SCROLLING' });
+                // 应用发起、库内部写 scrollTop：不记一笔的话，埋点里就看不到这次写入
+                recordScrollRequest('subtitle-scroll:scroll-to-index');
                 virtuoso.scrollToIndex({
                     index: listPosition,
                     align: options?.align,
@@ -169,6 +180,10 @@ const useSubtitleScroll = create(
              */
             const scheduleSync = () => {
                 const internal = get().internal;
+                // hold 意图执行期间不排队任何自动跟随，避免两个写入方抢同一个 scrollTop
+                if (internal.holdActive) {
+                    return;
+                }
                 // 记下本次要追的目标下标（推后执行期间目标可能又变，以最新的为准）
                 internal.lastSyncIndex = internal.currentListPosition;
                 if (internal.syncPending) {
@@ -194,6 +209,7 @@ const useSubtitleScroll = create(
                     lastSyncIndex: -1,
                     syncPending: false,
                     interrupted: false,
+                    holdActive: false,
                 },
                 scrollState: 'NORMAL',
                 boundary: null,
@@ -236,6 +252,11 @@ const useSubtitleScroll = create(
                     internal.currentRefPosition = listPosition;
                     internal.currentListPosition = listPosition;
 
+                    // hold 意图执行期间不跟进：此时重挂 ref 是行高变化引起的重排，不是切句
+                    if (internal.holdActive) {
+                        return;
+                    }
+
                     const currentScrollState = get().scrollState;
 
                     // 浏览态下若播放自然推进使新的当前句进入边界，自动恢复跟读
@@ -272,6 +293,9 @@ const useSubtitleScroll = create(
                 syncIntoView: (listPosition: number) => {
                     const { scrollState, boundary, internal } = get();
                     internal.syncPending = false;
+                    if (internal.holdActive) {
+                        return;
+                    }
                     if (scrollState === 'USER_BROWSING' || scrollState === 'PAUSE_MEASUREMENT') {
                         return;
                     }
@@ -335,8 +359,10 @@ const useSubtitleScroll = create(
                     if (showSideBar) {
                         // 小窗容器被 CSS transform 缩放，scrollBy 的布局像素与视觉坐标不一致，
                         // 改用 Virtuoso 原生对齐规避缩放换算
+                        recordScrollRequest('subtitle-scroll:pin-end');
                         virtuoso.scrollToIndex({ index: listPosition, align: 'end', behavior: 'auto' });
                     } else {
+                        recordScrollRequest('subtitle-scroll:scroll-by');
                         virtuoso.scrollBy({ top: ele.yb - boundary.yb });
                     }
 
@@ -347,6 +373,7 @@ const useSubtitleScroll = create(
                             return;
                         }
                         set({ scrollState: 'AUTO_SCROLLING' });
+                        recordScrollRequest('subtitle-scroll:settle-to-start');
                         virtuoso.scrollToIndex({
                             index: listPosition,
                             align: 'start',
@@ -423,6 +450,18 @@ const useSubtitleScroll = create(
                 },
                 resetSyncDedupe: () => {
                     get().internal.lastSyncIndex = -1;
+                },
+                setHoldActive: (active: boolean) => {
+                    const internal = get().internal;
+                    if (internal.holdActive === active) {
+                        return;
+                    }
+                    internal.holdActive = active;
+                    if (active) {
+                        // hold 期间排队中的同步算的是 hold 之前的位置，一并作废
+                        internal.syncPending = false;
+                        cancelPendingTimers();
+                    }
                 },
             };
         }

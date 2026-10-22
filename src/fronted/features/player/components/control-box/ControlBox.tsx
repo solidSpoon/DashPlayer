@@ -38,27 +38,35 @@ const TRACK_PILL_IDLE_CLASS =
 /**
  * 面板里的一颗开关药丸：两行轨道/侧栏开关共用，调用方只给标签、提示与开关状态。
  *
+ * 开关态既走视觉（实底/空心），也写进 `aria-pressed`：自动化用例只认 `aria-pressed`，
+ * 不允许拿 className 判断状态（换皮肤时 className 会变，语义不会）。
+ *
  * @param active 是否处于开启态（决定主色实底还是描边空心）。
  * @param hint Markdown 提示文案，悬停时展示。
  * @param label 药丸文字。
  * @param onClick 点击切换。
+ * @param testId 稳定标识（不随界面语言变化），供自动化定位。
  */
 function PanelPill({
   active,
   hint,
   label,
   onClick,
+  testId,
 }: {
   active: boolean;
   hint: string;
   label: string;
   onClick: () => void;
+  testId: string;
 }) {
   return (
     <WithMarkdownTooltip md={hint}>
       <button
         type="button"
         onClick={onClick}
+        aria-pressed={active}
+        data-testid={testId}
         className={cn(TRACK_PILL_CLASS, active ? TRACK_PILL_ACTIVE_CLASS : TRACK_PILL_IDLE_CLASS)}
       >
         {label}
@@ -162,7 +170,10 @@ export default function ControlBox() {
           style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}
         >
           {/* 字幕轨道：并入网格中，在有空间时占 2 列，跟随系统主色；窄宽时整组换行而不压缩药丸 */}
-          <div className="col-span-full sm:col-span-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-1.5 min-h-[38px]">
+          <div
+            data-testid="controlbar-track-group"
+            className="col-span-full sm:col-span-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-1.5 min-h-[38px]"
+          >
             <span className="text-xs font-medium text-muted-foreground select-none shrink-0 whitespace-nowrap">
               {t('controlBox.subtitleTracks')}
             </span>
@@ -172,18 +183,21 @@ export default function ControlBox() {
                 hint={t('controlBox.trackEnHint', { shortcut: getShortcut('shortcut.toggleEnglishDisplay') })}
                 label={t('controlBox.showEnglish')}
                 onClick={changeShowEn}
+                testId="subtitle-track-pill"
               />
               <PanelPill
                 active={showCn}
                 hint={t('controlBox.trackCnHint', { shortcut: getShortcut('shortcut.toggleChineseDisplay') })}
                 label={t('controlBox.showChinese')}
                 onClick={changeShowCn}
+                testId="subtitle-track-pill-cn"
               />
               <PanelPill
                 active={showSourceZh}
                 hint={t('controlBox.trackSourceZhHint')}
                 label={t('controlBox.showSourceZh')}
                 onClick={changeShowSourceZh}
+                testId="subtitle-track-pill-source-zh"
               />
             </div>
           </div>
@@ -202,12 +216,14 @@ export default function ControlBox() {
                   hint={t('controlBox.sideTranslationHint')}
                   label={t('controlBox.showSideTranslation')}
                   onClick={changeShowSideTranslation}
+                  testId="side-translation-toggle"
                 />
                 <PanelPill
                   active={syncSide}
                   hint={t('controlBox.sidebarFollowsEnglishHint')}
                   label={t('controlBox.sidebarFollowsEnglish')}
                   onClick={changeSyncSide}
+                  testId="sidebar-follows-english-toggle"
                 />
               </div>
             </div>

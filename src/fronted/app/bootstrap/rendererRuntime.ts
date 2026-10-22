@@ -12,6 +12,8 @@ import {
     stopListeningToRepairEvents,
 } from '@/fronted/features/repair/repairEvents';
 import { syncStatus } from '@/fronted/hooks/useSystem';
+import { initPlayerDebug } from '@/fronted/features/player/dev/playerDebug';
+import { resolveDevMode } from '@/fronted/lib/devMode';
 
 let cleanupRuntime: (() => void) | null = null;
 
@@ -77,6 +79,9 @@ export function startRendererRuntime(): () => void {
         startListeningToDpTasks();
         startListeningToRepairEvents();
         syncStatus();
+        // 开发态判定与播放器调试面：启动时各查一次，后续所有 dev/qa 能力读缓存
+        void resolveDevMode();
+        void initPlayerDebug();
     } catch (error) {
         cleanups.reverse().forEach((cleanup) => cleanup());
         stopListeningToDpTasks();

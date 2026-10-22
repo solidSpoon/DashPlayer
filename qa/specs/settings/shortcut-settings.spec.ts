@@ -1,6 +1,6 @@
 import { expect, type Locator, type Page } from '@playwright/test';
-import { readConfigValue, test } from './fixtures';
-import { openSettingsSection, reloadSettingsPage, switchSettingsSection } from './settings-page';
+import { readConfigValue, test } from '../../support/fixtures';
+import { openSettingsSection, reloadSettingsPage, switchSettingsSection } from '../../support/settings-page';
 
 /** 进入快捷键设置页。 */
 async function openShortcutSetting(page: Page): Promise<void> {

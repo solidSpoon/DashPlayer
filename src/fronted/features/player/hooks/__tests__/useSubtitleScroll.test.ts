@@ -38,6 +38,7 @@ const resetStore = () => {
             lastSyncIndex: -1,
             syncPending: false,
             interrupted: false,
+            holdActive: false,
         },
     });
 };
