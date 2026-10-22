@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import {
     CirclePause,
     Dumbbell,
-    EyeOff,
     FastForward,
     Gauge,
     Languages,
@@ -16,6 +15,7 @@ import {
     SkipBack,
     SkipForward,
     Sparkles,
+    SquareDashedBottom,
 } from 'lucide-react';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
@@ -37,6 +37,7 @@ import { usePlayerUi } from '@/fronted/features/player/playerUiStore';
 import { useTrainingModeStore } from '@/fronted/features/player/trainingStore';
 import { TrainingSettingsDialog } from '@/fronted/features/player/components/TrainingSettingsDialog';
 import useLayout from '@/fronted/hooks/useLayout';
+import { isSidebarHiddenByEnglish } from '@/fronted/features/player/components/sidePanelVisibility';
 import useSetting from '@/fronted/features/settings/settingsStore';
 
 /**
@@ -192,10 +193,14 @@ export function PlaybackModeControls({
     const showCn = usePlayerUi((state) => state.showCn);
     const showSourceZh = usePlayerUi((state) => state.showSourceZh);
     const showSideTranslation = usePlayerUi((state) => state.showSideTranslation);
+    const syncSide = usePlayerUi((state) => state.syncSide);
     const changeShowEn = usePlayerUi((state) => state.changeShowEn);
     const changeShowCn = usePlayerUi((state) => state.changeShowCn);
     const changeShowSourceZh = usePlayerUi((state) => state.changeShowSourceZh);
     const changeShowSideTranslation = usePlayerUi((state) => state.changeShowSideTranslation);
+    const changeSyncSide = usePlayerUi((state) => state.changeSyncSide);
+    // 侧栏此刻是否真的被收起：收起时「随英文字幕隐藏」这行的提示要从「会怎样」换成「现在就是这样」
+    const sidebarHidden = isSidebarHiddenByEnglish(syncSide, showEn);
 
     // 两种逐句循环配置互斥：×N 模式不带倍速表，精听模式带倍速表
     const loopTimesActive = sentenceLoop !== null && !sentenceLoop.rates;
@@ -423,7 +428,7 @@ export function PlaybackModeControls({
                         side="top"
                         align="end"
                         sideOffset={popoverOffset}
-                        className={cn('w-44', CONTROL_POPOVER_PANEL)}
+                        className={cn('w-56', CONTROL_POPOVER_PANEL)}
                     >
                         <div className={CONTROL_POPOVER_LABEL}>
                             {t('controlBox.subtitleTracks')}
@@ -444,13 +449,22 @@ export function PlaybackModeControls({
                             label={t('controlBox.showSourceZh')}
                             onActivate={() => changeShowSourceZh()}
                         />
-                        {/* 侧栏译文单独一档：主字幕区与右侧字幕列表的译文互不牵连 */}
+                        {/* 侧栏：译文与「随英文字幕隐藏」同一块栏的两个开关，顺序与播放控制面板保持一致 */}
                         <div className={CONTROL_POPOVER_SEPARATOR} />
+                        <div className={CONTROL_POPOVER_LABEL}>
+                            {t('controlBox.sideGroupLabel')}
+                        </div>
                         <ControlPopoverRow
                             checked={showSideTranslation}
                             label={t('controlBox.showSideTranslation')}
                             title={t('controlBox.sideTranslationHint')}
                             onActivate={() => changeShowSideTranslation()}
+                        />
+                        <ControlPopoverRow
+                            checked={syncSide}
+                            label={t('controlBox.sidebarFollowsEnglish')}
+                            title={sidebarHidden ? t('controlBox.sidebarHiddenNow') : t('controlBox.sidebarFollowsEnglishHint')}
+                            onActivate={() => changeSyncSide()}
                         />
                     </PopoverContent>
                 </Popover>
@@ -472,6 +486,13 @@ export function PlaybackModeControls({
  * 贴片的位置与大小靠画面里直接拖拽（见 HardsubMask），所以不挂二级弹窗。
  * 播客模式不看画面，遮挡无意义，直接不渲染。
  *
+ * 开启态用中性白底而不是彩色：控制条上已经有绿（训练）一种语义色，
+ * 再添一种色会让「这个按钮是开着还是被禁用」变成要辨色的谜题。
+ *
+ * 文字在 lg 以下隐藏：窄窗（≤1000 CSS px）时控制条本来就摆不下，多这一截文字会把最右的图标挤出可视区；
+ * 隐藏后仅留图标，无障碍名称改由 aria-label 提供（display:none 的文字节点不在无障碍树里），
+ * 视觉用户靠 tooltip 与图标认。
+ *
  * @returns 遮挡开关按钮；播客模式下什么都不渲染。
  */
 function HardsubMaskButton() {
@@ -491,15 +512,16 @@ function HardsubMaskButton() {
                     <button
                         onClick={toggleMask}
                         aria-pressed={maskOn}
+                        aria-label={t('hardsubMask.label')}
                         className={cn(
                             TEXT_BUTTON_CLASS,
                             maskOn
-                                ? 'text-amber-100 bg-amber-500/25 ring-1 ring-amber-400/30'
+                                ? 'bg-white/20 text-white ring-1 ring-white/30'
                                 : cn('text-white/80', DARK_BAR_BUTTON_HOVER)
                         )}
                     >
-                        <EyeOff className="w-3.5 h-3.5" />
-                        <span className="font-sans">{t('hardsubMask.label')}</span>
+                        <SquareDashedBottom className="w-3.5 h-3.5" />
+                        <span className="font-sans hidden lg:inline">{t('hardsubMask.label')}</span>
                     </button>
                 </TooltipTrigger>
                 <TooltipContent side="top" align="end">

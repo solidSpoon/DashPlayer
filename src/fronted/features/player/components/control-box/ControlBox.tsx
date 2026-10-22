@@ -19,7 +19,54 @@ import SettingToggle from './SettingToggle';
 import TranscriptButton from './TranscriptButton';
 import WithMarkdownTooltip from '@/fronted/components/shared/common/WithMarkdownTooltip';
 import { playerApi } from '@/fronted/features/player/playerApi';
+import { isSidebarHiddenByEnglish } from '@/fronted/features/player/components/sidePanelVisibility';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
+
+/**
+ * 「字幕轨道」与「侧栏」两行共用的药丸外观。
+ *
+ * 两行说的是同一类常驻开关（哪些轨道/哪块侧栏常亮），观感必须一致；
+ * 抽成常量而不是各写一份，否则以后调圆角内边距只会改到其中一行。
+ * shrink-0 + whitespace-nowrap 是硬要求：面板可以窄到 300px 上下，药丸一旦被压缩，
+ * 中文会逐字竖排、文字会压到左侧标签上；宁可让这一行换行变高。
+ */
+const TRACK_PILL_CLASS =
+  'px-2.5 py-1 text-xs rounded-lg border transition-all duration-150 select-none font-medium shrink-0 whitespace-nowrap';
+const TRACK_PILL_ACTIVE_CLASS = 'bg-primary text-primary-foreground border-primary shadow-xs';
+const TRACK_PILL_IDLE_CLASS =
+  'bg-transparent text-muted-foreground border-border/60 hover:border-border hover:text-foreground hover:bg-muted/40';
+
+/**
+ * 面板里的一颗开关药丸：两行轨道/侧栏开关共用，调用方只给标签、提示与开关状态。
+ *
+ * @param active 是否处于开启态（决定主色实底还是描边空心）。
+ * @param hint Markdown 提示文案，悬停时展示。
+ * @param label 药丸文字。
+ * @param onClick 点击切换。
+ */
+function PanelPill({
+  active,
+  hint,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  hint: string;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <WithMarkdownTooltip md={hint}>
+      <button
+        type="button"
+        onClick={onClick}
+        className={cn(TRACK_PILL_CLASS, active ? TRACK_PILL_ACTIVE_CLASS : TRACK_PILL_IDLE_CLASS)}
+      >
+        {label}
+      </button>
+    </WithMarkdownTooltip>
+  );
+}
 
 /**
  * 从运行时设置缓存读取快捷键。
@@ -89,6 +136,9 @@ export default function ControlBox() {
 
   const changeFullScreen = useLayout((s) => s.changeFullScreen);
 
+  // 侧栏此刻是否真的被「随英文字幕隐藏」收起：收起时「侧栏译文」看不出效果，需要在组内就地说明
+  const sidebarHidden = isSidebarHiddenByEnglish(syncSide, showEn);
+
   useEffect(() => {
     if (autoPlayNextSetting === 'true') {
       playerActions.setAutoPlayNext(true);
@@ -115,92 +165,61 @@ export default function ControlBox() {
           className="grid min-h-0 content-start auto-rows-min gap-2"
           style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}
         >
-          {/* 字幕轨道：并入网格中，在有空间时占 2 列，跟随系统主色 */}
-          <div className="sm:col-span-2 flex items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-1.5 min-h-[38px]">
-            <span className="text-xs font-medium text-muted-foreground select-none shrink-0">
+          {/* 字幕轨道：并入网格中，在有空间时占 2 列，跟随系统主色；窄宽时整组换行而不压缩药丸 */}
+          <div className="col-span-full sm:col-span-2 flex flex-wrap items-center justify-between gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-1.5 min-h-[38px]">
+            <span className="text-xs font-medium text-muted-foreground select-none shrink-0 whitespace-nowrap">
               {t('controlBox.subtitleTracks')}
             </span>
-            <div className="flex items-center gap-1.5">
-              <WithMarkdownTooltip md={t('controlBox.trackEnHint', { shortcut: getShortcut('shortcut.toggleEnglishDisplay') })}>
-                <button
-                  type="button"
-                  onClick={changeShowEn}
-                  className={cn(
-                    'px-2.5 py-1 text-xs rounded-lg border transition-all duration-150 select-none font-medium',
-                    showEn
-                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
-                      : 'bg-transparent text-muted-foreground border-border/60 hover:border-border hover:text-foreground hover:bg-muted/40'
-                  )}
-                >
-                  {t('controlBox.showEnglish')}
-                </button>
-              </WithMarkdownTooltip>
-
-              <WithMarkdownTooltip md={t('controlBox.trackCnHint', { shortcut: getShortcut('shortcut.toggleChineseDisplay') })}>
-                <button
-                  type="button"
-                  onClick={changeShowCn}
-                  className={cn(
-                    'px-2.5 py-1 text-xs rounded-lg border transition-all duration-150 select-none font-medium',
-                    showCn
-                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
-                      : 'bg-transparent text-muted-foreground border-border/60 hover:border-border hover:text-foreground hover:bg-muted/40'
-                  )}
-                >
-                  {t('controlBox.showChinese')}
-                </button>
-              </WithMarkdownTooltip>
-
-              <WithMarkdownTooltip md={t('controlBox.trackSourceZhHint')}>
-                <button
-                  type="button"
-                  onClick={changeShowSourceZh}
-                  className={cn(
-                    'px-2.5 py-1 text-xs rounded-lg border transition-all duration-150 select-none font-medium',
-                    showSourceZh
-                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
-                      : 'bg-transparent text-muted-foreground border-border/60 hover:border-border hover:text-foreground hover:bg-muted/40'
-                  )}
-                >
-                  {t('controlBox.showSourceZh')}
-                </button>
-              </WithMarkdownTooltip>
-
-              {/* 侧栏译文：只管右侧字幕列表，不影响主字幕区的三条字幕轨道 */}
-              <WithMarkdownTooltip md={t('controlBox.sideTranslationHint')}>
-                <button
-                  type="button"
-                  onClick={changeShowSideTranslation}
-                  className={cn(
-                    'px-2.5 py-1 text-xs rounded-lg border transition-all duration-150 select-none font-medium',
-                    showSideTranslation
-                      ? 'bg-primary text-primary-foreground border-primary shadow-xs'
-                      : 'bg-transparent text-muted-foreground border-border/60 hover:border-border hover:text-foreground hover:bg-muted/40'
-                  )}
-                >
-                  {t('controlBox.showSideTranslation')}
-                </button>
-              </WithMarkdownTooltip>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <PanelPill
+                active={showEn}
+                hint={t('controlBox.trackEnHint', { shortcut: getShortcut('shortcut.toggleEnglishDisplay') })}
+                label={t('controlBox.showEnglish')}
+                onClick={changeShowEn}
+              />
+              <PanelPill
+                active={showCn}
+                hint={t('controlBox.trackCnHint', { shortcut: getShortcut('shortcut.toggleChineseDisplay') })}
+                label={t('controlBox.showChinese')}
+                onClick={changeShowCn}
+              />
+              <PanelPill
+                active={showSourceZh}
+                hint={t('controlBox.trackSourceZhHint')}
+                label={t('controlBox.showSourceZh')}
+                onClick={changeShowSourceZh}
+              />
             </div>
           </div>
 
-          <SettingToggle
-            id="syncSide"
-            label={t('controlBox.syncSideSubtitles')}
-            checked={syncSide}
-            onCheckedChange={() => changeSyncSide()}
-            tooltipMd={t('controlBox.syncSideHint')}
-            className="h-9 px-3 py-1 rounded-xl"
-            labelClassName="text-xs font-medium"
-          />
-          <SettingToggle
-            id="hardsubMask"
-            label={t('hardsubMask.label')}
-            checked={hardsubMaskOn}
-            onCheckedChange={() => toggleHardsubMask()}
-            className="h-9 px-3 py-1 rounded-xl"
-            labelClassName="text-xs font-medium"
-          />
+          {/* 侧栏：译文与「随英文字幕隐藏」管的是同一块右侧字幕栏，收成一组，不再一处药丸一处开关 */}
+          <div className="col-span-full sm:col-span-2 flex flex-col justify-center gap-0.5 rounded-xl border border-border/60 bg-muted/20 px-3 py-1.5 min-h-[38px]">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span className="text-xs font-medium text-muted-foreground select-none shrink-0 whitespace-nowrap">
+                {t('controlBox.sideGroupLabel')}
+              </span>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <PanelPill
+                  active={showSideTranslation}
+                  hint={t('controlBox.sideTranslationHint')}
+                  label={t('controlBox.showSideTranslation')}
+                  onClick={changeShowSideTranslation}
+                />
+                <PanelPill
+                  active={syncSide}
+                  hint={t('controlBox.sidebarFollowsEnglishHint')}
+                  label={t('controlBox.sidebarFollowsEnglish')}
+                  onClick={changeSyncSide}
+                />
+              </div>
+            </div>
+            {/* 侧栏正被收起时，「侧栏译文」点了也看不出变化，就地说明原因，免得像是开关坏了 */}
+            {sidebarHidden && (
+              <span className="text-[10px] leading-tight text-muted-foreground">
+                {t('controlBox.sidebarHiddenNow')}
+              </span>
+            )}
+          </div>
           <SettingToggle
             id="singleRepeat"
             label={t('controlBox.singleRepeat')}
@@ -274,6 +293,15 @@ export default function ControlBox() {
                 }
             }}
             tooltipMd={t('controlBox.podcastModeHint')}
+            className="h-9 px-3 py-1 rounded-xl"
+            labelClassName="text-xs font-medium"
+          />
+          {/* 挡字幕排在最后：它是画面上的一次性遮挡，与上面这些「放什么内容」的开关不同类 */}
+          <SettingToggle
+            id="hardsubMask"
+            label={t('hardsubMask.label')}
+            checked={hardsubMaskOn}
+            onCheckedChange={() => toggleHardsubMask()}
             className="h-9 px-3 py-1 rounded-xl"
             labelClassName="text-xs font-medium"
           />

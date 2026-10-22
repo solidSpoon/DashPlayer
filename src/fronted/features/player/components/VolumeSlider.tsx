@@ -20,6 +20,12 @@ export interface VolumeSliderProps {
     sliderTrackClassName?: string;
     sliderRangeClassName?: string;
     sliderThumbClassName?: string;
+    /**
+     * 窄窗（xl 以下）把滑条收起，只留静音图标与百分比。
+     * 视频控制条在窄窗里摆不下整排控件，滑条是最容易让位的一个（静音/恢复仍可点图标）；
+     * 默认关闭，因为播客控制条这类宽松宿主需要完整滑条。
+     */
+    collapseSliderBelowXl?: boolean;
 }
 
 const VolumeSlider = ({
@@ -31,7 +37,8 @@ const VolumeSlider = ({
     triggerClassName,
     sliderTrackClassName,
     sliderRangeClassName,
-    sliderThumbClassName
+    sliderThumbClassName,
+    collapseSliderBelowXl = false,
 }: VolumeSliderProps) => {
     const { t } = useI18nTranslation('player');
     const [localVolume, setLocalVolume] = useState<number>(volume);
@@ -64,7 +71,7 @@ const VolumeSlider = ({
                     {muted ? '0' : Math.round(localVolume * 100)}
                 </span>
             </Button>
-            <div className="w-20 flex items-center">
+            <div className={cn('w-20 items-center', collapseSliderBelowXl ? 'hidden xl:flex' : 'flex')}>
                 <Slider
                     trackClassName={sliderTrackClassName}
                     rangeClassName={sliderRangeClassName}

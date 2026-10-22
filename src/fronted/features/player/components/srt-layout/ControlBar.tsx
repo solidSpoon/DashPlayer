@@ -124,7 +124,7 @@ const PlaybackControlBar = ({
         >
             <div
                 className={cn(
-                    'relative z-20 w-full px-4 py-3 rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md shadow-2xl transition-opacity duration-200 ease-out pointer-events-auto',
+                    'relative z-20 w-full px-2 lg:px-4 py-3 rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md shadow-2xl transition-opacity duration-200 ease-out pointer-events-auto',
                     maskAdjust.ghost
                         ? 'opacity-40 pointer-events-none'
                         : barVisible
@@ -165,12 +165,17 @@ const PlaybackControlBar = ({
                             <PlaybackNavControls />
                             <div className="h-full flex items-center font-mono text-xs text-white/80 tabular-nums">
                                 <span>{TimeUtil.secondToTimeStr(currentValue)}</span>
-                                <span className="mx-1.5 text-white/40">/</span>
-                                <span className="text-white/60">{TimeUtil.secondToTimeStr(duration)}</span>
+                                {/* lg 以下只留当前时间：总时长在窄窗里是纯装饰，却要为它挤掉最右的图标 */}
+                                <span className="hidden lg:inline-flex items-center">
+                                    <span className="mx-1.5 text-white/40">/</span>
+                                    <span className="text-white/60">{TimeUtil.secondToTimeStr(duration)}</span>
+                                </span>
                             </div>
                         </div>
                         <div className="h-full flex-1" />
-                        <div className="flex justify-center items-center gap-2">
+                        {/* 右侧按钮组：xl 以下收紧间隙。窄窗时这一排摆不下，gap-2 的间隙白花掉十几像素，
+                            最右那颗图标就会被容器边缘切掉一半；缩小间隙比藏掉控件代价小得多 */}
+                        <div className="flex justify-center items-center gap-1 xl:gap-2">
                             {/* 训练模式 / 字幕轨道：与全屏控制条共用同一份控件 */}
                             <PlaybackModeControls
                                 popoverOffset={CONTROL_POPOVER_OFFSET_STACKED_BAR}
@@ -188,6 +193,7 @@ const PlaybackControlBar = ({
                                 volume={volume}
                                 onVolumeChange={(nextVolume) => playerActions.setVolume(nextVolume)}
                                 triggerClassName={DARK_BAR_BUTTON_HOVER}
+                                collapseSliderBelowXl
                             />
                             <ControlBarPinButton />
                             <FullscreenToggleButton fullScreen={fullScreen} changeFullScreen={changeFullScreen} />

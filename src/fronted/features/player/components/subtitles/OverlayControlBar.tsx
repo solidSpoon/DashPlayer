@@ -97,7 +97,7 @@ const OverlayControlBar = ({
         >
             <div
                 className={cn(
-                    'w-full px-4 py-2.5 rounded-2xl border border-white/10 bg-black/65 backdrop-blur-md shadow-2xl transition-opacity duration-200 ease-out pointer-events-auto',
+                    'w-full px-2 lg:px-4 py-2.5 rounded-2xl border border-white/10 bg-black/65 backdrop-blur-md shadow-2xl transition-opacity duration-200 ease-out pointer-events-auto',
                     maskAdjust.ghost
                         ? 'opacity-40 pointer-events-none'
                         : barVisible
@@ -112,8 +112,11 @@ const OverlayControlBar = ({
                         <PlaybackNavControls />
                         <div className="h-full flex items-center font-mono text-xs text-white/80 tabular-nums shrink-0">
                             <span>{TimeUtil.secondToTimeStr(currentValue)}</span>
-                            <span className="mx-1 text-white/40">/</span>
-                            <span className="text-white/60">{TimeUtil.secondToTimeStr(duration)}</span>
+                            {/* lg 以下只留当前时间：与普通控制条一致，窄窗里先让位给右侧按钮 */}
+                            <span className="hidden lg:inline-flex items-center">
+                                <span className="mx-1 text-white/40">/</span>
+                                <span className="text-white/60">{TimeUtil.secondToTimeStr(duration)}</span>
+                            </span>
                         </div>
                     </div>
                     <div className="flex-1 px-2 flex items-center">
@@ -142,7 +145,8 @@ const OverlayControlBar = ({
                             }}
                         />
                     </div>
-                    <div className="flex justify-center items-center gap-2 shrink-0">
+                    {/* 右侧按钮组：与普通控制条保持同样的间隙收紧策略（xl 以下 gap-1），两条条子不能长得不一样 */}
+                    <div className="flex justify-center items-center gap-1 xl:gap-2 shrink-0">
                         {/* 训练模式 / 字幕轨道：与普通控制条共用同一份控件 */}
                         <PlaybackModeControls
                             popoverOffset={CONTROL_POPOVER_OFFSET_SINGLE_ROW_BAR}
@@ -163,6 +167,7 @@ const OverlayControlBar = ({
                             volume={volume}
                             onVolumeChange={(nextVolume) => playerActions.setVolume(nextVolume)}
                             triggerClassName={DARK_BAR_BUTTON_HOVER}
+                            collapseSliderBelowXl
                         />
                         <ControlBarPinButton />
                         <FullscreenToggleButton fullScreen={fullScreen} changeFullScreen={changeFullScreen} />
