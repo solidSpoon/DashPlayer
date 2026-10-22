@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test';
-import { test } from './fixtures';
-import { openSettingsSection } from './settings-page';
+import { test } from '../../support/fixtures';
+import { openSettingsSection } from '../../support/settings-page';
 
 /** 进入关于与更新设置页。 */
 async function openAboutSetting(page: Page): Promise<void> {

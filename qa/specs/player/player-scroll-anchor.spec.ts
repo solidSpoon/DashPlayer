@@ -16,44 +16,24 @@
  * 先打印才能拿到失败现场（首轮 scrollTop、内容高变化、残差、请求数、是否收敛）。
  */
 import { expect, type Page } from '@playwright/test';
-import { test } from './fixtures';
+import { test } from '../../support/fixtures';
 import path from 'node:path';
+import {
+    FLING_SCROLL_TOP,
+    MIN_CONTENT_HEIGHT_DELTA,
+    MIN_START_SCROLL_TOP,
+    ROUNDS,
+    SCROLLER_TESTID,
+    SENTENCE_CARD_TESTID,
+    SIDE_TRANSLATION_TESTID,
+    START_SCROLL_TOP,
+} from '../../support/scroll-anchor-protocol';
 
-/** 夹具：36 句双语字幕 + 同目录同名视频（由 scripts/make-qa-fixtures.mjs 生成）。 */
-const FIXTURE_VIDEO = path.join(__dirname, 'fixtures', 'media', 'qa-bilingual.mp4');
+/** 夹具：36 句双语字幕 + 同目录同名视频（由 qa/fixtures/make-fixtures.mjs 生成，不入库）。 */
+const FIXTURE_VIDEO = path.join(__dirname, '..', '..', 'fixtures', 'media', 'qa-bilingual.mp4');
 
 /** 本轮使用的策略：a = hold，b = 对照。 */
 const POLICY: 'a' | 'b' = process.env.DP_POLICY === 'b' ? 'b' : 'a';
-
-/** 侧栏滚动容器的稳定 testid。 */
-const SCROLLER_TESTID = 'player-sidebar-scroller';
-
-/** 字幕行的稳定 testid。 */
-const SENTENCE_CARD_TESTID = 'sentence-card';
-
-/** 侧栏译文开关的稳定 testid。 */
-const SIDE_TRANSLATION_TESTID = 'side-translation-toggle';
-
-/** 起点滚动位置：固定写出，保证每轮起点一致（这是规格的一部分）。 */
-const START_SCROLL_TOP = 900;
-
-/** 起点必须真的落后于 850，否则测的是列表顶部而不是中段滚动。 */
-const MIN_START_SCROLL_TOP = 850;
-
-/**
- * 「锚点行被回收」场景里甩到的深度。
- *
- * 切换后立刻把列表甩到这个位置，渲染窗口整体搬到列表深处，切换瞬间捕获的锚点行必然已被回收。
- * 之所以不靠「行高收缩把它挤出去」：收缩量取决于窗口尺寸与行高缓存的时序，
- * 在渲染窗口边缘只在 1 行上上下下，用例会变成偶发。
- */
-const FLING_SCROLL_TOP = 2800;
-
-/** 内容高度至少要变化这么多，才算「切换真的影响了行高」。 */
-const MIN_CONTENT_HEIGHT_DELTA = 20;
-
-/** 每轮次数。 */
-const ROUNDS = 3;
 
 /** 一次采样：滚动位置、内容高度、最上方可见行。 */
 interface ScrollSample {

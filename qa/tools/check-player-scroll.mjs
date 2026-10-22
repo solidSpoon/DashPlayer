@@ -12,17 +12,17 @@
  * - 3 空通过：识别到 0 条观测（用例没跑起来/没打印结果），不算过；
  * - 4 环境不符：node 不是 22，或所有观测都报告埋点缺失（`__dpDebug` 不存在）。
  *
- * 用法：`node scripts/check-player-scroll.mjs`
+ * 用法：`node qa/tools/check-player-scroll.mjs`（先跑过一次用例，或让 globalSetup 备好料）
  */
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 /** 仓库根目录。 */
-const projectDir = fileURLToPath(new URL('..', import.meta.url));
+const projectDir = fileURLToPath(new URL('../..', import.meta.url));
 
 /** 用例文件（相对仓库根）。 */
-const SPEC_FILE = 'e2e/player-scroll-anchor.spec.ts';
+const SPEC_FILE = 'qa/specs/player/player-scroll-anchor.spec.ts';
 
 /** 观测日志前缀，与用例里的 console.log 保持一致。 */
 const OBSERVATION_PREFIX = '[player-scroll-anchor] ';
@@ -42,7 +42,7 @@ const REQUIRED_NODE_MAJOR = 22;
 function runPolicy(policy) {
     const result = spawnSync(
         process.execPath,
-        [path.join(projectDir, 'node_modules', 'playwright', 'cli.js'), 'test', SPEC_FILE],
+        [path.join(projectDir, 'node_modules', 'playwright', 'cli.js'), 'test', '-c', 'qa/playwright.config.ts', SPEC_FILE],
         {
             cwd: projectDir,
             env: { ...process.env, DP_POLICY: policy },

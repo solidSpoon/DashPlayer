@@ -2,14 +2,15 @@
 /**
  * 生成播放器端到端用例所需的媒体夹具（双语 SRT + 小体积视频）。
  *
- * 产物落在 `e2e/fixtures/media/`，体积受控（约 1MB 级）因此可以入库：
+ * 产物落在 `qa/fixtures/media/`，按 QA 目录约定不入库（`qa/.gitignore` 排除），由 globalSetup 按需生成：
  * 用例不再依赖本机媒体库，也不需要「入库 → 点进去 → 拖进度条」这套人工前置。
  *
  * 双语字幕的格式约束来自解析器 `src/common/utils/subtitle/parser.ts`：
  * 逐个正文行判断是否含中文，含中文的行进 `contentZh`，其余进 `contentEn`。
  * 因此每个字幕块必须是「英文一行 + 中文一行」两行，侧栏译文行才有内容可渲染。
  *
- * 用法：`node scripts/make-qa-fixtures.mjs`（需要 ffmpeg 与 ffprobe 在 PATH 上）。
+ * 用法：`node qa/fixtures/make-fixtures.mjs`（需要 ffmpeg 与 ffprobe 在 PATH 上；
+ * 正常不用手跑——`qa/playwright.config.ts` 的 globalSetup 缺则自动生成）。
  */
 import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -20,10 +21,10 @@ import { promisify } from 'node:util';
 const execFileAsync = promisify(execFile);
 
 /** 仓库根目录。 */
-const projectDir = fileURLToPath(new URL('..', import.meta.url));
+const projectDir = fileURLToPath(new URL('../../', import.meta.url));
 
 /** 夹具输出目录（会被用例直接引用，随仓库入库）。 */
-const outputDir = path.join(projectDir, 'e2e', 'fixtures', 'media');
+const outputDir = path.join(projectDir, 'qa', 'fixtures', 'media');
 
 /** 句子数量：足够撑出可滚动列表（约 30+ 行）。 */
 const SENTENCE_COUNT = 36;

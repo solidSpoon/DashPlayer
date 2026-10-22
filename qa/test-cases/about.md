@@ -1,6 +1,6 @@
 # 关于与更新
 
-用例文件：`e2e/about-settings.spec.ts`（本页所有自动化用例都在这里）
+用例文件：`qa/specs/settings/about-settings.spec.ts`（本页所有自动化用例都在这里）
 
 规范与状态含义见 [README.md](./README.md)。
 

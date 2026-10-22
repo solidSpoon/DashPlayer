@@ -18,7 +18,7 @@ import fs from 'node:fs/promises';
 import * as vite from 'vite';
 
 const require = createRequire(import.meta.url);
-const projectDir = fileURLToPath(new URL('..', import.meta.url));
+const projectDir = fileURLToPath(new URL('../../', import.meta.url));
 
 // plugin-vite 的构建入口不在包 exports 里，只能按文件路径加载；
 // plugin-vite 升级导致内部结构变化时这里会直接失败，不会静默产出错误产物。
@@ -54,4 +54,4 @@ for (const config of configs) {
     });
 }
 
-console.log('[e2e] 构建完成：.vite/build + .vite/renderer/main_window');
+console.log('[qa] 构建完成：.vite/build + .vite/renderer/main_window');

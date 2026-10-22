@@ -82,9 +82,63 @@
                                 "name": "@/fronted/infrastructure/electron/backendClient",
                                 "message": "业务调用请收口到当前 feature 的 *Api.ts 文件。"
                             }
+                        ],
+                        "patterns": [
+                            {
+                                "group": ["qa/**", "../qa/**", "../../qa/**", "../../../qa/**"],
+                                "message": "产品代码不许 import qa/ 下的用例资产。"
+                            }
                         ]
                     }
                 ]
+            }
+        },
+        {
+            "files": ["src/**/*.{ts,tsx}"],
+            "excludedFiles": ["src/fronted/features/**/*.{ts,tsx}"],
+            "rules": {
+                "no-restricted-imports": [
+                    "error",
+                    {
+                        "patterns": [
+                            {
+                                "group": ["qa/**", "../qa/**", "../../qa/**", "../../../qa/**"],
+                                "message": "产品代码不许 import qa/ 下的用例资产。"
+                            }
+                        ]
+                    }
+                ]
+            }
+        },
+        {
+            "files": ["qa/**/*.{ts,tsx,mjs,js}"],
+            "rules": {
+                "no-restricted-imports": [
+                    "error",
+                    {
+                        "patterns": [
+                            {
+                                "group": [
+                                    "@/fronted",
+                                    "@/fronted/**",
+                                    "@/backend",
+                                    "@/backend/**",
+                                    "@/app",
+                                    "@/app/**",
+                                    "@/test",
+                                    "@/test/**"
+                                ],
+                                "message": "qa/ 只依赖 @/common 的类型与常量：运行期契约走 window.__dpDebug 与 URL 参数，不许直接读产品内部实现（产品一重构，用例就跟着烂）。"
+                            },
+                            {
+                                "group": ["**/src/fronted/**", "**/src/backend/**", "**/src/app/**", "**/src/test/**"],
+                                "message": "qa/ 不许用相对路径绕到 src 的内部实现；只允许 ../../src/common/**。"
+                            }
+                        ]
+                    }
+                ],
+                "no-empty-pattern": ["error", { "allowObjectPatternsAsParameters": true }],
+                "react-hooks/rules-of-hooks": "off"
             }
         },
         {

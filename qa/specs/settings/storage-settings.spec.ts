@@ -1,8 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { expect, type Page } from '@playwright/test';
-import { readConfigValue, test } from './fixtures';
-import { openSettingsSection, reloadSettingsPage, switchSettingsSection } from './settings-page';
+import { readConfigValue, test } from '../../support/fixtures';
+import { openSettingsSection, reloadSettingsPage, switchSettingsSection } from '../../support/settings-page';
 
 /** 进入存储管理设置页。 */
 async function openStorageSetting(page: Page): Promise<void> {
