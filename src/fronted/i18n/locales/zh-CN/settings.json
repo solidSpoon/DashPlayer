@@ -200,7 +200,10 @@
                 "title": "打开控制面板",
                 "description": "打开播放器控制面板"
             }
-        }
+        },
+        "rerecord": "重新录制",
+        "cancel": "取消",
+        "listeningPromptHint": "等待按键输入...（可随时直接按下新按键）"
     },
     "about": {
         "title": "关于与更新",
@@ -225,7 +228,8 @@
                 "rate_limited": "GitHub 请求频率受限，请几分钟后再试。",
                 "network": "暂时无法连接 GitHub，请检查网络后重试。",
                 "payload": "GitHub 返回了无法解析的数据，请稍后重试。"
-            }
+            },
+            "checking": "正在检查更新..."
         },
         "features": {
             "asrTitle": "离线语音识别",
@@ -478,5 +482,9 @@
             "configurableHint": "{{name}}：可在下方「{{card}}」里修改",
             "fallbackHint": "云端暂时不可用，已回退到基础资源"
         }
+    },
+    "runtime": {
+        "subtitleEngineInvalid": "字幕翻译引擎设置值无效（{{value}}），请到“功能设置”重新选择并保存",
+        "subtitleModeInvalid": "字幕翻译风格设置值无效（{{value}}），请到“功能设置”重新选择并保存"
     }
 }

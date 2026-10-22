@@ -200,7 +200,10 @@
                 "title": "Open Control Panel",
                 "description": "Open the playback control panel."
             }
-        }
+        },
+        "rerecord": "Record again",
+        "cancel": "Cancel",
+        "listeningPromptHint": "Waiting for a keypress... (you can press a new combination any time)"
     },
     "about": {
         "title": "About & Updates",
@@ -225,7 +228,8 @@
                 "rate_limited": "GitHub request limit reached. Please try again in a few minutes.",
                 "network": "Can't reach GitHub right now. Check your connection and try again.",
                 "payload": "GitHub returned an unreadable response. Please try again later."
-            }
+            },
+            "checking": "Checking for updates..."
         },
         "features": {
             "asrTitle": "Offline Speech Recognition",
@@ -478,5 +482,9 @@
             "configurableHint": "{{name}} — change it in “{{card}}” below",
             "fallbackHint": "Cloud is unavailable right now; fell back to base resources"
         }
+    },
+    "runtime": {
+        "subtitleEngineInvalid": "Invalid subtitle translation engine ({{value}}). Pick one again in Feature Settings and save.",
+        "subtitleModeInvalid": "Invalid subtitle translation style ({{value}}). Pick one again in Feature Settings and save."
     }
 }

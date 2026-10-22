@@ -2,6 +2,7 @@
  * 管理视频切分页面的文件输入、AI 格式化结果和切分任务执行状态。
  */
 import { create } from 'zustand';
+import i18n from '@/fronted/i18n';
 import { persist, subscribeWithSelector } from 'zustand/middleware';
 import { ChapterParseResult } from '@/common/types/chapter-result';
 import { DpTaskState } from '@/common/contracts/dp-task';
@@ -123,7 +124,7 @@ const useSplit = create(
                     onFinish: (task) => {
                         set({ inputable: true });
                         if (task.status !== DpTaskState.DONE) {
-                            toast.error(task.progress ?? 'AI 整理失败');
+                            toast.error(task.progress ?? i18n.t('pages:sentenceSplitter.aiFormatFailed'));
                             return;
                         }
                         try {
@@ -134,7 +135,7 @@ const useSplit = create(
                             set({ userInput: parsed.formatedText });
                         } catch (error) {
                             splitLogger.error('AI 整理结果解析失败', { error });
-                            toast.error('AI 整理结果无法解析，请重试');
+                            toast.error(i18n.t('pages:sentenceSplitter.aiFormatParseFailed'));
                         }
                     },
                 });

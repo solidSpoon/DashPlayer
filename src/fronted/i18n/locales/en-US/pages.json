@@ -38,7 +38,8 @@
         "pagination": {
             "summary": "Showing clips {{start}}-{{end}} of {{total}}",
             "empty": "No clips yet"
-        }
+        },
+        "exportTemplateFileName": "word-template.xlsx"
     },
     "playbackRepair": {
         "title": "Fix Playback Issues",
@@ -114,8 +115,13 @@
             "endTime": "End Time",
             "title": "Title",
             "empty": "No configuration yet — enter timestamps on the left to preview",
-            "shortDuration": "Segment duration is less than 1 minute"
-        }
+            "shortDuration": "Segment duration is less than 1 minute",
+            "unnamed": "(untitled segment)"
+        },
+        "videoSuffix": "(video)",
+        "subtitleSuffix": "(subtitle)",
+        "aiFormatFailed": "AI formatting failed",
+        "aiFormatParseFailed": "Could not parse the AI response. Please try again"
     },
     "subtitleWorkspace": {
         "title": "Subtitle Generator",
@@ -172,5 +178,8 @@
         "cleared": "Dubbing cleared",
         "clearFailed": "Failed to clear, please retry",
         "loadFailed": "Failed to load the dubbing list"
+    },
+    "videoLearning": {
+        "playbackGuide": "Click a clip above to start playing"
     }
 }

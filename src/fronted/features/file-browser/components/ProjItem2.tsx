@@ -1,5 +1,6 @@
 import { BrowserItemVariant, CtxMenu } from '@/fronted/features/file-browser/components/VideoItem2';
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import {
     ContextMenu,
@@ -34,6 +35,7 @@ const ProjItem2 = ({ v, onClick, ctxMenus, variant = 'normal' }: {
     onClick?: () => void,
     ctxMenus: CtxMenu[]
 }) => {
+    const { t } = useTranslation('common');
     const [contextMenu, setContextMenu] = React.useState(false);
     const containerRef = React.useRef<HTMLDivElement | null>(null);
     const inView = useInView(containerRef);
@@ -177,7 +179,7 @@ const ProjItem2 = ({ v, onClick, ctxMenus, variant = 'normal' }: {
                                                 </Button>
                                             </DropdownMenuTrigger>
                                         </TooltipTrigger>
-                                        <TooltipContent side="bottom">更多操作</TooltipContent>
+                                        <TooltipContent side="bottom">{t('moreActions')}</TooltipContent>
                                     </Tooltip>
                                     <DropdownMenuContent
                                         align="end"

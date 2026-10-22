@@ -225,5 +225,55 @@
         "record": "长按录音，短按试听",
         "preparing": "准备录音…",
         "stop": "松手结束录音"
-    }
+    },
+    "subtitle": {
+        "favoriteCurrent": "收藏当前句",
+        "adjustApplied": "字幕微调已生效（{{start}} / {{end}}）",
+        "adjustTooltip": "调整当前句字幕时间轴",
+        "adjustTitle": "字幕时间微调",
+        "reset": "重置",
+        "beginLabel": "句首 (开始)",
+        "endLabel": "句尾 (结束)",
+        "beginShortcutHint": "句首提前/延后:",
+        "endShortcutHint": "句尾提前/延后:",
+        "resetShortcutHint": "重置本句微调:",
+        "resetTimingTooltip": "点击重置当前句子时间戳"
+    },
+    "sideSentence": {
+        "playing": "正在播放",
+        "singleLoop": "单句循环中",
+        "paused": "已暂停"
+    },
+    "sourceLine": {
+        "aiTranslation": "AI 翻译",
+        "originalSubtitle": "原片字幕"
+    },
+    "controlButton": {
+        "backToPlayhead": "回到当前播放位置",
+        "openPanel": "打开控制面板",
+        "closePanel": "收起控制面板"
+    },
+    "fullscreenHint": {
+        "toggle": "点击隐藏 / 显示字幕列表",
+        "title": "全屏播放提示：",
+        "windows": "右键点击标题栏最大化按钮",
+        "mac": "点击窗口左上角绿色全屏按钮"
+    },
+    "subtitleList": {
+        "pause": "暂停",
+        "play": "播放",
+        "autoPauseOn": "关闭自动暂停",
+        "autoPauseOff": "开启自动暂停",
+        "singleRepeatOn": "关闭单句循环",
+        "singleRepeatOff": "开启单句循环"
+    },
+    "favouritePlayer": {
+        "selectClip": "选择左侧片段即可播放",
+        "pause": "暂停",
+        "play": "播放",
+        "prevVideo": "上一个视频",
+        "nextVideo": "下一个视频",
+        "repeatSentence": "重复当前句"
+    },
+    "translationFailed": "字幕翻译失败"
 }

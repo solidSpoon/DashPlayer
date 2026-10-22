@@ -5,6 +5,7 @@ import { Button } from '@/fronted/components/ui/button';
 import { cn } from '@/fronted/lib/utils';
 import { Sentence } from '@/common/types/SentenceC';
 import TranslatableLineWrapper from './TranslatableLineWrapper';
+import i18n from '@/fronted/i18n';
 
 interface TranslatableLinePodcastParam {
     sentence: Sentence;
@@ -44,7 +45,7 @@ const TranslatableLinePodcast = ({
                                 </Button>
                             </TooltipTrigger>
                             <TooltipContent>
-                                点击重置当前句子时间戳
+                                {i18n.t('player:subtitle.resetTimingTooltip')}
                             </TooltipContent>
                         </Tooltip>
                     </TooltipProvider>

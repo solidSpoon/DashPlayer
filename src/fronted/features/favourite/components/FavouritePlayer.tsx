@@ -1,4 +1,5 @@
 import useFavouriteClip from '@/fronted/features/favourite/favouriteStore';
+import { useTranslation } from 'react-i18next';
 import { usePlayerState } from '@/fronted/features/player/playerState';
 import { playerActions } from '@/fronted/features/player/components/PlayerActions';
 import PlayerEngine from '@/fronted/features/player/components/PlayerEngine';
@@ -50,6 +51,7 @@ const FavouriteProgress = memo(function FavouriteProgress() {
 });
 
 const FavouritePlayer = () => {
+  const { t } = useTranslation('player');
   const [ready, setReady] = useState(false);
   const bootOnceRef = useRef(false);
   const loadedKeyRef = useRef<string | null>(null);
@@ -213,7 +215,7 @@ const FavouritePlayer = () => {
   if (!playInfo) {
     return (
       <div className="w-full h-full flex flex-col items-center justify-center p-8 text-center text-muted-foreground/60 text-sm">
-        选择左侧片段即可播放
+        {t('favouritePlayer.selectClip')}
       </div>
     );
   }
@@ -243,7 +245,7 @@ const FavouritePlayer = () => {
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              {playing ? '暂停' : '播放'}
+              {playing ? t('favouritePlayer.pause') : t('favouritePlayer.play')}
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -262,7 +264,7 @@ const FavouritePlayer = () => {
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              上一个视频
+              {t('favouritePlayer.prevVideo')}
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -281,7 +283,7 @@ const FavouritePlayer = () => {
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              下一个视频
+              {t('favouritePlayer.nextVideo')}
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
@@ -300,7 +302,7 @@ const FavouritePlayer = () => {
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              重复当前句
+              {t('favouritePlayer.repeatSentence')}
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

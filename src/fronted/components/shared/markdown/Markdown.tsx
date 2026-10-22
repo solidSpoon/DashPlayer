@@ -2,6 +2,7 @@ import React, { FC, memo } from 'react';
 import ReactMarkdown, { Options } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
+import i18n from '@/fronted/i18n';
 import Playable from '@/fronted/components/shared/common/Playable';
 import SwitchTopic from '@/fronted/components/shared/common/SwitchTopic';
 // react-markdown v10 移除了 className prop，样式类由外层容器承载，这里只需比较内容是否变化
@@ -76,7 +77,7 @@ const preprocessMarkers = (value: string): string => {
         } else {
             const separator = markerValue.indexOf('|');
             const target = (separator < 0 ? markerValue : markerValue.slice(0, separator)).trim();
-            const label = (separator < 0 ? '' : markerValue.slice(separator + 1)).trim() || '点击切换';
+            const label = (separator < 0 ? '' : markerValue.slice(separator + 1)).trim() || i18n.t('common:clickToSwitch');
             if (!target) {
                 result += value.slice(match.index, end + 2);
             } else {

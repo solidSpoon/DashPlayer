@@ -1,4 +1,5 @@
 import React, { useEffect, memo, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import UrlUtil from '@/common/utils/UrlUtil';
 import SubtitleList from './SubtitleList';
 import { VideoClip } from '../types';
@@ -68,6 +69,7 @@ export default function VideoPlayerPane({
   onEnded,
   forcePlayKey,
 }: Props) {
+  const { t } = useTranslation('pages');
   // 使用新的播放器状态管理 - 精确订阅避免频繁重渲染
   const playing = usePlayerState((s) => s.playing);
   const currentSentence = usePlayerState((s) => s.currentSentence);
@@ -375,7 +377,7 @@ export default function VideoPlayerPane({
                   <div className="w-9 h-9 bg-muted/80 rounded-full mx-auto mb-1.5 flex items-center justify-center">
                     <div className="w-4 h-4 text-muted-foreground/70">▶</div>
                   </div>
-                  <p className="text-[11px]">点击上方片段开始播放</p>
+                  <p className="text-[11px]">{t('videoLearning.playbackGuide')}</p>
                 </div>
               </div>
             </AspectRatio>

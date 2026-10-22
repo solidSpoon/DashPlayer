@@ -132,5 +132,31 @@
     "videoName": "Video name",
     "timeRange": "Time range",
     "createdAt": "Created",
-    "generatingDefinition": "Generating definition..."
+    "generatingDefinition": "Generating definition...",
+    "quickStartTitle": "Quick start playback",
+    "quickStartDesc": "Pick a video with its subtitle, or open a media folder",
+    "clickToSwitch": "Click to switch",
+    "andAllMatch": "AND (all match)",
+    "orAnyMatch": "OR (any match)",
+    "moreActions": "More actions",
+    "fileSelectorHint": "You can pick a video file and its matching subtitle file together",
+    "folderPairingHint": "Keep video and subtitle file names consistent inside a folder",
+    "clipGridEmptyTitle": "No clips yet",
+    "clipGridEmptyDesc": "Add some video clips to your saved clips first",
+    "clipGridPlaying": "Playing",
+    "clipGridProcessing": "Processing",
+    "clipGridDone": "Done",
+    "audioPlayer": "Audio player",
+    "aiTool": {
+        "approvalRequested": "Awaiting approval",
+        "approvalResponded": "Approved",
+        "inputAvailable": "Running",
+        "inputStreaming": "Preparing",
+        "outputAvailable": "Done",
+        "outputDenied": "Denied",
+        "outputError": "Failed",
+        "parameters": "Parameters",
+        "error": "Error",
+        "result": "Result"
+    }
 }

@@ -90,7 +90,7 @@ export default function FileSelector({
                     </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                    可以同时选择一个视频文件及其对应的字幕文件
+                    {t('fileSelectorHint')}
                 </TooltipContent>
             </Tooltip>
         </TooltipProvider>

@@ -140,8 +140,8 @@ const HomePage = () => {
                             {/* 顶部快速打开区域：简洁优雅的圆角栏 */}
                             <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 px-6 rounded-2xl border border-border/70 bg-card shadow-2xs">
                                 <div className="flex flex-col gap-0.5 text-center sm:text-left">
-                                    <span className="text-sm font-semibold text-foreground">快速开始播放</span>
-                                    <span className="text-xs text-muted-foreground">选择音视频及对应字幕文件，或直接打开媒体文件夹</span>
+                                    <span className="text-sm font-semibold text-foreground">{tc('quickStartTitle')}</span>
+                                    <span className="text-xs text-muted-foreground">{tc('quickStartDesc')}</span>
                                 </div>
                                 <div className="flex items-center gap-3 shrink-0">
                                     <div className="w-36">
@@ -188,7 +188,7 @@ const HomePage = () => {
                             {rest && rest.length > 0 && (
                                 <div className="flex flex-col gap-2 pt-2">
                                     <div className="flex items-center justify-between px-1">
-                                        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tc('earlierRecords', { defaultValue: '更早记录' })}</h3>
+                                        <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{tc('earlierRecords')}</h3>
                                     </div>
                                     <div className="flex flex-col divide-y divide-border/40">
                                         {rest.map((v) => (
@@ -210,7 +210,7 @@ const HomePage = () => {
                                         size="sm"
                                         className="h-8 px-4 rounded-xl text-xs text-muted-foreground hover:text-foreground gap-1"
                                     >
-                                        <span>{tc('loadMore', { defaultValue: '加载更多' })}</span>
+                                        <span>{tc('loadMore')}</span>
                                         <ChevronsDown className="h-3.5 w-3.5" />
                                     </Button>
                                 </div>
@@ -224,10 +224,10 @@ const HomePage = () => {
                                     <PlayCircle className="h-8 w-8 stroke-[1.75]" />
                                 </div>
                                 <h2 className="text-lg font-semibold text-foreground mb-1.5">
-                                    {tc('emptyWatchTitle', { defaultValue: '开启你的音视频学习之旅' })}
+                                    {tc('emptyWatchTitle')}
                                 </h2>
                                 <p className="text-xs text-muted-foreground leading-relaxed mb-6">
-                                    {tc('emptyWatchDesc', { defaultValue: '选择本地音视频文件（支持外挂字幕），或直接导入整个媒体文件夹开始播放与学习' })}
+                                    {tc('emptyWatchDesc')}
                                 </p>
                                 
                                 <div className="flex items-center gap-3 w-full justify-center">
