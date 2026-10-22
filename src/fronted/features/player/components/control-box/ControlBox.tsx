@@ -19,7 +19,6 @@ import SettingToggle from './SettingToggle';
 import TranscriptButton from './TranscriptButton';
 import WithMarkdownTooltip from '@/fronted/components/shared/common/WithMarkdownTooltip';
 import { playerApi } from '@/fronted/features/player/playerApi';
-import { isSidebarHiddenByEnglish } from '@/fronted/features/player/components/sidePanelVisibility';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 /**
@@ -136,9 +135,6 @@ export default function ControlBox() {
 
   const changeFullScreen = useLayout((s) => s.changeFullScreen);
 
-  // 侧栏此刻是否真的被「随英文字幕隐藏」收起：收起时「侧栏译文」看不出效果，需要在组内就地说明
-  const sidebarHidden = isSidebarHiddenByEnglish(syncSide, showEn);
-
   useEffect(() => {
     if (autoPlayNextSetting === 'true') {
       playerActions.setAutoPlayNext(true);
@@ -192,7 +188,9 @@ export default function ControlBox() {
             </div>
           </div>
 
-          {/* 侧栏：译文与「随英文字幕隐藏」管的是同一块右侧字幕栏，收成一组，不再一处药丸一处开关 */}
+          {/* 侧栏：译文与「随英文字幕隐藏」管的是同一块右侧字幕栏，收成一组，不再一处药丸一处开关。
+              这里不再有「侧栏当前被隐藏」的说明行：它会随开关出现/消失而改变分组高度，
+              整个面板网格跟着下移（主人明确不要这种跳动）；说明改由药丸 tooltip 与侧栏 chip 承担 */}
           <div className="col-span-full sm:col-span-2 flex flex-col justify-center gap-0.5 rounded-xl border border-border/60 bg-muted/20 px-3 py-1.5 min-h-[38px]">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <span className="text-xs font-medium text-muted-foreground select-none shrink-0 whitespace-nowrap">
@@ -213,12 +211,6 @@ export default function ControlBox() {
                 />
               </div>
             </div>
-            {/* 侧栏正被收起时，「侧栏译文」点了也看不出变化，就地说明原因，免得像是开关坏了 */}
-            {sidebarHidden && (
-              <span className="text-[10px] leading-tight text-muted-foreground">
-                {t('controlBox.sidebarHiddenNow')}
-              </span>
-            )}
           </div>
           <SettingToggle
             id="singleRepeat"
