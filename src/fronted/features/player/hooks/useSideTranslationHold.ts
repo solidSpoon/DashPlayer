@@ -2,37 +2,39 @@
  * 「侧栏译文」切换时保持阅读位置的 hold 意图。
  *
  * 老问题：切换译文后每一行的高度都变了，滚动位置却还是原来那个数字，
- * 于是正在读的那一行整体位移（实测几十到几百像素），用户得自己找回原来的位置。
+ * 于是正在读的那一行整体位移（实测 185 布局像素，滚得更深时上百到几百），用户得自己找回位置。
  * 以前在组件里散着写 scrollTop，会和 Virtuoso 的分批重测抢同一个位置，落点乱飞；
  * 现在的做法是：先等布局稳住，再用纯函数算目标，一轮一轮逼近，每轮重算残差（不累加 delta）。
  *
- * 关键约束：
- * - 快照在 store 变更的**同一个同步节拍**里采集（store 订阅回调），否则 React 重渲染之后
- *   再量「切换前」就已经量到了新行高，「变化量」直接变成 0；
- * - 锚点身份用 data index（虚拟列表会回收 DOM 节点，节点引用不可靠），
- *   逼近过程中每轮都按同一个下标重新测量，而不是重新取「最上面那一行」；
+ * 分工（本文件只管「意图与策略」，DOM 测量在 sidebarAnchorProbe，换算在 scrollTarget）：
+ * - 订阅 store 变更，在**同一个同步节拍**采切换前快照（`useEffect` 太晚会量到新行高，变化量变成 0）；
+ * - 等布局稳定 → 读策略 → 逐轮逼近 → 记录结局（converged / not-converged / anchor-missing）；
+ * - 与滚动状态机协作：hold 期间挂起自动跟随，避免两个写入方拉同一个 scrollTop。
+ *
+ * 硬约束：
+ * - 锚点身份用 data index（虚拟列表会回收 DOM 节点，节点引用不可靠）；
  * - 只动用户正在读的那一行，不理会当前高亮句——这个意图的语义就是「别动用户的位置」；
  * - fail closed：拿不到锚点快照就一次都不滚，宁可不动也不能把用户顶到别处；
- * - 收敛不了就记录 `not-converged`，不抛错、不阻塞界面。
+ * - 收敛不了就记 `not-converged`，不抛错、不阻塞界面。
  */
 import { useEffect } from 'react';
 import { usePlayerUi } from '@/fronted/features/player/playerUiStore';
 import useSubtitleScroll from './useSubtitleScroll';
-import { computeScrollTarget, type AnchorSample } from './scrollTarget';
+import { computeScrollTarget } from './scrollTarget';
 import {
-    SENTENCE_CARD_TESTID,
     beginHold,
     finishHold,
     recordScrollWrite,
     type HoldRecord,
 } from '@/fronted/features/player/dev/scrollWriteLog';
 import { readHoldPolicy } from '@/fronted/features/player/dev/playerDebug';
-
-/** 判定「布局稳定」所需的连续不变帧数。 */
-const STABLE_FRAMES = 6;
-
-/** 等布局稳定的超时时间（毫秒）；超时按未收敛处理，一次都不写。 */
-const STABILITY_TIMEOUT_MS = 1500;
+import {
+    captureBefore,
+    measureAnchorTop,
+    waitForLayoutStable,
+    waitFrames,
+    type BeforeSnapshot,
+} from './sidebarAnchorProbe';
 
 /** 写完一次之后等待的帧数，给 Virtuoso 重测与浏览器重排留时间。 */
 const SETTLE_FRAMES = 2;
@@ -48,183 +50,6 @@ const MAX_STEP_PX = 400;
 
 /** 写入来源标识，出现在 `__dpDebug.scrollWrites[].source` 里。 */
 const HOLD_WRITE_SOURCE = 'side-translation-hold';
-
-/** 切换前的快照。 */
-interface BeforeSnapshot {
-    /** 切换前的滚动位置（布局像素）。 */
-    scrollTop: number;
-    /** 切换前的内容高度（布局像素）。 */
-    contentHeight: number;
-    /** 切换前最上方可见行。 */
-    anchor: NonNullable<AnchorSample>;
-}
-
-/**
- * 等待一帧。
- *
- * @returns 下一帧触发时结束的 Promise。
- */
-const nextFrame = (): Promise<void> => new Promise<void>((resolve) => {
-    requestAnimationFrame(() => resolve());
-});
-
-/**
- * 等待若干帧。
- *
- * @param frames 帧数。
- * @returns 全部帧过去后结束的 Promise。
- */
-const waitFrames = async (frames: number): Promise<void> => {
-    for (let i = 0; i < frames; i += 1) {
-        await nextFrame();
-    }
-};
-
-/**
- * 实测容器当前的缩放比例。
- *
- * `getBoundingClientRect()` 给视觉像素，`scrollTop` / `clientHeight` 是布局像素；
- * 容器被 CSS transform 缩放时两者不等，所以每次采样都重新实测，绝不写死为 1。
- *
- * @param scroller 滚动容器。
- * @returns 视觉像素 / 布局像素的比例；无法测量时按 1 处理。
- */
-const measureScale = (scroller: HTMLElement): number => {
-    const rect = scroller.getBoundingClientRect();
-    if (scroller.clientHeight <= 0) {
-        return 1;
-    }
-    const scale = rect.height / scroller.clientHeight;
-    return Number.isFinite(scale) && scale > 0 ? scale : 1;
-};
-
-/**
- * 找到指定 data index 的字幕行节点。
- *
- * @param scroller 滚动容器。
- * @param index 行下标（data index）。
- * @returns 已渲染的节点；不在渲染范围内时为 null。
- */
-const findAnchorNode = (scroller: HTMLElement, index: number): HTMLElement | null => {
-    const nodes = scroller.querySelectorAll<HTMLElement>(
-        `[data-testid="${SENTENCE_CARD_TESTID}"][data-index]`,
-    );
-    for (const node of nodes) {
-        if (Number(node.dataset.index) === index) {
-            return node;
-        }
-    }
-    return null;
-};
-
-/**
- * 测量指定行到容器顶的距离（布局像素）。
- *
- * @param scroller 滚动容器。
- * @param node 行节点。
- * @returns 布局像素距离；可为负（行顶部在容器上方）。
- */
-const measureRowTop = (scroller: HTMLElement, node: HTMLElement): number => {
-    const scrollerRect = scroller.getBoundingClientRect();
-    const scale = measureScale(scroller);
-    return (node.getBoundingClientRect().top - scrollerRect.top) / scale;
-};
-
-/**
- * 按 data index 测量锚点行当前的位置。
- *
- * @param scroller 滚动容器。
- * @param index 锚点行的 data index。
- * @returns 行顶到容器顶的距离（布局像素）；行未被渲染时为 null。
- */
-const measureAnchorTop = (scroller: HTMLElement, index: number): number | null => {
-    const node = findAnchorNode(scroller, index);
-    return node ? measureRowTop(scroller, node) : null;
-};
-
-/**
- * 采样切换前的状态：取滚定容器可视区内最靠上的那一行作为锚点。
- *
- * @param scroller 滚动容器。
- * @returns 快照；容器内没有任何可渲染行时为 null。
- */
-const captureBefore = (scroller: HTMLElement): BeforeSnapshot | null => {
-    const scrollerRect = scroller.getBoundingClientRect();
-    const scale = measureScale(scroller);
-    const nodes = scroller.querySelectorAll<HTMLElement>(
-        `[data-testid="${SENTENCE_CARD_TESTID}"][data-index]`,
-    );
-    for (const node of nodes) {
-        const index = Number(node.dataset.index);
-        if (!Number.isFinite(index)) {
-            continue;
-        }
-        const rect = node.getBoundingClientRect();
-        const top = (rect.top - scrollerRect.top) / scale;
-        const bottom = (rect.bottom - scrollerRect.top) / scale;
-        // 完全在可视区上方的行不算锚点
-        if (bottom <= 0) {
-            continue;
-        }
-        return { scrollTop: scroller.scrollTop, contentHeight: scroller.scrollHeight, anchor: { index, top } };
-    }
-    return null;
-};
-
-/** 等待布局稳定的结果。 */
-type StabilityResult = 'stable' | 'missing' | 'timeout';
-
-/**
- * 等布局稳定：`scrollHeight` 与锚定行的位置同时连续若干帧不变。
- *
- * 只等 `scrollHeight` 不够——Virtuoso 会先给出新的总高，再逐行修正行高；
- * 只等锚定行不够——行高变化可能还没反映到容器高度上。两者都要静下来。
- *
- * @param scroller 滚动容器。
- * @param anchorIndex 锚定行的 data index。
- * @returns 稳定 / 锚定行消失 / 超时。
- */
-const waitForLayoutStable = async (
-    scroller: HTMLElement,
-    anchorIndex: number,
-): Promise<StabilityResult> => {
-    const deadline = performance.now() + STABILITY_TIMEOUT_MS;
-    let stableFrames = 0;
-    let lastContentHeight = -1;
-    let lastAnchorTop: number | null = null;
-    let missingFrames = 0;
-
-    while (performance.now() < deadline) {
-        await nextFrame();
-        const contentHeight = scroller.scrollHeight;
-        const anchorTop = measureAnchorTop(scroller, anchorIndex);
-        if (anchorTop === null) {
-            missingFrames += 1;
-            // 连续多帧都找不到：锚定行确实被虚拟列表回收了，不必再等
-            if (missingFrames >= STABLE_FRAMES) {
-                return 'missing';
-            }
-            stableFrames = 0;
-            lastAnchorTop = null;
-            lastContentHeight = contentHeight;
-            continue;
-        }
-        missingFrames = 0;
-
-        if (contentHeight === lastContentHeight && anchorTop === lastAnchorTop) {
-            stableFrames += 1;
-        } else {
-            stableFrames = 0;
-        }
-        lastContentHeight = contentHeight;
-        lastAnchorTop = anchorTop;
-
-        if (stableFrames >= STABLE_FRAMES - 1) {
-            return 'stable';
-        }
-    }
-    return 'timeout';
-};
 
 /**
  * 执行一次 hold 意图。
@@ -342,12 +167,7 @@ const runHold = async (scroller: HTMLElement, before: BeforeSnapshot): Promise<v
         }
 
         const settledTop = measureAnchorTop(scroller, anchor.index);
-        finish({
-            outcome: 'not-converged',
-            rounds,
-            anchorTopAfter: settledTop,
-            residual,
-        });
+        finish({ outcome: 'not-converged', rounds, anchorTopAfter: settledTop, residual });
     } finally {
         useSubtitleScroll.getState().setHoldActive(false);
     }
