@@ -121,6 +121,11 @@ interface SystemDef {
             cpuCount: number,
             /** 可用的 GPU 推理后端；none 表示会走 CPU 推理。 */
             gpuAcceleration: GpuAcceleration,
+            /**
+             * 是否为开发/未打包运行（与 main 进程 `isDevelopmentMode()` 同源）。
+             * renderer 没有同步可知的 dev 标志，调试/QA 能力一律以它为准，生产构建为 false。
+             */
+            devMode: boolean,
         }
     };
     'system/select-file': {

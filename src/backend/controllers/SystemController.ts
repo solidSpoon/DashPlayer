@@ -5,6 +5,7 @@ import { clearDB } from '@/backend/infrastructure/db/db';
 import { WindowState } from '@/common/types/Types';
 import { checkUpdate } from '@/backend/services/CheckUpdate';
 import { readSystemInfo } from '@/backend/utils/systemInfo';
+import { isDevelopmentMode } from '@/backend/utils/runtimeEnv';
 import { inject, injectable } from 'inversify';
 import Controller from '@/backend/controllers/Controller';
 import StrUtil from '@/common/utils/str-util';
@@ -51,6 +52,8 @@ export default class SystemController implements Controller {
             isMac: platform === 'darwin',
             isLinux: platform === 'linux',
             pathSeparator: path.sep,
+            // 与 main 进程判定同源：打包后为 false，renderer 的调试/QA 能力据此开关
+            devMode: isDevelopmentMode(),
             ...hardware,
         };
     }

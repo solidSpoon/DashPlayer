@@ -74,6 +74,18 @@ export const playerApi = {
         backendClient.call('ai-trans/release-subtitle-session', { fileHash, rendererSessionId }),
 
     /**
+     * 把媒体路径登记为观看记录（不存在则新建，已存在则复用）。
+     *
+     * 与媒体库页面「入库」走的是同一个后端入口，因此不会产生重复记录，
+     * 也不会绕过权限校验；dev/qa 的 `?file=` 入口用它跳过「入库 → 点进去」的人工前置。
+     *
+     * @param filePaths 媒体文件绝对路径。
+     * @returns 对应的观看记录 ID 列表；路径不是媒体或不存在时为空数组。
+     */
+    createWatchHistoryEntries: (filePaths: string[]) =>
+        backendClient.call('watch-history/create', filePaths),
+
+    /**
      * 查询播放页启动所需的轻量详情。
      *
      * @param videoId 视频标识。

@@ -33,6 +33,7 @@ import useSubtitleTranslation from '@/fronted/features/player/translationStore';
 import { playerActions } from '@/fronted/features/player/components/PlayerActions';
 import { usePlayer } from '@/fronted/features/player/playerStore';
 import {Button} from "@/fronted/components/ui/button";
+import { useDevPlayerEntry } from '@/fronted/features/player/dev/useDevPlayerEntry';
 
 const logger = getRendererLogger('PlayerWithControlsPage');
 const MODE_SWITCH_TOAST_ID = 'mode-switch-toast';
@@ -52,8 +53,16 @@ const PlayerWithControlsPage = () => {
     const { t } = useI18nTranslation('player');
     const {videoId} = useParams();
     const navigate = useNavigate();
-    const {data: video} = useSWR([SWR_KEY.PLAYER_P, videoId], ([_key, videoId]) => playerApi.getPlayerDetail(videoId));
-    logger.debug('pa-player page loaded', {videoId, hasVideo: !!video});
+    const [_searchParams, setSearchParams] = useSearchParams();
+    // dev/qa 入口：`?file=` 直接把路径换成观看记录，跳过「入库 → 点进去」的前置（打包版忽略）
+    const devEntry = useDevPlayerEntry(_searchParams);
+    // 请求了 dev 入口就必须等它给出记录 ID，不能拿路由里的占位 ID 去查详情
+    const effectiveVideoId = devEntry.requested ? devEntry.videoId : videoId;
+    const {data: video} = useSWR(
+        effectiveVideoId ? [SWR_KEY.PLAYER_P, effectiveVideoId] : null,
+        ([_key, id]) => playerApi.getPlayerDetail(id)
+    );
+    logger.debug('pa-player page loaded', {videoId: effectiveVideoId, hasVideo: !!video});
     const { data: windowState } = useSWR(SWR_KEY.WINDOW_SIZE, playerApi.getWindowState);
     const isMac = useSystem((s) => s.isMac);
     const showSideBar = useLayout((state) => state.showSideBar);
@@ -69,7 +78,6 @@ const PlayerWithControlsPage = () => {
         useLayout((s) => s.height)
     );
     const location = useLocation();
-    const [_searchParams, setSearchParams] = useSearchParams();
     const referrer = location.state && location.state.referrer;
     logger.debug('page referrer', {referrer});
     const windowButtonsVisibleRef = useRef<boolean | null>(null);
@@ -291,6 +299,13 @@ const PlayerWithControlsPage = () => {
         };
         runEffect();
     }, [video, showRepairToast]);
+    // dev/qa 入口：视频就绪后跳到 `?seek=` 指定的位置（打包版 seekSeconds 恒为 null）
+    useEffect(() => {
+        if (devEntry.seekSeconds === null || !videoLoaded) {
+            return;
+        }
+        playerActions.seekTo({ time: devEntry.seekSeconds, play: false });
+    }, [devEntry.seekSeconds, videoLoaded]);
     useEffect(() => {
         // 卡死提示 / 播放错误提示：媒体报错或看门狗判定卡死触发
         if (mediaErrorCode === null && playbackStallCount === 0) {
@@ -431,8 +446,16 @@ const PlayerWithControlsPage = () => {
             window.clearTimeout(timer);
         };
     }, [video, videoLoaded, subtitleSuspicions, subtitleNudge]);
+    // 只补充 sideBarAnimation，保留 URL 上已有的参数（如 dev/qa 的 `?file=`）
     useEffect(() => {
-        setSearchParams({sideBarAnimation: 'true'});
+        setSearchParams((prev) => {
+            if (prev.get('sideBarAnimation') === 'true') {
+                return prev;
+            }
+            const next = new URLSearchParams(prev);
+            next.set('sideBarAnimation', 'true');
+            return next;
+        });
     }, [setSearchParams]);
     const posRef = useRef<HTMLDivElement>(null);
     const [pos, setPos] = useState({x: 0, y: 0, scale: 1});
