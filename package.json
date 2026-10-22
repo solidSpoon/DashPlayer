@@ -22,6 +22,8 @@
     "e2e:build": "node e2e/build.mjs",
     "e2e:run": "playwright test",
     "test:cases:check": "node scripts/check-test-cases.mjs",
+    "qa:fixtures": "node scripts/make-qa-fixtures.mjs",
+    "qa:player-scroll": "node scripts/check-player-scroll.mjs",
     "test:e2e": "run-s test:cases:check e2e:build e2e:run",
     "drizzle-kit": "cross-env ELECTRON_RUN_AS_NODE=1 electron node_modules/drizzle-kit/bin.cjs"
   },

@@ -1,0 +1,179 @@
+1
+00:00:00,000 --> 00:00:01,950
+1. The player keeps your reading position steady while the layout changes.
+界面重新排版时，播放器会让你的阅读位置保持不动。
+
+2
+00:00:02,000 --> 00:00:03,950
+2. Row heights shift as soon as the sidebar translation is toggled.
+只要切换侧栏译文，行高就会立刻发生变化。
+
+3
+00:00:04,000 --> 00:00:05,950
+3. A stable anchor is what separates a calm list from a jumping one.
+稳定的锚点决定了列表是安静还是乱跳。
+
+4
+00:00:06,000 --> 00:00:07,950
+4. We measure the anchor in layout pixels, never in visual pixels.
+我们只用布局像素度量锚点，绝不用视觉像素。
+
+5
+00:00:08,000 --> 00:00:09,950
+5. The scroller reports its offset relative to the scrolling container.
+滚动容器报告的偏移量都相对容器顶部。
+
+6
+00:00:10,000 --> 00:00:11,950
+6. Convergence means the residual stops changing between two rounds.
+收敛的意思是两轮之间残差不再变化。
+
+7
+00:00:12,000 --> 00:00:13,950
+7. If either snapshot is missing the hold intent refuses to scroll.
+任一快照缺失时，保持意图会拒绝滚动。
+
+8
+00:00:14,000 --> 00:00:15,950
+8. Virtualised lists recycle their DOM nodes, so we track data indexes.
+虚拟列表会回收 DOM 节点，所以我们用数据下标定位。
+
+9
+00:00:16,000 --> 00:00:17,950
+9. The player keeps your reading position steady while the layout changes.
+界面重新排版时，播放器会让你的阅读位置保持不动。
+
+10
+00:00:18,000 --> 00:00:19,950
+10. Row heights shift as soon as the sidebar translation is toggled.
+只要切换侧栏译文，行高就会立刻发生变化。
+
+11
+00:00:20,000 --> 00:00:21,950
+11. A stable anchor is what separates a calm list from a jumping one.
+稳定的锚点决定了列表是安静还是乱跳。
+
+12
+00:00:22,000 --> 00:00:23,950
+12. We measure the anchor in layout pixels, never in visual pixels.
+我们只用布局像素度量锚点，绝不用视觉像素。
+
+13
+00:00:24,000 --> 00:00:25,950
+13. The scroller reports its offset relative to the scrolling container.
+滚动容器报告的偏移量都相对容器顶部。
+
+14
+00:00:26,000 --> 00:00:27,950
+14. Convergence means the residual stops changing between two rounds.
+收敛的意思是两轮之间残差不再变化。
+
+15
+00:00:28,000 --> 00:00:29,950
+15. If either snapshot is missing the hold intent refuses to scroll.
+任一快照缺失时，保持意图会拒绝滚动。
+
+16
+00:00:30,000 --> 00:00:31,950
+16. Virtualised lists recycle their DOM nodes, so we track data indexes.
+虚拟列表会回收 DOM 节点，所以我们用数据下标定位。
+
+17
+00:00:32,000 --> 00:00:33,950
+17. The player keeps your reading position steady while the layout changes.
+界面重新排版时，播放器会让你的阅读位置保持不动。
+
+18
+00:00:34,000 --> 00:00:35,950
+18. Row heights shift as soon as the sidebar translation is toggled.
+只要切换侧栏译文，行高就会立刻发生变化。
+
+19
+00:00:36,000 --> 00:00:37,950
+19. A stable anchor is what separates a calm list from a jumping one.
+稳定的锚点决定了列表是安静还是乱跳。
+
+20
+00:00:38,000 --> 00:00:39,950
+20. We measure the anchor in layout pixels, never in visual pixels.
+我们只用布局像素度量锚点，绝不用视觉像素。
+
+21
+00:00:40,000 --> 00:00:41,950
+21. The scroller reports its offset relative to the scrolling container.
+滚动容器报告的偏移量都相对容器顶部。
+
+22
+00:00:42,000 --> 00:00:43,950
+22. Convergence means the residual stops changing between two rounds.
+收敛的意思是两轮之间残差不再变化。
+
+23
+00:00:44,000 --> 00:00:45,950
+23. If either snapshot is missing the hold intent refuses to scroll.
+任一快照缺失时，保持意图会拒绝滚动。
+
+24
+00:00:46,000 --> 00:00:47,950
+24. Virtualised lists recycle their DOM nodes, so we track data indexes.
+虚拟列表会回收 DOM 节点，所以我们用数据下标定位。
+
+25
+00:00:48,000 --> 00:00:49,950
+25. The player keeps your reading position steady while the layout changes.
+界面重新排版时，播放器会让你的阅读位置保持不动。
+
+26
+00:00:50,000 --> 00:00:51,950
+26. Row heights shift as soon as the sidebar translation is toggled.
+只要切换侧栏译文，行高就会立刻发生变化。
+
+27
+00:00:52,000 --> 00:00:53,950
+27. A stable anchor is what separates a calm list from a jumping one.
+稳定的锚点决定了列表是安静还是乱跳。
+
+28
+00:00:54,000 --> 00:00:55,950
+28. We measure the anchor in layout pixels, never in visual pixels.
+我们只用布局像素度量锚点，绝不用视觉像素。
+
+29
+00:00:56,000 --> 00:00:57,950
+29. The scroller reports its offset relative to the scrolling container.
+滚动容器报告的偏移量都相对容器顶部。
+
+30
+00:00:58,000 --> 00:00:59,950
+30. Convergence means the residual stops changing between two rounds.
+收敛的意思是两轮之间残差不再变化。
+
+31
+00:01:00,000 --> 00:01:01,950
+31. If either snapshot is missing the hold intent refuses to scroll.
+任一快照缺失时，保持意图会拒绝滚动。
+
+32
+00:01:02,000 --> 00:01:03,950
+32. Virtualised lists recycle their DOM nodes, so we track data indexes.
+虚拟列表会回收 DOM 节点，所以我们用数据下标定位。
+
+33
+00:01:04,000 --> 00:01:05,950
+33. The player keeps your reading position steady while the layout changes.
+界面重新排版时，播放器会让你的阅读位置保持不动。
+
+34
+00:01:06,000 --> 00:01:07,950
+34. Row heights shift as soon as the sidebar translation is toggled.
+只要切换侧栏译文，行高就会立刻发生变化。
+
+35
+00:01:08,000 --> 00:01:09,950
+35. A stable anchor is what separates a calm list from a jumping one.
+稳定的锚点决定了列表是安静还是乱跳。
+
+36
+00:01:10,000 --> 00:01:11,950
+36. We measure the anchor in layout pixels, never in visual pixels.
+我们只用布局像素度量锚点，绝不用视觉像素。

@@ -143,6 +143,34 @@ test.describe('xxx 设置', () => {
 });
 ```
 
+### 播放器页：确定性入口与滚动埋点
+
+播放页的正规入口是「入库 → 在列表里点进去 → 拖进度条」，每条滚动类用例都要先复现这一长串前置，既慢又脆。播放器页因此有一套 dev/qa 专用入口与埋点（都只在开发/未打包运行时生效，判据是 main 进程下发的 `system/info.devMode`）：
+
+| 能力 | 用途 |
+|---|---|
+| `#/player/<任意>?file=<视频绝对路径>` | 用应用自己的 `watch-history/create` 把路径换成观看记录，跳过入库与点选 |
+| `&seek=<秒>` | 视频就绪后跳到指定播放位置 |
+| `&lang=<en\|zh>` | 本次会话切到指定界面语言（不落盘） |
+| `window.__dpDebug.scrollWrites` | 滚动写入环形缓冲（上限 200），`kind: 'request'` 是 Virtuoso 这类「应用发起、库内部写 scrollTop」的调用，`kind: 'write'` 是直接写 |
+| `window.__dpDebug.snapshot()` | 一次采样：`scrollTop` / `currentIndex` / `visibleRange` / `contentHeight` |
+| `window.__dpDebug.lastHold()` | 最近一次「侧栏译文」保持阅读位置的记录（锚点下标、残差、轮数、结束原因） |
+| `window.__dpPolicy` | 只由用例注入的策略开关：`a`（默认，补偿）/ `b`（对照，不补偿） |
+
+配套基建：
+
+```bash
+yarn qa:fixtures       # 生成 36 句双语 SRT + 480x270 小视频到 e2e/fixtures/media/（约 30KB，已入库）
+node scripts/check-player-scroll.mjs   # 播放器滚动锚定检查：输出 JSON 摘要 + 语义化退出码
+```
+
+`check-player-scroll.mjs` 的退出码是 **0 通过 / 1 红 / 3 空通过（识别到 0 条观测）/ 4 环境不符（node 不是 22，或埋点缺失）**——「空通过」与「环境不符」单独占一个码，避免它们被误读成绿灯。
+
+参考用例：`e2e/player-scroll-anchor.spec.ts`（每轮都先 `console.log` 一段 JSON 再断言，断言失败也能拿到现场）。写滚动类用例时注意两点：
+
+1. **起点要钉住并确认钉住**：应用自身有「钉在边界 → 停歇后平滑归顶」的定时编排，写完 `scrollTop` 就走，起点会变成 0 附近的二值分布。用例里用 `pinScrollTop` 反复写到连续两次读数一致。
+2. **虚拟列表会回收 DOM 节点**：锚点身份只能靠 `data-index`，不能用节点引用；「哪些行还在渲染范围内」用 `[data-testid="sentence-card"][data-index="N"]` 是否存在判断。
+
 ## 6. 红线
 
 - **禁止 mock 应用内部实现**（IPC、仓储、服务）：e2e 的价值就是验证这些真实边界。
