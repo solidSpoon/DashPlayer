@@ -1,0 +1,3 @@
+# 媒体夹具是生成物（视频 + SRT，约 30KB 但属于二进制产物），不入库：
+# `qa/support/globalSetup.ts` 在用例开跑前发现缺失就自动生成（需要本机有 ffmpeg/ffprobe）。
+fixtures/media/

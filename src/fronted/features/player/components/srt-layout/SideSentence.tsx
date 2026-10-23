@@ -84,21 +84,26 @@ const PausedIcon = () => (
 const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
     ({ sentence, onClick, isCurrent, isRepeat, selectionState }: SideSentenceNewParam, ref) => {
         const playing = usePlayerState((state) => state.playing);
+        const { showEn, syncSide, showSideTranslation } = usePlayerUiState(
+            (s) => ({ showEn: s.showEn, syncSide: s.syncSide, showSideTranslation: s.showSideTranslation }),
+            shallow
+        );
         const translationKey = sentence?.translationKey || '';
-        const newTranslation = useTranslation(state => state.translations.get(translationKey)) || '';
+        // 关闭侧栏译文时选择器恒返回 undefined，避免白白跟着译文库重渲染
+        const newTranslation =
+            useTranslation((state) =>
+                showSideTranslation ? state.translations.get(translationKey) : undefined
+            ) || '';
         
         const primaryText = sentence.text || '';
-        const secondaryText = sentence.textZH || newTranslation || '';
+        // 译文行受侧栏译文开关控制：原文行始终显示，关掉译文时整行不占位
+        const secondaryText = showSideTranslation ? (sentence.textZH || newTranslation || '') : '';
 
         const fontSize = useSetting((state) =>
             state.values.get('appearance.fontSize')
         );
         const isFavourite = useFavouriteClip((s) => s.lineClip.get(mapClipKey(useFile.getState().srtHash, sentence.index)) ?? false);
         const [hover, setHover] = React.useState(false);
-        const { showEn, syncSide } = usePlayerUiState(
-            (s) => ({ showEn: s.showEn, syncSide: s.syncSide }),
-            shallow
-        );
         const show = !syncSide ? true : showEn;
         const vocabularyStore = useVocabulary();
         const isVocabularyWord = vocabularyStore.isVocabularyWord;
@@ -261,7 +266,8 @@ const SideSentence = forwardRef<HTMLDivElement, SideSentenceNewParam>(
                         {renderHighlightedText(primaryText)}
                     </div>
 
-                    {/* 中文译文：水平居中，激活与非激活字体大小严格一致，加深文本颜色以确保高可读性 */}
+                    {/* 中文译文：水平居中，激活与非激活字体大小严格一致，加深文本颜色以确保高可读性。
+                        关闭「侧栏译文」后整行不渲染，卡片高度随之收回 */}
                     {secondaryText && (
                         <div className={cn(
                             'w-full mt-1.5 leading-normal transition-colors font-normal text-center',

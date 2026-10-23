@@ -19,6 +19,12 @@ import {
     PlaybackNavControls
 } from '@/fronted/features/player/components/PlaybackGlobalControls';
 import { CONTROL_POPOVER_OFFSET_STACKED_BAR } from '@/fronted/features/player/components/ControlPopover';
+import {
+    CONTROL_BAR_GAP_PX,
+    CONTROL_BAR_PANEL_HEIGHT_PX,
+    CONTROL_BAR_ZONE_PX,
+} from '@/fronted/features/player/components/controlBarZone';
+import { useHardsubMaskBarAdjust } from '@/fronted/features/player/components/hardsubMaskBarLayout';
 
 const logger = getRendererLogger('PlaybackControlBar');
 
@@ -52,6 +58,12 @@ const PlaybackControlBar = ({
     const changeFullScreen = useLayout((s) => s.changeFullScreen);
     // 用户钉住后控制条常显，不再受鼠标超时隐藏影响
     const pinned = usePlayerUi((s) => s.controlBarPinned);
+    // 遮挡贴片对本条的让位 / 幽灵态 / 抬起量：与全屏条共用同一份判断，只是面板尺寸不同
+    const maskAdjust = useHardsubMaskBarAdjust({
+        panelHeightPx: CONTROL_BAR_PANEL_HEIGHT_PX,
+        zonePx: CONTROL_BAR_ZONE_PX,
+        gapPx: CONTROL_BAR_GAP_PX,
+    });
 
     const [mouseOverOut, setMouseOverOut] = useState<boolean>(false);
     // 训练模式/字幕轨道菜单或训练参数弹窗展开期间钉住控制条：鼠标移向菜单会先离开本条区域
@@ -60,6 +72,8 @@ const PlaybackControlBar = ({
     const currentValueUpdateTime = useRef<number>(0);
     const [selecting, setSelecting] = useState(false);
     const mouseOverTimeout = useRef<number[]>([0]);
+    // 本条是否该显形：钉住/鼠标在条上/菜单展开才算「想显示」，且鼠标压到贴片上时要让位
+    const barVisible = (mouseOverOut || menuOpen || pinned) && !maskAdjust.hiddenByMask;
 
     useEffect(() => {
         if (selecting || Date.now() - currentValueUpdateTime.current < 500) {
@@ -101,15 +115,21 @@ const PlaybackControlBar = ({
         <div
             onMouseMove={handleMouseMove}
             onMouseLeave={onMouseLeave}
+            style={{ bottom: maskAdjust.liftPx + CONTROL_BAR_GAP_PX }}
             className={cn(
                 'w-full flex flex-col-reverse h-36 text-white/90 px-4 pb-8 pt-2 pointer-events-auto',
+                'transition-[bottom] duration-200 ease-out',
                 className
             )}
         >
             <div
                 className={cn(
-                    'w-full px-4 py-3 rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md shadow-2xl transition-opacity duration-200 ease-out pointer-events-auto',
-                    mouseOverOut || menuOpen || pinned ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                    'relative z-20 w-full px-2 lg:px-4 py-3 rounded-2xl border border-white/10 bg-black/60 backdrop-blur-md shadow-2xl transition-opacity duration-200 ease-out pointer-events-auto',
+                    maskAdjust.ghost
+                        ? 'opacity-40 pointer-events-none'
+                        : barVisible
+                        ? 'opacity-100'
+                        : 'opacity-0 pointer-events-none'
                 )}
                 onMouseMove={(e) => {
                     e.stopPropagation();
@@ -145,12 +165,17 @@ const PlaybackControlBar = ({
                             <PlaybackNavControls />
                             <div className="h-full flex items-center font-mono text-xs text-white/80 tabular-nums">
                                 <span>{TimeUtil.secondToTimeStr(currentValue)}</span>
-                                <span className="mx-1.5 text-white/40">/</span>
-                                <span className="text-white/60">{TimeUtil.secondToTimeStr(duration)}</span>
+                                {/* lg 以下只留当前时间：总时长在窄窗里是纯装饰，却要为它挤掉最右的图标 */}
+                                <span className="hidden lg:inline-flex items-center">
+                                    <span className="mx-1.5 text-white/40">/</span>
+                                    <span className="text-white/60">{TimeUtil.secondToTimeStr(duration)}</span>
+                                </span>
                             </div>
                         </div>
                         <div className="h-full flex-1" />
-                        <div className="flex justify-center items-center gap-2">
+                        {/* 右侧按钮组：xl 以下收紧间隙。窄窗时这一排摆不下，gap-2 的间隙白花掉十几像素，
+                            最右那颗图标就会被容器边缘切掉一半；缩小间隙比藏掉控件代价小得多 */}
+                        <div className="flex justify-center items-center gap-1 xl:gap-2">
                             {/* 训练模式 / 字幕轨道：与全屏控制条共用同一份控件 */}
                             <PlaybackModeControls
                                 popoverOffset={CONTROL_POPOVER_OFFSET_STACKED_BAR}
@@ -168,6 +193,7 @@ const PlaybackControlBar = ({
                                 volume={volume}
                                 onVolumeChange={(nextVolume) => playerActions.setVolume(nextVolume)}
                                 triggerClassName={DARK_BAR_BUTTON_HOVER}
+                                collapseSliderBelowXl
                             />
                             <ControlBarPinButton />
                             <FullscreenToggleButton fullScreen={fullScreen} changeFullScreen={changeFullScreen} />

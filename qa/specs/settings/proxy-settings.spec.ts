@@ -1,6 +1,6 @@
 import { expect, type Page } from '@playwright/test';
-import { readConfigValue, test } from './fixtures';
-import { openSettingsSection, reloadSettingsPage, switchSettingsSection } from './settings-page';
+import { readConfigValue, test } from '../../support/fixtures';
+import { openSettingsSection, reloadSettingsPage, switchSettingsSection } from '../../support/settings-page';
 
 /** 进入网络代理设置页。 */
 async function openProxySetting(page: Page): Promise<void> {

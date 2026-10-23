@@ -7,13 +7,13 @@ import {
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { ONBOARDING_COMPLETED_VERSION_KEY } from '../src/common/constants/systemConfigKeys';
+import { ONBOARDING_COMPLETED_VERSION_KEY } from '../../src/common/constants/systemConfigKeys';
 
 /** 当前引导版本号，与 OnboardingView 的 CURRENT_ONBOARDING_VERSION 一致。 */
 const ONBOARDING_VERSION = '1';
 
-/** 仓库根目录；`electron .` 会读取 package.json 的 main（.vite/build/main.js）。 */
-const projectRoot = path.resolve(__dirname, '..');
+/** 仓库根目录（本文件在 `qa/support/` 下）；`electron .` 会读取 package.json 的 main（.vite/build/main.js）。 */
+const projectRoot = path.resolve(__dirname, '..', '..');
 
 /** 开发态配置文件：`electron .` 时 app.isPackaged 为 false，electron-store 文件名带 .dev 后缀。 */
 const CONFIG_FILE_NAME = 'config.dev.json';

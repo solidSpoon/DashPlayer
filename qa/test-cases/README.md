@@ -1,7 +1,7 @@
 # 测试用例文档
 
 > 这里是「测什么」的清单：**一个设置页一份文档，一条场景一段话**，先讲清用户会遇到什么，再挂对应用例。
-> `docs/e2e-testing.md` 是「怎么写」的指南，用例代码在 `e2e/`。
+> `qa/README.md` 是「怎么写」的指南，用例代码在 `qa/specs/`。
 
 ## 为什么要这份文档
 
@@ -27,7 +27,7 @@
 
 ## 用例 ID 与状态
 
-- 每份页面文档顶部先声明这一页的用例文件：`` 用例文件：`e2e/xxx.spec.ts` ``。
+- 每份页面文档顶部先声明这一页的用例文件：`` 用例文件：`qa/specs/settings/xxx.spec.ts` ``。
 - ID 形如 `SET-PRX-01`：`SET` = 设置中心，中段 = 页面或范围，末段 = 该范围内的序号。ID 一旦分配就不再复用。
 - 每条场景挂一个 ID，文档里只有两种写法：
 
@@ -48,7 +48,7 @@
 ## 校验
 
 ```bash
-yarn test:cases:check   # 文档与用例双向比对（已串进 yarn test:e2e）
+node qa/tools/check-test-cases.mjs   # 文档与用例双向比对（QA 侧必跑）
 ```
 
 跑通时会按页打印概览（每页自动化几条、缺口是哪几个）。**概览不手写进文档**——手写的概览迟早和清单对不上。
@@ -64,12 +64,12 @@ yarn test:cases:check   # 文档与用例双向比对（已串进 yarn test:e2e�
 
 | 文档 | 页面 | 用例文件 |
 |---|---|---|
-| [proxy.md](./proxy.md) | 网络代理 | `e2e/proxy-settings.spec.ts` |
-| [storage.md](./storage.md) | 存储管理 | `e2e/storage-settings.spec.ts` |
-| [service-resource.md](./service-resource.md) | 服务与资源 | `e2e/service-resource-settings.spec.ts` |
-| [shortcut.md](./shortcut.md) | 快捷键 | `e2e/shortcut-settings.spec.ts` |
-| [appearance.md](./appearance.md) | 外观 | `e2e/appearance-settings.spec.ts` |
-| [about.md](./about.md) | 关于与更新 | `e2e/about-settings.spec.ts` |
+| [proxy.md](./proxy.md) | 网络代理 | `qa/specs/settings/proxy-settings.spec.ts` |
+| [storage.md](./storage.md) | 存储管理 | `qa/specs/settings/storage-settings.spec.ts` |
+| [service-resource.md](./service-resource.md) | 服务与资源 | `qa/specs/settings/service-resource-settings.spec.ts` |
+| [shortcut.md](./shortcut.md) | 快捷键 | `qa/specs/settings/shortcut-settings.spec.ts` |
+| [appearance.md](./appearance.md) | 外观 | `qa/specs/settings/appearance-settings.spec.ts` |
+| [about.md](./about.md) | 关于与更新 | `qa/specs/settings/about-settings.spec.ts` |
 
 「改完立刻切走会不会丢」是每个表单页共有的时机场景，所以不单开文档，就写在各自的页面文档里（各页有一条 `xx-05` 之类的用例）。下面只剩两条没法挂到任何单一页面上的机制性缺口。
 

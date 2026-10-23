@@ -35,8 +35,10 @@ const resetStore = () => {
             visibleRange: [0, 10],
             deferredPosition: -1,
             lastSyncedPosition: -1,
+            lastSyncIndex: -1,
             syncPending: false,
             interrupted: false,
+            holdActive: false,
         },
     });
 };
@@ -259,5 +261,152 @@ describe('useSubtitleScroll', () => {
         expect(virtuoso.scrollToIndex).not.toHaveBeenCalled();
         expect(virtuoso.scrollBy).not.toHaveBeenCalled();
         expect(useSubtitleScroll.getState().scrollState).toBe('NORMAL');
+    });
+
+    it('列表重排重挂当前行 ref 时不再同步，不把用户滚开的位置拉回当前句', () => {
+        const virtuoso = mockVirtuoso();
+        // 行已经因译文开关变化而变矮，当前句被顶到上边界之上（用户看的是另一段内容）
+        useSubtitleScroll.setState({
+            internal: {
+                ...useSubtitleScroll.getState().internal,
+                virtuoso: virtuoso.handle,
+                currentListPosition: 5,
+                currentRefPosition: 5,
+                currentRef: mockRow(20, 60),
+                lastSyncedPosition: 5,
+                lastSyncIndex: 5, // 当前句此前已经同步到位
+            },
+        });
+
+        // Virtuoso 重排后重新挂 ref：目标下标没变，只是节点换了
+        useSubtitleScroll.getState().updateCurrentRef(mockRow(20, 60), 5);
+        vi.advanceTimersByTime(0);
+
+        expect(virtuoso.scrollToIndex).not.toHaveBeenCalled();
+        expect(virtuoso.scrollBy).not.toHaveBeenCalled();
+        expect(useSubtitleScroll.getState().scrollState).toBe('NORMAL');
+    });
+
+    it('重排引发的同一行回调不推进「上次同步下标」', () => {
+        const virtuoso = mockVirtuoso();
+        useSubtitleScroll.setState({
+            internal: {
+                ...useSubtitleScroll.getState().internal,
+                virtuoso: virtuoso.handle,
+                currentListPosition: 5,
+                currentRefPosition: 5,
+                currentRef: mockRow(20, 60),
+                lastSyncedPosition: 5,
+                lastSyncIndex: 5,
+            },
+        });
+
+        useSubtitleScroll.getState().updateCurrentRef(mockRow(20, 60), 5);
+        useSubtitleScroll.getState().updateCurrentRef(mockRow(20, 60), 5);
+        vi.advanceTimersByTime(0);
+
+        expect(useSubtitleScroll.getState().internal.lastSyncIndex).toBe(5);
+        expect(virtuoso.scrollToIndex).not.toHaveBeenCalled();
+    });
+
+    it('句子真的换了（目标行下标变化）时照常同步', () => {
+        const virtuoso = mockVirtuoso();
+        useSubtitleScroll.setState({
+            internal: {
+                ...useSubtitleScroll.getState().internal,
+                virtuoso: virtuoso.handle,
+                currentListPosition: 5,
+                currentRefPosition: 5,
+                currentRef: mockRow(600, 640), // 已越出下边界，需要追
+                lastSyncedPosition: 4,
+                lastSyncIndex: 4,
+            },
+        });
+
+        // 切到下一句：目标下标 5 与上次同步的 4 不同，应当照常同步
+        useSubtitleScroll.getState().updateCurrentRef(mockRow(600, 640), 5);
+        vi.advanceTimersByTime(0);
+
+        expect(virtuoso.scrollBy).toHaveBeenCalledWith({ top: 140 });
+        expect(useSubtitleScroll.getState().internal.lastSyncIndex).toBe(5);
+    });
+
+    it('换掉字幕列表后重置去重记忆，同一行下标仍会同步', () => {
+        const virtuoso = mockVirtuoso();
+        useSubtitleScroll.setState({
+            internal: {
+                ...useSubtitleScroll.getState().internal,
+                virtuoso: virtuoso.handle,
+                currentListPosition: 3,
+                currentRefPosition: 3,
+                currentRef: mockRow(600, 640),
+                lastSyncedPosition: -1,
+                lastSyncIndex: 3, // 上一条视频里同一下标同步过
+            },
+        });
+
+        // 换视频：新列表里下标 3 是另一句，重排回调必须能重新同步
+        useSubtitleScroll.getState().resetSyncDedupe();
+        useSubtitleScroll.getState().updateCurrentRef(mockRow(600, 640), 3);
+        vi.advanceTimersByTime(0);
+
+        expect(virtuoso.scrollBy).toHaveBeenCalledWith({ top: 140 });
+        expect(useSubtitleScroll.getState().internal.lastSyncIndex).toBe(3);
+    });
+
+    it('浏览态下同一行重挂 ref 不会在恢复跟读后被同步回当前句', () => {
+        const virtuoso = mockVirtuoso();
+        useSubtitleScroll.setState({
+            scrollState: 'USER_BROWSING',
+            internal: {
+                ...useSubtitleScroll.getState().internal,
+                virtuoso: virtuoso.handle,
+                currentListPosition: 5,
+                currentRefPosition: 5,
+                currentRef: mockRow(600, 640), // 用户滚开时当前句在下边界之外
+                lastSyncedPosition: 5,
+                lastSyncIndex: -1, // 浏览态期间从未同步过
+            },
+        });
+
+        // 切换译文后行高变小，当前句被推进安全边界内：这里自动恢复跟读
+        useSubtitleScroll.getState().updateCurrentRef(mockRow(100, 140), 5);
+        vi.advanceTimersByTime(150);
+        expect(useSubtitleScroll.getState().scrollState).toBe('NORMAL');
+
+        // Virtuoso 重排后重挂同一行的 ref：目标下标没变，不能把用户滚到的位置拉回当前句
+        useSubtitleScroll.getState().updateCurrentRef(mockRow(600, 640), 5);
+        vi.advanceTimersByTime(0);
+
+        expect(virtuoso.scrollToIndex).not.toHaveBeenCalled();
+        expect(virtuoso.scrollBy).not.toHaveBeenCalled();
+    });
+
+    it('浏览态下切到新句子仍会恢复跟读并同步新目标', () => {
+        const virtuoso = mockVirtuoso();
+        useSubtitleScroll.setState({
+            scrollState: 'USER_BROWSING',
+            internal: {
+                ...useSubtitleScroll.getState().internal,
+                virtuoso: virtuoso.handle,
+                currentListPosition: 5,
+                currentRefPosition: 5,
+                currentRef: mockRow(600, 640),
+                lastSyncedPosition: 5,
+                lastSyncIndex: 5,
+            },
+        });
+
+        // 播放推进到下一句且新句已在边界内：仍应恢复跟读
+        useSubtitleScroll.getState().updateCurrentRef(mockRow(100, 140), 6);
+        vi.advanceTimersByTime(150);
+        expect(useSubtitleScroll.getState().scrollState).toBe('NORMAL');
+
+        // 再切一句（下标又变）：目标变了，照常同步
+        useSubtitleScroll.getState().updateCurrentRef(mockRow(600, 640), 7);
+        vi.advanceTimersByTime(0);
+
+        expect(virtuoso.scrollBy).toHaveBeenCalledWith({ top: 140 });
+        expect(useSubtitleScroll.getState().internal.lastSyncIndex).toBe(7);
     });
 });

@@ -1,6 +1,6 @@
 # 外观
 
-用例文件：`e2e/appearance-settings.spec.ts`（本页所有自动化用例都在这里）
+用例文件：`qa/specs/settings/appearance-settings.spec.ts`（本页所有自动化用例都在这里）
 
 规范与状态含义见 [README.md](./README.md)。
 

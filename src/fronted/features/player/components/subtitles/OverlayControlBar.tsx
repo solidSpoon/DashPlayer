@@ -19,6 +19,11 @@ import {
     PlaybackNavControls
 } from '@/fronted/features/player/components/PlaybackGlobalControls';
 import { CONTROL_POPOVER_OFFSET_SINGLE_ROW_BAR } from '@/fronted/features/player/components/ControlPopover';
+import {
+    FULLSCREEN_CONTROL_BAR_PANEL_HEIGHT_PX,
+    FULLSCREEN_CONTROL_BAR_ZONE_PX,
+} from '@/fronted/features/player/components/controlBarZone';
+import { useHardsubMaskBarAdjust } from '@/fronted/features/player/components/hardsubMaskBarLayout';
 
 export interface OverlayControlBarProps {
     className?: string;
@@ -65,6 +70,13 @@ const OverlayControlBar = ({
     const changeFullScreen = useLayout((s) => s.changeFullScreen);
     // 用户钉住后控制条常显，不再受鼠标移出隐藏影响（与普通视图条共用同一开关）
     const pinned = usePlayerUi((s) => s.controlBarPinned);
+    // 遮挡贴片对本条的让位 / 幽灵态 / 抬起量：与普通视图条共用同一份判断
+    const maskAdjust = useHardsubMaskBarAdjust({
+        panelHeightPx: FULLSCREEN_CONTROL_BAR_PANEL_HEIGHT_PX,
+        zonePx: FULLSCREEN_CONTROL_BAR_ZONE_PX,
+        gapPx: 0,
+    });
+    const barVisible = (mouseOver || menuOpen || pinned) && !maskAdjust.hiddenByMask;
 
     return (
         <div
@@ -74,12 +86,23 @@ const OverlayControlBar = ({
             onMouseLeave={() => {
                 setMouseOver(false);
             }}
-            className="w-full flex flex-col justify-end h-32 p-4 pointer-events-auto"
+            style={{ marginBottom: maskAdjust.liftPx }}
+            // 这条感应区整块都能收指针，而全屏遮罩层整体压在贴片（z-15）之上：
+            // 贴片压到底部时，落在感应区里的那部分贴片抓不到（从贴片靠上的部分起拖不受影响）。
+            // 彻底解法是把「感应区」拆成压在贴片之下的独立图层，与面板分开渲染，属于单独一次改动。
+            className={cn(
+                'w-full flex flex-col justify-end h-32 p-4 pointer-events-auto',
+                'transition-[margin] duration-200 ease-out'
+            )}
         >
             <div
                 className={cn(
-                    'w-full px-4 py-2.5 rounded-2xl border border-white/10 bg-black/65 backdrop-blur-md shadow-2xl transition-opacity duration-200 ease-out pointer-events-auto',
-                    mouseOver || menuOpen || pinned ? 'opacity-100' : 'opacity-0 pointer-events-none',
+                    'w-full px-2 lg:px-4 py-2.5 rounded-2xl border border-white/10 bg-black/65 backdrop-blur-md shadow-2xl transition-opacity duration-200 ease-out pointer-events-auto',
+                    maskAdjust.ghost
+                        ? 'opacity-40 pointer-events-none'
+                        : barVisible
+                        ? 'opacity-100'
+                        : 'opacity-0 pointer-events-none',
                     className
                 )}
             >
@@ -89,8 +112,11 @@ const OverlayControlBar = ({
                         <PlaybackNavControls />
                         <div className="h-full flex items-center font-mono text-xs text-white/80 tabular-nums shrink-0">
                             <span>{TimeUtil.secondToTimeStr(currentValue)}</span>
-                            <span className="mx-1 text-white/40">/</span>
-                            <span className="text-white/60">{TimeUtil.secondToTimeStr(duration)}</span>
+                            {/* lg 以下只留当前时间：与普通控制条一致，窄窗里先让位给右侧按钮 */}
+                            <span className="hidden lg:inline-flex items-center">
+                                <span className="mx-1 text-white/40">/</span>
+                                <span className="text-white/60">{TimeUtil.secondToTimeStr(duration)}</span>
+                            </span>
                         </div>
                     </div>
                     <div className="flex-1 px-2 flex items-center">
@@ -119,7 +145,8 @@ const OverlayControlBar = ({
                             }}
                         />
                     </div>
-                    <div className="flex justify-center items-center gap-2 shrink-0">
+                    {/* 右侧按钮组：与普通控制条保持同样的间隙收紧策略（xl 以下 gap-1），两条条子不能长得不一样 */}
+                    <div className="flex justify-center items-center gap-1 xl:gap-2 shrink-0">
                         {/* 训练模式 / 字幕轨道：与普通控制条共用同一份控件 */}
                         <PlaybackModeControls
                             popoverOffset={CONTROL_POPOVER_OFFSET_SINGLE_ROW_BAR}
@@ -140,6 +167,7 @@ const OverlayControlBar = ({
                             volume={volume}
                             onVolumeChange={(nextVolume) => playerActions.setVolume(nextVolume)}
                             triggerClassName={DARK_BAR_BUTTON_HOVER}
+                            collapseSliderBelowXl
                         />
                         <ControlBarPinButton />
                         <FullscreenToggleButton fullScreen={fullScreen} changeFullScreen={changeFullScreen} />

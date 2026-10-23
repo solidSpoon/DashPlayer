@@ -93,6 +93,10 @@
         "pinTooltipPinned": "取消钉住（恢复自动隐藏）",
         "pinTooltipIdle": "钉住控制条（不再自动隐藏）"
     },
+    "hardsubMask": {
+        "label": "挡字幕",
+        "patchAria": "遮挡字幕的贴片"
+    },
     "trainingSettings": {
         "title": "精听与训练模式参数配置",
         "shadowingRatio": "影子跟读留白倍率",
@@ -117,7 +121,10 @@
         "trackEnHint": "原文字幕（快捷键 `{{shortcut}}`）",
         "trackCnHint": "机器/AI 翻译字幕（快捷键 `{{shortcut}}`）",
         "trackSourceZhHint": "SRT 字幕源自带的中文字幕",
-        "syncSideSubtitles": "同步侧边字幕",
+        "sideGroupLabel": "侧栏",
+        "sidebarFollowsEnglish": "随英文字幕隐藏",
+        "sidebarFollowsEnglishHint": "隐藏英文字幕时，右侧字幕栏一起收起，鼠标悬停时再出现。",
+        "sidebarHiddenNow": "侧栏当前被隐藏，这个开关要等侧栏出现后才看得出效果。",
         "singleRepeat": "单句重播",
         "autoPause": "自动暂停",
         "autoPlayNext": "自动播放下一集",
@@ -125,11 +132,14 @@
         "fullScreen": "全屏模式",
         "podcastMode": "播客模式",
         "shortcutHint": "快捷键 `{{shortcut}}`",
-        "syncSideHint": "隐藏英文字幕时同步隐藏侧边字幕，鼠标悬停在侧边区域时显示。",
         "autoPauseHint": "当前句子结束后自动暂停（快捷键 `{{shortcut}}`）",
         "autoPlayNextHint": "文件夹播放模式下，当前视频结束后自动播放下一个视频。",
         "fullScreenHint": "点击进入或退出全屏。",
-        "podcastModeHint": "播放纯音频文件时建议开启播客模式。"
+        "podcastModeHint": "播放纯音频文件时建议开启播客模式。",
+        "showSideTranslation": "侧栏译文",
+        "sideTranslationHint": "只影响右侧字幕栏，主字幕区不受影响。",
+        "sideTranslationHiddenChip": "侧栏译文已隐藏",
+        "sideTranslationShowAction": "显示"
     },
     "clearAdjust": {
         "button": "清除时间调整",

@@ -11,6 +11,7 @@ import { subscribeWithSelector } from 'zustand/middleware';
 import { useStoreWithEqualityFn } from 'zustand/traditional';
 import { Ele } from './useBoundary';
 import useLayout from '@/fronted/hooks/useLayout';
+import { recordScrollRequest } from '@/fronted/features/player/dev/scrollWriteLog';
 
 export type ScrollState =
     /** 用户正在浏览，自动滚动完全让位 */
@@ -59,6 +60,19 @@ export type SubtitleScrollState = {
         syncPending: boolean;
         /** 用户通过输入中断了自动滚动，下一次 onScroll 应跳过状态判断 */
         interrupted: boolean;
+        /**
+         * 上次已排队同步的目标行下标。
+         * 列表只会因为行高变化重排时，Virtuoso 会重新挂当前行的 ref（并发出 scroll/range 事件），
+         * 这些回调的目标下标与上次相同；把「同一下标」当成重复请求丢掉，
+         * 否则重排会被误认为切句，把用户已经滚开的位置又拉回当前句。
+         */
+        lastSyncIndex: number;
+        /**
+         * 「保持阅读位置」意图执行中。
+         * hold 期间把自动跟随整体挂起：两者都想决定滚动位置，同时跑只会互相拉扯，
+         * hold 结束后也不补算——用户主动切换布局时，位置以 hold 的结果为准。
+         */
+        holdActive: boolean;
     };
     scrollState: ScrollState;
     /** 字幕容器可视安全边界；组件挂载、useBoundary 测量完成前为 null */
@@ -78,6 +92,13 @@ export type SubtitleScrollActions = {
     delaySetNormal: () => void;
     /** 用户输入（滚轮/滚动条/翻页键）中断自动滚动时调用，立即切换到浏览模式 */
     onUserInterrupt: () => void;
+    /**
+     * 清掉「上次同步下标」的去重记忆。
+     * 字幕列表整体换掉（换视频/重新加载）后，同一下标代表的是另一句，必须允许重新同步一次。
+     */
+    resetSyncDedupe: () => void;
+    /** 挂起/恢复自动跟随；由「侧栏译文」hold 意图在自身生命周期内调用。 */
+    setHoldActive: (active: boolean) => void;
 };
 
 const getEle = (ele: HTMLDivElement): Ele => {
@@ -126,6 +147,8 @@ const useSubtitleScroll = create(
             ) => {
                 cancelPendingTimers();
                 set({ scrollState: 'AUTO_SCROLLING' });
+                // 应用发起、库内部写 scrollTop：不记一笔的话，埋点里就看不到这次写入
+                recordScrollRequest('subtitle-scroll:scroll-to-index');
                 virtuoso.scrollToIndex({
                     index: listPosition,
                     align: options?.align,
@@ -157,6 +180,12 @@ const useSubtitleScroll = create(
              */
             const scheduleSync = () => {
                 const internal = get().internal;
+                // hold 意图执行期间不排队任何自动跟随，避免两个写入方抢同一个 scrollTop
+                if (internal.holdActive) {
+                    return;
+                }
+                // 记下本次要追的目标下标（推后执行期间目标可能又变，以最新的为准）
+                internal.lastSyncIndex = internal.currentListPosition;
                 if (internal.syncPending) {
                     return;
                 }
@@ -177,8 +206,10 @@ const useSubtitleScroll = create(
                     visibleRange: [0, 0],
                     deferredPosition: -1,
                     lastSyncedPosition: -1,
+                    lastSyncIndex: -1,
                     syncPending: false,
                     interrupted: false,
+                    holdActive: false,
                 },
                 scrollState: 'NORMAL',
                 boundary: null,
@@ -221,10 +252,19 @@ const useSubtitleScroll = create(
                     internal.currentRefPosition = listPosition;
                     internal.currentListPosition = listPosition;
 
+                    // hold 意图执行期间不跟进：此时重挂 ref 是行高变化引起的重排，不是切句
+                    if (internal.holdActive) {
+                        return;
+                    }
+
                     const currentScrollState = get().scrollState;
 
                     // 浏览态下若播放自然推进使新的当前句进入边界，自动恢复跟读
                     if (currentScrollState === 'USER_BROWSING') {
+                        // 记下这个下标：浏览态期间我们已经知道它且决定不同步，
+                        // 否则重排后状态回落 NORMAL、Virtuoso 重挂 ref 时，
+                        // 同一下标会被当成「新目标」而把用户滚到的位置拉回当前句
+                        internal.lastSyncIndex = listPosition;
                         if (ref && inBoundary()) {
                             delaySetNormal(TIMING.RESUME_NORMAL);
                         }
@@ -232,6 +272,11 @@ const useSubtitleScroll = create(
                     }
 
                     if (!ref || currentScrollState === 'PAUSE_MEASUREMENT') {
+                        return;
+                    }
+                    // 目标行没变：这是列表重排（行高变化后 Virtuoso 重挂 ref）引起的回调，不是切句。
+                    // 此时不该再同步一次，否则会把用户已经滚开的位置拉回当前句。
+                    if (listPosition === internal.lastSyncIndex) {
                         return;
                     }
                     scheduleSync();
@@ -248,9 +293,14 @@ const useSubtitleScroll = create(
                 syncIntoView: (listPosition: number) => {
                     const { scrollState, boundary, internal } = get();
                     internal.syncPending = false;
+                    if (internal.holdActive) {
+                        return;
+                    }
                     if (scrollState === 'USER_BROWSING' || scrollState === 'PAUSE_MEASUREMENT') {
                         return;
                     }
+                    // 记下这次处理过的目标：随后因为重排而重挂 ref 的回调目标与它相同，应当被去重拦下
+                    internal.lastSyncIndex = listPosition;
                     const { virtuoso } = internal;
                     if (!virtuoso || !boundary || listPosition < 0) {
                         return;
@@ -309,8 +359,10 @@ const useSubtitleScroll = create(
                     if (showSideBar) {
                         // 小窗容器被 CSS transform 缩放，scrollBy 的布局像素与视觉坐标不一致，
                         // 改用 Virtuoso 原生对齐规避缩放换算
+                        recordScrollRequest('subtitle-scroll:pin-end');
                         virtuoso.scrollToIndex({ index: listPosition, align: 'end', behavior: 'auto' });
                     } else {
+                        recordScrollRequest('subtitle-scroll:scroll-by');
                         virtuoso.scrollBy({ top: ele.yb - boundary.yb });
                     }
 
@@ -321,6 +373,7 @@ const useSubtitleScroll = create(
                             return;
                         }
                         set({ scrollState: 'AUTO_SCROLLING' });
+                        recordScrollRequest('subtitle-scroll:settle-to-start');
                         virtuoso.scrollToIndex({
                             index: listPosition,
                             align: 'start',
@@ -350,7 +403,10 @@ const useSubtitleScroll = create(
                     scheduleSync();
                 },
                 setVirtuoso: (virtuoso: VirtuosoHandle) => {
-                    get().internal.virtuoso = virtuoso;
+                    const internal = get().internal;
+                    internal.virtuoso = virtuoso;
+                    // 列表实例是新挂的：去重记忆作废，否则新列表同一下标的首次同步会被误判成重复请求
+                    internal.lastSyncIndex = -1;
                 },
                 updateVisibleRange: (range: [number, number]) => {
                     const current = get().internal.visibleRange;
@@ -391,6 +447,21 @@ const useSubtitleScroll = create(
                     internal.interrupted = true;
                     cancelPendingTimers();
                     set({ scrollState: 'USER_BROWSING' });
+                },
+                resetSyncDedupe: () => {
+                    get().internal.lastSyncIndex = -1;
+                },
+                setHoldActive: (active: boolean) => {
+                    const internal = get().internal;
+                    if (internal.holdActive === active) {
+                        return;
+                    }
+                    internal.holdActive = active;
+                    if (active) {
+                        // hold 期间排队中的同步算的是 hold 之前的位置，一并作废
+                        internal.syncPending = false;
+                        cancelPendingTimers();
+                    }
                 },
             };
         }
