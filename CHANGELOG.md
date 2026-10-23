@@ -2,6 +2,51 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.14.0](https://github.com/solidSpoon/DashPlayer/compare/v6.13.3...v6.14.0) (2026-10-23)
+
+
+### Features
+
+* **dev:** 让播放器页可被自动化驱动：dev 判定、滚动埋点与确定性入口 ([aae612f](https://github.com/solidSpoon/DashPlayer/commit/aae612fb33884157a6c129c16a977473c2f4b243))
+* **player:** 侧栏译文可单独开关，不再牵连主字幕区 ([7816147](https://github.com/solidSpoon/DashPlayer/commit/78161477bfee0c5fcee1c5ffbdd7a8d71f4accca))
+* **player:** 拖动贴片时控制条降为半透明幽灵，充当自己的位置替身 ([583355e](https://github.com/solidSpoon/DashPlayer/commit/583355eabede1b9ff488df5c1982d0bdbf922189))
+* **player:** 拖动遮挡贴片时画出控制栏的实际位置 ([aba4c5a](https://github.com/solidSpoon/DashPlayer/commit/aba4c5a1a50821fc4aa5a94518a7386c90bc1cc3))
+* **player:** 挡字幕贴片 + 侧栏译文独立开关 ([2527842](https://github.com/solidSpoon/DashPlayer/commit/25278427d941ed0f7f00def4ab4e59d85f543444))
+* **player:** 控制条恢复「挡字幕」开关，并与遮挡贴片互相避让 ([0dc6a07](https://github.com/solidSpoon/DashPlayer/commit/0dc6a0719caaa2287f29965b9150ab46a0a25032))
+* **player:** 新增挡字幕贴片，盖住画面内嵌的硬字幕 ([3918851](https://github.com/solidSpoon/DashPlayer/commit/39188517882b1af7d3d03cd26017e901586a8a9c))
+* **player:** 遮挡贴片支持五种样式，可在播放控制里切换 ([a161862](https://github.com/solidSpoon/DashPlayer/commit/a1618625863f6cc3749433ec0f323caddcd9cad5))
+
+
+### Bug Fixes
+
+* **i18n:** 快捷键录制弹窗两行提示重复 ([74cc546](https://github.com/solidSpoon/DashPlayer/commit/74cc546c27187dc67cf2a2a27bbf6798bcc809a8))
+* **i18n:** 播放页字幕区与生词片段页改用 i18n ([39fc985](https://github.com/solidSpoon/DashPlayer/commit/39fc9856359fb8ed0001880309f03aa714a23713))
+* **i18n:** 文件浏览器、设置页与共享组件改用 i18n ([d8db0f8](https://github.com/solidSpoon/DashPlayer/commit/d8db0f8714081c7d77720173afb76eaf8fe4ee55))
+* **i18n:** 英文字面统一为 Sidebar translation，与分组标题 Sidebar 对齐 ([848c21f](https://github.com/solidSpoon/DashPlayer/commit/848c21f69345dc2b14d65ce512c346dcf6f66424))
+* **i18n:** 英文界面残留中文文案改为走 i18n，两份语言包同步补齐 ([41be82e](https://github.com/solidSpoon/DashPlayer/commit/41be82e02626cf756fbfded1d1af5dd26161ea46))
+* **i18n:** 补上 store / bootstrap / ai-elements 里的界面文案 ([3a4aa1d](https://github.com/solidSpoon/DashPlayer/commit/3a4aa1d92d31566df20a7516ff18dcb31d7bb443))
+* **player:** 两个分组行窄屏占满整行，不再被塞进半格网格 ([631d198](https://github.com/solidSpoon/DashPlayer/commit/631d198afffb6fd422648e1bd1b5fa0765178529))
+* **player:** 位移补偿改为迭代收敛并让跟随短暂让位，窄窗控制条再省时间与内边距 ([6ed55bb](https://github.com/solidSpoon/DashPlayer/commit/6ed55bb9ebfba0089c8289c2a2f6108e40610986))
+* **player:** 位移补偿改成事件驱动让位，避免把用户滚到的位置拽回去 ([1e2c63a](https://github.com/solidSpoon/DashPlayer/commit/1e2c63a59fdae23e8b1601935f2666b8acf82cb5))
+* **player:** 侧栏译文切换改为「1/3 定位 + 一次确认」，并补短让位窗口 ([dfa451e](https://github.com/solidSpoon/DashPlayer/commit/dfa451edf0f9bef6e60f7df6b42383649571e0b3))
+* **player:** 切换侧栏译文后不再丢失阅读位置 ([337dc3d](https://github.com/solidSpoon/DashPlayer/commit/337dc3d6ba87d19888cfa0bfc6113ded872ac17c))
+* **player:** 切换侧栏译文后按位移补偿当前句，控制条窄窗收紧按钮间隙 ([bda8b95](https://github.com/solidSpoon/DashPlayer/commit/bda8b9519c8dbdbb9cecea3c8ac6c461f3d680d7))
+* **player:** 删掉「侧栏」分组里的隐藏提示行，开关不再撑高面板 ([ae91ee1](https://github.com/solidSpoon/DashPlayer/commit/ae91ee152987e2635ec40b221677bea5fac0e96c))
+* **player:** 回退迭代位移补偿，窄窗再收掉音量滑条 ([3007889](https://github.com/solidSpoon/DashPlayer/commit/3007889c5b0efda8a683abf983b08201473b5a01))
+* **player:** 拖动遮挡贴片时不再每帧写 localStorage ([b74ca64](https://github.com/solidSpoon/DashPlayer/commit/b74ca64d4fcfcfe556e93e8ffb1492226dafcac4))
+* **player:** 播客模式不显示挡字幕开关，侧栏译文关闭后不再跟译文库重渲染 ([118a239](https://github.com/solidSpoon/DashPlayer/commit/118a239c0c60c3d61fb10079980b53d4c9e2ba59))
+* **player:** 浏览态期间也记下同步目标，堵住重排后把用户拉回当前句的缺口 ([9e26c24](https://github.com/solidSpoon/DashPlayer/commit/9e26c244a7157a0cce79fdfef0bc4a6b55065d9c))
+* **player:** 窄窗下药丸换行不压字，切换侧栏译文后把当前句锚回视野 ([f97778f](https://github.com/solidSpoon/DashPlayer/commit/f97778f9e9a7fafcd6d1e0efe11da25421c10a30))
+* **player:** 贴片挪出控制条地盘后，控制条回到原位 ([a60f396](https://github.com/solidSpoon/DashPlayer/commit/a60f396087b586847c136e6f926f0171b7302ba1))
+* **player:** 遮挡贴片改为纯模糊 + 三层渐进失焦，去掉暗色与 mask 羽化 ([69fef78](https://github.com/solidSpoon/DashPlayer/commit/69fef78d832f2b7833dbbaaed88ba379a5bc1628))
+* **player:** 遮挡贴片的运行状态不再写入 localStorage ([003bc26](https://github.com/solidSpoon/DashPlayer/commit/003bc26ca03ff8a2fdd0e11895dc0eed1faf7c34))
+* **player:** 重排引发的同一下标回调不再触发跟随同步 ([cd724f9](https://github.com/solidSpoon/DashPlayer/commit/cd724f95255d04417f5ce7be5439185892d80ca1))
+
+
+### Reverts
+
+* **player:** 侧栏译文切换后不再做任何滚动调整 ([f02d53a](https://github.com/solidSpoon/DashPlayer/commit/f02d53ad04d6e701b9a373b227b63c14ea750aa4))
+
 ## [6.13.3](https://github.com/solidSpoon/DashPlayer/compare/v6.13.2...v6.13.3) (2026-10-11)
 
 
