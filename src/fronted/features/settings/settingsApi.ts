@@ -5,6 +5,7 @@ import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-set
 import { ServiceCredentialSettingSaveVO } from '@/common/types/vo/service-credentials-setting-vo';
 import type { TranscriptionEngine } from '@/common/contracts/transcription-engine';
 import { ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
+import type { MobileAccessSettingSaveVO } from '@/common/contracts/mobile-access-setting-vo';
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import type { SWRConfiguration } from 'swr';
 
@@ -36,6 +37,22 @@ export const settingsApi = {
      * @returns 保存完成后结束。
      */
     saveProxy: (settings: ProxySettingSaveVO) => backendClient.call('settings/proxy/save', settings),
+
+    /**
+     * 查询手机访问设置、运行状态与可用地址。
+     *
+     * @returns 当前手机访问详情。
+     */
+    getMobileAccess: () => backendClient.call('settings/mobile-access/detail'),
+
+    /**
+     * 保存手机访问设置；后端会按需启动、重启或停止 HTTP 服务。
+     *
+     * @param settings 待保存的设置。
+     * @returns 保存完成后结束。
+     */
+    saveMobileAccess: (settings: MobileAccessSettingSaveVO) =>
+        backendClient.call('settings/mobile-access/save', settings),
 
     /**
      * 保存运行时设置。

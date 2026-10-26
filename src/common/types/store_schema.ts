@@ -55,5 +55,7 @@ export const SettingKeyObj = {
     'proxy.mode': 'system',
     'proxy.url': '',
     'proxy.bypass_rules': '',
+    'mobileAccess.enabled': 'false',
+    'mobileAccess.port': '8765',
 }
 export type SettingKey = keyof typeof SettingKeyObj;

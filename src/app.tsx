@@ -12,6 +12,7 @@ import StorageSetting from '@/fronted/features/settings/StorageSetting';
 import AboutSetting from '@/fronted/features/settings/AboutSetting';
 import AppearanceSetting from '@/fronted/features/settings/AppearanceSetting';
 import ProxySetting from '@/fronted/features/settings/ProxySetting';
+import MobileAccessSetting from '@/fronted/features/settings/MobileAccessSetting';
 import ServiceResourceSetting from '@/fronted/features/settings/ServiceResourceSetting';
 import toast, { Toaster as HotToaster, Toast } from 'react-hot-toast';
 import RendererToastHost from '@/fronted/components/shared/toasts/RendererToastHost';
@@ -225,6 +226,10 @@ export const App = () => {
                                         <Route
                                             path="proxy"
                                             element={<Eb><ProxySetting /></Eb>}
+                                        />
+                                        <Route
+                                            path="mobile"
+                                            element={<Eb><MobileAccessSetting /></Eb>}
                                         />
                                     </Route>
                                 </Route>

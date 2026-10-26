@@ -25,6 +25,7 @@ import { isDevelopmentMode } from '@/backend/utils/runtimeEnv';
 import { storeGet } from '@/backend/infrastructure/settings/store';
 import { TranscriptionService } from '@/backend/services/TranscriptionService';
 import type PlaybackRepairService from '@/backend/services/PlaybackRepairService';
+import type MobileAccessService from '@/backend/services/MobileAccessService';
 
 // 导入日志 IPC 监听
 import '@/backend/controllers/ipc/renderer-log';
@@ -251,6 +252,9 @@ app.on('ready', async () => {
     await runResyncAfterResetDbIfNeeded();
     await initProxyFeature();
     logStartupPhase('proxy');
+    // 手机访问：设置里开启过就恢复监听；端口占用等失败只记日志并留给设置页提示。
+    await container.get<MobileAccessService>(TYPES.MobileAccessService).startFromSettings();
+    logStartupPhase('mobile access');
     // 本地引擎启用时后台预加载模型常驻内存；失败只记日志，不阻塞也不影响启动流程。
     container.get<LocalAiService>(TYPES.LocalAiService).syncEngineResidency();
     // 生命周期标记：会话何时开始、以什么配置运行，便于回溯“有活动却无日志”的问题。
@@ -278,20 +282,29 @@ app.on('window-all-closed', () => {
         app.quit();
     }
 });
-let localAiStopped = false;
-/** 退出前释放本地模型进程，避免后台遗留进程和占用模型文件。 */
+let shutdownStarted = false;
+/** 退出前释放本地模型进程和手机访问监听，避免后台遗留进程、端口占用和长连接卡住退出。 */
 app.on('before-quit', (event) => {
     logger.info('app before quit');
-    if (localAiStopped) return;
+    if (shutdownStarted) return;
     event.preventDefault();
     try {
-        void container.get<LocalAiService>(TYPES.LocalAiService).shutdown().catch((error) => {
-            logger.error('local AI shutdown failed', { error });
-        }).finally(() => { localAiStopped = true; app.quit(); });
+        const localAiShutdown = container.get<LocalAiService>(TYPES.LocalAiService).shutdown()
+            .catch((error) => {
+                logger.error('local AI shutdown failed', { error });
+            });
+        const mobileAccessShutdown = container.get<MobileAccessService>(TYPES.MobileAccessService).shutdown()
+            .catch((error) => {
+                logger.error('mobile access shutdown failed', { error });
+            });
+        void Promise.allSettled([localAiShutdown, mobileAccessShutdown]).finally(() => {
+            shutdownStarted = true;
+            app.quit();
+        });
     } catch (error) {
         // 容器未初始化等同步异常也必须继续退出，否则应用会卡在“退不出”状态。
-        logger.error('local AI shutdown failed', { error });
-        localAiStopped = true;
+        logger.error('service shutdown failed', { error });
+        shutdownStarted = true;
         app.quit();
     }
 });

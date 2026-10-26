@@ -34,6 +34,7 @@ const TYPES = {
     TranslateService: Symbol('TranslateService'),
     SubtitleTranslationService: Symbol('SubtitleTranslationService'),
     WatchHistoryService: Symbol('WatchHistoryService'),
+    MobileAccessService: Symbol('MobileAccessService'),
     LocalTranscriptionService: Symbol('LocalTranscriptionService'),
     WordMatchService: Symbol('WordMatchService'),
     VocabularyService: Symbol('VocabularyService'),

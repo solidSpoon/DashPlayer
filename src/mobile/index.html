@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0b0b0b" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <title>DashPlayer</title>
+    <script>
+        // 首屏先套用已保存的主题，避免浅色用户看到一帧深色。键名与 src/mobile/theme.ts 一致。
+        (function () {
+            try {
+                var theme = localStorage.getItem('dashplayer.mobile.theme');
+                if (theme === 'light' || theme === 'dark') {
+                    document.documentElement.dataset.theme = theme;
+                    var meta = document.querySelector('meta[name="theme-color"]');
+                    if (meta) {
+                        meta.setAttribute('content', theme === 'light' ? '#f5f4f0' : '#0b0b0b');
+                    }
+                }
+            } catch (error) {
+                // 隐私模式下 localStorage 不可用，保持默认深色。
+            }
+        }());
+    </script>
+</head>
+<body>
+<div id="root"></div>
+<script type="module" src="/main.tsx"></script>
+</body>
+</html>
