@@ -11,7 +11,7 @@ export interface MobileAccessSettingDetailVO {
     port: number;
     /** HTTP 服务当前是否正在监听。 */
     running: boolean;
-    /** 可用的局域网访问地址，形如 http://192.168.1.2:8765。 */
+    /** 可用的局域网访问地址，形如 http://192.168.1.2:27182。 */
     lanUrls: string[];
     /** 最近一次启动失败的原因；没有失败时为 null。 */
     lastError: string | null;

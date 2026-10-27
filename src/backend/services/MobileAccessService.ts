@@ -96,7 +96,7 @@ const assertValidPort = (port: number): void => {
  * 过滤回环、链路本地和重复项；虚拟网卡地址也会保留，由用户自行选择能连通的那个。
  *
  * @param port 当前监听端口。
- * @returns 形如 http://192.168.1.2:8765 的地址列表。
+ * @returns 形如 http://192.168.1.2:27182 的地址列表。
  */
 const collectLanUrls = (port: number): string[] => {
     const urls = new Set<string>();
