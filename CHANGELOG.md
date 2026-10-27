@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.15.0](https://github.com/solidSpoon/DashPlayer/compare/v6.14.0...v6.15.0) (2026-10-27)
+
+
+### Features
+
+* add mobile access and phone playback page ([1062061](https://github.com/solidSpoon/DashPlayer/commit/10620615710d0388fc574940d183ebe8c68a3fd9))
+* add mobile access and phone playback page ([33ec2d1](https://github.com/solidSpoon/DashPlayer/commit/33ec2d1c321e79e970738fe7933d9bfa57560304))
+
+
+### Bug Fixes
+
+* keep a list entry behind direct mobile watch links ([0bec5be](https://github.com/solidSpoon/DashPlayer/commit/0bec5be1a516c9f3913081742aa0887e6586e122))
+* use a less common default port for mobile access ([8796d62](https://github.com/solidSpoon/DashPlayer/commit/8796d620f3c708c53b41dfd03bf0906fdc5c94b0))
+
 ## [6.14.0](https://github.com/solidSpoon/DashPlayer/compare/v6.13.3...v6.14.0) (2026-10-23)
 
 
