@@ -5,6 +5,9 @@ export const PREF_KEYS = {
     speed: 'dashplayer.mobile.speed',
 } as const;
 
+/** 直接打开播放页时，临时交给列表页的待跳转视频 ID。 */
+export const PENDING_WATCH_KEY = 'dashplayer.mobile.pendingWatch';
+
 /** 可选的播放倍速。 */
 export const SPEED_OPTIONS = [0.75, 1, 1.25, 1.5] as const;
 
