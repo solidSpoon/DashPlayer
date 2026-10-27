@@ -88,6 +88,9 @@ typings/
 # Vite
 .vite/
 
+# 手机版 React 构建产物
+resources/mobile/
+
 # Electron-Forge
 out/
 

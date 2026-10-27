@@ -72,6 +72,7 @@ import { ConfigStoreFactory } from '@/backend/services/gateways/ConfigStore';
 import { SettingsStore } from '@/backend/services/gateways/SettingsStore';
 import SettingsStoreImpl from '@/backend/infrastructure/settings/SettingsStoreImpl';
 import WatchHistoryService, { WatchHistoryServiceImpl } from '@/backend/services/WatchHistoryService';
+import MobileAccessService, { MobileAccessServiceImpl } from '@/backend/services/MobileAccessService';
 import WatchHistoryController from '@/backend/controllers/WatchHistoryController';
 import SettingsController from '@/backend/controllers/SettingsController';
 import { ParakeetModelController } from '@/backend/controllers/ParakeetModelController';
@@ -254,6 +255,7 @@ container.bind<SubtitleTranslationService>(TYPES.SubtitleTranslationService)
     .to(SubtitleTranslationServiceImpl)
     .inSingletonScope();
 container.bind<WatchHistoryService>(TYPES.WatchHistoryService).to(WatchHistoryServiceImpl).inSingletonScope();
+container.bind<MobileAccessService>(TYPES.MobileAccessService).to(MobileAccessServiceImpl).inSingletonScope();
 container.bind<TranscriptionService>(TYPES.LocalTranscriptionService).to(LocalTranscriptionServiceImpl).inSingletonScope();
 container.bind<WordMatchService>(TYPES.WordMatchService).to(WordMatchServiceImpl).inSingletonScope();
 container.bind<VocabularyService>(TYPES.VocabularyService).to(VocabularyServiceImpl).inSingletonScope();

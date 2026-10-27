@@ -28,6 +28,7 @@
         "resources": "Services & Resources",
         "storage": "Storage",
         "proxy": "Network Proxy",
+        "mobile": "Mobile Access",
         "about": "About & Updates"
     },
     "appearance": {
@@ -69,6 +70,31 @@
         "urlDescription": "Supports http://, https:// and socks5:// protocols.",
         "bypassRulesTitle": "Bypass Rules",
         "bypassRulesDescription": "Comma-separated domains/IPs/CIDRs that bypass the proxy (e.g., localhost, 127.0.0.1)."
+    },
+    "mobile": {
+        "title": "Mobile Access",
+        "description": "Open a page on a fixed port so your phone can browse recent plays, video, and subtitles. Access it on your LAN, or use a remote networking tool to reach it from outside.",
+        "cardTitle": "Service",
+        "cardDescription": "The listener only runs while enabled. Turning it off closes it immediately and disconnects open pages.",
+        "enabledTitle": "Enable mobile access",
+        "enabledDescription": "Phones on the same Wi-Fi can open the addresses below. For access outside your network, use a remote networking tool.",
+        "portTitle": "Port",
+        "portDescription": "1-65535. Applies when you leave the field; the service restarts and phones need a refresh.",
+        "addressTitle": "Addresses",
+        "statusRunning": "Running",
+        "statusStopped": "Off",
+        "statusFailed": "Failed to start",
+        "statusNotRunning": "Enabled, but the service is not running",
+        "addressEmpty": "Enable the service to see the addresses here.",
+        "lanLabel": "LAN",
+        "lanEmpty": "No LAN address detected.",
+        "remoteHint": "To access it from outside your network, use a remote networking tool.",
+        "securityHint": "The page has no password. Any device that can reach this port can open it, so only enable it on networks you trust.",
+        "portInvalid": "The port must be between 1 and 65535.",
+        "copy": "Copy address",
+        "copied": "Address copied",
+        "open": "Open in browser",
+        "refresh": "Refresh"
     },
     "checkUpdate": {
         "title": "Version Updates",

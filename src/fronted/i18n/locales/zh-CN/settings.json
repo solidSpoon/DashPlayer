@@ -28,6 +28,7 @@
         "resources": "服务与资源",
         "storage": "存储",
         "proxy": "网络代理",
+        "mobile": "手机访问",
         "about": "关于与更新"
     },
     "appearance": {
@@ -69,6 +70,31 @@
         "urlDescription": "支持 http://、https:// 与 socks5:// 协议。",
         "bypassRulesTitle": "直连规则",
         "bypassRulesDescription": "逗号分隔的域名/IP/CIDR，命中这些地址的请求不走代理（如 localhost,127.0.0.1）。"
+    },
+    "mobile": {
+        "title": "手机访问",
+        "description": "在指定端口开一个页面，手机浏览器可以看最近播放、视频和字幕。局域网内可以直接访问，也可以配合异地组网工具从外网打开。",
+        "cardTitle": "服务",
+        "cardDescription": "只在开启期间监听；关闭后立即停止，已打开的页面会断开。",
+        "enabledTitle": "启用手机访问",
+        "enabledDescription": "开启后，同一 Wi-Fi 下的手机可以打开下面的地址；需要外网访问时配合异地组网工具即可。",
+        "portTitle": "端口",
+        "portDescription": "1-65535。输入完离开输入框后生效，服务会重启，手机上需要刷新页面。",
+        "addressTitle": "访问地址",
+        "statusRunning": "运行中",
+        "statusStopped": "未开启",
+        "statusFailed": "启动失败",
+        "statusNotRunning": "已开启，服务没有运行",
+        "addressEmpty": "开启服务后，这里会列出可以访问的地址。",
+        "lanLabel": "局域网",
+        "lanEmpty": "没有检测到可用的局域网地址。",
+        "remoteHint": "需要从外网访问时，可以配合异地组网工具使用。",
+        "securityHint": "页面没有密码，能访问这个端口的设备都能打开。只在可信网络下开启。",
+        "portInvalid": "端口需在 1-65535 之间。",
+        "copy": "复制地址",
+        "copied": "地址已复制",
+        "open": "在浏览器中打开",
+        "refresh": "刷新"
     },
     "checkUpdate": {
         "title": "版本更新",

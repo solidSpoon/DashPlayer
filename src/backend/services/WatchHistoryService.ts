@@ -54,6 +54,28 @@ interface WatchHistoryService {
     playerSubtitle(id: string): Promise<SubtitleResolution>;
 
     /**
+     * 读取一条观看记录的轻量详情。
+     *
+     * 与 `playerDetail` 的区别：不切换桌面播放会话，也不探测媒体时长或扫描字幕，
+     * 供手机页这类旁路消费者读取标题和上次播放进度。
+     *
+     * @param id 观看记录 ID。
+     * @returns 轻量详情；记录不存在时返回 `null`。
+     */
+    basicDetail(id: string): Promise<WatchHistoryVO | null>;
+
+    /**
+     * 解析一条观看记录实际要播放的视频文件路径。
+     *
+     * 优先使用已生成的 HTML5 变体；不解析字幕、不激活桌面播放会话。
+     *
+     * @param id 观看记录 ID。
+     * @returns 视频文件的绝对路径。
+     * @throws 记录或媒体文件不存在时抛出。
+     */
+    videoPath(id: string): Promise<string>;
+
+    /**
      * 添加媒体文件
      * @param filePaths 路径列表，可以是文件或文件夹
      */
@@ -416,6 +438,56 @@ export class WatchHistoryServiceImpl implements WatchHistoryService {
             throw new Error(`视频文件不存在：${path.join(preferredRecord.base_path, preferredRecord.file_name)}`);
         }
         return subtitle;
+    }
+
+    /**
+     * 读取一条观看记录的轻量详情。
+     *
+     * 只读数据库字段并解析 HTML5 变体，不触发播放会话切换，也不访问媒体文件。
+     *
+     * @param id 观看记录 ID。
+     * @returns 轻量详情；记录不存在时返回 `null`。
+     */
+    public async basicDetail(id: string): Promise<WatchHistoryVO | null> {
+        const record = await this.watchHistoryRepository.findById(id);
+        if (!record) {
+            return null;
+        }
+
+        const preferredRecord = await this.findPreferredVideoRecord(record);
+        const item = await this.watchHistoryViewBuilder.buildBasic(preferredRecord);
+        return {
+            ...item,
+            displayFileName: preferredRecord.id === record.id ? undefined : record.file_name,
+            isFolder: record.project_type === WatchHistoryProjectType.DIRECTORY,
+        };
+    }
+
+    /**
+     * 解析一条观看记录实际要播放的视频文件路径。
+     *
+     * 优先使用已生成的 HTML5 变体；只校验文件是否存在，不解析字幕。
+     *
+     * @param id 观看记录 ID。
+     * @returns 视频文件的绝对路径。
+     * @throws 记录或媒体文件不存在时抛出。
+     */
+    public async videoPath(id: string): Promise<string> {
+        const record = await this.watchHistoryRepository.findById(id);
+        if (!record) {
+            throw new Error(`观看记录不存在：${id}`);
+        }
+
+        // 只做「有 HTML5 变体就用变体」的路径替换，不走 findPreferredVideoRecord：
+        // 后者会补建变体观看记录，视频流按 Range 分段请求时不该反复写库。
+        const filePath = await this.watchHistoryLibrary.preferHtml5VideoPath(
+            path.join(record.base_path, record.file_name),
+        );
+        await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(filePath);
+        if (!await this.fileSystemGateway.fileExists(filePath)) {
+            throw new Error(`视频文件不存在：${filePath}`);
+        }
+        return filePath;
     }
 
     /**

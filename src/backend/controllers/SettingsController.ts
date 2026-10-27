@@ -8,6 +8,7 @@ import type ParakeetModelService from '@/backend/services/ParakeetModelService';
 import type LocalMtService from '@/backend/services/LocalMtService';
 import type LocalAiService from '@/backend/services/LocalAiService';
 import type TranscriptionEngineSelector from '@/backend/services/TranscriptionEngineSelector';
+import type MobileAccessService from '@/backend/services/MobileAccessService';
 import { readSystemInfo } from '@/backend/utils/systemInfo';
 import Controller from '@/backend/controllers/Controller';
 import { inject, injectable } from 'inversify';
@@ -28,6 +29,10 @@ import {
     RuntimeSettingSaveRequest,
     RuntimeSettingsSnapshot,
 } from '@/common/contracts/runtime-settings';
+import {
+    MobileAccessSettingDetailVO,
+    MobileAccessSettingSaveVO,
+} from '@/common/contracts/mobile-access-setting-vo';
 
 /**
  * 设置页 IPC 控制器：只负责接收参数并委托给 SettingService。
@@ -42,6 +47,7 @@ export default class SettingsController implements Controller {
     @inject(TYPES.LocalMtService) private localMtService!: LocalMtService;
     @inject(TYPES.LocalAiService) private localAiService!: LocalAiService;
     @inject(TYPES.TranscriptionEngineSelector) private transcriptionEngineSelector!: TranscriptionEngineSelector;
+    @inject(TYPES.MobileAccessService) private mobileAccessService!: MobileAccessService;
     private logger = getMainLogger('SettingsController');
 
     /**
@@ -191,6 +197,20 @@ export default class SettingsController implements Controller {
     }
 
     /**
+     * 获取手机访问设置、运行状态与可用地址。
+     */
+    public async getMobileAccessDetail(): Promise<MobileAccessSettingDetailVO> {
+        return this.mobileAccessService.getDetail();
+    }
+
+    /**
+     * 保存手机访问设置，并按需启动、重启或停止 HTTP 服务。
+     */
+    public async saveMobileAccessSettings(settings: MobileAccessSettingSaveVO): Promise<void> {
+        await this.mobileAccessService.saveSettings(settings);
+    }
+
+    /**
      * 测试指定 OpenAI 模型的连通性。
      *
      * @param request 待测试的模型标识。
@@ -225,5 +245,7 @@ export default class SettingsController implements Controller {
         registerRoute('settings/storage/save', (p) => this.saveStorageSettings(p));
         registerRoute('settings/proxy/detail', () => this.getProxySettingDetail());
         registerRoute('settings/proxy/save', (p) => this.saveProxySettings(p));
+        registerRoute('settings/mobile-access/detail', () => this.getMobileAccessDetail());
+        registerRoute('settings/mobile-access/save', (p) => this.saveMobileAccessSettings(p));
     }
 }

@@ -1,6 +1,6 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import React, { useMemo } from 'react';
-import { Boxes, Command, Compass, Database, Globe, Palette } from 'lucide-react';
+import { Boxes, Command, Compass, Database, Globe, Palette, Smartphone } from 'lucide-react';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import {
     Breadcrumb,
@@ -19,6 +19,7 @@ export type SettingType =
     | 'storage'
     | 'appearance'
     | 'proxy'
+    | 'mobile'
     | 'about';
 
 interface SettingNavDef {
@@ -33,6 +34,7 @@ const SETTING_ITEMS: SettingNavDef[] = [
     { key: 'resources', icon: Boxes, labelKey: 'sections.resources' },
     { key: 'storage', icon: Database, labelKey: 'sections.storage' },
     { key: 'proxy', icon: Globe, labelKey: 'sections.proxy' },
+    { key: 'mobile', icon: Smartphone, labelKey: 'sections.mobile' },
     { key: 'about', icon: Compass, labelKey: 'sections.about' },
 ];
 

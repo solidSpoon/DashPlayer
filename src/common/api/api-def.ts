@@ -53,6 +53,10 @@ import { ShortcutSettingDetailVO, ShortcutSettingSaveVO } from '@/common/types/v
 import { ProxySettingDetailVO, ProxySettingSaveVO } from '@/common/contracts/proxy-setting-vo';
 import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
 import { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
+import {
+    MobileAccessSettingDetailVO,
+    MobileAccessSettingSaveVO,
+} from '@/common/contracts/mobile-access-setting-vo';
 import { StorageUsageVO } from '@/common/contracts/storage-usage-vo';
 import {
     RuntimeSettingSaveRequest,
@@ -307,6 +311,8 @@ interface SettingsDef {
     'settings/storage/save': { params: StorageSettingVO, return: void };
     'settings/proxy/detail': { params: void, return: ProxySettingDetailVO };
     'settings/proxy/save': { params: ProxySettingSaveVO, return: void };
+    'settings/mobile-access/detail': { params: void, return: MobileAccessSettingDetailVO };
+    'settings/mobile-access/save': { params: MobileAccessSettingSaveVO, return: void };
 }
 
 interface ParakeetModelDef {
