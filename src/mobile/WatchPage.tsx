@@ -1,10 +1,11 @@
 import React from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Virtuoso } from 'react-virtuoso';
 import type { MobileWatchDetail } from '@/common/contracts/mobile-web';
 import { mobileApi } from './api';
 import DictionaryBar from './DictionaryBar';
 import MainSubtitle from './MainSubtitle';
+import PauseMenu from './PauseMenu';
 import PlaybackControls from './PlaybackControls';
 import SettingsSheet from './SettingsSheet';
 import SubtitleRow from './SubtitleRow';
@@ -18,6 +19,8 @@ import { useWatchPlayer } from './useWatchPlayer';
  */
 const WatchPlayer = ({ detail }: { detail: MobileWatchDetail }) => {
     const player = useWatchPlayer(detail);
+    const navigate = useNavigate();
+    const pauseMenuOpen = player.paused && !player.videoError;
 
     return (
         <div className="view watch">
@@ -35,6 +38,7 @@ const WatchPlayer = ({ detail }: { detail: MobileWatchDetail }) => {
                     onSeeking={player.handleSeeking}
                     onSeeked={player.handleSeeked}
                     onPause={player.handlePause}
+                    onPlay={player.handlePlay}
                     onEnded={player.handleEnded}
                     onError={player.handleError}
                     onLoadedData={player.handleLoadedData}
@@ -63,7 +67,11 @@ const WatchPlayer = ({ detail }: { detail: MobileWatchDetail }) => {
                     onWord={player.lookupWord}
                     onLongPress={player.openSettings}
                 />
-                <div className="subs">
+                <div
+                    className={pauseMenuOpen ? 'subs menu-open' : 'subs'}
+                    onTouchMove={player.handleUserScroll}
+                    onWheel={player.handleUserScroll}
+                >
                     {detail.subtitles.length === 0 ? (
                         <div className="subs-empty">
                             {t('这个视频没有匹配到字幕。', 'No subtitles matched this video.')}
@@ -79,6 +87,7 @@ const WatchPlayer = ({ detail }: { detail: MobileWatchDetail }) => {
                             increaseViewportBy={200}
                             minOverscanItemCount={{ top: 3, bottom: 6 }}
                             onScroll={player.handleScroll}
+                            rangeChanged={player.handleRangeChanged}
                             itemContent={(index, line) => (
                                 <SubtitleRow
                                     line={line}
@@ -97,13 +106,20 @@ const WatchPlayer = ({ detail }: { detail: MobileWatchDetail }) => {
                 )}
             </div>
 
-            <PlaybackControls
-                hasSubtitles={detail.subtitles.length > 0}
-                text={player.controlText}
-                onPrevious={() => player.stepLine(-1)}
-                onCurrent={player.replayCurrent}
-                onNext={() => player.stepLine(1)}
-            />
+            <div className="controls-wrap">
+                <PlaybackControls
+                    hasSubtitles={detail.subtitles.length > 0}
+                    text={player.controlText}
+                    onPrevious={() => player.stepLine(-1)}
+                    onCurrent={player.replayCurrent}
+                    onNext={() => player.stepLine(1)}
+                />
+                <PauseMenu
+                    open={pauseMenuOpen}
+                    onSettings={player.openSettings}
+                    onHome={() => navigate('/', { replace: true })}
+                />
+            </div>
 
             <SettingsSheet
                 open={player.settingsOpen}

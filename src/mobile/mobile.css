@@ -22,6 +22,10 @@
     --pill-active-border: #3f3f3f;
     --pill-active-text: #ffffff;
     --ctrl-glyph: #d0d0d0;
+    /* 主字幕区高度：按两行英文加一行中文估，字幕列表顶部让出同样高度。 */
+    --main-sub-h: 108px;
+    /* 暂停菜单横条高度，字幕列表底部让出同样高度。 */
+    --pause-menu-h: 65px;
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -515,10 +519,14 @@ button {
     right: 0;
     left: 0;
     z-index: 1;
-    min-height: 76px;
-    max-height: 32vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    /* 内容超出固定高度时（很少见）从上往下裁，别把首行挤掉。 */
+    justify-content: safe center;
+    height: var(--main-sub-h);
     overflow-y: auto;
-    padding: 12px 14px 14px;
+    padding: 0 14px;
     border-bottom: 1px solid var(--line);
     background: var(--surface);
     -webkit-overflow-scrolling: touch;
@@ -544,12 +552,18 @@ button {
     text-align: center;
 }
 
+/* 列表整体落在主字幕区下方，前几行不会再被盖住。 */
 .subs {
     position: relative;
     flex: 1;
     min-height: 0;
     overflow: hidden;
-    padding: 8px 0 0;
+    padding: var(--main-sub-h) 0 0;
+}
+
+/* 暂停菜单出现时，列表底部让出横条的高度，最后几行也能滚出来。 */
+.subs.menu-open {
+    padding-bottom: var(--pause-menu-h);
 }
 
 .line {
@@ -626,6 +640,38 @@ button {
 
 
 /* ---------- 底部三键控制区 ---------- */
+
+.controls-wrap {
+    position: relative;
+    flex: none;
+}
+
+/* 暂停菜单：贴在三键上方的整条横栏，不占布局，播放时整块移除。 */
+.pause-menu {
+    position: absolute;
+    right: 0;
+    bottom: 100%;
+    left: 0;
+    z-index: 3;
+    display: flex;
+    border-top: 1px solid var(--line);
+    background: var(--controls-bg);
+}
+
+.pause-menu-item {
+    display: flex;
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 64px;
+    color: var(--text);
+    font-size: 14.5px;
+}
+
+.pause-menu-item:active {
+    background: var(--surface-press);
+}
 
 .controls {
     display: grid;

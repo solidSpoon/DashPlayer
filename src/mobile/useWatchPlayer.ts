@@ -47,6 +47,8 @@ export interface WatchPlayerApi {
     settingsOpen: boolean;
     dict: DictionaryState | null;
     videoError: boolean;
+    /** 视频当前是否暂停；进入页面时是暂停状态。 */
+    paused: boolean;
     openSettings: () => void;
     closeSettings: () => void;
     toggleEnglish: () => void;
@@ -63,11 +65,16 @@ export interface WatchPlayerApi {
     lookupWord: (word: string) => void;
     closeDict: () => void;
     handleScroll: () => void;
+    /** 用户开始拖动列表（touchmove / wheel）。 */
+    handleUserScroll: () => void;
+    /** Virtuoso 渲染范围变化。 */
+    handleRangeChanged: (range: { startIndex: number; endIndex: number }) => void;
     handleLoadedMetadata: () => void;
     handleTimeUpdate: () => void;
     handleSeeking: () => void;
     handleSeeked: () => void;
     handlePause: () => void;
+    handlePlay: () => void;
     handleEnded: () => void;
     handleError: () => void;
     handleLoadedData: () => void;
@@ -78,6 +85,12 @@ const LOOP_EPSILON = 0.1;
 
 /** 跳句时提前多少秒起播，避免把第一个音切掉。 */
 const SEEK_PREROLL = 0.2;
+
+/** 程序滚动后多久没有 scroll 事件就算滚完（毫秒）。 */
+const AUTO_SCROLL_SETTLE_MS = 120;
+
+/** 用户停止滚动多久之后，再决定恢复跟随还是露出「回到当前」。 */
+const BROWSE_SETTLE_MS = 400;
 
 /**
  * 把播放页的播放、字幕、循环和查词逻辑收在一个 hook 里。
@@ -95,8 +108,13 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
     const [currentIndex, setCurrentIndex] = React.useState(-1);
     const currentIndexRef = React.useRef(-1);
     const browsingRef = React.useRef(false);
-    const resumeVisibleTimerRef = React.useRef<number | null>(null);
-    const autoScrollAtRef = React.useRef(0);
+    /** 用户停下滚动后的判定计时；滚动期间不判定，免按钮跟着闪。 */
+    const browseSettleTimerRef = React.useRef<number | null>(null);
+    /** 程序滚动进行中：这期间的 scroll 事件都算自己写出来的，不算用户滚动。 */
+    const autoScrollingRef = React.useRef(false);
+    const autoScrollSettleTimerRef = React.useRef<number | null>(null);
+    /** Virtuoso 当前渲染到的下标范围，用来先排除肯定没渲染的行。 */
+    const renderedRangeRef = React.useRef<[number, number]>([0, -1]);
 
     const [showEnglish, setShowEnglish] = React.useState(() => loadBoolPref(PREF_KEYS.showEnglish, true));
     const [showTranslation, setShowTranslation] = React.useState(() => loadBoolPref(PREF_KEYS.showTranslation, true));
@@ -122,6 +140,7 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
 
     const [settingsOpen, setSettingsOpen] = React.useState(false);
     const [videoError, setVideoError] = React.useState(false);
+    const [paused, setPaused] = React.useState(true);
 
     const resumeDoneRef = React.useRef(detail.currentPosition <= 3);
     const resumeTimerRef = React.useRef<number | null>(null);
@@ -201,6 +220,10 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
      * @returns 整行可见时为 true。
      */
     const isRowVisible = React.useCallback((index: number): boolean => {
+        const [start, end] = renderedRangeRef.current;
+        if (index < start || index > end) {
+            return false;
+        }
         const list = scrollerRef.current;
         const row = list?.querySelector<HTMLElement>(`.line[data-index="${index}"]`);
         if (!list || !row) {
@@ -211,8 +234,19 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
         return rowRect.top >= listRect.top + 8 && rowRect.bottom <= listRect.bottom - 8;
     }, []);
 
+    /** 续一下程序滚动的静默计时；scroll 事件再来就重新计时。 */
+    const settleAutoScroll = React.useCallback((): void => {
+        if (autoScrollSettleTimerRef.current !== null) {
+            window.clearTimeout(autoScrollSettleTimerRef.current);
+        }
+        autoScrollSettleTimerRef.current = window.setTimeout(() => {
+            autoScrollSettleTimerRef.current = null;
+            autoScrollingRef.current = false;
+        }, AUTO_SCROLL_SETTLE_MS);
+    }, []);
+
     /**
-     * 只在当前句快离开可视区时滚动列表。
+     * 只在当前句快离开可视区时滚动列表，滚到列表顶部，下面留出接下来的几句。
      *
      * @param index 字幕下标。
      */
@@ -220,44 +254,57 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
         if (isRowVisible(index)) {
             return;
         }
-        const list = scrollerRef.current;
-        const row = list?.querySelector<HTMLElement>(`.line[data-index="${index}"]`);
-        const align = row && list && row.getBoundingClientRect().top < list.getBoundingClientRect().top
-            ? 'start'
-            : 'center';
-        autoScrollAtRef.current = performance.now();
-        virtuosoRef.current?.scrollIntoView({ index, align, behavior: 'auto' });
-        // 滚动完成后再看一眼当前行是否真的回到视口，避免程序化滚动期间的 scroll 事件
-        // 把“回到当前”按钮错误地留在屏幕上。
-        window.setTimeout(() => {
-            const current = currentIndexRef.current;
-            if (current < 0) {
+        autoScrollingRef.current = true;
+        settleAutoScroll();
+        virtuosoRef.current?.scrollIntoView({ index, align: 'start', behavior: 'auto' });
+    }, [isRowVisible, settleAutoScroll]);
+
+    /**
+     * 用户停下滚动后统一判定一次。
+     *
+     * 停在滚动中途就切换按钮会跟着手指闪，所以等静下来再看：当前句还在可视区
+     * 就直接恢复跟随，滚出去了才把「回到当前」露出来。
+     */
+    const settleBrowsing = React.useCallback((): void => {
+        if (browseSettleTimerRef.current !== null) {
+            window.clearTimeout(browseSettleTimerRef.current);
+        }
+        browseSettleTimerRef.current = window.setTimeout(() => {
+            browseSettleTimerRef.current = null;
+            if (!browsingRef.current) {
+                return;
+            }
+            const index = currentIndexRef.current;
+            if (index >= 0 && isRowVisible(index)) {
+                browsingRef.current = false;
                 setShowFollow(false);
                 return;
             }
-            setShowFollow(browsingRef.current && !isRowVisible(current));
-        }, 250);
+            setShowFollow(true);
+        }, BROWSE_SETTLE_MS);
     }, [isRowVisible]);
 
     /**
-     * 用户浏览后，当前句重新进入可视区时延迟恢复跟随。
+     * 用户开始拖动列表：程序滚动立刻让位。
+     *
+     * 用 touchmove / wheel 而不是 pointerdown，点字幕行是跳句，不该算浏览。
      */
-    const scheduleResumeIfVisible = React.useCallback((): void => {
-        if (!browsingRef.current || currentIndexRef.current < 0
-            || resumeVisibleTimerRef.current !== null) {
-            return;
-        }
-        if (!isRowVisible(currentIndexRef.current)) {
-            return;
-        }
-        resumeVisibleTimerRef.current = window.setTimeout(() => {
-            resumeVisibleTimerRef.current = null;
-            if (browsingRef.current && isRowVisible(currentIndexRef.current)) {
-                browsingRef.current = false;
-                setShowFollow(false);
+    const handleUserScroll = React.useCallback((): void => {
+        if (autoScrollingRef.current) {
+            autoScrollingRef.current = false;
+            if (autoScrollSettleTimerRef.current !== null) {
+                window.clearTimeout(autoScrollSettleTimerRef.current);
+                autoScrollSettleTimerRef.current = null;
             }
-        }, 150);
-    }, [isRowVisible]);
+        }
+        browsingRef.current = true;
+        settleBrowsing();
+    }, [settleBrowsing]);
+
+    /** 记录 Virtuoso 当前渲染范围。 */
+    const handleRangeChanged = React.useCallback((range: { startIndex: number; endIndex: number }): void => {
+        renderedRangeRef.current = [range.startIndex, range.endIndex];
+    }, []);
 
     /**
      * 为当前句附近的一小段字幕请求翻译。
@@ -342,13 +389,16 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
             return;
         }
         if (browsingRef.current) {
-            setShowFollow(!isRowVisible(index));
-            scheduleResumeIfVisible();
+            // 没在滚（判定已经跑完）且当前句回到视口，就恢复跟随
+            if (browseSettleTimerRef.current === null && isRowVisible(index)) {
+                browsingRef.current = false;
+                setShowFollow(false);
+            }
             return;
         }
         setShowFollow(false);
         ensureRowVisible(index);
-    }, [detail.subtitles, ensureRowVisible, scheduleResumeIfVisible, requestTranslationWindow, isRowVisible]);
+    }, [detail.subtitles, ensureRowVisible, requestTranslationWindow, isRowVisible]);
 
     /**
      * 计算时间点对应的当前句。
@@ -466,13 +516,20 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
         }
     }, [detail.currentPosition, applyIndex, resolveCurrentIndex]);
 
-    /** 暂停时立即写回进度。 */
+    /** 暂停时写回进度，并让暂停菜单出现。 */
     const handlePause = React.useCallback((): void => {
+        setPaused(true);
         saveProgress(true);
     }, [saveProgress]);
 
-    /** 播放结束时写回进度。 */
+    /** 开始播放后收起暂停菜单。 */
+    const handlePlay = React.useCallback((): void => {
+        setPaused(false);
+    }, []);
+
+    /** 播放结束时写回进度，并重新显示暂停菜单。 */
     const handleEnded = React.useCallback((): void => {
+        setPaused(true);
         saveProgress(true);
     }, [saveProgress]);
 
@@ -491,13 +548,13 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
 
     /** 用户在字幕列表滚动。 */
     const handleScroll = React.useCallback((): void => {
-        if (performance.now() - autoScrollAtRef.current < 150) {
+        if (autoScrollingRef.current) {
+            settleAutoScroll();
             return;
         }
         browsingRef.current = true;
-        setShowFollow(currentIndexRef.current >= 0 && !isRowVisible(currentIndexRef.current));
-        scheduleResumeIfVisible();
-    }, [isRowVisible, scheduleResumeIfVisible]);
+        settleBrowsing();
+    }, [settleAutoScroll, settleBrowsing]);
 
     /**
      * 滚回当前句并恢复跟随。
@@ -509,13 +566,15 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
         }
         browsingRef.current = false;
         setShowFollow(false);
-        if (resumeVisibleTimerRef.current !== null) {
-            window.clearTimeout(resumeVisibleTimerRef.current);
-            resumeVisibleTimerRef.current = null;
+        if (browseSettleTimerRef.current !== null) {
+            window.clearTimeout(browseSettleTimerRef.current);
+            browseSettleTimerRef.current = null;
         }
-        ensureRowVisible(index);
+        autoScrollingRef.current = true;
+        settleAutoScroll();
+        virtuosoRef.current?.scrollToIndex({ index, align: 'start', behavior: 'auto' });
         tapFeedback();
-    }, [ensureRowVisible]);
+    }, [settleAutoScroll]);
 
     /**
      * 关闭查词条并清理定时器。
@@ -621,9 +680,9 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
         }
         browsingRef.current = false;
         setShowFollow(false);
-        if (resumeVisibleTimerRef.current !== null) {
-            window.clearTimeout(resumeVisibleTimerRef.current);
-            resumeVisibleTimerRef.current = null;
+        if (browseSettleTimerRef.current !== null) {
+            window.clearTimeout(browseSettleTimerRef.current);
+            browseSettleTimerRef.current = null;
         }
         closeDict();
         applyIndex(index);
@@ -773,8 +832,11 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
             if (resumeTimerRef.current !== null) {
                 window.clearTimeout(resumeTimerRef.current);
             }
-            if (resumeVisibleTimerRef.current !== null) {
-                window.clearTimeout(resumeVisibleTimerRef.current);
+            if (autoScrollSettleTimerRef.current !== null) {
+                window.clearTimeout(autoScrollSettleTimerRef.current);
+            }
+            if (browseSettleTimerRef.current !== null) {
+                window.clearTimeout(browseSettleTimerRef.current);
             }
             if (dictTimerRef.current !== null) {
                 window.clearTimeout(dictTimerRef.current);
@@ -813,6 +875,7 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
         settingsOpen,
         dict,
         videoError,
+        paused,
         openSettings,
         closeSettings,
         toggleEnglish,
@@ -828,11 +891,14 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
         lookupWord,
         closeDict,
         handleScroll,
+        handleUserScroll,
+        handleRangeChanged,
         handleLoadedMetadata,
         handleTimeUpdate,
         handleSeeking,
         handleSeeked,
         handlePause,
+        handlePlay,
         handleEnded,
         handleError,
         handleLoadedData,

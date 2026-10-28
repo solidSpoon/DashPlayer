@@ -1,9 +1,9 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import type { MobileRecentItem } from '@/common/contracts/mobile-web';
 import { mobileApi } from './api';
 import HelpDiagram from './HelpDiagram';
-import { PENDING_WATCH_KEY, formatClock, formatRelative, t } from './lib';
+import { formatClock, formatRelative, t } from './lib';
 import { applyTheme, readTheme, saveTheme } from './theme';
 
 /**
@@ -55,34 +55,15 @@ const RecentCard = ({ item }: { item: MobileRecentItem }) => {
  * 手机版最近播放页。
  */
 const RecentPage = () => {
-    const navigate = useNavigate();
-    const [pendingWatchId] = React.useState<string | null>(() => {
-        try {
-            const id = sessionStorage.getItem(PENDING_WATCH_KEY);
-            sessionStorage.removeItem(PENDING_WATCH_KEY);
-            return id;
-        } catch {
-            return null;
-        }
-    });
     const [items, setItems] = React.useState<MobileRecentItem[] | null>(null);
     const [error, setError] = React.useState<string | null>(null);
     const [reloadToken, setReloadToken] = React.useState(0);
     const [theme, setTheme] = React.useState(() => readTheme());
     const [helpOpen, setHelpOpen] = React.useState(false);
-    const pendingRedirectedRef = React.useRef(false);
 
     React.useEffect(() => {
         document.title = 'DashPlayer';
     }, []);
-
-    React.useEffect(() => {
-        if (!pendingWatchId || pendingRedirectedRef.current) {
-            return;
-        }
-        pendingRedirectedRef.current = true;
-        navigate(`/watch/${encodeURIComponent(pendingWatchId)}`);
-    }, [navigate, pendingWatchId]);
 
     /**
      * 在列表页直接切换浅色 / 深色，不用先打开一个视频。
@@ -95,9 +76,6 @@ const RecentPage = () => {
     };
 
     React.useEffect(() => {
-        if (pendingWatchId) {
-            return;
-        }
         let cancelled = false;
         setItems(null);
         setError(null);
@@ -115,11 +93,7 @@ const RecentPage = () => {
         return () => {
             cancelled = true;
         };
-    }, [pendingWatchId, reloadToken]);
-
-    if (pendingWatchId) {
-        return <div className="view" />;
-    }
+    }, [reloadToken]);
 
     return (
         <div className="view">
