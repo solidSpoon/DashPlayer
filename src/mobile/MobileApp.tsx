@@ -1,7 +1,7 @@
 import React from 'react';
 import { HashRouter, Route, Routes } from 'react-router-dom';
 import RecentPage from './RecentPage';
-import WatchRoute from './WatchRoute';
+import WatchPage from './WatchPage';
 
 /**
  * 手机版应用路由。
@@ -27,7 +27,7 @@ const MobileApp = () => {
         <HashRouter>
             <Routes>
                 <Route path="/" element={<RecentPage />} />
-                <Route path="/watch/:id" element={<WatchRoute />} />
+                <Route path="/watch/:id" element={<WatchPage />} />
                 <Route path="*" element={<RecentPage />} />
             </Routes>
         </HashRouter>

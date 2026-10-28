@@ -5,8 +5,45 @@ export const PREF_KEYS = {
     speed: 'dashplayer.mobile.speed',
 } as const;
 
-/** 直接打开播放页时，临时交给列表页的待跳转视频 ID。 */
-export const PENDING_WATCH_KEY = 'dashplayer.mobile.pendingWatch';
+/** 播放页 hash；列表页是 `#/`。 */
+const WATCH_HASH = /^#\/watch\/[^/]+$/;
+
+/**
+ * 在播放页前面压一条列表页历史，让浏览器返回 / 右滑能回到主页。
+ *
+ * 直接打开、刷新时当前这条历史就是播放页，返回键没有主页可回。做法是把
+ * 当前历史改写成列表页，再把播放页压回去：返回一次落在「最近播放」，
+ * 而不是退出页面或原地不动。
+ */
+export const seedListHistory = (): void => {
+    const hash = window.location.hash;
+    if (!WATCH_HASH.test(hash)) {
+        return;
+    }
+    try {
+        window.history.replaceState({ idx: 0 }, '', '#/');
+        window.history.pushState({ idx: 1 }, '', hash);
+    } catch {
+        // 浏览器拒绝改写历史时保持直开，不影响播放。
+    }
+};
+
+/**
+ * 页面重新活过来时补历史。
+ *
+ * 浏览器恢复会话会把标签页历史清空，而且常常不重新执行脚本，这时
+ * `navigation.canGoBack` 为 false，需要重新补一次；普通切后台回来
+ * canGoBack 仍是 true，跳过，免得每次切回来都多压两条历史。
+ *
+ * 没有 Navigation API 的浏览器不做这件事：宁可漏补，也不要重复压历史。
+ */
+export const ensureListHistory = (): void => {
+    const navigation = (window as Window & { navigation?: { canGoBack: boolean } }).navigation;
+    if (navigation === undefined || navigation.canGoBack) {
+        return;
+    }
+    seedListHistory();
+};
 
 /** 可选的播放倍速。 */
 export const SPEED_OPTIONS = [0.75, 1, 1.25, 1.5] as const;
