@@ -2,6 +2,19 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.16.0](https://github.com/solidSpoon/DashPlayer/compare/v6.15.0...v6.16.0) (2026-10-28)
+
+
+### Features
+
+* add a pause menu and steadier subtitle following to the mobile player ([204a66f](https://github.com/solidSpoon/DashPlayer/commit/204a66fa9bf5568990fe8efe47533e2036a67008))
+* mobile access and phone playback page ([955a82a](https://github.com/solidSpoon/DashPlayer/commit/955a82a3efcadd20a88092710faca73b269c0730))
+
+
+### Bug Fixes
+
+* seed the home entry before the mobile watch page mounts ([aa2e6f3](https://github.com/solidSpoon/DashPlayer/commit/aa2e6f31f609deb52cfd58f198aca4bd6c4d6f82))
+
 ## [6.15.0](https://github.com/solidSpoon/DashPlayer/compare/v6.14.0...v6.15.0) (2026-10-27)
 
 
