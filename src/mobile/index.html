@@ -7,9 +7,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <!-- 三个图标都是构建时从 assets/icons 复制进产物的文件，见 vite.mobile.config.ts；
-         缺了它们时浏览器标签页是空白页图标，iOS「添加到主屏幕」只会拿页面截图当图标。 -->
+         SVG 优先，位图给不认 SVG 图标的浏览器兵底；缺了它们时浏览器标签页是空白页图标，
+         iOS「添加到主屏幕」只会拿页面截图当图标。 -->
+    <link rel="icon" type="image/svg+xml" href="/mobile-icon.svg" />
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <title>DashPlayer</title>
     <script>
