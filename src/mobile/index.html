@@ -25,6 +25,17 @@
             } catch (error) {
                 // 隐私模式下 localStorage 不可用，保持默认深色。
             }
+
+            // 标记是不是从主屏图标启动的 Web App。CSS 的 @media (display-mode: standalone)
+            // 在 iOS 的主屏 Web App 里实测没匹配上，所以用这里先标好，供样式挑选用。
+            try {
+                if (window.navigator.standalone === true
+                    || window.matchMedia('(display-mode: standalone)').matches) {
+                    document.documentElement.dataset.standalone = '1';
+                }
+            } catch (error) {
+                // 同上：判断不了就当普通浏览器处理。
+            }
         }());
     </script>
 </head>

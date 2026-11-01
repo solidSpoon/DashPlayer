@@ -10,7 +10,7 @@
  * `documentElement.clientHeight` / `innerHeight` 取大者，两种环境（主屏 Web App、Safari 标签页）都对。
  */
 
-/** 写入 `--app-h` 的 CSS 变量名。 */
+/** 写入外壳高度的 CSS 变量名。 */
 const APP_HEIGHT_VAR = '--app-h';
 
 /**
