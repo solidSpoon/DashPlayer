@@ -6,17 +6,17 @@ import path from 'node:path';
 /**
  * 手机页需要的图标：构建产物里的文件名，以及它在 assets/icons 里的来源。
  *
- * 图标只在 assets/icons 维护，构建时原样复制进 resources/mobile 由 HTTP 服务托管，
- * 避免把同一张图在 public 目录里再存一份、以后改图忘同步。
- *
  * - favicon-16/32.png 是标签页图标，覆盖 1x 与 2x 标签栏；
- * - apple-touch-icon.png 是 iOS「添加到主屏幕」用的图标，只认位图，直接用应用图标原图
- *   （512×512，iOS 会自行缩到 180×180 并加圆角）。
+ * - apple-touch-icon.png 是 iOS「添加到主屏幕」用的图标，只认位图。这个文件是满幅方图
+ *   （无透明边距、无自带圆角）：iOS 会给主屏图标自己加圆角，图标若自带圆角底板，
+ *   就会变成「圆角矩形套圆角矩形」，四角还露出一圈投影。
+ *   改应用图标后需要重新生成它：从 assets/icons/icon@2x.png 裁掉投影和透明边距
+ *   （保留 829×829 的底板区域）、缩放到 180、把四角透明处压成底板白。
  */
 const MOBILE_ICONS: { fileName: string; source: string }[] = [
     { fileName: 'favicon-16.png', source: 'assets/icons/16x16.png' },
     { fileName: 'favicon-32.png', source: 'assets/icons/32x32.png' },
-    { fileName: 'apple-touch-icon.png', source: 'assets/icons/icon.png' },
+    { fileName: 'apple-touch-icon.png', source: 'assets/icons/apple-touch-180.png' },
 ];
 
 /**
