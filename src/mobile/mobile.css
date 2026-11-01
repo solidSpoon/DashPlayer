@@ -95,8 +95,11 @@ button {
 #root {
     display: flex;
     flex-direction: column;
+    /* 高度由 appHeight.ts 实测写进 --app-h；未执行脚本时为 100vh / 100dvh 兜底。
+       单用 100dvh 时，iOS 主屏 Web App 里会比窗口短 60px，底部多出一条背景色空带。 */
     height: 100vh;
     height: 100dvh;
+    height: var(--app-h, 100dvh);
     background: var(--bg);
 }
 

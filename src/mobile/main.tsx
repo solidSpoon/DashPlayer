@@ -1,11 +1,14 @@
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import MobileApp from './MobileApp';
+import { watchAppHeight } from './appHeight';
 import { ensureListHistory, seedListHistory } from './lib';
 import { applyTheme, readTheme } from './theme';
 import './mobile.css';
 
 applyTheme(readTheme());
+// 先定外壳高度再渲染，避免首帧按 dvh 画一次再跳一下。
+watchAppHeight();
 
 // 直接打开播放页时先补出列表页历史，见 seedListHistory。
 seedListHistory();
