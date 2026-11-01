@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#0b0b0b" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- 不要用 black-translucent：那会让页面画到状态栏底下，iOS 26 会把那条做成毛玻璃，视频和列表滚到下面时顶部发糊；
+         而且这种模式下 CSS 量到的视口比实际绘制区域矮一个状态栏（实测视口 793 / 窗口 852），外壳高度怎么算都不对。
+         用 default：页面从状态栏下方开始，量到的就是真的。 -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <title>DashPlayer</title>
     <script>
         // 首屏先套用已保存的主题，避免浅色用户看到一帧深色。键名与 src/mobile/theme.ts 一致。
