@@ -15,6 +15,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 import fs from 'node:fs/promises';
+import { createJiti } from 'jiti';
 import * as vite from 'vite';
 
 const require = createRequire(import.meta.url);
@@ -25,12 +26,12 @@ const projectDir = fileURLToPath(new URL('../../', import.meta.url));
 const vitePluginDist = path.dirname(require.resolve('@electron-forge/plugin-vite'));
 const ViteConfigGenerator = require(path.join(vitePluginDist, 'ViteConfig.js')).default;
 
-// forge.config.ts 是 TS，用 ts-node 以 CJS 方式加载（与 forge CLI 的加载方式一致）
-require('ts-node').register({
-    transpileOnly: true,
-    compilerOptions: { module: 'commonjs', moduleResolution: 'node' },
-});
-const forgeConfig = require(path.join(projectDir, 'forge.config.ts')).default;
+// forge.config.ts 是 TS，用 jiti 加载：Forge 8 的 config 加载器就是 jiti
+// （@electron-forge/core 的 forge-config.js），跟它保持一致；
+// ts-node 那条路走不通，它给 compilerOptions 传的 moduleResolution: 'node'
+// 在 TypeScript 6 起是硬错误（TS5107）。
+const jiti = createJiti(fileURLToPath(import.meta.url));
+const forgeConfig = (await jiti.import(path.join(projectDir, 'forge.config.ts'))).default;
 const vitePlugin = forgeConfig.plugins.find((plugin) => plugin.name === 'vite');
 if (!vitePlugin) {
     throw new Error('forge.config.ts 中未找到 VitePlugin');
