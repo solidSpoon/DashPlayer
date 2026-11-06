@@ -30,7 +30,7 @@
   },
   "license": "AGPL-3.0",
   "engines": {
-    "node": ">=22.13.0"
+    "node": ">=22.22.2 <23 || >=24.15.0 <25"
   },
   "devDependencies": {
     "@electron-forge/cli": "^8.0.1",
