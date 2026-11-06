@@ -68,6 +68,7 @@
     "@types/xlsx": "^0.0.36",
     "@typescript-eslint/eslint-plugin": "^7.11.0",
     "@typescript-eslint/parser": "^7.11.0",
+    "@vitejs/plugin-react": "^5.2.0",
     "@vitest/coverage-v8": "^4.1.12",
     "@vitest/ui": "^4.1.12",
     "babel-plugin-react-compiler": "1.0.0",
@@ -89,15 +90,14 @@
     "typescript": "^5.9.3",
     "vite": "^8.3.6",
     "vite-plugin-wasm": "^3.6.0",
-    "vitest": "^4.1.12",
-    "@vitejs/plugin-react": "^5.2.0"
+    "vitest": "^4.1.12"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.102",
     "@ai-sdk/google": "^2.0.97",
     "@ai-sdk/openai-compatible": "^2.0.62",
     "@ai-sdk/react": "^4.0.76",
-    "@electron-forge/publisher-github": "^7.11.2",
+    "@electron-forge/publisher-github": "^8.0.1",
     "@floating-ui/react": "^0.26.9",
     "@hookform/resolvers": "^5.2.2",
     "@huggingface/transformers": "^3.8.1",
