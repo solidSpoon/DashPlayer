@@ -88,7 +88,7 @@ class SelectiveDispatcher extends Dispatcher {
         super();
     }
 
-    dispatch(opts: Dispatcher.DispatchOptions, handler: Dispatcher.DispatchHandlers): boolean {
+    dispatch(opts: Dispatcher.DispatchOptions, handler: Dispatcher.DispatchHandler): boolean {
         const origin = opts.origin ? opts.origin.toString() : '';
         if (origin && this.matcher.isByPass(origin)) {
             return this.directDispatcher.dispatch(opts, handler);
