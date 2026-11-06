@@ -1,6 +1,42 @@
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
+import fs from 'node:fs';
 import path from 'node:path';
+
+/**
+ * 手机页需要的图标：构建产物里的文件名，以及它在 assets/icons 里的来源。
+ *
+ * - mobile-icon.svg / favicon-32.png 是标签页图标（SVG 优先，位图兵底）；
+ * - apple-touch-icon.png 是 iOS「添加到主屏幕」用的图标，iOS 只认位图。
+ *
+ * 后两个都是 scripts/build-mobile-icons.mjs 从应用图标派生出来的「满幅方图」（无透明边距、无自带圆角）：
+ * 系统会给主屏图标自己加圆角，图标若自带圆角底板，就会变成「圆角矩形套圆角矩形」，
+ * 四角还露出一圈投影。改完应用图标重跑 `node scripts/build-mobile-icons.mjs` 即可。
+ */
+const MOBILE_ICONS: { fileName: string; source: string }[] = [
+    { fileName: 'mobile-icon.svg', source: 'assets/icons/mobile-icon.svg' },
+    { fileName: 'favicon-32.png', source: 'assets/icons/32x32.png' },
+    { fileName: 'apple-touch-icon.png', source: 'assets/icons/apple-touch-180.png' },
+];
+
+/**
+ * 把应用图标放进手机页构建产物。
+ *
+ * 用插件而不是 public 目录复制，是为了让图标只有 assets/icons 一个来源；
+ * generateBundle 在每次构建（含 --watch 的增量构建）都会跑，所以改了图标重跑即可。
+ */
+const mobileIconPlugin = (): Plugin => ({
+    name: 'dashplayer-mobile-icons',
+    generateBundle() {
+        for (const icon of MOBILE_ICONS) {
+            this.emitFile({
+                type: 'asset',
+                fileName: icon.fileName,
+                source: fs.readFileSync(path.resolve(__dirname, icon.source)),
+            });
+        }
+    },
+});
 
 /**
  * 手机版是独立的 React 入口，不跟 Electron renderer 共用一个构建。
@@ -11,7 +47,7 @@ import path from 'node:path';
 export default defineConfig({
     root: path.resolve(__dirname, 'src/mobile'),
     base: '/',
-    plugins: [react()],
+    plugins: [react(), mobileIconPlugin()],
     resolve: {
         alias: {
             '@': path.resolve(__dirname, 'src'),
