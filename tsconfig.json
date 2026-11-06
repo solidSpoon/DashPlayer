@@ -2,7 +2,11 @@
     "compilerOptions": {
         "strict": true,
         "experimentalDecorators": true,
-        "emitDecoratorMetadata": true,
+        // 依赖注入一律在参数上显式写 @inject(TYPES.x)，从不依赖设计时类型元数据。
+        // 该开关历史上在 esbuild 下不生效（esbuild 不支持元数据），改成 Vite 8 的 oxc 后会真的
+        // 产出 design:paramtypes，inversify 便会去自动解析 interface/Object 并报
+        // "No matching bindings found for serviceIdentifier: Object"。保持关闭以匹配既有设计。
+        "emitDecoratorMetadata": false,
         "types": ["node", "reflect-metadata"],
         "target": "ESNext",
         "module": "ESNext",
