@@ -14,8 +14,9 @@ vi.mock('electron', () => ({
     shell: { openPath: vi.fn() },
 }));
 
-// electron-store 是外部化 CJS 依赖，vitest 里 vi.mock('electron') 拦不到它内部的 require，
-// 会导致它回落到 ~/Library/Preferences 等真实目录写入配置（曾把开发 Key 写出去）。
+// 应用 store 模块整体 mock 成内存实现：测试数据只存在于内存，绝不落盘。
+// electron-store 12 起改为 ESM，构建时会被打进主进程 chunk，但测试环境仍然不应
+// 去碰 app.getPath('userData')，所以继续整体 mock。
 // 因此把应用 store 模块整体 mock 成内存实现，测试数据只存在于内存，绝不落盘。
 // 与生产 storeGet 行为一致：未写入的键回落到 SettingKeyObj 里的默认值（如 apiKeys.openAi.apiFormat 默认 'openai'）。
 import { SettingKeyObj } from '@/common/types/store_schema';
