@@ -37,7 +37,7 @@ jobs:
             { name: 'linux', image: 'ubuntu-latest' },
             { name: 'windows', image: 'windows-2022' },
             { name: 'macos-x64', image: 'macos-15-intel' },
-            { name: 'macos-arm64', image: 'macos-14' },
+            { name: 'macos-arm64', image: 'macos-15' },
           ]
     runs-on: ${{ matrix.os.image }}
     steps:
