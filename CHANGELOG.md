@@ -2,6 +2,29 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.17.0](https://github.com/solidSpoon/DashPlayer/compare/v6.16.0...v6.17.0) (2026-11-06)
+
+
+### Features
+
+* add a native iOS client for the mobile player ([0abbf0b](https://github.com/solidSpoon/DashPlayer/commit/0abbf0b61d967825aa05d297b090dd126f91ba1b))
+* add a native iOS client for the mobile player ([92e7a19](https://github.com/solidSpoon/DashPlayer/commit/92e7a191d21ec9b79616d16983d81b19698165b7))
+
+
+### Bug Fixes
+
+* **app:** hard-exit when the quit sequence gets stuck ([83ef1c2](https://github.com/solidSpoon/DashPlayer/commit/83ef1c2e7801c43aec1d697f05ecf2b1de38e2ba))
+* **app:** hard-exit when the quit sequence gets stuck ([da1dcd5](https://github.com/solidSpoon/DashPlayer/commit/da1dcd58974c1436e7b0f9b076356179d7a549a3))
+* **mobile:** add a favicon and home screen icon to the phone page ([6ab5978](https://github.com/solidSpoon/DashPlayer/commit/6ab59784b48af64ca1088e4f5a26bdbf4f375f88))
+* **mobile:** align the phone page with the iOS status bar ([1f0297f](https://github.com/solidSpoon/DashPlayer/commit/1f0297f2451bc9eb57f6f6fbffb68a315122873a))
+* **mobile:** give the phone page a favicon and a home screen icon ([111d7bb](https://github.com/solidSpoon/DashPlayer/commit/111d7bb48123c4845edf45ae6f08554d83852e48))
+* **mobile:** give the watch page just the 44px the iOS top band takes ([be8f552](https://github.com/solidSpoon/DashPlayer/commit/be8f5523f7e3721a2118d9194fc8286f6c4e77f8))
+* **mobile:** keep the phone page chrome in its own layer on iOS ([14616a8](https://github.com/solidSpoon/DashPlayer/commit/14616a81909f08fd09e1b982e92910d10c4fb707))
+* **mobile:** keep the phone page chrome in its own layer on iOS ([5756b7e](https://github.com/solidSpoon/DashPlayer/commit/5756b7e6229bb35bc12a202a53bbeb86f7e0fb8c))
+* **mobile:** size the app shell from the layout viewport ([28941cd](https://github.com/solidSpoon/DashPlayer/commit/28941cdc8daf532eee5e66b25f9a66ef04d7ed8e))
+* **mobile:** use a full-bleed home screen icon ([4f1afad](https://github.com/solidSpoon/DashPlayer/commit/4f1afada8dd5b50600505c92a4890e2d19fab8e7))
+* **mobile:** use the default status bar style on the phone page ([eb7c1f0](https://github.com/solidSpoon/DashPlayer/commit/eb7c1f0c321bb0bc96826b5e51a495485d2157f4))
+
 ## [6.16.0](https://github.com/solidSpoon/DashPlayer/compare/v6.15.0...v6.16.0) (2026-10-28)
 
 
