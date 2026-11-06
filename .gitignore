@@ -108,3 +108,8 @@ playwright-report/
 # 本地开发工具状态
 .local/
 worktrees/
+
+# iOS 客户端
+ios/build/
+ios/build-sim/
+ios/DashPlayerMobile.xcodeproj/

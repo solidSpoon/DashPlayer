@@ -1,0 +1,38 @@
+name: DashPlayerMobile
+options:
+  bundleIdPrefix: com.solidspoon
+  deploymentTarget:
+    iOS: "17.0"
+  createIntermediateGroups: true
+  generateEmptyDirectories: false
+
+settings:
+  base:
+    SWIFT_VERSION: "5.0"
+    SWIFT_STRICT_CONCURRENCY: minimal
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+    TARGETED_DEVICE_FAMILY: "1"
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+    # 本地构建不打签名，产出的 .ipa 交给 SideStore / LiveContainer 重签。
+    CODE_SIGN_STYLE: Manual
+    CODE_SIGNING_REQUIRED: NO
+    CODE_SIGNING_ALLOWED: NO
+    DEVELOPMENT_TEAM: ""
+
+targets:
+  DashPlayerMobile:
+    type: application
+    platform: iOS
+    sources:
+      - path: DashPlayerMobile/Sources
+      - path: DashPlayerMobile/Assets.xcassets
+        buildPhase: resources
+    settings:
+      base:
+        INFOPLIST_FILE: DashPlayerMobile/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.solidspoon.DashPlayerMobile
+        PRODUCT_NAME: DashPlayer
+        MARKETING_VERSION: "1.0.0"
+        CURRENT_PROJECT_VERSION: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
