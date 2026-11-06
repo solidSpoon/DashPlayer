@@ -1,13 +1,12 @@
 import path from 'path';
 import { inject, injectable } from 'inversify';
-import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
-import StorageDirectoryProvider, {
-    StorageDirectoryTarget,
-} from '@/backend/services/gateways/storage/StorageDirectoryProvider';
-import FfmpegService from '@/backend/services/FfmpegService';
+import type FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type FfmpegService from '@/backend/services/FfmpegService';
 import TYPES from '@/backend/ioc/types';
 import { ObjUtil } from '@/backend/utils/ObjUtil';
-import { VideoInfo } from '@/common/types/video-info';
+import type { VideoInfo } from '@/common/types/video-info';
 
 /** 缩略图清晰度。 */
 export type ThumbnailQuality = 'low' | 'medium' | 'high' | 'ultra';

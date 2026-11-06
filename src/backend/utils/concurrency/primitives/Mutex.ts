@@ -1,9 +1,9 @@
-import {
+import type {
     AcquireOptions,
     ConcurrencyLoggerRef,
     Permit,
 } from '@/backend/utils/concurrency/types';
-import { createSemaphore, Semaphore } from '@/backend/utils/concurrency/primitives/Semaphore';
+import { createSemaphore, type Semaphore } from '@/backend/utils/concurrency/primitives/Semaphore';
 
 /**
  * 互斥锁接口。

@@ -1,10 +1,10 @@
-import {
+import type {
     SubtitleTimestampAdjustment,
     SubtitleTimestampAdjustmentInput,
 } from '@/common/contracts/subtitle-timestamp-adjustment';
 import { inject, injectable } from 'inversify';
 
-import SubtitleTimestampAdjustmentsRepository
+import type SubtitleTimestampAdjustmentsRepository
     from '@/backend/services/repositories/SubtitleTimestampAdjustmentsRepository';
 import TYPES from '@/backend/ioc/types';/**
  * SrtTimeAdjustService 的业务契约。

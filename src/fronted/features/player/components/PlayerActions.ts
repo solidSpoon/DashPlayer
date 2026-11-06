@@ -6,9 +6,9 @@
  * - 组件侧不需要从 hook 读取方法，统一从这里调用，减少 selector 组装带来的额外重渲染
  */
 
-import { usePlayer, SeekAction } from '@/fronted/features/player/playerStore';
+import { usePlayer, type SeekAction } from '@/fronted/features/player/playerStore';
 import { useTrainingModeStore } from '@/fronted/features/player/trainingStore';
-import { Sentence } from '@/common/types/SentenceC';
+import type { Sentence } from '@/common/types/SentenceC';
 
 /**
  * 提供播放器的命令式动作封装，避免各处直接耦合 store 细节。

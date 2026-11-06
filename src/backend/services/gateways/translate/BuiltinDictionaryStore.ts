@@ -1,4 +1,4 @@
-import { OpenAIDictionaryResult } from '@/common/types/DictionaryResult';
+import type { OpenAIDictionaryResult } from '@/common/types/DictionaryResult';
 
 /**
  * 预置词典数据读取接口。

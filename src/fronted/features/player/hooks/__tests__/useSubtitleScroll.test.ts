@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { VirtuosoHandle } from 'react-virtuoso';
+import type { VirtuosoHandle } from 'react-virtuoso';
 import useSubtitleScroll from '../useSubtitleScroll';
 import useLayout from '@/fronted/hooks/useLayout';
 

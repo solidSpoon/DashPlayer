@@ -5,7 +5,7 @@
  * （见 src/backend/infrastructure/translate/subtitleBatchPrompt.ts），
  * 这里只保留风格默认值、设置键与风格签名，供设置与缓存键使用。
  */
-import { TranslationMode } from '@/common/types/TranslationResult';
+import type { TranslationMode } from '@/common/types/TranslationResult';
 
 export const OPENAI_SUBTITLE_DEFAULT_STYLES: Record<TranslationMode, string> = {
     zh: '将原句自然、口语化地翻译成简体中文，语序可适度调整以保证流畅易读，保留原句语气与情感。',

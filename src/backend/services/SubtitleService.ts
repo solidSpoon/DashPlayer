@@ -1,22 +1,22 @@
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import { SentenceBlockBySpace, SentenceBlockPart, SentenceStruct } from '@/common/types/SentenceStruct';
+import type { SentenceBlockBySpace, SentenceBlockPart, SentenceStruct } from '@/common/types/SentenceStruct';
 import StrUtil from '@/common/utils/str-util';
-import { Sentence, SrtSentence } from '@/common/types/SentenceC';
+import type { Sentence, SrtSentence } from '@/common/types/SentenceC';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import SrtTimeAdjustService from '@/backend/services/SrtTimeAdjustService';
-import CacheService from '@/backend/services/CacheService';
-import { SubtitleTimestampAdjustment } from '@/common/contracts/subtitle-timestamp-adjustment';
+import type SrtTimeAdjustService from '@/backend/services/SrtTimeAdjustService';
+import type CacheService from '@/backend/services/CacheService';
+import type { SubtitleTimestampAdjustment } from '@/common/contracts/subtitle-timestamp-adjustment';
 import { ObjUtil } from '@/backend/utils/ObjUtil';
-import { parseSrt, parseAss, srtLineToSentence, SrtLine } from '@/common/utils/subtitle';
+import { parseSrt, parseAss, srtLineToSentence, type SrtLine } from '@/common/utils/subtitle';
 import MediaUtil from '@/common/utils/MediaUtil';
-import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
-import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
-import { SubtitleVocabularyAnalysisService } from '@/backend/services/SubtitleVocabularyAnalysisService';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
+import type { SubtitleVocabularyAnalysisService } from '@/backend/services/SubtitleVocabularyAnalysisService';
 import {
     WinkSentenceElementParser,
-    SentenceElement,
-    SentenceElementParser
+    type SentenceElement,
+    type SentenceElementParser
 } from '@/backend/utils/language/SentenceElementParser';
 
 /**

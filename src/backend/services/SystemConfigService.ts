@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify';
 
-import SysConfRepository from '@/backend/services/repositories/SysConfRepository';
+import type SysConfRepository from '@/backend/services/repositories/SysConfRepository';
 import TYPES from '@/backend/ioc/types';/**
  * SystemConfigService 的业务契约。
  */

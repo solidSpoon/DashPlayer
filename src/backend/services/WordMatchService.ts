@@ -1,11 +1,11 @@
-import { Word } from '@/backend/infrastructure/db/tables/words';
+import type { Word } from '@/backend/infrastructure/db/tables/words';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import WordsRepository from '@/backend/services/repositories/WordsRepository';
+import type WordsRepository from '@/backend/services/repositories/WordsRepository';
 import {
     WinkVocabularyMatcher,
-    VocabularyEntry,
-    VocabularyMatcher,
+    type VocabularyEntry,
+    type VocabularyMatcher,
 } from '@/backend/utils/language/VocabularyMatcher';
 
 export interface WordMatchService {

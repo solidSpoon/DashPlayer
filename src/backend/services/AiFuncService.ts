@@ -1,19 +1,19 @@
-import LocalTtsService from '@/backend/services/LocalTtsService';
-import DpTaskService from '@/backend/services/DpTaskService';
-import { TranscriptionService } from '@/backend/services/TranscriptionService';
+import type LocalTtsService from '@/backend/services/LocalTtsService';
+import type DpTaskService from '@/backend/services/DpTaskService';
+import type { TranscriptionService } from '@/backend/services/TranscriptionService';
 import TYPES from '@/backend/ioc/types';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { inject, injectable } from 'inversify';
-import ChatService from '@/backend/services/ChatService';
+import type ChatService from '@/backend/services/ChatService';
 import { AiFuncFormatSplitPrompt } from '@/common/types/aiRes/AiFuncFormatSplit';
-import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
-import ParakeetModelService from '@/backend/services/ParakeetModelService';
-import WhisperCppModelService from '@/backend/services/WhisperCppModelService';
-import TranscriptionEngineSelector from '@/backend/services/TranscriptionEngineSelector';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type ParakeetModelService from '@/backend/services/ParakeetModelService';
+import type WhisperCppModelService from '@/backend/services/WhisperCppModelService';
+import type TranscriptionEngineSelector from '@/backend/services/TranscriptionEngineSelector';
 import {
-    TranscriptTask,
-    TranscriptTaskResult,
+    type TranscriptTask,
+    type TranscriptTaskResult,
     TranscriptTaskState,
 } from '@/common/contracts/transcript/transcript-task';
 

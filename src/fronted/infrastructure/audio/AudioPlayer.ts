@@ -1,6 +1,6 @@
 import StrUtil from '@/common/utils/str-util';
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
-import { Nullable } from '@/common/types/Types';
+import type { Nullable } from '@/common/types/Types';
 import { TypeGuards } from '@/common/utils/TypeGuards';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 

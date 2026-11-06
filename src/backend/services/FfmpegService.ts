@@ -4,12 +4,13 @@ import { randomUUID } from 'crypto';
 import path from 'path';
 import TYPES from '@/backend/ioc/types';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import { VideoInfo } from '@/common/types/video-info';
+import type { VideoInfo } from '@/common/types/video-info';
 import { CancelByUserError } from '@/backend/utils/errors/errors';
-import { RepairRecipe } from '@/common/contracts/playback-repair';
-import FfmpegGateway, { FfmpegExecutionError, VideoSegment } from '@/backend/services/gateways/media/FfmpegGateway';
-import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
-import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type { RepairRecipe } from '@/common/contracts/playback-repair';
+import type FfmpegGateway from '@/backend/services/gateways/media/FfmpegGateway';
+import { FfmpegExecutionError, type VideoSegment } from '@/backend/services/gateways/media/FfmpegGateway';
+import type FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 
 export default interface FfmpegService {
     splitVideo({

@@ -19,7 +19,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/fronted/components/ui/dropdown-menu';
-import { RepairRecipe, RepairTask, RepairTaskState } from '@/common/contracts/playback-repair';
+import { type RepairRecipe, type RepairTask, RepairTaskState } from '@/common/contracts/playback-repair';
 import useRepairEventStore from '@/fronted/features/repair/repairEvents';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { repairApi } from '../repairApi';

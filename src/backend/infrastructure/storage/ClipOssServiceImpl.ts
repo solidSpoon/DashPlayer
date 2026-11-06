@@ -1,16 +1,15 @@
 import AbstractOssServiceImpl from '@/backend/infrastructure/storage/AbstractOssServiceImpl';
-import { ClipMeta, ClipVersion, OssBaseMeta } from '@/common/types/clipMeta';
+import { type ClipMeta, ClipVersion, type OssBaseMeta } from '@/common/types/clipMeta';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import { ClipOssService } from '@/backend/services/OssService';
+import type { ClipOssService } from '@/backend/services/OssService';
 import path from 'path';
-import FfmpegService from '@/backend/services/FfmpegService';
+import type FfmpegService from '@/backend/services/FfmpegService';
 import { MetaDataSchemaV1 } from '@/common/types/clipMeta/ClipMetaDataV1';
 import { OssBaseSchema } from '@/common/types/clipMeta/base';
-import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
-import StorageDirectoryProvider, {
-    StorageDirectoryTarget,
-} from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 
 @injectable()
 export default class ClipOssServiceImpl extends AbstractOssServiceImpl<ClipMeta> implements ClipOssService {

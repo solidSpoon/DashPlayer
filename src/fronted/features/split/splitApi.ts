@@ -1,5 +1,5 @@
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
-import { ChapterParseResult } from '@/common/types/chapter-result';
+import type { ChapterParseResult } from '@/common/types/chapter-result';
 
 export const splitApi = {
     /**

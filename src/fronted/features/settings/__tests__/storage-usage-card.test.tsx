@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeAll, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import React from 'react';
 import StorageUsageCard from '@/fronted/features/settings/components/StorageUsageCard';
-import { StorageUsageVO } from '@/common/contracts/storage-usage-vo';
+import type { StorageUsageVO } from '@/common/contracts/storage-usage-vo';
 
 const mockUsage: StorageUsageVO = {
     totalBytes: 1024 * 1024 * 100, // 100 MB

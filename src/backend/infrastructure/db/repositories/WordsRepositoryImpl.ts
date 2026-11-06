@@ -2,8 +2,9 @@ import { eq, like, or, sql } from 'drizzle-orm';
 import { injectable } from 'inversify';
 
 import db from '@/backend/infrastructure/db';
-import { InsertWord, Word, words } from '@/backend/infrastructure/db/tables/words';
-import WordsRepository, { GetAllWordsQuery, WordContent } from '@/backend/services/repositories/WordsRepository';
+import { type InsertWord, type Word, words } from '@/backend/infrastructure/db/tables/words';
+import type WordsRepository from '@/backend/services/repositories/WordsRepository';
+import { type GetAllWordsQuery, type WordContent } from '@/backend/services/repositories/WordsRepository';
 
 /**
  * 单词仓储实现。

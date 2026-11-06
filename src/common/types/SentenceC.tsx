@@ -1,4 +1,4 @@
-import { SentenceStruct } from '@/common/types/SentenceStruct';
+import type { SentenceStruct } from '@/common/types/SentenceStruct';
 
 
 export interface SrtSentence {

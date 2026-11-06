@@ -4,23 +4,23 @@ import TimeUtil from '@/common/utils/TimeUtil';
 import ErrorConstants from '@/common/constants/error-constants';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import { ClipQuery } from '@/common/api/dto';
-import { SrtSentence } from '@/common/types/SentenceC';
+import type { ClipQuery } from '@/common/api/dto';
+import type { SrtSentence } from '@/common/types/SentenceC';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import CacheService from '@/backend/services/CacheService';
-import { ClipOssService } from '@/backend/services/OssService';
+import type CacheService from '@/backend/services/CacheService';
+import type { ClipOssService } from '@/backend/services/OssService';
 import CollUtil from '@/common/utils/CollUtil';
-import FfmpegService from '@/backend/services/FfmpegService';
+import type FfmpegService from '@/backend/services/FfmpegService';
 import { concurrency } from '@/backend/utils/concurrency';
-import { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';
+import type { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';
 import { buildClipContext } from '@/common/utils/subtitle';
-import { Tag } from '@/common/contracts/tag';
-import FavouriteClipsRepository, { FavouriteClipsReplaceAllItem } from '@/backend/services/repositories/FavouriteClipsRepository';
-import StorageDirectoryProvider, {
-    StorageDirectoryTarget,
-} from '@/backend/services/gateways/storage/StorageDirectoryProvider';
-import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
-import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
+import type { Tag } from '@/common/contracts/tag';
+import type FavouriteClipsRepository from '@/backend/services/repositories/FavouriteClipsRepository';
+import { type FavouriteClipsReplaceAllItem } from '@/backend/services/repositories/FavouriteClipsRepository';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
+import type RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
 
 /**
  * FavouriteClipsService

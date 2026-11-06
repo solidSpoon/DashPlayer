@@ -1,5 +1,5 @@
-import { VideoInfo } from '@/common/types/video-info';
-import { RepairRecipe } from '@/common/contracts/playback-repair';
+import type { VideoInfo } from '@/common/types/video-info';
+import type { RepairRecipe } from '@/common/contracts/playback-repair';
 
 /**
  * FFmpeg 进程非零退出错误。

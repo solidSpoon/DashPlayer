@@ -1,15 +1,14 @@
-import Controller from '@/backend/controllers/Controller';
+import type Controller from '@/backend/controllers/Controller';
 import registerRoute from '@/backend/controllers/ipc/registerRoute';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import { Tag } from '@/common/contracts/tag';
-import { ClipQuery } from '@/common/api/dto';
-import { FavouriteClipsService } from '@/backend/services/FavouriteClipsService';
-import { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';
-import StorageDirectoryProvider, {
-    StorageDirectoryTarget,
-} from '@/backend/services/gateways/storage/StorageDirectoryProvider';
-import SubtitleTranslationService from '@/backend/services/subtitle-translation/SubtitleTranslationService';
+import type { Tag } from '@/common/contracts/tag';
+import type { ClipQuery } from '@/common/api/dto';
+import type { FavouriteClipsService } from '@/backend/services/FavouriteClipsService';
+import type { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type SubtitleTranslationService from '@/backend/services/subtitle-translation/SubtitleTranslationService';
 
 @injectable()
 export default class FavoriteClipsController implements Controller {

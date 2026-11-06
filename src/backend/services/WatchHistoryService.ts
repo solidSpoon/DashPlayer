@@ -2,22 +2,19 @@ import { inject, injectable, postConstruct } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import { ObjUtil } from '@/backend/utils/ObjUtil';
 import path from 'path';
-import MediaService from '@/backend/services/MediaService';
+import type MediaService from '@/backend/services/MediaService';
 import TimeUtil from '@/common/utils/TimeUtil';
 import CollUtil from '@/common/utils/CollUtil';
-import WatchHistoryVO from '@/common/types/WatchHistoryVO';
+import type WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import StrUtil from '@/common/utils/str-util';
 import MatchSrt from '@/backend/utils/MatchSrt';
 import MediaUtil from '@/common/utils/MediaUtil';
-import WatchHistoryRepository, {
-    WatchHistoryProjectType,
-    WatchHistoryRecord,
-} from '@/backend/services/repositories/WatchHistoryRepository';
-import WatchHistoryExtRepository from '@/backend/services/repositories/WatchHistoryExtRepository';
-import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
-import StorageDirectoryProvider, {
-    StorageDirectoryTarget,
-} from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type WatchHistoryRepository from '@/backend/services/repositories/WatchHistoryRepository';
+import { WatchHistoryProjectType, type WatchHistoryRecord } from '@/backend/services/repositories/WatchHistoryRepository';
+import type WatchHistoryExtRepository from '@/backend/services/repositories/WatchHistoryExtRepository';
+import type RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import {
     getHtml5GroupKey,
     getHtml5VariantPathFromRecord,
@@ -26,9 +23,9 @@ import {
 } from '@/backend/services/watch-history-file-rules';
 import WatchHistoryLibrary from '@/backend/services/WatchHistoryLibrary';
 import WatchHistoryViewBuilder from '@/backend/services/WatchHistoryViewBuilder';
-import { SubtitleResolution } from '@/common/contracts/subtitle-resolution';
-import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
-import SubtitleService from '@/backend/services/SubtitleService';
+import type { SubtitleResolution } from '@/common/contracts/subtitle-resolution';
+import type FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
+import type SubtitleService from '@/backend/services/SubtitleService';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 
 interface WatchHistoryService {

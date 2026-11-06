@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { TranslationMode } from '@/common/types/TranslationResult';
+import type { TranslationMode } from '@/common/types/TranslationResult';
 
 /**
  * 字幕批量翻译的采样温度：翻译属近确定性任务，低温显著减少元话发挥

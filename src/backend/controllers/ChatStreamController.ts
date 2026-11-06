@@ -1,9 +1,9 @@
 import { inject, injectable } from 'inversify';
 import registerRoute from '@/backend/controllers/ipc/registerRoute';
-import Controller from '@/backend/controllers/Controller';
+import type Controller from '@/backend/controllers/Controller';
 import TYPES from '@/backend/ioc/types';
-import ChatSessionService from '@/backend/services/ChatSessionService';
-import {
+import type ChatSessionService from '@/backend/services/ChatSessionService';
+import type {
     ChatSessionCloseParams,
     ChatSessionCreateParams,
     ChatSessionCreateResult,
@@ -13,8 +13,8 @@ import {
     CompleteSentenceParams,
     CompleteSentenceResult,
 } from '@/common/types/chat';
-import { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
-import SentenceLearningService from '@/backend/services/SentenceLearningService';
+import type { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
+import type SentenceLearningService from '@/backend/services/SentenceLearningService';
 
 @injectable()
 export default class ChatStreamController implements Controller {

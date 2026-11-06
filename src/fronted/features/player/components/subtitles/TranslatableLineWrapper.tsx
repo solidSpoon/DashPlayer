@@ -5,7 +5,7 @@ import { FONT_SIZE } from '@/fronted/styles/style';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
 import { Button } from '@/fronted/components/ui/button';
 
-import { Sentence } from '@/common/types/SentenceC';
+import type { Sentence } from '@/common/types/SentenceC';
 import { usePlayerUi } from '@/fronted/features/player/playerUiStore';
 import useSetting from '@/fronted/features/settings/settingsStore';
 import useFavouriteClip, { mapClipKey } from '@/fronted/features/favourite/favouriteStore';

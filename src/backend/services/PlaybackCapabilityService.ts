@@ -1,8 +1,8 @@
 import { inject, injectable } from 'inversify';
 
-import { LearnedCapabilityOverlay, PlaybackEvidenceInput } from '@/common/contracts/playback-repair';
+import type { LearnedCapabilityOverlay, PlaybackEvidenceInput } from '@/common/contracts/playback-repair';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import SysConfRepository from '@/backend/services/repositories/SysConfRepository';
+import type SysConfRepository from '@/backend/services/repositories/SysConfRepository';
 import TYPES from '@/backend/ioc/types';
 import TimeUtil from '@/common/utils/TimeUtil';
 

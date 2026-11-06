@@ -10,7 +10,7 @@ import { playerActions } from '@/fronted/features/player/components/PlayerAction
 import useLayout from '@/fronted/hooks/useLayout';
 import useFile from '@/fronted/features/file-browser/fileStore';
 import useSetting from '@/fronted/features/settings/settingsStore';
-import { RuntimeSettingKey } from '@/common/contracts/runtime-settings';
+import type { RuntimeSettingKey } from '@/common/contracts/runtime-settings';
 import AutoClipButton from './AutoClipButton';
 import ClearAdjustButton from './ClearAdjustButton';
 import DubbingExportButton from '@/fronted/features/player/dubbing/components/DubbingExportButton';

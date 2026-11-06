@@ -1,12 +1,12 @@
 import { storeGet } from '@/backend/infrastructure/settings/store';
-import { AI_API_FORMATS, AiApiFormat } from '@/common/utils/cloud-ai-api-format';
+import { AI_API_FORMATS, type AiApiFormat } from '@/common/utils/cloud-ai-api-format';
 import StrUtil from '@/common/utils/str-util';
 import { inject, injectable } from 'inversify';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { createAnthropic } from '@ai-sdk/anthropic';
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { LanguageModel } from 'ai';
-import ModelRoutingService from '@/backend/services/ModelRoutingService';
+import type { LanguageModel } from 'ai';
+import type ModelRoutingService from '@/backend/services/ModelRoutingService';
 import TYPES from '@/backend/ioc/types';
 
 export type AiModelScene = 'sentenceLearning' | 'subtitleTranslation' | 'dictionary';

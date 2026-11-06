@@ -5,7 +5,7 @@ import { cn } from '@/fronted/lib/utils';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { Button } from '@/fronted/components/ui/button';
 import { Trash2, Play } from 'lucide-react';
-import { ClipMeta, OssBaseMeta, ClipSrtLine } from '@/common/types/clipMeta';
+import type { ClipMeta, OssBaseMeta, ClipSrtLine } from '@/common/types/clipMeta';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const logger = getRendererLogger('FavouriteItem');

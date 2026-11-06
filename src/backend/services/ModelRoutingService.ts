@@ -1,7 +1,7 @@
 import { injectable } from 'inversify';
 import { storeGet } from '@/backend/infrastructure/settings/store';
-import { AiModelScene } from '@/backend/services/AiProviderService';
-import { SettingKey } from '@/common/types/store_schema';
+import type { AiModelScene } from '@/backend/services/AiProviderService';
+import type { SettingKey } from '@/common/types/store_schema';
 
 export type RoutedModel = {
     providerId: 'openai';

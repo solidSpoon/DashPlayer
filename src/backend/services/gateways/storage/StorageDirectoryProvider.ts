@@ -1,4 +1,4 @@
-import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
+import type { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
 
 /**
  * 外部存储目录目标。

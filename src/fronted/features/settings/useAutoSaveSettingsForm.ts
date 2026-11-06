@@ -2,7 +2,7 @@
  * 为设置页表单提供防抖自动保存、初始化基线和串行提交能力。
  */
 import * as React from 'react';
-import { FieldValues, UseFormReturn } from 'react-hook-form';
+import type { FieldValues, UseFormReturn } from 'react-hook-form';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useSWRConfig } from 'swr';
 import { showNotification } from '@/fronted/components/shared/toasts/notification';

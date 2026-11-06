@@ -12,7 +12,7 @@ import toast from 'react-hot-toast';
 import { useTranslation } from 'react-i18next';
 import WordPop from './word-pop';
 import { playWord, getTtsUrl, playAudioUrl } from '@/fronted/infrastructure/audio/AudioPlayer';
-import { OpenAIDictionaryResult } from '@/common/types/DictionaryResult';
+import type { OpenAIDictionaryResult } from '@/common/types/DictionaryResult';
 import useSWR from 'swr';
 import Style from '@/fronted/styles/style';
 import { cn } from '@/fronted/lib/utils';

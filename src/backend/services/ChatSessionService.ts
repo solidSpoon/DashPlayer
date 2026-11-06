@@ -1,12 +1,13 @@
 import { inject, injectable } from 'inversify';
 import { randomUUID } from 'node:crypto';
-import { APICallError, isStepCount, type LanguageModel, ModelMessage, Output, streamText, toUIMessageStream, tool, UIMessageChunk } from 'ai';
+import { APICallError, isStepCount, type LanguageModel, type ModelMessage, Output, streamText, toUIMessageStream, tool, type UIMessageChunk } from 'ai';
 import { z } from 'zod';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
+import type RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
 import TYPES from '@/backend/ioc/types';
-import AiProviderService, { CLOUD_AI_NOT_CONFIGURED_MESSAGE } from '@/backend/services/AiProviderService';
-import {
+import type AiProviderService from '@/backend/services/AiProviderService';
+import { CLOUD_AI_NOT_CONFIGURED_MESSAGE } from '@/backend/services/AiProviderService';
+import type {
     ChatSessionCreateParams,
     ChatSessionCreateResult,
     ChatSendMessageParams,
@@ -16,7 +17,7 @@ import {
     SubtitleSearchHit,
     SubtitleToolLine,
 } from '@/common/types/chat';
-import { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
+import type { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
 import { AiUnifiedAnalysisSchema } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
 import { WithRateLimit } from '@/backend/utils/concurrency/decorators';
 import { isUserCancellation } from '@/common/utils/cancellation';
@@ -26,8 +27,8 @@ import {
     ensureChatRoleMessage,
     splitSystemMessages,
 } from '@/backend/services/chat/ChatPromptBuilder';
-import ChatSessionStore from '@/backend/services/chat/ChatSessionStore';
-import CacheService from '@/backend/services/CacheService';
+import type ChatSessionStore from '@/backend/services/chat/ChatSessionStore';
+import type CacheService from '@/backend/services/CacheService';
 
 /**
  * 把流内异常转成给用户看的错误文案。

@@ -1,5 +1,5 @@
 import { useLocation, useNavigate } from 'react-router-dom';
-import React, { cloneElement, ReactElement } from 'react';
+import React, { cloneElement, type ReactElement } from 'react';
 import { cn } from '@/fronted/lib/utils';
 import logoLight from '../../../../assets/logo-light.png';
 import logoDark from '../../../../assets/logo-dark.png';

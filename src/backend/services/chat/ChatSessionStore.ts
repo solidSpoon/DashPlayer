@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { injectable } from 'inversify';
-import { ModelMessage } from 'ai';
-import { ChatSessionCreateParams } from '@/common/types/chat';
+import type { ModelMessage } from 'ai';
+import type { ChatSessionCreateParams } from '@/common/types/chat';
 
 /**
  * 内存中的一次整句学习会话。

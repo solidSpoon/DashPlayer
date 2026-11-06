@@ -1,4 +1,4 @@
-import { RendererApiMap } from '@/common/api/renderer-api-def';
+import type { RendererApiMap } from '@/common/api/renderer-api-def';
 
 /**
  * 注册供 main 进程调用的 renderer 接口。

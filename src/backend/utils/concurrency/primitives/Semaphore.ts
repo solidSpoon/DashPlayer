@@ -1,13 +1,13 @@
 import {
-    AcquireOptions,
+    type AcquireOptions,
     ConcurrencyCancelledError,
     ConcurrencyTimeoutError,
     CONCURRENCY_HOLD_LOG_THRESHOLD_MS,
     CONCURRENCY_WAIT_LOG_THRESHOLD_MS,
-    Permit,
+    type Permit,
     safeLog,
-    SemaphoreOptions,
-    SemaphoreSnapshot,
+    type SemaphoreOptions,
+    type SemaphoreSnapshot,
 } from '@/backend/utils/concurrency/types';
 import { detachTimer } from '@/common/utils/detach-timer';
 

@@ -1,10 +1,10 @@
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import BuiltinDictionaryStore from '@/backend/services/gateways/translate/BuiltinDictionaryStore';
-import { WordMatchService } from '@/backend/services/WordMatchService';
+import type BuiltinDictionaryStore from '@/backend/services/gateways/translate/BuiltinDictionaryStore';
+import type { WordMatchService } from '@/backend/services/WordMatchService';
 import { analyzeWords } from '@/backend/utils/language/VocabularyMatcher';
-import { OpenAIDictionaryResult } from '@/common/types/DictionaryResult';
-import { SentenceVocabularyVO, SentenceWordEntry } from '@/common/types/vo/SentenceVocabularyVO';
+import type { OpenAIDictionaryResult } from '@/common/types/DictionaryResult';
+import type { SentenceVocabularyVO, SentenceWordEntry } from '@/common/types/vo/SentenceVocabularyVO';
 
 /**
  * 句子生词服务契约：用一个句子产出「值得重点认识的词」与「句内逐词释义」。

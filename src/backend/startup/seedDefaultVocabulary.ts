@@ -5,8 +5,8 @@ import { words } from '@/backend/infrastructure/db/tables/words';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import TYPES from '@/backend/ioc/types';
 import container from '@/backend/ioc/inversify.config';
-import SystemConfigService from '@/backend/services/SystemConfigService';
-import { DefaultVocabularyWord, loadDefaultVocabulary } from '@/backend/utils/defaultVocabulary';
+import type SystemConfigService from '@/backend/services/SystemConfigService';
+import { type DefaultVocabularyWord, loadDefaultVocabulary } from '@/backend/utils/defaultVocabulary';
 
 export const DEFAULT_VOCABULARY_VERSION = '1';
 const SEED_VERSION_KEY = 'syssetup.vocabularySeedVersion';

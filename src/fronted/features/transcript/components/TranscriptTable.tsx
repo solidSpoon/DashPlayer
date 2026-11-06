@@ -6,7 +6,7 @@ import { cn } from "@/fronted/lib/utils";
 import TranscriptItem from './TranscriptItem';
 import React from 'react';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { TranscriptTask } from '@/common/contracts/transcript/transcript-task';
+import type { TranscriptTask } from '@/common/contracts/transcript/transcript-task';
 import { Layers } from 'lucide-react';
 
 /** 转录任务列表属性。 */

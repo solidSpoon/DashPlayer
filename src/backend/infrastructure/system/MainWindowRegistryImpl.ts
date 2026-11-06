@@ -1,6 +1,6 @@
 import { injectable } from 'inversify';
 import { BrowserWindow } from 'electron';
-import MainWindowRegistry from '@/backend/infrastructure/system/MainWindowRegistry';
+import type MainWindowRegistry from '@/backend/infrastructure/system/MainWindowRegistry';
 import { TypeGuards } from '@/backend/utils/TypeGuards';
 
 @injectable()

@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import {
+import type {
     DubbingManifest,
 } from '@/common/contracts/dubbing';
 import useFile from '@/fronted/features/file-browser/fileStore';

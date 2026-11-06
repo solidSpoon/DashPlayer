@@ -5,11 +5,11 @@
  * 所有瞬移（behavior: 'auto'）都是特例——连按切句时动画跟不上节奏，
  * 需要即刻把当前行钉在边界上，等切句停歇后再平滑归位到顶部。
  */
-import { VirtuosoHandle } from 'react-virtuoso';
+import type { VirtuosoHandle } from 'react-virtuoso';
 import { create } from 'zustand';
 import { subscribeWithSelector } from 'zustand/middleware';
 import { useStoreWithEqualityFn } from 'zustand/traditional';
-import { Ele } from './useBoundary';
+import type { Ele } from './useBoundary';
 import useLayout from '@/fronted/hooks/useLayout';
 import { recordScrollRequest } from '@/fronted/features/player/dev/scrollWriteLog';
 

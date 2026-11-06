@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
 import { AudioLines, FolderOpen, Loader2, Trash2 } from 'lucide-react';
 
-import { DubbingExportStatus, DubbingLibraryEntry } from '@/common/contracts/dubbing';
+import type { DubbingExportStatus, DubbingLibraryEntry } from '@/common/contracts/dubbing';
 import { dubbingApi } from '@/fronted/features/player/dubbing/dubbingApi';
 import { registerRendererApi } from '@/fronted/infrastructure/electron/rendererApiRegistry';
 import { getRendererLogger } from '@/fronted/log/simple-logger';

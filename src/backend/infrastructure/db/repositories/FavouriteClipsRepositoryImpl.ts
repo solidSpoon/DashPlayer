@@ -4,13 +4,14 @@ import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import type { Db } from '@/backend/infrastructure/db/createDb';
 import { clipTagRelation } from '@/backend/infrastructure/db/tables/clipTagRelation';
-import { InsertTag, TagRow, tag } from '@/backend/infrastructure/db/tables/tag';
-import { Tag } from '@/common/contracts/tag';
-import {InsertVideoClip, VideoClip, videoClip} from '@/backend/infrastructure/db/tables/videoClip';
-import { ClipQuery } from '@/common/api/dto';
+import { type InsertTag, type TagRow, tag } from '@/backend/infrastructure/db/tables/tag';
+import type { Tag } from '@/common/contracts/tag';
+import {type InsertVideoClip, type VideoClip, videoClip} from '@/backend/infrastructure/db/tables/videoClip';
+import type { ClipQuery } from '@/common/api/dto';
 import TimeUtil from '@/common/utils/TimeUtil';
 
-import FavouriteClipsRepository, { FavouriteClipsReplaceAllItem, FavouriteClipsUpsertClipParams } from '@/backend/services/repositories/FavouriteClipsRepository';
+import type FavouriteClipsRepository from '@/backend/services/repositories/FavouriteClipsRepository';
+import { type FavouriteClipsReplaceAllItem, type FavouriteClipsUpsertClipParams } from '@/backend/services/repositories/FavouriteClipsRepository';
 
 @injectable()
 export default class FavouriteClipsRepositoryImpl implements FavouriteClipsRepository {

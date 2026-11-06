@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import SubtitleTranslationScheduler, {
-    SubtitleTranslationBatchRequest,
-    SubtitleTranslationBatchResult,
-    SubtitleTranslationDemand,
+    type SubtitleTranslationBatchRequest,
+    type SubtitleTranslationBatchResult,
+    type SubtitleTranslationDemand,
 } from '../SubtitleTranslationScheduler';
 
 /** 测试用翻译配置上下文；调度器对上下文形状无要求。 */

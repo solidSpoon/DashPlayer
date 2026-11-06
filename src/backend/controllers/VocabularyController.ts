@@ -1,8 +1,9 @@
-import Controller from '@/backend/controllers/Controller';
+import type Controller from '@/backend/controllers/Controller';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import VocabularyService, {GetAllWordsParams, UpdateWordParams} from '@/backend/services/VocabularyService';
-import SentenceVocabularyService from '@/backend/services/SentenceVocabularyService';
+import type VocabularyService from '@/backend/services/VocabularyService';
+import { type GetAllWordsParams, type UpdateWordParams } from '@/backend/services/VocabularyService';
+import type SentenceVocabularyService from '@/backend/services/SentenceVocabularyService';
 import type { SentenceVocabularyVO } from '@/common/types/vo/SentenceVocabularyVO';
 import registerRoute from '@/backend/controllers/ipc/registerRoute';
 

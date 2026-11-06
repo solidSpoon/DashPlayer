@@ -1,15 +1,13 @@
 import registerRoute from '@/backend/controllers/ipc/registerRoute';
 import { inject, injectable } from 'inversify';
-import Controller from '@/backend/controllers/Controller';
+import type Controller from '@/backend/controllers/Controller';
 import TYPES from '@/backend/ioc/types';
-import SplitVideoService, {
-    SplitVideoRequest,
-} from '@/backend/services/SplitVideoService';
-import MediaService, {
-    ThumbnailOptions,
-} from '@/backend/services/MediaService';
-import { ChapterParseResult } from '@/common/types/chapter-result';
-import { VideoInfo } from '@/common/types/video-info';
+import type SplitVideoService from '@/backend/services/SplitVideoService';
+import { type SplitVideoRequest } from '@/backend/services/SplitVideoService';
+import type MediaService from '@/backend/services/MediaService';
+import { type ThumbnailOptions } from '@/backend/services/MediaService';
+import type { ChapterParseResult } from '@/common/types/chapter-result';
+import type { VideoInfo } from '@/common/types/video-info';
 
 /**
  * 注册视频切分和通用媒体 IPC 路由。

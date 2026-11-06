@@ -1,4 +1,4 @@
-import { BrowserItemVariant, CtxMenu } from '@/fronted/features/file-browser/components/VideoItem2';
+import type { BrowserItemVariant, CtxMenu } from '@/fronted/features/file-browser/components/VideoItem2';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
@@ -13,7 +13,7 @@ import { cn } from '@/fronted/lib/utils';
 import { EllipsisVertical, FileAudio2, FileVideo2, Folder, Loader2 } from 'lucide-react';
 import MediaUtil from '@/common/utils/MediaUtil';
 import { Button } from '@/fronted/components/ui/button';
-import WatchHistoryVO from '@/common/types/WatchHistoryVO';
+import type WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import PathUtil from '@/common/utils/PathUtil';
 import TimeUtil from '@/common/utils/TimeUtil';
 import { Progress } from '@/fronted/components/ui/progress';

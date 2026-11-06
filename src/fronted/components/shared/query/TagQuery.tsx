@@ -1,6 +1,6 @@
 import { Tag as TagIcon, X } from 'lucide-react';
 import React from 'react';
-import { Tag } from '@/common/contracts/tag';
+import type { Tag } from '@/common/contracts/tag';
 import useSWR from 'swr';
 import { cn } from '@/fronted/lib/utils';
 import { Badge } from '@/fronted/components/ui/badge';

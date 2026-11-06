@@ -1,4 +1,4 @@
-import { UIMessageChunk } from 'ai';
+import type { UIMessageChunk } from 'ai';
 
 export type DeepPartial<T> = T extends (infer U)[]
     ? Array<DeepPartial<U | undefined>>

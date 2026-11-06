@@ -1,7 +1,8 @@
 import { inject, injectable } from 'inversify';
 import * as fs from 'fs';
 import * as path from 'path';
-import SpeechRecognitionGateway, { SpeechRecognitionRequest, SpeechRecognitionResult } from '@/backend/services/gateways/media/SpeechRecognitionGateway';
+import type SpeechRecognitionGateway from '@/backend/services/gateways/media/SpeechRecognitionGateway';
+import { type SpeechRecognitionRequest, type SpeechRecognitionResult } from '@/backend/services/gateways/media/SpeechRecognitionGateway';
 import TYPES from '@/backend/ioc/types';
 import { SherpaOnnxCli } from '@/backend/infrastructure/media/sherpa/SherpaOnnxCli';
 import { PARAKEET_MODEL_DIRECTORY } from '@/backend/services/models/parakeetModel';

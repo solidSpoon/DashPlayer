@@ -1,6 +1,6 @@
-import { RuntimeSettingKey } from '@/common/contracts/runtime-settings';
-import { DpTask } from '@/common/contracts/dp-task';
-import { RepairTaskEvent } from '@/common/contracts/playback-repair';
+import type { RuntimeSettingKey } from '@/common/contracts/runtime-settings';
+import type { DpTask } from '@/common/contracts/dp-task';
+import type { RepairTaskEvent } from '@/common/contracts/playback-repair';
 
 /**
  * 主进程向渲染进程推送运行时事件的端口。

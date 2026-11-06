@@ -1,6 +1,6 @@
 import objectHash from 'object-hash';
 import StrUtil from '@/common/utils/str-util';
-import { Nullable } from '@/common/types/Types';
+import type { Nullable } from '@/common/types/Types';
 
 export class ObjUtil {
     public static hash(obj: objectHash.NotUndefined): string {

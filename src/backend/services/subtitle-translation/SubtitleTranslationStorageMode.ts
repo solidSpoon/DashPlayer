@@ -1,4 +1,4 @@
-import { TranslationMode } from '@/common/types/TranslationResult';
+import type { TranslationMode } from '@/common/types/TranslationResult';
 import { LOCAL_SUBTITLE_STRATEGY_VERSION } from '@/backend/infrastructure/translate/subtitleBatchPrompt';
 
 /**

@@ -1,9 +1,9 @@
-import {SubtitleTimestampAdjustmentInput} from '@/common/contracts/subtitle-timestamp-adjustment';
+import type {SubtitleTimestampAdjustmentInput} from '@/common/contracts/subtitle-timestamp-adjustment';
 import registerRoute from '@/backend/controllers/ipc/registerRoute';
-import Controller from '@/backend/controllers/Controller';
+import type Controller from '@/backend/controllers/Controller';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import SrtTimeAdjustService from '@/backend/services/SrtTimeAdjustService';
+import type SrtTimeAdjustService from '@/backend/services/SrtTimeAdjustService';
 
 /**
  * 调整字幕时间

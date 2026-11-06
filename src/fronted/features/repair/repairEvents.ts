@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { RepairTaskEvent, RepairTaskState } from '@/common/contracts/playback-repair';
+import { type RepairTaskEvent, RepairTaskState } from '@/common/contracts/playback-repair';
 import { rendererEvents } from '@/fronted/infrastructure/electron/rendererEvents';
 
 /**

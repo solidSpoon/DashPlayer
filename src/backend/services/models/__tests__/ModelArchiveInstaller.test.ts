@@ -4,10 +4,10 @@ import fs from 'fs';
 import os from 'os';
 import { createHash } from 'crypto';
 import { PassThrough } from 'stream';
-import axios, { AxiosError, AxiosResponse } from 'axios';
-import { ModelArchiveInstaller, ModelArchiveInstallerOptions } from '@/backend/services/models/ModelArchiveInstaller';
-import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
-import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import axios, { AxiosError, type AxiosResponse } from 'axios';
+import { ModelArchiveInstaller, type ModelArchiveInstallerOptions } from '@/backend/services/models/ModelArchiveInstaller';
+import type RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import FileSystemGatewayImpl from '@/backend/infrastructure/storage/FileSystemGatewayImpl';
 import { MemoryFileSystemGateway } from '@/test/memory-file-system-gateway';
 

@@ -3,18 +3,13 @@ import { injectable } from 'inversify';
 
 import db from '@/backend/infrastructure/db';
 import {
-    InsertWatchHistory,
+    type InsertWatchHistory,
     watchHistory,
-    WatchHistory,
+    type WatchHistory,
 } from '@/backend/infrastructure/db/tables/watchHistory';
 import TimeUtil from '@/common/utils/TimeUtil';
-import WatchHistoryRepository, {
-    WatchHistoryDistinctBasePathFileName,
-    WatchHistoryInsert,
-    WatchHistoryProjectType,
-    WatchHistoryRecord,
-    WatchHistoryUpdatePatch,
-} from '@/backend/services/repositories/WatchHistoryRepository';
+import type WatchHistoryRepository from '@/backend/services/repositories/WatchHistoryRepository';
+import { type WatchHistoryDistinctBasePathFileName, type WatchHistoryInsert, WatchHistoryProjectType, type WatchHistoryRecord, type WatchHistoryUpdatePatch } from '@/backend/services/repositories/WatchHistoryRepository';
 
 /**
  * 使用 Drizzle 访问观看历史表，并将数据库行转换为 application 业务记录。

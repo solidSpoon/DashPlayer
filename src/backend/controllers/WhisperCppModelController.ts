@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify';
-import Controller from '@/backend/controllers/Controller';
+import type Controller from '@/backend/controllers/Controller';
 import registerRoute from '@/backend/controllers/ipc/registerRoute';
-import WhisperCppModelService from '@/backend/services/WhisperCppModelService';
+import type WhisperCppModelService from '@/backend/services/WhisperCppModelService';
 import TYPES from '@/backend/ioc/types';
 
 /**

@@ -2,10 +2,10 @@ import {
     ConcurrencyCancelledError,
     ConcurrencyTimeoutError,
     CONCURRENCY_WAIT_LOG_THRESHOLD_MS,
-    RateLimiterOptions,
-    RateLimiterSnapshot,
+    type RateLimiterOptions,
+    type RateLimiterSnapshot,
     safeLog,
-    WaitTurnOptions,
+    type WaitTurnOptions,
 } from '@/backend/utils/concurrency/types';
 
 type QueueWaiter = {

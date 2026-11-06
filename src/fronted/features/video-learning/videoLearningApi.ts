@@ -1,5 +1,5 @@
-import { SimpleClipQuery } from '@/common/api/dto';
-import { ClipMeta } from '@/common/types/clipMeta';
+import type { SimpleClipQuery } from '@/common/api/dto';
+import type { ClipMeta } from '@/common/types/clipMeta';
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { requestVideoThumbnail } from '@/fronted/lib/video-thumbnail';
 

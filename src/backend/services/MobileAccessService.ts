@@ -8,11 +8,11 @@ import { getMainLogger } from '@/backend/infrastructure/logger';
 import MobileWebServer from '@/backend/infrastructure/mobile/MobileWebServer';
 import { getRuntimeResourcePath } from '@/backend/utils/runtimeEnv';
 import MediaUtil from '@/common/utils/MediaUtil';
-import {
+import type {
     MobileAccessSettingDetailVO,
     MobileAccessSettingSaveVO,
 } from '@/common/contracts/mobile-access-setting-vo';
-import { MobileRecentItem, MobileSubtitleLine, MobileWatchDetail } from '@/common/contracts/mobile-web';
+import type { MobileRecentItem, MobileSubtitleLine, MobileWatchDetail } from '@/common/contracts/mobile-web';
 import type { SettingsStore } from '@/backend/services/gateways/SettingsStore';
 import type WatchHistoryService from '@/backend/services/WatchHistoryService';
 import type SubtitleService from '@/backend/services/SubtitleService';

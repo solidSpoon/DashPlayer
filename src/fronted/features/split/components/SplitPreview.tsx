@@ -8,7 +8,7 @@ import {
     TableRow
 } from '@/fronted/components/ui/table';
 import React from 'react';
-import useSplit, { TaskChapterParseResult } from '../splitStore';
+import useSplit, { type TaskChapterParseResult } from '../splitStore';
 import Eb from '@/fronted/components/shared/common/Eb';
 import StrUtil from '@/common/utils/str-util';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';

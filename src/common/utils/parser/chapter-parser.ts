@@ -1,7 +1,7 @@
 // 00:00:00 Intro
 // 00:01:55 Chapter 1
 
-import {ChapterParseResult} from "@/common/types/chapter-result";
+import type {ChapterParseResult} from "@/common/types/chapter-result";
 import TimeUtil from "@/common/utils/TimeUtil";
 import { timeTextToSeconds } from "@/common/utils/subtitle";
 import StrUtil from '@/common/utils/str-util';

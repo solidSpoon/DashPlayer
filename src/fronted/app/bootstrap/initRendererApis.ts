@@ -1,4 +1,4 @@
-import { RendererApiDefinitions, RendererApiMap } from '@/common/api/renderer-api-def';
+import type { RendererApiDefinitions, RendererApiMap } from '@/common/api/renderer-api-def';
 import useDictionaryStream from '@/fronted/features/player/dictionaryStore';
 import useChatPanel from '@/fronted/features/chat/chatStore';
 import { receiveChatChunk } from '@/fronted/features/chat/chatTransport';

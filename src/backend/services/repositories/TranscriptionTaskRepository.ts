@@ -1,6 +1,6 @@
 import {
-    TranscriptTask,
-    TranscriptTaskResult,
+    type TranscriptTask,
+    type TranscriptTaskResult,
     TranscriptTaskState,
 } from '@/common/contracts/transcript/transcript-task';
 

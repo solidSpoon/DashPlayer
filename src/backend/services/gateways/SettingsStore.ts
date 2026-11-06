@@ -1,4 +1,4 @@
-import { SettingKey } from '@/common/types/store_schema';
+import type { SettingKey } from '@/common/types/store_schema';
 
 export interface SettingsStore {
     get(key: SettingKey): string;

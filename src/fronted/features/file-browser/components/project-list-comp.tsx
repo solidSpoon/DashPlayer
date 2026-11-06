@@ -2,7 +2,7 @@ import React from 'react';
 import useSWR from 'swr';
 import { apiPath } from '@/fronted/lib/swr-util';
 import { cn } from '@/fronted/lib/utils';
-import WatchHistoryVO from '@/common/types/WatchHistoryVO';
+import type WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { fileBrowserApi } from '@/fronted/features/file-browser/fileBrowserApi';

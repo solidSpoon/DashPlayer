@@ -4,7 +4,7 @@
 import {create} from 'zustand';
 import {subscribeWithSelector} from 'zustand/middleware';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
-import {
+import type {
     RuntimeSettingKey,
     RuntimeSettingsSnapshot,
     RuntimeWritableSettingKey,

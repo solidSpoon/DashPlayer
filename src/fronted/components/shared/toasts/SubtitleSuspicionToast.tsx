@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/fronted/components/ui/button';
 import { useTranslation } from 'react-i18next';
-import { SubtitleSuspicionReason } from '@/fronted/features/player/subtitleSuspicion';
+import type { SubtitleSuspicionReason } from '@/fronted/features/player/subtitleSuspicion';
 
 interface SubtitleSuspicionToastProps {
     /** 触发原因，决定提示文案；可同时出现多条。 */

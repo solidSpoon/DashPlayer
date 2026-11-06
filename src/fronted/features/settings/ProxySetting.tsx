@@ -9,7 +9,7 @@ import { Globe, Shield, Wifi } from 'lucide-react';
 import { useForm, useWatch } from 'react-hook-form';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
 import { SETTINGS_DETAIL_SWR_OPTIONS, settingsApi } from '@/fronted/features/settings/settingsApi';
-import { ProxySettingDetailVO } from '@/common/contracts/proxy-setting-vo';
+import type { ProxySettingDetailVO } from '@/common/contracts/proxy-setting-vo';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 
 type ProxyFormValues = {

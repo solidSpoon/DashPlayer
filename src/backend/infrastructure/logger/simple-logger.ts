@@ -3,7 +3,7 @@ import path from 'path';
 import { app } from 'electron';
 
 import { isSensitiveKey, maskSensitiveValues } from '@/common/log/mask';
-import { SimpleEvent, SimpleLevel } from '@/common/log/simple-types';
+import type { SimpleEvent, SimpleLevel } from '@/common/log/simple-types';
 import { AppStateDirectoryType, getAppStatePath } from '@/backend/infrastructure/system/AppStatePath';
 import { isDevelopmentMode } from '@/backend/utils/runtimeEnv';
 import { createTraceId, getCurrentTraceId, isTraceId } from './trace-context';

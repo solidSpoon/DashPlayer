@@ -1,9 +1,9 @@
 import path from 'path';
 import { injectable } from 'inversify';
-import { OssService } from '@/backend/services/OssService';
+import type { OssService } from '@/backend/services/OssService';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import { OssBaseMeta } from '@/common/types/clipMeta';
-import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
+import type { OssBaseMeta } from '@/common/types/clipMeta';
+import type FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
 
 /**
  * 片段本地存储的通用实现；仅由具体子类继承，不直接在容器中注册。

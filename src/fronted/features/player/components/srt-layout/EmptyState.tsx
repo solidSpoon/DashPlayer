@@ -5,7 +5,7 @@ import {Play, Film} from 'lucide-react';
 import {Button} from '@/fronted/components/ui/button';
 import {cn} from '@/fronted/lib/utils';
 import {apiPath, SWR_KEY} from '@/fronted/lib/swr-util';
-import WatchHistoryVO from '@/common/types/WatchHistoryVO';
+import type WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import PathUtil from '@/common/utils/PathUtil';
 import UrlUtil from '@/common/utils/UrlUtil';
 import MediaUtil from '@/common/utils/MediaUtil';

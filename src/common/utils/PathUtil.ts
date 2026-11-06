@@ -1,5 +1,5 @@
 import StrUtil from '@/common/utils/str-util';
-import { Nullable } from '@/common/types/Types';
+import type { Nullable } from '@/common/types/Types';
 
 export interface ParsedPath {
     /**

@@ -1,4 +1,4 @@
-import {
+import type {
     RepairTask,
     RepairTaskUpdatePatch,
 } from '@/common/contracts/playback-repair';

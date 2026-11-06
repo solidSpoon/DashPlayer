@@ -4,10 +4,10 @@ import registerRoute from '@/backend/controllers/ipc/registerRoute';
 
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types'; // 使用接口定义
-import { OpenAIDictionaryResult } from '@/common/types/DictionaryResult';
-import Controller from '@/backend/controllers/Controller';
-import TranslateService from '@/backend/services/TranslateService';
-import SubtitleTranslationService from '@/backend/services/subtitle-translation/SubtitleTranslationService';
+import type { OpenAIDictionaryResult } from '@/common/types/DictionaryResult';
+import type Controller from '@/backend/controllers/Controller';
+import type TranslateService from '@/backend/services/TranslateService';
+import type SubtitleTranslationService from '@/backend/services/subtitle-translation/SubtitleTranslationService';
 
 @injectable()
 export default class AiTransController implements Controller {

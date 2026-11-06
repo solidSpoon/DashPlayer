@@ -15,15 +15,15 @@ import { getMigrationFailure } from '@/backend/startup/migrationFailureState';
 import { initProxyFeature } from '@/backend/startup/initProxy';
 import container from '@/backend/ioc/inversify.config';
 import TYPES from '@/backend/ioc/types';
-import { FavouriteClipsService } from '@/backend/services/FavouriteClipsService';
-import { VideoLearningService } from '@/backend/services/VideoLearningService';
+import type { FavouriteClipsService } from '@/backend/services/FavouriteClipsService';
+import type { VideoLearningService } from '@/backend/services/VideoLearningService';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { initProcessWatchdog } from '@/backend/startup/initProcessWatchdog';
 import { initLogMaintenance } from '@/backend/startup/initLogMaintenance';
 import { RESET_DB_RESYNC_FLAG } from '@/common/constants/resetDb';
 import { isDevelopmentMode } from '@/backend/utils/runtimeEnv';
 import { storeGet } from '@/backend/infrastructure/settings/store';
-import { TranscriptionService } from '@/backend/services/TranscriptionService';
+import type { TranscriptionService } from '@/backend/services/TranscriptionService';
 import type PlaybackRepairService from '@/backend/services/PlaybackRepairService';
 import type MobileAccessService from '@/backend/services/MobileAccessService';
 

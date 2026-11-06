@@ -8,7 +8,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fron
 import { motion } from 'framer-motion';
 import useFavouriteClip, { mapClipKey } from '@/fronted/features/favourite/favouriteStore';
 import useFile from '@/fronted/features/file-browser/fileStore';
-import { Sentence } from '@/common/types/SentenceC';
+import type { Sentence } from '@/common/types/SentenceC';
 import useTranslation from '@/fronted/features/player/translationStore';
 import useVocabulary from '@/fronted/features/player/vocabularyStore';
 import { shallow } from 'zustand/shallow';

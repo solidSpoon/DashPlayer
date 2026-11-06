@@ -11,7 +11,7 @@ import {
 import { Search, Upload, Download, List, LocateFixed, Pencil, ArrowUpDown } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { cn } from '@/fronted/lib/utils';
-import { Virtuoso, VirtuosoHandle } from 'react-virtuoso';
+import { Virtuoso, type VirtuosoHandle } from 'react-virtuoso';
 import ConfirmDeleteButton from '@/fronted/components/shared/common/ConfirmDeleteButton';
 import {
   Tooltip,

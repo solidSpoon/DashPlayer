@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useForm } from 'react-hook-form';
-import { ServiceCredentialSettingDetailVO } from '@/common/types/vo/service-credentials-setting-vo';
+import type { ServiceCredentialSettingDetailVO } from '@/common/types/vo/service-credentials-setting-vo';
 import { CLOUD_AI_PROVIDER_PRESETS } from '@/common/constants/cloud-ai-provider-presets';
 import { OpenAiCredentialCard } from '../components/OpenAiCredentialCard';
 

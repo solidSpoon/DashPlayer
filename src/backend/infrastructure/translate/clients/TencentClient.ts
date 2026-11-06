@@ -1,10 +1,10 @@
 import { Client } from 'tencentcloud-sdk-nodejs/tencentcloud/services/tmt/v20180321/tmt_client';
-import { ClientConfig } from 'tencentcloud-sdk-nodejs/tencentcloud/common/interface';
+import type { ClientConfig } from 'tencentcloud-sdk-nodejs/tencentcloud/common/interface';
 import TransHolder from '@/common/utils/TransHolder';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import { TextTranslateBatchResponse } from 'tencentcloud-sdk-nodejs/src/services/tmt/v20180321/tmt_models';
+import type { TextTranslateBatchResponse } from 'tencentcloud-sdk-nodejs/src/services/tmt/v20180321/tmt_models';
 import { WithRateLimit } from '@/backend/utils/concurrency/decorators';
-import { TencentTranslateBatchLogContext } from '@/backend/services/gateways/translate/TencentTranslateClient';
+import type { TencentTranslateBatchLogContext } from '@/backend/services/gateways/translate/TencentTranslateClient';
 
 class TencentClient extends Client {
     private readonly SIZE_LIMIT: number;

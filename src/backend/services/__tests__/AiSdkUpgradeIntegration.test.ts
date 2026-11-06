@@ -31,7 +31,7 @@ vi.mock('@/backend/infrastructure/settings/store', () => ({
 }));
 
 import { z } from 'zod';
-import { Output, streamText, LanguageModel } from 'ai';
+import { Output, streamText, type LanguageModel } from 'ai';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { convertArrayToReadableStream, MockLanguageModelV4 } from 'ai/test';
 import type { LanguageModelV4StreamPart } from '@ai-sdk/provider';

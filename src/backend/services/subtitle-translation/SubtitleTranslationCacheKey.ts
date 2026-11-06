@@ -1,5 +1,5 @@
 import { ObjUtil } from '@/backend/utils/ObjUtil';
-import { Sentence } from '@/common/types/SentenceC';
+import type { Sentence } from '@/common/types/SentenceC';
 import { p } from '@/common/utils/Util';
 
 /**

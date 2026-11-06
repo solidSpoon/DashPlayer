@@ -5,9 +5,8 @@ import db from '@/backend/infrastructure/db';
 import { sentenceTranslates } from '@/backend/infrastructure/db/tables/sentenceTranslates';
 import TimeUtil from '@/common/utils/TimeUtil';
 
-import SentenceTranslatesRepository, {
-    SentenceTranslatesUpsertParams,
-} from '@/backend/services/repositories/SentenceTranslatesRepository';
+import type SentenceTranslatesRepository from '@/backend/services/repositories/SentenceTranslatesRepository';
+import { type SentenceTranslatesUpsertParams } from '@/backend/services/repositories/SentenceTranslatesRepository';
 
 @injectable()
 export default class SentenceTranslatesRepositoryImpl implements SentenceTranslatesRepository {

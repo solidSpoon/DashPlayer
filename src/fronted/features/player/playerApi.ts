@@ -1,6 +1,6 @@
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { requestVideoThumbnail } from '@/fronted/lib/video-thumbnail';
-import { SubtitleTimestampAdjustmentInput } from '@/common/contracts/subtitle-timestamp-adjustment';
+import type { SubtitleTimestampAdjustmentInput } from '@/common/contracts/subtitle-timestamp-adjustment';
 
 /**
  * 播放器功能调用的后端接口。

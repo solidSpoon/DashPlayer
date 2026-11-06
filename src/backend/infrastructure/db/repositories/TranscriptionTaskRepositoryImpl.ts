@@ -3,18 +3,16 @@ import { injectable } from 'inversify';
 import db from '@/backend/infrastructure/db';
 import {
     transcriptionTask,
-    TranscriptionTaskRow,
+    type TranscriptionTaskRow,
 } from '@/backend/infrastructure/db/tables/transcriptionTask';
 import TimeUtil from '@/common/utils/TimeUtil';
 import {
-    TranscriptTask,
-    TranscriptTaskResult,
+    type TranscriptTask,
+    type TranscriptTaskResult,
     TranscriptTaskState,
 } from '@/common/contracts/transcript/transcript-task';
-import TranscriptionTaskRepository, {
-    CreateTranscriptionTaskParams,
-    TranscriptionTaskUpdatePatch,
-} from '@/backend/services/repositories/TranscriptionTaskRepository';
+import type TranscriptionTaskRepository from '@/backend/services/repositories/TranscriptionTaskRepository';
+import { type CreateTranscriptionTaskParams, type TranscriptionTaskUpdatePatch } from '@/backend/services/repositories/TranscriptionTaskRepository';
 
 /**
  * 使用 Drizzle 访问本地转录任务表。

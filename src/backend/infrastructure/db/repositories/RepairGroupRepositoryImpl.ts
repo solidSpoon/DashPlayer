@@ -1,12 +1,10 @@
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import { inject, injectable } from 'inversify';
 import type { Db } from '@/backend/infrastructure/db/createDb';
-import { repairGroupFile, RepairGroupFileRow } from '@/backend/infrastructure/db/tables/repairGroupFile';
+import { repairGroupFile, type RepairGroupFileRow } from '@/backend/infrastructure/db/tables/repairGroupFile';
 import TYPES from '@/backend/ioc/types';
-import RepairGroupRepository, {
-    RepairGroupMembership,
-    RepairGroupSource,
-} from '@/backend/services/repositories/RepairGroupRepository';
+import type RepairGroupRepository from '@/backend/services/repositories/RepairGroupRepository';
+import { type RepairGroupMembership, type RepairGroupSource } from '@/backend/services/repositories/RepairGroupRepository';
 
 /**
  * 使用 Drizzle 访问修复名单的组标记表。

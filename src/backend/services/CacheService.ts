@@ -1,7 +1,7 @@
 import { injectable } from 'inversify';
 
-import { SrtSentence } from '@/common/types/SentenceC';
-import { VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
+import type { SrtSentence } from '@/common/types/SentenceC';
+import type { VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
 
 /**
  * 缓存命名空间与对应值类型。

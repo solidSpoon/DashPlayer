@@ -1,4 +1,4 @@
-import React, { ReactElement, useMemo } from 'react';
+import React, { type ReactElement, useMemo } from 'react';
 
 import { playerActions } from '@/fronted/features/player/components/PlayerActions';
 import { usePlayerState } from '@/fronted/features/player/playerState';

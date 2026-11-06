@@ -1,18 +1,17 @@
 import { asc, eq } from 'drizzle-orm';
 import { inject, injectable } from 'inversify';
 import type { Db } from '@/backend/infrastructure/db/createDb';
-import { repairTask, RepairTaskRow } from '@/backend/infrastructure/db/tables/repairTask';
+import { repairTask, type RepairTaskRow } from '@/backend/infrastructure/db/tables/repairTask';
 import TYPES from '@/backend/ioc/types';
 import {
-    RepairRecipe,
-    RepairReason,
-    RepairTask,
+    type RepairRecipe,
+    type RepairReason,
+    type RepairTask,
     RepairTaskState,
-    RepairTaskUpdatePatch,
+    type RepairTaskUpdatePatch,
 } from '@/common/contracts/playback-repair';
-import RepairTaskRepository, {
-    CreateRepairTaskParams,
-} from '@/backend/services/repositories/RepairTaskRepository';
+import type RepairTaskRepository from '@/backend/services/repositories/RepairTaskRepository';
+import { type CreateRepairTaskParams } from '@/backend/services/repositories/RepairTaskRepository';
 
 /**
  * 使用 Drizzle 访问播放修复记录表。

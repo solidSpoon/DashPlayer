@@ -1,10 +1,10 @@
-import { RuntimeSettingSaveRequest } from '@/common/contracts/runtime-settings';
-import { ProxySettingSaveVO } from '@/common/contracts/proxy-setting-vo';
-import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
-import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
-import { ServiceCredentialSettingSaveVO } from '@/common/types/vo/service-credentials-setting-vo';
+import type { RuntimeSettingSaveRequest } from '@/common/contracts/runtime-settings';
+import type { ProxySettingSaveVO } from '@/common/contracts/proxy-setting-vo';
+import type { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
+import type { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
+import type { ServiceCredentialSettingSaveVO } from '@/common/types/vo/service-credentials-setting-vo';
 import type { TranscriptionEngine } from '@/common/contracts/transcription-engine';
-import { ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
+import type { ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
 import type { MobileAccessSettingSaveVO } from '@/common/contracts/mobile-access-setting-vo';
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import type { SWRConfiguration } from 'swr';

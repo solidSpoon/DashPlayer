@@ -5,7 +5,8 @@ import { createHash } from 'node:crypto';
 import axios from 'axios';
 import type { pipeline, TranslationOutput } from '@huggingface/transformers';
 import TYPES from '@/backend/ioc/types';
-import StorageDirectoryProvider, { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import { concurrency } from '@/backend/utils/concurrency';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import type RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
@@ -16,8 +17,8 @@ import {
     LOCAL_MT_MODEL_ID,
     LOCAL_MT_REPO_SOURCES,
     LOCAL_MT_TOTAL_BYTES,
-    LocalMtModelFile,
-    LocalMtStatus,
+    type LocalMtModelFile,
+    type LocalMtStatus,
 } from '@/common/contracts/local-mt';
 
 /** transformers.js 翻译 pipeline 的实例类型。 */

@@ -1,6 +1,6 @@
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import { requestVideoThumbnail } from '@/fronted/lib/video-thumbnail';
-import {
+import type {
     PlaybackEvidenceInput,
     PlaybackRepairDiscardRequest,
     PlaybackRepairStartRequest,

@@ -1,4 +1,4 @@
-import { DpTask, DpTaskState } from '@/common/contracts/dp-task';
+import { type DpTask, DpTaskState } from '@/common/contracts/dp-task';
 import type { Nullable } from '@/common/types/Types';
 
 

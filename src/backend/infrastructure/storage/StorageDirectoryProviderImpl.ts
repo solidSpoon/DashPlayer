@@ -2,19 +2,18 @@ import {dialog} from 'electron';
 import {inject, injectable} from 'inversify';
 import fs from 'fs/promises';
 import path from 'path';
-import StorageDirectoryProvider, {
-    StorageDirectoryTarget,
-} from '@/backend/services/gateways/storage/StorageDirectoryProvider';
-import {SettingsStore} from '@/backend/services/gateways/SettingsStore';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type {SettingsStore} from '@/backend/services/gateways/SettingsStore';
 import TYPES from '@/backend/ioc/types';
 import {
     canRecoverAccessFromSelection,
     getDirectoryAccessStatus,
     getStorageRootStatus,
     resolveStorageDirectory,
-    StorageAccessTargetType,
+    type StorageAccessTargetType,
 } from '@/backend/infrastructure/storage/StorageDirectorySupport';
-import {StorageStatusVO} from '@/common/types/vo/StorageStatusVO';
+import type {StorageStatusVO} from '@/common/types/vo/StorageStatusVO';
 
 /**
  * 外部存储目录提供器实现。

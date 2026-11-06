@@ -1,4 +1,4 @@
-import Release from '@/common/types/release';
+import type Release from '@/common/types/release';
 
 /**
  * 更新检查失败的错误码。

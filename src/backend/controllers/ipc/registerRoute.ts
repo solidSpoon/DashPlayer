@@ -1,11 +1,11 @@
 import { ipcMain } from 'electron';
 
-import { ApiMap } from '@/common/api/api-def';
+import type { ApiMap } from '@/common/api/api-def';
 import { isUserCancellation } from '@/common/utils/cancellation';
 import container from '@/backend/ioc/inversify.config';
 import TYPES from '@/backend/ioc/types';
 import { getMainLogger, resolveTraceId, runWithTrace } from '@/backend/infrastructure/logger';
-import RendererEvents from '@/backend/services/gateways/renderer/RendererEvents';
+import type RendererEvents from '@/backend/services/gateways/renderer/RendererEvents';
 import type { TraceCarrier } from '@/common/log/simple-types';
 
 const logger = getMainLogger('ipc');

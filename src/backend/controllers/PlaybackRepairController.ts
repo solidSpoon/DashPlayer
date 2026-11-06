@@ -1,5 +1,5 @@
 import registerRoute from '@/backend/controllers/ipc/registerRoute';
-import {
+import type {
     FolderVideos,
     PlaybackEvidenceInput,
     PlaybackRepairDiagnosis,
@@ -10,11 +10,11 @@ import {
     RepairEnqueueResult,
     RepairGroup,
 } from '@/common/contracts/playback-repair';
-import Controller from '@/backend/controllers/Controller';
+import type Controller from '@/backend/controllers/Controller';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import PlaybackRepairService from '@/backend/services/PlaybackRepairService';
-import PlaybackCapabilityService from '@/backend/services/PlaybackCapabilityService';
+import type PlaybackRepairService from '@/backend/services/PlaybackRepairService';
+import type PlaybackCapabilityService from '@/backend/services/PlaybackCapabilityService';
 
 /**
  * 注册播放修复相关 IPC，并将请求转交给修复用例服务。

@@ -3,7 +3,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import SysConfRepositoryImpl from '@/backend/infrastructure/db/repositories/SysConfRepositoryImpl';
 import { createMemoryDb, type MemoryDb } from '@/test/database';
 import { PlaybackCapabilityServiceImpl, PLAYBACK_CAPABILITY_CACHE_KEY } from '@/backend/services/PlaybackCapabilityService';
-import SysConfRepository from '@/backend/services/repositories/SysConfRepository';
+import type SysConfRepository from '@/backend/services/repositories/SysConfRepository';
 import type { PlaybackEvidenceInput } from '@/common/contracts/playback-repair';
 
 vi.mock('@/backend/infrastructure/logger', () => ({

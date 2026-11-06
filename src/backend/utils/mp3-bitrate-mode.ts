@@ -1,4 +1,4 @@
-import { Mp3BitrateMode } from '@/common/contracts/playback-repair';
+import type { Mp3BitrateMode } from '@/common/contracts/playback-repair';
 
 /**
  * MP3 码率模式探测。

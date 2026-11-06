@@ -3,18 +3,19 @@ import path from 'path';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import {
+import type {
     DubbingExportStatus,
     DubbingLibraryEntry,
     DubbingManifest,
     DubbingTake,
     DubbingTakeVO,
 } from '@/common/contracts/dubbing';
-import FfmpegService from '@/backend/services/FfmpegService';
-import SubtitleService from '@/backend/services/SubtitleService';
-import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
-import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
-import StorageDirectoryProvider, { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type FfmpegService from '@/backend/services/FfmpegService';
+import type SubtitleService from '@/backend/services/SubtitleService';
+import type FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
+import type RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 
 /**
  * 配音业务服务。

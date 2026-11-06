@@ -2,17 +2,17 @@ import React, { useEffect, memo, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import UrlUtil from '@/common/utils/UrlUtil';
 import SubtitleList from './SubtitleList';
-import { VideoClip } from '../types';
+import type { VideoClip } from '../types';
 import { AspectRatio } from '@/fronted/components/ui/aspect-ratio';
 import VideoPlayerShortcut from './VideoPlayerShortcut';
 import PlayerEngine from '@/fronted/features/player/components/PlayerEngine';
 import { usePlayerState } from '@/fronted/features/player/playerState';
 import { clipLinesToSentences } from '@/common/utils/subtitle';
 import { useVocabularyState } from '@/fronted/features/player/vocabularyStore';
-import { Sentence } from '@/common/types/SentenceC';
-import { ClipSrtLine } from '@/common/types/clipMeta';
+import type { Sentence } from '@/common/types/SentenceC';
+import type { ClipSrtLine } from '@/common/types/clipMeta';
 import { videoLearningApi } from '@/fronted/features/video-learning/videoLearningApi';
-import { ClipVocabularyEntry } from '@/common/types/vo/VideoLearningClipVO';
+import type { ClipVocabularyEntry } from '@/common/types/vo/VideoLearningClipVO';
 
 const SubtitleListWithProgress = memo(function SubtitleListWithProgress({
   lines,

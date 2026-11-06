@@ -2,34 +2,34 @@ import path from 'path';
 import { createHash } from 'crypto';
 import { inject, injectable } from 'inversify';
 import {
-    FolderVideos,
-    Mp3BitrateMode,
-    PlaybackRepairDiagnosis,
-    PlaybackRepairDiscardRequest,
-    PlaybackRepairStartRequest,
-    PlaybackRepairStartResult,
-    RepairEnqueueRequest,
-    RepairEnqueueResult,
-    RepairGroup,
-    RepairGroupSource,
-    RepairRecipe,
-    RepairTaskEvent,
+    type FolderVideos,
+    type Mp3BitrateMode,
+    type PlaybackRepairDiagnosis,
+    type PlaybackRepairDiscardRequest,
+    type PlaybackRepairStartRequest,
+    type PlaybackRepairStartResult,
+    type RepairEnqueueRequest,
+    type RepairEnqueueResult,
+    type RepairGroup,
+    type RepairGroupSource,
+    type RepairRecipe,
+    type RepairTaskEvent,
     RepairTaskState,
 } from '@/common/contracts/playback-repair';
 import MediaUtil from '@/common/utils/MediaUtil';
 import { CancelByUserError } from '@/backend/utils/errors/errors';
 import { detectMp3BitrateMode } from '@/backend/utils/mp3-bitrate-mode';
-import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
-import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
-import RendererEvents from '@/backend/services/gateways/renderer/RendererEvents';
-import FfmpegService from '@/backend/services/FfmpegService';
+import type FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type RendererEvents from '@/backend/services/gateways/renderer/RendererEvents';
+import type FfmpegService from '@/backend/services/FfmpegService';
 import TYPES from '@/backend/ioc/types';
-import { decideRepair, isCopyableAudioCodec, isCopyableVideoCodec, PlaybackFacts } from '@/backend/services/playback-repair-rules';
+import { decideRepair, isCopyableAudioCodec, isCopyableVideoCodec, type PlaybackFacts } from '@/backend/services/playback-repair-rules';
 import { getHtml5VariantPath, getRepairTempPath, isHtml5VariantFileName } from '@/backend/services/watch-history-file-rules';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import RepairTaskRepository from '@/backend/services/repositories/RepairTaskRepository';
-import RepairGroupRepository from '@/backend/services/repositories/RepairGroupRepository';
-import PlaybackCapabilityService from '@/backend/services/PlaybackCapabilityService';
+import type RepairTaskRepository from '@/backend/services/repositories/RepairTaskRepository';
+import type RepairGroupRepository from '@/backend/services/repositories/RepairGroupRepository';
+import type PlaybackCapabilityService from '@/backend/services/PlaybackCapabilityService';
 
 /** 判定 MP3 码率模式需要读取的文件头部字节数；约覆盖 200 帧。 */
 const MP3_HEADER_BYTES = 128 * 1024;

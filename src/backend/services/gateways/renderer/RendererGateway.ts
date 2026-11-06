@@ -1,4 +1,4 @@
-import { RendererApiDefinitions } from '@/common/api/renderer-api-def';
+import type { RendererApiDefinitions } from '@/common/api/renderer-api-def';
 
 export default interface RendererGateway {
     call<K extends keyof RendererApiDefinitions>(
