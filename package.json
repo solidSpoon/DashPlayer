@@ -33,6 +33,7 @@
     "node": ">=22.22.2 <23 || >=24.15.0 <25"
   },
   "devDependencies": {
+    "@ai-sdk/provider": "^4.0.36",
     "@electron-forge/cli": "^8.0.1",
     "@electron-forge/maker-deb": "^8.0.1",
     "@electron-forge/maker-dmg": "^8.0.1",
@@ -93,9 +94,9 @@
     "vitest": "^4.1.12"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "^2.0.102",
-    "@ai-sdk/google": "^2.0.97",
-    "@ai-sdk/openai-compatible": "^2.0.62",
+    "@ai-sdk/anthropic": "^4.0.97",
+    "@ai-sdk/google": "^4.0.112",
+    "@ai-sdk/openai-compatible": "^3.0.85",
     "@ai-sdk/react": "^4.0.76",
     "@electron-forge/publisher-github": "^8.0.1",
     "@floating-ui/react": "^0.26.9",
