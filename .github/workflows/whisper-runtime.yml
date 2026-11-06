@@ -182,6 +182,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # 本任务不 checkout 源码（只下载产物），gh 没有 git 远端可推断目标仓库，
+      # 必须显式给 GH_REPO，否则 gh release 会以 "fatal: not a git repository" 失败
+      GH_REPO: ${{ github.repository }}
       RUNTIME_TAG: ${{ needs.meta.outputs.tag }}
     steps:
       - name: Download runtime artifacts
