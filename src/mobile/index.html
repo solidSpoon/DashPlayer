@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#0b0b0b" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- 不要用 black-translucent：那会让页面画到状态栏底下，iOS 26 会把那条做成毛玻璃，视频和列表滚到下面时顶部发糊；
+         而且这种模式下 CSS 量到的视口比实际绘制区域矮一个状态栏（实测视口 793 / 窗口 852），外壳高度怎么算都不对。
+         用 default：页面从状态栏下方开始，量到的就是真的。 -->
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <!-- 三个图标都是构建时从 assets/icons 复制进产物的文件，见 vite.mobile.config.ts；
          SVG 优先，位图给不认 SVG 图标的浏览器兵底；缺了它们时浏览器标签页是空白页图标，
          iOS「添加到主屏幕」只会拿页面截图当图标。 -->
@@ -27,6 +30,17 @@
                 }
             } catch (error) {
                 // 隐私模式下 localStorage 不可用，保持默认深色。
+            }
+
+            // 标记是不是从主屏图标启动的 Web App。CSS 的 @media (display-mode: standalone)
+            // 在 iOS 的主屏 Web App 里实测没匹配上，所以用这里先标好，供样式挑选用。
+            try {
+                if (window.navigator.standalone === true
+                    || window.matchMedia('(display-mode: standalone)').matches) {
+                    document.documentElement.dataset.standalone = '1';
+                }
+            } catch (error) {
+                // 同上：判断不了就当普通浏览器处理。
             }
         }());
     </script>
