@@ -53,7 +53,9 @@ jobs:
         include:
           - { name: linux-x64, os: ubuntu-22.04, gpu: vulkan }
           - { name: win32-x64, os: windows-2022, gpu: vulkan }
-          - { name: darwin-arm64, os: macos-14, gpu: metal }
+          # macOS arm64 用 macos-15：macos-14 已被 GitHub 下线，作业会以
+          # "configuration 'macos-14-arm64-us-default' is not supported" 秒挂
+          - { name: darwin-arm64, os: macos-15, gpu: metal }
           - { name: darwin-x64, os: macos-15-intel, gpu: metal }
     runs-on: ${{ matrix.os }}
     env:
