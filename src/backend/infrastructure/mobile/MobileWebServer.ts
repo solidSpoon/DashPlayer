@@ -307,6 +307,8 @@ export default class MobileWebServer {
             const pathname = decodeURIComponent(url.pathname);
 
             if (pathname === '/favicon.ico') {
+                // 手机页的图标由 index.html 里的 <link rel="icon"> 指定为 /favicon-32.png；
+                // 这里只是兜住仍然按老规矩探测根路径的浏览器，回 204 而不是 404，免得刷错误日志。
                 response.writeHead(204);
                 response.end();
                 return;
@@ -434,8 +436,9 @@ export default class MobileWebServer {
     /**
      * 返回 React 构建产物的静态文件。
      *
-     * 只允许读取静态目录内部的普通文件，拒绝 `..`、绝对路径和目录穿越；
-     * 带哈希的 assets 长期缓存，index.html 每次重新校验。
+     * 只允许读取静态目录内部的普通文件，拒绝 `..`、绝对路径和目录穿越。
+     * 缓存分三档：带内容哈希的 assets 长期不可变；index.html 每次重新校验；
+     * 其余非哈希文件（favicon-16/32.png、apple-touch-icon.png）短缓存，改图标后不用等一年。
      *
      * @param response HTTP 响应。
      * @param pathname 请求路径。
@@ -474,11 +477,18 @@ export default class MobileWebServer {
         }
 
         const content = await fs.promises.readFile(filePath);
+        // Vite 的构建产物都落在 assets/ 下且文件名带内容哈希，可以放心 immutable；
+        // normalized 在 Windows 上是反斜杠分隔，比较时沿用 path.sep。
+        const hasHashedName = normalized.startsWith(`assets${path.sep}`);
         const isIndex = normalized === 'index.html';
         response.writeHead(200, {
             'Content-Type': staticContentType(filePath),
             'Content-Length': content.byteLength,
-            'Cache-Control': isIndex ? 'no-cache' : 'public, max-age=31536000, immutable',
+            'Cache-Control': isIndex
+                ? 'no-cache'
+                : hasHashedName
+                    ? 'public, max-age=31536000, immutable'
+                    : 'public, max-age=3600',
         });
         response.end(headOnly ? undefined : content);
     }

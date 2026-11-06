@@ -1,0 +1,225 @@
+# .github/workflows/whisper-runtime.yml
+name: Release whisper runtime
+
+# whisper.cpp 核显运行时的唯一产地：按固定 ref + 配方构建四个平台的 parakeet-cli，
+# 发布成**运行时 Release**（prerelease），tag = 配方号。与 app 发版彻底解耦：
+# - app 发版（release.yml）不再构建运行时，只从该 tag 下载现成归档；
+# - 开发机走同一条下载路径，因此不再需要 cmake / glslc / Vulkan SDK / 编译器。
+# 构建参数与发布坐标的唯一来源是 scripts/whisper-runtime-meta.mjs：
+# 改 whisper.cpp ref、Vulkan 版本或配方后重跑本工作流产出新 tag，app 侧代码不用动。
+#
+# 运行时 Release 必须保持 prerelease：app 的更新检查走 /releases/latest 并过滤稳定版
+# （见 src/backend/services/CheckUpdate.ts），否则运行时包会被当成 app 新版本推给用户。
+on:
+  workflow_dispatch:
+  push:
+    tags: ['whisper-runtime-*']
+permissions:
+  contents: write
+jobs:
+  # 坐标只从脚本读一次，避免 workflow 里再抄一份 ref / Vulkan 版本导致漂移
+  meta:
+    name: Resolve runtime coordinates
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.meta.outputs.tag }}
+      ref: ${{ steps.meta.outputs.ref }}
+      vulkan_version: ${{ steps.meta.outputs.vulkan_version }}
+    steps:
+      - name: Github checkout
+        uses: actions/checkout@v5
+      - name: Use Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: 22.x
+      - name: Read coordinates from scripts/whisper-runtime-meta.mjs
+        id: meta
+        run: |
+          node --input-type=module -e "
+            import('./scripts/whisper-runtime-meta.mjs').then((m) => {
+              console.log('tag=' + m.WHISPER_RUNTIME_RELEASE_TAG);
+              console.log('ref=' + m.WHISPER_CPP_REF);
+              console.log('vulkan_version=' + m.VULKAN_RUNTIME_VERSION);
+            });
+          " >> "$GITHUB_OUTPUT"
+          cat "$GITHUB_OUTPUT"
+  build:
+    name: Build ${{ matrix.name }}
+    needs: meta
+    strategy:
+      # 单个目标失败不阻塞其余目标，但 publish 会整体失败，避免发出半套运行时
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-x64, os: ubuntu-22.04, gpu: vulkan }
+          - { name: win32-x64, os: windows-2022, gpu: vulkan }
+          # macOS arm64 用 macos-15：macos-14 已被 GitHub 下线，作业会以
+          # "configuration 'macos-14-arm64-us-default' is not supported" 秒挂
+          - { name: darwin-arm64, os: macos-15, gpu: metal }
+          - { name: darwin-x64, os: macos-15-intel, gpu: metal }
+    runs-on: ${{ matrix.os }}
+    env:
+      # whisper.cpp 源码 ref 与 Vulkan SDK 版本都来自 meta job（即 whisper-runtime-meta.mjs）
+      WHISPER_CPP_REF: ${{ needs.meta.outputs.ref }}
+      VULKAN_VERSION: ${{ needs.meta.outputs.vulkan_version }}
+    steps:
+      - name: Checkout whisper.cpp
+        uses: actions/checkout@v5
+        with:
+          repository: ggml-org/whisper.cpp
+          ref: ${{ env.WHISPER_CPP_REF }}
+      - name: Install Vulkan toolchain (Linux only)
+        if: matrix.gpu == 'vulkan' && runner.os == 'Linux'
+        run: |
+          # ggml 的 ggml-vulkan 要的是 glslc（find_package(Vulkan COMPONENTS glslc REQUIRED)）
+          # 与 SPIRV-Headers 的 cmake config，Ubuntu 自带的 glslang-tools 只提供
+          # glslangValidator，装完仍然找不到 glslc；与 llama.cpp 一致，
+          # 从 LunarG 的 jammy 源装完整 SDK（源码里两处硬依赖都在里面）
+          sudo mkdir -p /etc/apt/keyrings
+          wget -qO- https://packages.lunarg.com/lunarg-signing-key-pub.asc | sudo tee /etc/apt/keyrings/lunarg.asc > /dev/null
+          echo "deb [signed-by=/etc/apt/keyrings/lunarg.asc] https://packages.lunarg.com/vulkan jammy main" | sudo tee /etc/apt/sources.list.d/lunarg-vulkan-jammy.list > /dev/null
+          sudo apt-get update -y
+          sudo apt-get install -y vulkan-sdk
+      - name: Install Vulkan SDK (Windows only)
+        if: matrix.gpu == 'vulkan' && runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          curl.exe -L -o "$env:RUNNER_TEMP\VulkanSDK-Installer.exe" "https://sdk.lunarg.com/sdk/download/$env:VULKAN_VERSION/windows/vulkansdk-windows-X64-$env:VULKAN_VERSION.exe"
+          & "$env:RUNNER_TEMP\VulkanSDK-Installer.exe" --accept-licenses --default-answer --confirm-command install
+          Add-Content $env:GITHUB_ENV "VULKAN_SDK=C:\VulkanSDK\$env:VULKAN_VERSION"
+          Add-Content $env:GITHUB_PATH "C:\VulkanSDK\$env:VULKAN_VERSION\bin"
+      - name: Configure (Vulkan)
+        if: matrix.gpu == 'vulkan'
+        # Windows 上两个参数必须一起给，都是为了让 parakeet-cli.exe 在干净 Windows
+        # （未装 VC++ Redistributable）上能起来：
+        # - CMAKE_POLICY_DEFAULT_CMP0091=NEW：whisper.cpp 顶层 cmake_minimum_required
+        #   是 3.5（ggml 是 3.14），CMP0091 为 OLD 时 CMAKE_MSVC_RUNTIME_LIBRARY 会被
+        #   静默忽略，/MT 不生效；
+        # - CMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded：静态 CRT，去掉
+        #   VCRUNTIME140.dll / MSVCP140.dll 依赖。
+        # OpenMP 保持开启（不传 GGML_OPENMP=OFF）：MSVC 的 OpenMP 运行时只有 DLL 形式、
+        # 无法静态链接，但关掉它实测 encode 慢 ~30%、decode 慢一个量级（VM 内新旧二进制
+        # 交替跑对比），因此改为随包分发 vcomp140.dll（见 Package 步骤；该 DLL 只依赖
+        # KERNEL32，本身零外部依赖）。
+        # 参数用 ${{ }} 表达式内联而不是步骤 env + $VAR：Windows 的 run 默认 shell 是
+        # pwsh，POSIX 的 $VAR 语法不展开、参数会静默丢失（历史上 /MT 因此从未生效）。
+        # Vulkan 必须留在链接期（ggml-vulkan 硬依赖 vulkan-1.dll，非 delay-load），
+        # 由 Package 步骤把官方 loader 打进运行包
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DGGML_VULKAN=ON -DBUILD_SHARED_LIBS=OFF -DWHISPER_BUILD_EXAMPLES=ON -DWHISPER_BUILD_TESTS=OFF ${{ runner.os == 'Windows' && '-DCMAKE_POLICY_DEFAULT_CMP0091=NEW -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded' || '' }}
+      - name: Configure (Metal)
+        if: matrix.gpu == 'metal'
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DGGML_METAL_USE_BF16=ON -DGGML_METAL_EMBED_LIBRARY=ON -DCMAKE_OSX_ARCHITECTURES=${{ contains(matrix.name, 'arm64') && 'arm64' || 'x86_64' }} -DBUILD_SHARED_LIBS=OFF -DWHISPER_BUILD_EXAMPLES=ON -DWHISPER_BUILD_TESTS=OFF
+      - name: Build
+        run: cmake --build build --config Release --target parakeet-cli -j 4
+      - name: Package
+        # 资产名契约：scripts/whisper-runtime-meta.mjs 的 whisperRuntimeAssetName()
+        # 按同一套 whisper-cpp-<platform>-<arch>.{tar.gz,zip} 规则下载，改名必须两边同步
+        shell: bash
+        run: |
+          mkdir -p stage
+          if [ "${{ runner.os }}" = "Windows" ]; then
+            cp build/bin/Release/parakeet-cli.exe stage/parakeet-cli.exe
+            # ggml-vulkan 对 vulkan-1.dll 是硬链接依赖（非 delay-load）：干净 Windows
+            # （无独显驱动、未装 VC 运行库）的 system32 里没有它，缺了进程在加载期就死
+            # （0xC0000135，stderr 为空）。取官方运行包里的 x64 loader 与许可证，
+            # 放在 exe 同目录一起分发（DLL 搜索顺序里 exe 目录优先于 system32）；
+            # 运行包里带 x86 版本与 pdb，按路径只取 x64
+            rm -rf vkrt-download vkrt-extract
+            mkdir -p vkrt-download vkrt-extract
+            curl.exe -fsSL -o vkrt-download/vulkan-runtime-components.zip "https://sdk.lunarg.com/sdk/download/$VULKAN_VERSION/windows/vulkan-runtime-components.zip"
+            7z x -y vkrt-download/vulkan-runtime-components.zip -ovkrt-extract > /dev/null
+            cp "$(find vkrt-extract -path '*/x64/vulkan-1.dll' -print -quit)" stage/vulkan-1.dll
+            cp "$(find vkrt-extract -name 'VulkanRT-License.txt' -print -quit)" stage/VulkanRT-License.txt
+            # OpenMP 运行时（vcomp140.dll）同理要跟着 exe 走：MSVC 的 OpenMP 只有 DLL 形式，
+            # /MT 也去不掉它，而关掉 OpenMP 实测 encode 慢 ~30%、decode 慢一个量级。
+            # 取系统里的那份（vc_redist 装进 System32 的版本，只依赖 KERNEL32）：VS 自带的
+            # app-local 副本（VC/Redist/MSVC/*/x64/Microsoft.VC14*.OpenMP/）是另一个构建，
+            # 自己依赖 VCRUNTIME140 + UCRT，拿它等于把刚用 /MT 去掉的依赖又请回来（实测被
+            # Verify 步骤拦下）。runner 镜像自带 VC++ Redistributable，缺件就 fail-closed。
+            # vcomp140.dll 属微软可再分发代码：app-local 副本不随 Windows Update 更新，
+            # 微软给 CRT/OpenMP 发安全更新时需跟版重建，别当成“已经永久修好”
+            VCOMP="$(cygpath -u "${SystemRoot:-C:\\Windows}")/System32/vcomp140.dll"
+            [ -f "$VCOMP" ] || { echo "[FAIL] 找不到 $VCOMP：runner 缺少 VC++ Redistributable"; exit 1; }
+            cp "$VCOMP" stage/vcomp140.dll
+            (cd stage && 7z a "../whisper-cpp-${{ matrix.name }}.zip" parakeet-cli.exe vulkan-1.dll vcomp140.dll VulkanRT-License.txt)
+          else
+            cp build/bin/parakeet-cli stage/parakeet-cli
+            (cd stage && tar czf "../whisper-cpp-${{ matrix.name }}.tar.gz" parakeet-cli)
+          fi
+      - name: Verify Windows runtime dependencies (Windows only)
+        # 干净 Windows 上起不来等于运行时废了（加载期 0xC0000135，stderr 为空、日志里只剩
+        # 一个退出码），所以在这里当场断言，而不是等用户报错。断言的是完整契约：
+        #   - parakeet-cli.exe 的全部非系统依赖，恰好就是随包附带的两个 DLL；
+        #   - 这两个 DLL 自身只依赖系统 DLL（附带的 DLL 自己还带依赖就等于没修）；
+        #   - exe 确实导入了它们（拦住“参数静默丢失”这类回归：/MT 没生效、OpenMP 被关掉，
+        #     历史上 $VAR 在 pwsh 下不展开就出过这种事）。
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=x64
+          dumpbin /dependents stage\parakeet-cli.exe > dependents.txt
+          dumpbin /dependents stage\vulkan-1.dll >> dependents.txt
+          dumpbin /dependents stage\vcomp140.dll >> dependents.txt
+          type dependents.txt
+          if not exist stage\vulkan-1.dll (echo [FAIL] stage\vulkan-1.dll missing & exit /b 1)
+          if not exist stage\vcomp140.dll (echo [FAIL] stage\vcomp140.dll missing & exit /b 1)
+          findstr /i /r "MSVCP[0-9] VCRUNTIME[0-9] CONCRT[0-9] api-ms-win-crt UCRTBASE" dependents.txt > nul && (echo [FAIL] VC runtime dependency found: expect static CRT and vcomp140.dll only & exit /b 1)
+          findstr /i /c:"vulkan-1.dll" dependents.txt > nul || (echo [FAIL] parakeet-cli.exe does not import vulkan-1.dll & exit /b 1)
+          findstr /i /c:"VCOMP140.DLL" dependents.txt > nul || (echo [FAIL] parakeet-cli.exe does not import VCOMP140.DLL & exit /b 1)
+          echo [OK] staged DLLs cover every non-system dependency of parakeet-cli.exe
+      - name: Upload runtime artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: whisper-runtime-${{ matrix.name }}
+          path: whisper-cpp-${{ matrix.name }}.*
+          if-no-files-found: error
+          retention-days: 7
+  publish:
+    name: Publish runtime release
+    # 四个目标全部成功才发布，避免主仓库里出现半套运行时的 tag；
+    # 已存在同 tag 时只覆盖资产（文件内容相同，重新上传是幂等的）
+    needs: [meta, build]
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      # 本任务不 checkout 源码（只下载产物），gh 没有 git 远端可推断目标仓库，
+      # 必须显式给 GH_REPO，否则 gh release 会以 "fatal: not a git repository" 失败
+      GH_REPO: ${{ github.repository }}
+      RUNTIME_TAG: ${{ needs.meta.outputs.tag }}
+    steps:
+      - name: Download runtime artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: whisper-runtime-*
+          path: dist
+          merge-multiple: true
+      - name: Generate checksums
+        # download.mjs 只认清单里登记的摘要：缺条目等于下载失败，不做“无摘要也装”的兜底
+        run: |
+          cd dist
+          sha256sum whisper-cpp-* > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+      - name: Publish prerelease
+        # prerelease 是硬要求（更新检查过滤稳定版）；--latest=false 保证它不会被当成最新发行版
+        run: |
+          cat > notes.md <<'NOTES'
+          whisper.cpp parakeet-cli 离线识别运行时（四个平台），由 `.github/workflows/whisper-runtime.yml` 构建。
+
+          - 消费方：`scripts/download.mjs`（本地与 CI 同一条路径，仅下载，不本地编译）
+          - 版本依据：tag 即运行时配方号，配方由 `scripts/whisper-runtime-meta.mjs` 定义
+          - 完整性：`SHA256SUMS.txt` 里登记每个归档的 SHA256
+
+          本 Release 必须保持 **prerelease** 状态：应用更新检查走 `/releases/latest` 并过滤稳定版，
+          改回正式版会让运行时包被当成 app 新版本推给用户。
+          NOTES
+          if gh release view "$RUNTIME_TAG" > /dev/null 2>&1; then
+            echo "=> 运行时 Release 已存在，覆盖资产：$RUNTIME_TAG"
+            gh release upload "$RUNTIME_TAG" dist/* --clobber
+          else
+            gh release create "$RUNTIME_TAG" dist/* \
+              --prerelease \
+              --latest=false \
+              --target "$GITHUB_SHA" \
+              --title "whisper.cpp runtime $RUNTIME_TAG" \
+              --notes-file notes.md
+          fi
