@@ -12,6 +12,14 @@ import unbzip2Stream from 'unbzip2-stream';
 import chalk from 'chalk';
 import { $ } from 'zx';
 import { withNetworkRetry } from './network-retry.mjs';
+import {
+    WHISPER_CPP_REF,
+    WHISPER_RUNTIME_CHECKSUMS_FILE,
+    WHISPER_RUNTIME_RECIPE,
+    WHISPER_RUNTIME_RELEASE_TAG,
+    whisperRuntimeAssetName,
+    whisperRuntimeReleaseAssetUrl,
+} from './whisper-runtime-meta.mjs';
 
 const getGithubToken = () => process.env.GITHUB_TOKEN || process.env.GH_TOKEN;
 
@@ -515,11 +523,11 @@ function setProxy() {
  * 单次下载尝试：流式写入目标文件，并按需校验 SHA1。
  * 失败时抛出错误，交给 withNetworkRetry 判断是否值得重试。
  *
- * @param {{url: string, dest: string, file: string, sha: string | undefined}} param
- *   url 下载地址；dest 目标文件路径；file 文件名（日志与校验用）；sha 可选 SHA1。
+ * @param {{url: string, dest: string, file: string, sha: string | undefined, algo: 'sha1' | 'sha256'}} param
+ *   url 下载地址；dest 目标文件路径；file 文件名（日志与校验用）；sha 可选摘要；algo 摘要算法。
  * @returns {Promise<void>} 文件写入并通过校验后结束。
  */
-async function fetchToFile({url, dest, file, sha}) {
+async function fetchToFile({url, dest, file, sha, algo}) {
     const response = await axios.get(url, {
         responseType: "stream",
         headers: getGithubAuthHeaders(url),
@@ -540,7 +548,7 @@ async function fetchToFile({url, dest, file, sha}) {
     await new Promise((resolve, reject) => {
         response.data.pipe(fs.createWriteStream(dest)).on("close", async () => {
             console.info(chalk.green(`✅ File ${file} downloaded successfully`));
-            const hash = await hashFile(dest, {algo: "sha1"});
+            const hash = await hashFile(dest, {algo});
             if (sha === undefined || hash === sha) {
                 resolve();
             } else {
@@ -558,19 +566,21 @@ async function fetchToFile({url, dest, file, sha}) {
  * @param url {string} 下载地址。
  * @param dir {string} 保存目录。
  * @param file {string} 保存文件名。
- * @param sha {string | undefined} 可选 SHA1 摘要。
+ * @param sha {string | undefined} 可选摘要。
+ * @param algo {'sha1' | 'sha256'} 摘要算法，默认 sha1（历史资产只带 SHA1 清单）。
+ * @param hint {string | undefined} 失败时追加的排障提示（例如缺产物时该去跑哪个工作流）。
  * @returns {Promise<void>} 下载完成后结束。
  */
-async function download({url, dir, file, sha}) {
+async function download({url, dir, file, sha, algo = 'sha1', hint}) {
     const dest = path.join(dir, file);
     console.info(chalk.blue(`=> Start to download from ${url} to ${dest}`));
     try {
-        await withNetworkRetry(() => fetchToFile({url, dest, file, sha}), {label: `download ${file}`});
+        await withNetworkRetry(() => fetchToFile({url, dest, file, sha, algo}), {label: `download ${file}`});
         console.info(chalk.green(`✅ File ${file} valid`));
     } catch (err) {
         console.error(
             chalk.red(
-                `❌ Failed to download ${url}: ${err}.\nPlease try again using command \`yarn download\``
+                `❌ Failed to download ${url}: ${err}.${hint ? `\n${hint}` : ''}\nPlease try again using command \`yarn download\``
             )
         );
         process.exit(1);
@@ -578,31 +588,8 @@ async function download({url, dir, file, sha}) {
 }
 
 /**
- * 运行时基于固定版本的 whisper.cpp 构建；parakeet-cli 输出格式是
- * 解析契约（见 WhisperCppCli.parseOutput），升级前需重新验证。
- */
-const WHISPER_CPP_REF = '52a939a2a762224e255d366c1182b2af4dd1a032';
-
-/**
- * Windows 侧 ggml-vulkan 对 vulkan-1.dll 是硬链接依赖（非 delay-load）：干净系统
- * （无独显驱动、未装 VC 运行库）的 system32 里没有它，缺了进程在加载期就死。
- * loader 取 LunarG 官方运行包（Apache-2.0/MIT，许可证随包附带），
- * 版本与 release.yml 的 VULKAN_VERSION 对齐。
- */
-const VULKAN_RUNTIME_VERSION = '1.4.357.0';
-const VULKAN_RUNTIME_COMPONENTS_URL = `https://sdk.lunarg.com/sdk/download/${VULKAN_RUNTIME_VERSION}/windows/vulkan-runtime-components.zip`;
-
-/**
- * 运行时配方版本：构建参数一变就必须手动 +1；随包 loader 的版本由
- * VULKAN_RUNTIME_VERSION 自动并入标记，升级 loader 不必再手动 bump（r3 = Windows
- * 静态 CRT + OpenMP + 附带 vulkan-1.dll/vcomp140.dll）。同一 ref 不同配方产出的二进制
- * 不可互换，标记里带上它，已装的旧配方运行时才会被重装而不是继续沿用。
- */
-const WHISPER_RUNTIME_RECIPE = `r3+vk${VULKAN_RUNTIME_VERSION}`;
-
-/**
- * MSVC 的 OpenMP 运行时文件名：只有 DLL 形式、/MT 也去不掉（见
- * installOpenMpRuntimeForWindows），与 vulkan-1.dll 一样必须与 exe 同目录分发。
+ * MSVC 的 OpenMP 运行时文件名：只有 DLL 形式、/MT 也去不掉，与 vulkan-1.dll 一样
+ * 由运行时归档随 exe 同目录分发（打包见 whisper-runtime.yml 的 Package 步骤）。
  */
 const VCOMP_DLL_NAME = 'vcomp140.dll';
 
@@ -626,76 +613,6 @@ const readWhisperRuntimeMarker = (markerPath) => {
 };
 
 /**
- * whisper.cpp 运行时资产名，与 release.yml 的 Package 步骤产出一一对应：
- * Windows 打包为 zip，其余平台 tar.gz。
- * @param {string} platform 目标平台（process.platform 取值）。
- * @param {string} arch 目标架构（x64 / arm64）。
- * @returns {string} 资产文件名。
- */
-const whisperRuntimeAssetName = (platform, arch) =>
-    `whisper-cpp-${platform}-${arch}.${platform === 'win32' ? 'zip' : 'tar.gz'}`;
-
-/**
- * 下载 LunarG 官方 Vulkan 运行包，把 x64 的 vulkan-1.dll 与许可证安装到目标目录。
- *
- * Windows 上 parakeet-cli.exe 对 vulkan-1.dll 是硬链接依赖（非 delay-load），而干净系统
- * （无独显驱动、未装 VC 运行库）的 system32 里没有它，缺了进程在加载期就死（0xC0000135，
- * stderr 为空）。exe 目录在 DLL 搜索顺序里优先于 system32，所以 loader 与 exe 同目录分发。
- * 运行包同时含 x86 版本与 pdb，只取 x64；与 release.yml 的 Package 步骤同一来源、同一版本。
- *
- * @param {string} targetDir loader 与许可证的落地目录（exe 同级）。
- * @returns {Promise<void>} 下载、解压或拷贝失败时抛出。
- */
-async function installVulkanLoaderForWindows(targetDir) {
-    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dashplayer-vulkan-'));
-    const archiveName = 'vulkan-runtime-components.zip';
-    await download({url: VULKAN_RUNTIME_COMPONENTS_URL, dir: tmpRoot, file: archiveName});
-    const extractDir = path.join(tmpRoot, 'extract');
-    await extractArchive(path.join(tmpRoot, archiveName), extractDir);
-
-    const loader = findFirstFile(
-        extractDir,
-        (p) => /^x64$/i.test(path.basename(path.dirname(p))) && path.basename(p).toLowerCase() === 'vulkan-1.dll',
-        12
-    );
-    if (!loader) throw new Error(`Vulkan 运行包里找不到 x64/vulkan-1.dll：${VULKAN_RUNTIME_COMPONENTS_URL}`);
-    const license = findFirstFile(extractDir, (p) => path.basename(p) === 'VulkanRT-License.txt', 12);
-    if (!license) throw new Error(`Vulkan 运行包里找不到 VulkanRT-License.txt：${VULKAN_RUNTIME_COMPONENTS_URL}`);
-
-    for (const src of [loader, license]) {
-        const dest = path.join(targetDir, path.basename(src));
-        fs.copyFileSync(src, dest);
-        console.info(chalk.green(`✅ vulkan runtime: ${src} -> ${dest}`));
-    }
-}
-
-/**
- * 把系统里的 vcomp140.dll（vc_redist 装进 System32 的那份）装到目标目录。
- *
- * MSVC 的 OpenMP 运行时只有 DLL 形式、无法静态链接，而关掉 OpenMP 实测 encode 慢
- * ~30%、decode 慢一个量级（VM 内新旧二进制交替跑对比），因此与 vulkan-1.dll 同样
- * 随 exe 分发。必须取 System32 的副本：那份是零外部依赖的（只依赖 KERNEL32），而
- * VS 自带的 app-local 副本（Redist 目录下 x64 的 Microsoft.VC14x.OpenMP）依赖
- * VCRUNTIME140 + UCRT，会把 /MT 去掉的依赖又请回来。与 release.yml 的 Package 步骤同源。
- *
- * vcomp140.dll 属于微软可再分发代码（见“Redistributing Visual C++ Files”文档）。这是
- * app-local 分发：该副本不随 Windows Update 更新，微软给 CRT/OpenMP 发安全更新时，
- * 需要跟版重建运行时包，不要当成“已经永久修好”。
- *
- * @param {string} targetDir vcomp140.dll 的落地目录（exe 同级）。
- * @returns {Promise<void>} 系统里没有该 DLL（未装 VC++ Redistributable）时抛出。
- */
-async function installOpenMpRuntimeForWindows(targetDir) {
-    const src = path.join(process.env.SystemRoot || 'C:\\Windows', 'System32', VCOMP_DLL_NAME);
-    if (!fs.existsSync(src)) {
-        throw new Error(`找不到 ${src}：Windows 本地构建 whisper.cpp 需要先安装 VC++ Redistributable（微软官方 vc_redist.x64.exe）`);
-    }
-    const dest = path.join(targetDir, VCOMP_DLL_NAME);
-    fs.copyFileSync(src, dest);
-    console.info(chalk.green(`✅ openmp runtime: ${src} -> ${dest}`));
-}
-
-/**
  * 校验 Windows whisper.cpp 运行时是否与 exe 配套：exe 对 vulkan-1.dll（ggml-vulkan
  * 硬依赖）与 vcomp140.dll（MSVC OpenMP 运行时，/MT 去不掉）都是硬链接依赖，缺任何一个
  * 在干净系统上都是加载期直接失败（0xC0000135、stderr 为空），必须当场抛错，
@@ -713,141 +630,70 @@ const assertWhisperWindowsRuntimeComplete = (basePath) => {
 };
 
 /**
- * 本地源码构建 whisper.cpp parakeet-cli（开发机获取运行时的唯一路径）。
+ * 从运行时 Release 的校验和清单里取出指定资产的 SHA256。
  *
- * 复刻 release.yml whisper-cpp-runtime 任务的构建参数：静态链接
- * （BUILD_SHARED_LIBS=OFF），macOS Metal 内嵌 GGML 库
- * （GGML_METAL_EMBED_LIBRARY=ON），产出单文件自包含二进制。
- * 源码缓存在 node_modules/.cache/whisper.cpp（不随应用打包，也不进 git）。
- * 只在开发机调用：CI 侧由 release.yml 的 whisper-cpp-runtime 任务提供预编译产物。
- *
- * @param {{ basePath: string, exeName: string }} param 目标目录与可执行文件名。
- * @returns {Promise<boolean>} 构建成功且二进制已就位时 true；缺少构建依赖或构建失败时
- *   false（原因已打印），由调用方按“运行时暂缺”处理（whisper 引擎在运行时会显式报错）。
+ * @param {string} checksumsPath 清单文件路径（`SHA256SUMS.txt`）。
+ * @param {string} assetName 资产文件名。
+ * @returns {string} 64 位小写十六进制摘要。
  */
-async function buildWhisperCppFromSource({ basePath, exeName }) {
-    const { execSync } = await import('node:child_process');
-    // Vulkan 目标的硬依赖来自 ggml 的 find_package(Vulkan COMPONENTS glslc REQUIRED)：
-    // 缺 glslc 时 cmake 只会抛底层报错，这里先给出能直接照做的安装提示。
-    const isMac = platform === 'darwin';
-    const requiredTools = isMac
-        ? [
-            { bin: 'cmake', hint: 'macOS: brew install cmake' },
-            { bin: 'git', hint: 'macOS: brew install git' },
-        ]
-        : [
-            { bin: 'cmake', hint: '请先安装 cmake' },
-            { bin: 'git', hint: '请先安装 git' },
-            {
-                bin: 'glslc',
-                hint: platform === 'win32'
-                    ? 'Windows: 安装 LunarG Vulkan SDK 1.4.x（同时提供 glslc 与 SPIRV-Headers）'
-                    : 'Linux: 需 glslc + SPIRV-Headers（Ubuntu 24.04: apt install glslc libvulkan-dev spirv-headers；22.04: 用 LunarG 的 jammy 源装 vulkan-sdk）',
-            },
-        ];
-    for (const tool of requiredTools) {
-        try {
-            execSync(`${tool.bin} --version`, { stdio: 'ignore' });
-        } catch {
-            console.info(chalk.yellow(`=> 本地构建 whisper.cpp 需要 ${tool.bin}；${tool.hint}`));
-            return false;
-        }
+const readSha256FromChecksums = (checksumsPath, assetName) => {
+    for (const line of fs.readFileSync(checksumsPath, 'utf8').split('\n')) {
+        // 兼容 `sha256sum` 的两种输出格式："<hash>  <name>" 与 "<hash> *<name>"
+        const match = line.trim().match(/^([0-9a-fA-F]{64})\s+\*?(.+)$/);
+        if (match && match[2].trim() === assetName) return match[1].toLowerCase();
     }
+    throw new Error(`运行时清单里没有 ${assetName} 的摘要：${checksumsPath}`);
+};
 
-    const srcDir = path.join(process.cwd(), 'node_modules', '.cache', 'whisper.cpp');
-    const buildDir = path.join(srcDir, 'build');
-    mkdirp(srcDir);
-    let needFetch = false;
-    try {
-        needFetch = execSync('git rev-parse HEAD', { cwd: srcDir, encoding: 'utf8' }).trim() !== WHISPER_CPP_REF;
-    } catch {
-        // 本地缓存还不是 git 仓库（首次构建）
-        needFetch = true;
-    }
-    if (needFetch) {
-        console.info(chalk.blue(`=> Fetching whisper.cpp @ ${WHISPER_CPP_REF.slice(0, 8)}...`));
-        // 换 ref 后必须丢弃上一份源码的构建缓存，否则 cmake 会复用另一棵源码树的 cache
-        fs.rmSync(buildDir, { recursive: true, force: true });
-        try {
-            execSync(`git init "${srcDir}"`, { stdio: 'ignore' });
-            let hasOrigin = true;
-            try {
-                execSync(`git -C "${srcDir}" remote get-url origin`, { stdio: 'ignore' });
-            } catch {
-                hasOrigin = false;
-            }
-            execSync(
-                hasOrigin
-                    ? `git -C "${srcDir}" remote set-url origin https://github.com/ggml-org/whisper.cpp`
-                    : `git -C "${srcDir}" remote add origin https://github.com/ggml-org/whisper.cpp`,
-                { stdio: 'inherit' },
-            );
-            execSync(`git -C "${srcDir}" fetch --depth 1 origin ${WHISPER_CPP_REF}`, { stdio: 'inherit' });
-            execSync(`git -C "${srcDir}" checkout --detach FETCH_HEAD`, { stdio: 'inherit' });
-        } catch (error) {
-            console.info(chalk.yellow(`=> whisper.cpp 源码获取失败：${error.message}`));
-            return false;
-        }
-    }
+/**
+ * 从运行时 Release 下载本平台归档并安装到运行时目录。
+ *
+ * 清单与归档同 tag 同源：先取 `SHA256SUMS.txt` 拿到本资产摘要，再下载资产并按摘要校验。
+ * 清单缺失、没有本资产条目、摘要对不上都当场失败——这里不提供本地编译兜底，运行时只有
+ * 云端这一个来源（缺产物说明 whisper-runtime.yml 没发对应的配方 tag）。
+ *
+ * @param {{ basePath: string, exePath: string, markerPath: string, expectedMarker: string }} param
+ *   basePath 运行时目录；exePath 可执行文件目标路径；markerPath 来源标记路径；
+ *   expectedMarker 安装成功后写入标记的内容。
+ * @returns {Promise<void>} 下载、校验、解压或完整性断言失败时抛出。
+ */
+async function installWhisperRuntimeFromRelease({basePath, exePath, markerPath, expectedMarker}) {
+    const assetName = whisperRuntimeAssetName(platform, arch);
+    const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'dashplayer-whisper-'));
+    const missingHint = `运行时 Release ${WHISPER_RUNTIME_RELEASE_TAG} 不存在或缺资产：先跑 .github/workflows/whisper-runtime.yml 发布该配方（tag 由 scripts/whisper-runtime-meta.mjs 决定）`;
+    console.info(chalk.blue(`=> whisper.cpp 运行时来源：${WHISPER_RUNTIME_RELEASE_TAG}（由 whisper-runtime.yml 发布）`));
 
-    const gpuFlags = isMac
-        ? ['-DGGML_METAL=ON', '-DGGML_METAL_USE_BF16=ON', '-DGGML_METAL_EMBED_LIBRARY=ON', `-DCMAKE_OSX_ARCHITECTURES=${arch === 'arm64' ? 'arm64' : 'x86_64'}`]
-        : [
-            '-DGGML_VULKAN=ON',
-            // Windows 两个参数与 release.yml 的 Configure (Vulkan) 步骤逐字对齐，缺一不可：
-            // CMP0091 为 OLD 时 CMAKE_MSVC_RUNTIME_LIBRARY 会被静默忽略（whisper.cpp 顶层
-            // cmake_minimum_required 只有 3.5），必须显式抬成 NEW；静态 CRT 去
-            // VCRUNTIME140.dll / MSVCP140.dll。OpenMP 保持开启（关掉实测 encode 慢 ~30%、
-            // decode 慢一个量级），vcomp140.dll 由 installOpenMpRuntimeForWindows 随包附带
-            ...(platform === 'win32'
-                ? ['-DCMAKE_POLICY_DEFAULT_CMP0091=NEW', '-DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded']
-                : []),
-        ];
-    if (platform === 'win32') {
-        // 与 exe 配套的两个 DLL 先落地：缺件要在开跑几分钟编译之前就暴露
-        await installVulkanLoaderForWindows(basePath);
-        await installOpenMpRuntimeForWindows(basePath);
-    }
-    console.info(chalk.blue('=> Building whisper.cpp parakeet-cli (first build takes a few minutes)...'));
-    try {
-        execSync(
-            [
-                'cmake -B build',
-                '-DCMAKE_BUILD_TYPE=Release',
-                '-DGGML_NATIVE=OFF',
-                '-DBUILD_SHARED_LIBS=OFF',
-                '-DWHISPER_BUILD_EXAMPLES=ON',
-                '-DWHISPER_BUILD_TESTS=OFF',
-                ...gpuFlags,
-            ].join(' '),
-            { cwd: srcDir, stdio: 'inherit' },
-        );
-        execSync(`cmake --build build --config Release --target parakeet-cli -j 4`, { cwd: srcDir, stdio: 'inherit' });
-    } catch (error) {
-        console.info(chalk.yellow(`=> whisper.cpp 构建失败：${error.message}`));
-        return false;
-    }
+    await download({
+        url: whisperRuntimeReleaseAssetUrl(WHISPER_RUNTIME_CHECKSUMS_FILE),
+        dir: tmpRoot,
+        file: WHISPER_RUNTIME_CHECKSUMS_FILE,
+        hint: missingHint,
+    });
+    const expectedSha256 = readSha256FromChecksums(path.join(tmpRoot, WHISPER_RUNTIME_CHECKSUMS_FILE), assetName);
 
-    const builtPath = platform === 'win32'
-        ? path.join(buildDir, 'bin', 'Release', 'parakeet-cli.exe')
-        : path.join(buildDir, 'bin', 'parakeet-cli');
-    if (!fs.existsSync(builtPath)) {
-        console.info(chalk.yellow(`=> whisper.cpp 构建产物未找到：${builtPath}`));
-        return false;
-    }
-    fs.copyFileSync(builtPath, path.join(basePath, exeName));
+    await download({
+        url: whisperRuntimeReleaseAssetUrl(assetName),
+        dir: tmpRoot,
+        file: assetName,
+        sha: expectedSha256,
+        algo: 'sha256',
+        hint: missingHint,
+    });
+
+    // 归档内是 exe 同级的一揽子文件（Windows 另有 loader、OpenMP 运行时与许可证），
+    // 整包解到运行时目录，不按文件名挑拣：缺件由下面的完整性断言兜住
+    await extractArchive(path.join(tmpRoot, assetName), basePath);
     assertWhisperWindowsRuntimeComplete(basePath);
-    console.info(chalk.green(`✅ whisper.cpp parakeet-cli built and installed to ${basePath}`));
-    return true;
+    fs.chmodSync(exePath, 0o755);
+    fs.writeFileSync(markerPath, `${expectedMarker}\n`);
+    console.info(chalk.green(`✅ whisper.cpp parakeet-cli installed from ${WHISPER_RUNTIME_RELEASE_TAG} to ${basePath}`));
 }
 
 {
     // whisper.cpp 离线识别 CLI（whisper.cpp 引擎的核显加速运行时）。
-    // 二进制跟着安装包一起分发，来源只有两个：
-    //   1) DASHPLAYER_WHISPER_RUNTIME_DIR 指定目录里已有归档：release.yml 的
-    //      whisper-cpp-runtime 任务构建出的产物在本次运行内直接传给 app 构建；
-    //   2) 其余情况（开发机）：按固定 ref 本地编译源码（buildWhisperCppFromSource）。
-    // 运行时不上传 Release：发版资产只放安装包。
+    // 二进制跟着安装包一起分发，产地在专门的 whisper-runtime.yml：按固定 ref + 配方构建
+    // 四个平台的归档，发到 tag = 配方的 prerelease Release。本地与 CI 走同一条路径——只从
+    // 该 Release 下载现成归档，不再本地编译（开发机因此不需要 cmake / glslc / Vulkan SDK）。
     const platformDir = platform === 'darwin' ? 'darwin' : platform === 'win32' ? 'win32' : 'linux';
     const archDir = arch === 'arm64' ? 'arm64' : 'x64';
     const basePath = path.join(dir, 'whisper-cpp', archDir, platformDir);
@@ -862,14 +708,6 @@ async function buildWhisperCppFromSource({ basePath, exeName }) {
     if (!supportedArchs[platform]?.includes(arch)) {
         console.info(chalk.yellow(`=> whisper.cpp 暂不提供 ${platform}/${arch} 运行时，已跳过；whisper.cpp 引擎在该平台不可用，请使用 sherpa-onnx 引擎`));
     } else {
-        // CI 会把本次运行的运行时产物目录传进来（release.yml 的 whisper-cpp-runtime
-        // 任务产出 artifact，再由 app 构建任务下载到该目录）
-        const localArchiveDir = process.env.DASHPLAYER_WHISPER_RUNTIME_DIR;
-        const localArchivePath = localArchiveDir
-            ? path.join(localArchiveDir, whisperRuntimeAssetName(platform, arch))
-            : null;
-        const localArchiveExists = Boolean(localArchivePath && fs.existsSync(localArchivePath));
-
         // parakeet-cli 的输出格式是解析契约（见 WhisperCppCli.parseOutput），所以已装的
         // 二进制必须带上来源：标记与预期不符（换了 whisper.cpp ref / 换了配方 / 手工放置）
         // 就重新安装。二进制内容由 ref 与配方共同决定，标记统一是 source:<ref>+<配方>。
@@ -881,39 +719,7 @@ async function buildWhisperCppFromSource({ basePath, exeName }) {
             if (fs.existsSync(exePath) && installedMarker === null) {
                 console.info(chalk.yellow(`=> 现有 ${exeName} 没有来源标记（手工放置或旧版本安装），按 ${expectedMarker} 重新安装以对齐版本`));
             }
-            if (localArchiveExists) {
-                console.info(chalk.blue(`=> whisper.cpp target: ${exePath}`));
-                console.info(chalk.blue(`=> whisper.cpp 使用本地运行归档：${localArchivePath}`));
-                await installBinaryFromArchive({
-                    archivePath: localArchivePath,
-                    outputPath: exePath,
-                    binaryNameCandidates: ['parakeet-cli', 'parakeet-cli.exe'],
-                    // Windows 归档里 exe 之外还有 loader、OpenMP 运行时与许可证（release.yml 的 Package 步骤打包）
-                    extraCopyPatterns: platform === 'win32' ? [/^vulkan-1\.dll$/i, /^vcomp140\.dll$/i, /^VulkanRT-License\.txt$/] : [],
-                });
-                assertWhisperWindowsRuntimeComplete(basePath);
-                fs.writeFileSync(markerPath, `${expectedMarker}\n`);
-            } else if (process.env.CI) {
-                // CI 上不许编译兜底：缺运行时说明 whisper-cpp-runtime 没产出该平台产物，
-                // 而 whisper.cpp 是新用户的默认识别引擎，必须让该平台构建显式失败
-                console.error(
-                    chalk.red(
-                        `❌ whisper.cpp 运行时缺失：CI 应从 DASHPLAYER_WHISPER_RUNTIME_DIR 取得归档\n` +
-                        `   期望路径：${localArchivePath ?? '（变量未设置）'}\n` +
-                        `   请检查 release.yml 的 whisper-cpp-runtime 任务是否成功构建了 ${platform}/${arch} 运行时。`
-                    )
-                );
-                process.exit(1);
-            } else {
-                // 开发机：没有预编译产物，回退到本地源码编译（缺工具链时上面已有安装提示）
-                const built = await buildWhisperCppFromSource({ basePath, exeName });
-                if (built) {
-                    fs.writeFileSync(markerPath, `${expectedMarker}\n`);
-                } else {
-                    console.info(chalk.yellow(`=> whisper.cpp 运行时暂缺且本地构建未完成，已跳过；识别引擎可暂用 sherpa-onnx`));
-                    console.info(chalk.yellow(`   手动放置二进制时请一并写入来源标记 ${markerPath}（内容 ${expectedMarker}），否则下次 yarn run download 会重新安装`));
-                }
-            }
+            await installWhisperRuntimeFromRelease({ basePath, exePath, markerPath, expectedMarker });
         }
     }
 }
