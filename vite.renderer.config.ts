@@ -14,9 +14,9 @@ export default defineConfig({
         react(
             enableReactCompiler
                 ? {
-                    babel: {
-                        plugins: ['babel-plugin-react-compiler'],
-                    },
+                    // plugin-react 6 起不再接受 babel 配置，编译器改由 oxc-transform-react
+                    // （React Compiler 的 Rust 实现）承担。
+                    compiler: true,
                 }
                 : undefined
         ),
