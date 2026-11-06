@@ -1,8 +1,8 @@
-import Controller from '@/backend/controllers/Controller';
+import type Controller from '@/backend/controllers/Controller';
 import MigrationFailureController from '@/backend/controllers/MigrationFailureController';
 import container from '@/backend/ioc/inversify.config';
 import TYPES from '@/backend/ioc/types';
-import MainWindowRegistry from '@/backend/infrastructure/system/MainWindowRegistry';
+import type MainWindowRegistry from '@/backend/infrastructure/system/MainWindowRegistry';
 import { BrowserWindow } from 'electron';
 
 /**

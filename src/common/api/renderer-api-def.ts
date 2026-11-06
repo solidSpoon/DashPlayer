@@ -1,11 +1,11 @@
-import { OpenAIDictionaryResult } from '@/common/types/DictionaryResult';
-import { RendererTranslationItem } from '@/common/types/TranslationResult';
-import { ChatStreamEvent } from '@/common/types/chat';
-import { AnalysisStreamEvent } from '@/common/types/analysis';
-import { TranscriptTaskUpdate } from '@/common/contracts/transcript/transcript-task';
-import { Sentence } from '@/common/types/SentenceC';
-import { ModelDownloadPhase } from '@/common/contracts/model-download-phase';
-import { DubbingExportStatus } from '@/common/contracts/dubbing';
+import type { OpenAIDictionaryResult } from '@/common/types/DictionaryResult';
+import type { RendererTranslationItem } from '@/common/types/TranslationResult';
+import type { ChatStreamEvent } from '@/common/types/chat';
+import type { AnalysisStreamEvent } from '@/common/types/analysis';
+import type { TranscriptTaskUpdate } from '@/common/contracts/transcript/transcript-task';
+import type { Sentence } from '@/common/types/SentenceC';
+import type { ModelDownloadPhase } from '@/common/contracts/model-download-phase';
+import type { DubbingExportStatus } from '@/common/contracts/dubbing';
 
 /**
  * 前端API定义文件 - 定义后端可以调用的前端方法

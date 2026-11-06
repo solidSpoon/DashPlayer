@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify';
-import SpeechRecognitionGateway from '@/backend/services/gateways/media/SpeechRecognitionGateway';
-import { SettingsStore } from '@/backend/services/gateways/SettingsStore';
+import type SpeechRecognitionGateway from '@/backend/services/gateways/media/SpeechRecognitionGateway';
+import type { SettingsStore } from '@/backend/services/gateways/SettingsStore';
 import TYPES from '@/backend/ioc/types';
 import { TRANSCRIPTION_ENGINES, type TranscriptionEngine } from '@/common/contracts/transcription-engine';
 

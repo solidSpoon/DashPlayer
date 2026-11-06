@@ -1,13 +1,14 @@
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import { DpTask, DpTaskState, DpTaskUpdate } from '@/common/contracts/dp-task';
+import { type DpTask, DpTaskState, type DpTaskUpdate } from '@/common/contracts/dp-task';
 import { LRUCache } from 'lru-cache';
 import TimeUtil from '@/common/utils/TimeUtil';
 import { inject, injectable } from 'inversify';
-import { Cancelable } from '@/common/interfaces';
+import type { Cancelable } from '@/common/interfaces';
 import { CancelByUserError } from '@/backend/utils/errors/errors';
 import TYPES from '@/backend/ioc/types';
-import DpTaskRepository, { DpTaskUpdatePatch } from '@/backend/services/repositories/DpTaskRepository';
-import RendererEvents from '@/backend/services/gateways/renderer/RendererEvents';
+import type DpTaskRepository from '@/backend/services/repositories/DpTaskRepository';
+import { type DpTaskUpdatePatch } from '@/backend/services/repositories/DpTaskRepository';
+import type RendererEvents from '@/backend/services/gateways/renderer/RendererEvents';
 
 /**
  * 后台任务业务服务。

@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { showNotification, NotificationVariant } from '@/fronted/components/shared/toasts/notification';
+import { showNotification, type NotificationVariant } from '@/fronted/components/shared/toasts/notification';
 
 /** main 进程经 renderer API 'ui/show-toast' 推送的提示参数。 */
 type RendererToastEventDetail = {

@@ -1,4 +1,4 @@
-import {
+import type {
     SubtitleTimestampAdjustment,
     SubtitleTimestampAdjustmentInput,
 } from '@/common/contracts/subtitle-timestamp-adjustment';

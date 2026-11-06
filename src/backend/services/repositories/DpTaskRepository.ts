@@ -1,4 +1,4 @@
-import { DpTask, DpTaskState, DpTaskUpdate } from '@/common/contracts/dp-task';
+import { type DpTask, DpTaskState, type DpTaskUpdate } from '@/common/contracts/dp-task';
 
 /**
  * 创建后台任务时允许由业务层提供的字段。

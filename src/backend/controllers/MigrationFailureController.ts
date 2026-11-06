@@ -1,6 +1,6 @@
 import { injectable } from 'inversify';
 import registerRoute from '@/backend/controllers/ipc/registerRoute';
-import Controller from '@/backend/controllers/Controller';
+import type Controller from '@/backend/controllers/Controller';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { getMigrationFailure } from '@/backend/startup/migrationFailureState';
 import { resetUserDataAndRelaunch, retryStartup } from '@/backend/startup/migrationRecovery';

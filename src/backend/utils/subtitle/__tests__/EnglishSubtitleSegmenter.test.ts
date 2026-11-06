@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import EnglishSubtitleSegmenter from '@/backend/utils/subtitle/EnglishSubtitleSegmenter';
-import { SpeechRecognitionToken } from '@/backend/services/gateways/media/SpeechRecognitionGateway';
-import { SrtLine } from '@/common/utils/subtitle';
+import type { SpeechRecognitionToken } from '@/backend/services/gateways/media/SpeechRecognitionGateway';
+import type { SrtLine } from '@/common/utils/subtitle';
 
 const segmenter = new EnglishSubtitleSegmenter();
 

@@ -1,9 +1,9 @@
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
-import { RendererApiDefinitions } from '@/common/api/renderer-api-def';
+import type RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
+import type { RendererApiDefinitions } from '@/common/api/renderer-api-def';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import MainWindowRegistry from '@/backend/infrastructure/system/MainWindowRegistry';
+import type MainWindowRegistry from '@/backend/infrastructure/system/MainWindowRegistry';
 import { ipcMain } from 'electron';
 
 /** renderer API 回执允许等待的最长时间，超时后明确释放 IPC 监听器。 */

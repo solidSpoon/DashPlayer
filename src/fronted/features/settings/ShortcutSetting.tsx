@@ -45,7 +45,7 @@ import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { Input } from '@/fronted/components/ui/input';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
 import useSWR from 'swr';
-import { ShortcutSettingDetailVO, ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
+import type { ShortcutSettingDetailVO, ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
 
 /**
  * 格式化单个按键为标准符号或名称。

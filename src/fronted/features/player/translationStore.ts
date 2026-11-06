@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import i18n from '@/fronted/i18n';
 import { subscribeWithSelector } from 'zustand/middleware';
 import hash from 'object-hash';
-import { RendererTranslationItem, TranslationMode } from '@/common/types/TranslationResult';
+import type { RendererTranslationItem, TranslationMode } from '@/common/types/TranslationResult';
 import { playerApi } from '@/fronted/features/player/playerApi';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { showNotification } from '@/fronted/components/shared/toasts/notification';

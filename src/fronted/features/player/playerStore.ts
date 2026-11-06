@@ -2,8 +2,8 @@
  * 管理播放器的核心状态、播放控制、字幕定位和句子级跳转能力。
  */
 import { create } from 'zustand';
-import { Sentence } from '@/common/types/SentenceC';
-import { SrtTender, SrtTenderImpl } from '@/fronted/lib/SrtTender';
+import type { Sentence } from '@/common/types/SentenceC';
+import { type SrtTender, SrtTenderImpl } from '@/fronted/lib/SrtTender';
 import StrUtil from '@/common/utils/str-util';
 import useFile from '@/fronted/features/file-browser/fileStore';
 import useSetting from '@/fronted/features/settings/settingsStore';

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import path from 'path';
 import AccessRecoveringFileSystemGateway from '@/backend/infrastructure/storage/AccessRecoveringFileSystemGateway';
-import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import { MemoryFileSystemGateway } from '@/test/memory-file-system-gateway';
 
 /**

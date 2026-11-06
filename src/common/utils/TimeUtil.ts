@@ -1,7 +1,7 @@
 import moment from 'moment';
 import StrUtil from '@/common/utils/str-util';
 import { TypeGuards } from '@/common/utils/TypeGuards';
-import { Nullable } from '@/common/types/Types';
+import type { Nullable } from '@/common/types/Types';
 
 export default class TimeUtil {
     public static secondToTimeStrCompact(second: Nullable<number>): string {

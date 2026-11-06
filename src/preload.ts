@@ -1,11 +1,11 @@
 // See the Electron documentation for details on how to use preload scripts:
 // https://www.electronjs.org/docs/latest/tutorial/process-model#preload-scripts
-import {contextBridge, ipcRenderer, IpcRendererEvent} from 'electron';
-import {RuntimeSettingKey} from './common/contracts/runtime-settings';
-import {ApiDefinitions, ApiMap} from '@/common/api/api-def';
-import {DpTask} from '@/common/contracts/dp-task';
-import {RepairTaskEvent} from '@/common/contracts/playback-repair';
-import {RendererApiDefinitions, RendererApiMap} from '@/common/api/renderer-api-def';
+import {contextBridge, ipcRenderer, type IpcRendererEvent} from 'electron';
+import type {RuntimeSettingKey} from './common/contracts/runtime-settings';
+import type {ApiDefinitions, ApiMap} from '@/common/api/api-def';
+import type {DpTask} from '@/common/contracts/dp-task';
+import type {RepairTaskEvent} from '@/common/contracts/playback-repair';
+import type {RendererApiDefinitions, RendererApiMap} from '@/common/api/renderer-api-def';
 import type { SimpleEvent, TraceCarrier } from '@/common/log/simple-types';
 
 export type Channels =

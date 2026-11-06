@@ -3,10 +3,10 @@ import path from 'path';
 import fs from 'fs';
 import os from 'os';
 import { PassThrough } from 'stream';
-import axios, { AxiosResponse } from 'axios';
+import axios, { type AxiosResponse } from 'axios';
 import { LocalAiRuntime } from '@/backend/infrastructure/ai/LocalAiRuntime';
-import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
-import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
 import type { SettingsStore } from '@/backend/services/gateways/SettingsStore';
 import type { LocalAiModelDefinition } from '@/common/contracts/local-ai';
 

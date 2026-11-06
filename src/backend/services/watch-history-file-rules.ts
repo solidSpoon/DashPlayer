@@ -1,7 +1,7 @@
 import path from 'path';
 
-import { WatchHistoryRecord } from '@/backend/services/repositories/WatchHistoryRepository';
-import WatchHistoryVO from '@/common/types/WatchHistoryVO';
+import type { WatchHistoryRecord } from '@/backend/services/repositories/WatchHistoryRepository';
+import type WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import MediaUtil from '@/common/utils/MediaUtil';
 
 /** 修复产物在文件名中的固定中缀。 */

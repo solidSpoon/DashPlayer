@@ -15,7 +15,7 @@ import { useSideTranslationHold } from '@/fronted/features/player/hooks/useSideT
 import { PLAYER_SIDEBAR_SCROLLER_TESTID } from '@/fronted/features/player/dev/scrollWriteLog';
 import useBoundary from '@/fronted/features/player/hooks/useBoundary';
 import useChatPanel from '@/fronted/features/chat/chatStore';
-import { Sentence } from '@/common/types/SentenceC';
+import type { Sentence } from '@/common/types/SentenceC';
 
 export default function Subtitle() {
     const showSideBar = useLayout((state) => state.showSideBar);

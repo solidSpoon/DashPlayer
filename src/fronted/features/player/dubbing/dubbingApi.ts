@@ -1,5 +1,5 @@
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
-import { DubbingExportStatus, DubbingLibraryEntry, DubbingManifest, DubbingTakeVO } from '@/common/contracts/dubbing';
+import type { DubbingExportStatus, DubbingLibraryEntry, DubbingManifest, DubbingTakeVO } from '@/common/contracts/dubbing';
 
 /**
  * 配音功能的 backendClient 封装。

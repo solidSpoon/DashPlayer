@@ -1,8 +1,8 @@
 import { inject, injectable } from 'inversify';
-import Controller from '@/backend/controllers/Controller';
+import type Controller from '@/backend/controllers/Controller';
 import registerRoute from '@/backend/controllers/ipc/registerRoute';
 import TYPES from '@/backend/ioc/types';
-import DubbingService from '@/backend/services/DubbingService';
+import type DubbingService from '@/backend/services/DubbingService';
 
 /**
  * 配音 IPC 控制器：注册 dubbing/* 路径，参数整理与转发到 DubbingService。

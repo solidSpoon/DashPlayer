@@ -1,4 +1,4 @@
-import { Sentence } from '@/common/types/SentenceC';
+import type { Sentence } from '@/common/types/SentenceC';
 import CollUtil from '@/common/utils/CollUtil';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 

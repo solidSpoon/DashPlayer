@@ -2,7 +2,7 @@ import React from 'react';
 import { p } from '@/common/utils/Util';
 import { FONT_SIZE } from '@/fronted/styles/style';
 import { cn } from '@/fronted/lib/utils';
-import { Sentence } from '@/common/types/SentenceC';
+import type { Sentence } from '@/common/types/SentenceC';
 import TranslatableLineWrapper from './TranslatableLineWrapper';
 import useSetting from '@/fronted/features/settings/settingsStore';
 

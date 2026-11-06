@@ -1,4 +1,4 @@
-import { UIMessageChunk } from 'ai';
+import type { UIMessageChunk } from 'ai';
 
 /**
  * 创建整句学习会话所需的稳定上下文快照。

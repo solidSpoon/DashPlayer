@@ -13,7 +13,7 @@ import {
     ContextMenuTrigger
 } from '@/fronted/components/ui/context-menu';
 import UrlUtil from '@/common/utils/UrlUtil';
-import WatchHistoryVO from '@/common/types/WatchHistoryVO';
+import type WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import PathUtil from '@/common/utils/PathUtil';
 import MediaUtil from '@/common/utils/MediaUtil';
 import MusicCard from '@/fronted/features/file-browser/components/music-card';

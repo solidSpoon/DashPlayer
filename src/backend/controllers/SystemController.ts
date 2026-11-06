@@ -2,24 +2,23 @@ import registerRoute from '@/backend/controllers/ipc/registerRoute';
 import { app, dialog, shell, systemPreferences } from 'electron';
 import path from 'path';
 import { clearDB } from '@/backend/infrastructure/db/db';
-import { WindowState } from '@/common/types/Types';
+import type { WindowState } from '@/common/types/Types';
 import { checkUpdate } from '@/backend/services/CheckUpdate';
 import { readSystemInfo } from '@/backend/utils/systemInfo';
 import { isDevelopmentMode } from '@/backend/utils/runtimeEnv';
 import { inject, injectable } from 'inversify';
-import Controller from '@/backend/controllers/Controller';
+import type Controller from '@/backend/controllers/Controller';
 import StrUtil from '@/common/utils/str-util';
 import TYPES from '@/backend/ioc/types';
 import OpenDialogOptions = Electron.OpenDialogOptions;
-import WindowPort from '@/backend/services/gateways/window/WindowPort';
-import SystemConfigService from '@/backend/services/SystemConfigService';
+import type WindowPort from '@/backend/services/gateways/window/WindowPort';
+import type SystemConfigService from '@/backend/services/SystemConfigService';
 import { UPDATE_TOAST_LAST_SHOWN_AT_KEY } from '@/common/constants/systemConfigKeys';
-import { UpdateCheckResult } from '@/common/types/update-check';
+import type { UpdateCheckResult } from '@/common/types/update-check';
 import { RESET_DB_RESYNC_FLAG } from '@/common/constants/resetDb';
-import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
-import StorageDirectoryProvider, {
-    StorageDirectoryTarget,
-} from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 
 /**
  * eg: .mkv -> mkv

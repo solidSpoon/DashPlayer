@@ -1,8 +1,8 @@
 import {
-    SchedulerOptions,
-    SchedulerSnapshot,
+    type SchedulerOptions,
+    type SchedulerSnapshot,
     safeLog,
-    YieldOptions,
+    type YieldOptions,
 } from '@/backend/utils/concurrency/types';
 
 const defaultClock = {

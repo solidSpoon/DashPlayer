@@ -1,5 +1,5 @@
 import path from 'path';
-import { Mp3BitrateMode, LearnedCapabilityOverlay, RepairReason, RepairRecipe } from '@/common/contracts/playback-repair';
+import type { Mp3BitrateMode, LearnedCapabilityOverlay, RepairReason, RepairRecipe } from '@/common/contracts/playback-repair';
 import MediaUtil from '@/common/utils/MediaUtil';
 
 /**

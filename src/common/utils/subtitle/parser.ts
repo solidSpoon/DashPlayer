@@ -1,7 +1,7 @@
 import Util from '@/common/utils/Util';
 import StrUtil from '@/common/utils/str-util';
-import { Nullable } from '@/common/types/Types';
-import { SrtLine, createSrtLine } from './types';
+import type { Nullable } from '@/common/types/Types';
+import { type SrtLine, createSrtLine } from './types';
 import { timeTextToSeconds } from './time';
 
 const CHINESE_REGEX = /[\u4e00-\u9fa5]/;

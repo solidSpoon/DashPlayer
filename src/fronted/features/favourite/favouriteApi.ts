@@ -1,5 +1,5 @@
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
-import { ClipQuery } from '@/common/api/dto';
+import type { ClipQuery } from '@/common/api/dto';
 
 /**
  * 收藏片段功能调用的后端接口。

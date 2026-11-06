@@ -14,7 +14,7 @@ import AppearanceSetting from '@/fronted/features/settings/AppearanceSetting';
 import ProxySetting from '@/fronted/features/settings/ProxySetting';
 import MobileAccessSetting from '@/fronted/features/settings/MobileAccessSetting';
 import ServiceResourceSetting from '@/fronted/features/settings/ServiceResourceSetting';
-import toast, { Toaster as HotToaster, Toast } from 'react-hot-toast';
+import toast, { Toaster as HotToaster, type Toast } from 'react-hot-toast';
 import RendererToastHost from '@/fronted/components/shared/toasts/RendererToastHost';
 
 import TranscriptPage from '@/fronted/features/transcript/TranscriptPage';

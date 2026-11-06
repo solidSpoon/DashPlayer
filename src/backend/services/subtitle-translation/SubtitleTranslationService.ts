@@ -1,26 +1,26 @@
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import CacheService from '@/backend/services/CacheService';
-import ClientProviderService from '@/backend/services/ClientProviderService';
-import ModelRoutingService from '@/backend/services/ModelRoutingService';
-import SettingService from '@/backend/services/SettingService';
+import type CacheService from '@/backend/services/CacheService';
+import type ClientProviderService from '@/backend/services/ClientProviderService';
+import type ModelRoutingService from '@/backend/services/ModelRoutingService';
+import type SettingService from '@/backend/services/SettingService';
 import type ResourceFallbackService from '@/backend/services/ResourceFallbackService';
 import type LocalAiService from '@/backend/services/LocalAiService';
-import LocalSubtitleBatchTranslator from '@/backend/services/gateways/translate/LocalSubtitleBatchTranslator';
-import LocalMtSubtitleBatchTranslator from '@/backend/services/gateways/translate/LocalMtSubtitleBatchTranslator';
-import OpenAiSubtitleBatchTranslator from '@/backend/services/gateways/translate/OpenAiSubtitleBatchTranslator';
-import {
+import type LocalSubtitleBatchTranslator from '@/backend/services/gateways/translate/LocalSubtitleBatchTranslator';
+import type LocalMtSubtitleBatchTranslator from '@/backend/services/gateways/translate/LocalMtSubtitleBatchTranslator';
+import type OpenAiSubtitleBatchTranslator from '@/backend/services/gateways/translate/OpenAiSubtitleBatchTranslator';
+import type {
     SubtitleBatchTranslationInput,
     SubtitleTranslationResultItem,
     SubtitleTranslationTarget,
 } from '@/backend/services/gateways/translate/SubtitleBatchTranslationInput';
-import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
-import { TencentTranslateClient } from '@/backend/services/gateways/translate/TencentTranslateClient';
-import SentenceTranslatesRepository from '@/backend/services/repositories/SentenceTranslatesRepository';
+import type RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
+import type { TencentTranslateClient } from '@/backend/services/gateways/translate/TencentTranslateClient';
+import type SentenceTranslatesRepository from '@/backend/services/repositories/SentenceTranslatesRepository';
 import SubtitleTranslationScheduler, {
-    SubtitleTranslationBatchRequest,
-    SubtitleTranslationBatchResult,
+    type SubtitleTranslationBatchRequest,
+    type SubtitleTranslationBatchResult,
 } from '@/backend/services/subtitle-translation/SubtitleTranslationScheduler';
 import {
     buildContextStorageKeyForSentence,
@@ -30,15 +30,15 @@ import {
 } from '@/backend/services/subtitle-translation/SubtitleTranslationCacheKey';
 import {
     buildSubtitleStorageMode,
-    SubtitleTranslationStorageMode,
+    type SubtitleTranslationStorageMode,
 } from '@/backend/services/subtitle-translation/SubtitleTranslationStorageMode';
 import { LOCAL_MT_MODEL_ID } from '@/common/contracts/local-mt';
 import { concurrency } from '@/backend/utils/concurrency';
 import {
     resolveSubtitleStyleWithSignature,
 } from '@/common/constants/openaiSubtitlePrompts';
-import { Sentence } from '@/common/types/SentenceC';
-import {
+import type { Sentence } from '@/common/types/SentenceC';
+import type {
     RendererTranslationItem,
     TranslationMode,
     TranslationProvider,

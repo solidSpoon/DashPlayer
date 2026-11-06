@@ -10,7 +10,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fron
 import { cn } from '@/fronted/lib/utils';
 import MediaUtil from '@/common/utils/MediaUtil';
 import { FileAudio2, FileVideo2 } from 'lucide-react';
-import WatchHistoryVO from '@/common/types/WatchHistoryVO';
+import type WatchHistoryVO from '@/common/types/WatchHistoryVO';
 import PathUtil from '@/common/utils/PathUtil';
 import { Button } from '@/fronted/components/ui/button';
 import { Progress } from '@/fronted/components/ui/progress';

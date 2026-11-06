@@ -1,4 +1,4 @@
-import { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';
+import type { ClipMeta, OssBaseMeta } from '@/common/types/clipMeta';
 
 
 export interface ClipOssService extends OssService<ClipMeta> {

@@ -1,8 +1,8 @@
 import registerRoute from '@/backend/controllers/ipc/registerRoute';
 import { inject, injectable } from 'inversify';
-import Controller from '@/backend/controllers/Controller';
+import type Controller from '@/backend/controllers/Controller';
 import TYPES from '@/backend/ioc/types';
-import AiFuncService from '@/backend/services/AiFuncService';
+import type AiFuncService from '@/backend/services/AiFuncService';
 
 @injectable()
 export default class AiFuncController implements Controller {

@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify';
-import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
-import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
-import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
+import type FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import TYPES from '@/backend/ioc/types';
 import { ModelArchiveInstaller } from '@/backend/services/models/ModelArchiveInstaller';
 import {

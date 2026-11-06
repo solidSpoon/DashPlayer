@@ -1,9 +1,9 @@
 import { inject, injectable } from 'inversify';
 import { BrowserWindow } from 'electron';
-import WindowPort from '@/backend/services/gateways/window/WindowPort';
+import type WindowPort from '@/backend/services/gateways/window/WindowPort';
 import TYPES from '@/backend/ioc/types';
-import MainWindowRegistry from '@/backend/infrastructure/system/MainWindowRegistry';
-import { WindowState } from '@/common/types/Types';
+import type MainWindowRegistry from '@/backend/infrastructure/system/MainWindowRegistry';
+import type { WindowState } from '@/common/types/Types';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 
 /** 首页的设计尺寸，与 src/main.ts 创建窗口时的初始尺寸保持一致。 */

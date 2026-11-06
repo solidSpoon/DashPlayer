@@ -11,7 +11,8 @@ import { z } from 'zod';
 import TYPES from '@/backend/ioc/types';
 import type LocalAiService from '@/backend/services/LocalAiService';
 import type { LocalGenerateTextOptions } from '@/backend/services/LocalAiService';
-import StorageDirectoryProvider, { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import { getRuntimeResourcePath } from '@/backend/utils/runtimeEnv';
 import { probeReachableDownloadUrl } from '@/backend/utils/probeDownloadUrl';
 import { concurrency } from '@/backend/utils/concurrency';
@@ -22,9 +23,9 @@ import {
     isCustomModelId,
     LOCAL_AI_DEFAULT_MODEL_ID,
     LOCAL_AI_MODELS,
-    LocalAiModelDefinition,
-    LocalAiSpeedTestResult,
-    LocalAiStatus,
+    type LocalAiModelDefinition,
+    type LocalAiSpeedTestResult,
+    type LocalAiStatus,
     requireLocalAiModel,
 } from '@/common/contracts/local-ai';
 import type RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';

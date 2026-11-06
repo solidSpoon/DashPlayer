@@ -1,4 +1,4 @@
-import { SrtLine, validateSrtLine } from './types';
+import { type SrtLine, validateSrtLine } from './types';
 import { secondsToSrtTimestamp } from './time';
 
 /**

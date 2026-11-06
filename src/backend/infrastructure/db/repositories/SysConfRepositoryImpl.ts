@@ -3,7 +3,7 @@ import { inject, injectable } from 'inversify';
 
 import type { Db } from '@/backend/infrastructure/db/createDb';
 import { systemConfigs } from '@/backend/infrastructure/db/tables/sysConf';
-import SysConfRepository from '@/backend/services/repositories/SysConfRepository';
+import type SysConfRepository from '@/backend/services/repositories/SysConfRepository';
 import TYPES from '@/backend/ioc/types';
 import TimeUtil from '@/common/utils/TimeUtil';
 

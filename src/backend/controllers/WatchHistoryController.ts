@@ -1,10 +1,10 @@
 import registerRoute from '@/backend/controllers/ipc/registerRoute';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import Controller from '@/backend/controllers/Controller';
-import WatchHistoryService from '@/backend/services/WatchHistoryService';
-import { SubtitleResolution } from '@/common/contracts/subtitle-resolution';
-import WatchHistoryVO from '@/common/types/WatchHistoryVO';
+import type Controller from '@/backend/controllers/Controller';
+import type WatchHistoryService from '@/backend/services/WatchHistoryService';
+import type { SubtitleResolution } from '@/common/contracts/subtitle-resolution';
+import type WatchHistoryVO from '@/common/types/WatchHistoryVO';
 
 @injectable()
 export default class WatchHistoryController implements Controller {

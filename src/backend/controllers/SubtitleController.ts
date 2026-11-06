@@ -1,12 +1,11 @@
 import registerRoute from '@/backend/controllers/ipc/registerRoute';
-import { SrtSentence } from '@/common/types/SentenceC';
-import { SentenceStruct } from '@/common/types/SentenceStruct';
+import type { SrtSentence } from '@/common/types/SentenceC';
+import type { SentenceStruct } from '@/common/types/SentenceStruct';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import Controller from '@/backend/controllers/Controller';
-import SubtitleService, {
-    SubtitleVocabularyMatchResult,
-} from '@/backend/services/SubtitleService';
+import type Controller from '@/backend/controllers/Controller';
+import type SubtitleService from '@/backend/services/SubtitleService';
+import { type SubtitleVocabularyMatchResult } from '@/backend/services/SubtitleService';
 
 
 @injectable()

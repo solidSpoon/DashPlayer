@@ -1,21 +1,20 @@
 import registerRoute from '@/backend/controllers/ipc/registerRoute';
-import Controller from '@/backend/controllers/Controller';
+import type Controller from '@/backend/controllers/Controller';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
-import {
+import type { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
+import type {
     StorageUsageItemVO,
     StorageUsageVO,
 } from '@/common/contracts/storage-usage-vo';
-import StorageDirectoryProvider, {
-    StorageDirectoryTarget,
-} from '@/backend/services/gateways/storage/StorageDirectoryProvider';
-import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
 import {
     getStorageRootStatus,
     resolveStorageDirectory,
 } from '@/backend/infrastructure/storage/StorageDirectorySupport';
-import { SettingsStore } from '@/backend/services/gateways/SettingsStore';
+import type { SettingsStore } from '@/backend/services/gateways/SettingsStore';
 
 @injectable()
 export default class StorageController implements Controller {

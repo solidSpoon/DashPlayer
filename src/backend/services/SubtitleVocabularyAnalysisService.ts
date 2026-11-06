@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import { concurrency } from '@/backend/utils/concurrency';
-import { MatchedWord, WordMatchService } from '@/backend/services/WordMatchService';
+import type { MatchedWord, WordMatchService } from '@/backend/services/WordMatchService';
 
 /**
  * 一行字幕的生词匹配结果。

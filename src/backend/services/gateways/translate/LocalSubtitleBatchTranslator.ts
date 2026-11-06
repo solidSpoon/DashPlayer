@@ -1,4 +1,4 @@
-import {
+import type {
     LocalSubtitleBatchTranslationInput,
     SubtitleTranslationResultItem,
 } from '@/backend/services/gateways/translate/SubtitleBatchTranslationInput';

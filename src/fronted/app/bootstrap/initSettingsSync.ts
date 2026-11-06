@@ -5,7 +5,7 @@ import useTranslation from '@/fronted/features/player/translationStore';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import toast from 'react-hot-toast';
 import i18n from '@/fronted/i18n';
-import {
+import type {
     RuntimeSettingKey,
     RuntimeSettingsSnapshot,
 } from '@/common/contracts/runtime-settings';

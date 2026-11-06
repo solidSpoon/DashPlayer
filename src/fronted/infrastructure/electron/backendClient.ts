@@ -1,4 +1,4 @@
-import { ApiDefinitions, ApiMap } from '@/common/api/api-def';
+import type { ApiDefinitions, ApiMap } from '@/common/api/api-def';
 
 /**
  * renderer 调用 main 进程后端接口的统一入口。

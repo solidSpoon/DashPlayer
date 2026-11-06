@@ -4,7 +4,7 @@ import RepairFileSelector from './components/RepairFileSelector';
 import RepairFolderSelector from './components/RepairFolderSelector';
 import RepairItem from './components/RepairItem';
 import { Button } from '@/fronted/components/ui/button';
-import { RepairGroup, RepairRecipe, RepairTask, RepairTaskState } from '@/common/contracts/playback-repair';
+import { type RepairGroup, type RepairRecipe, type RepairTask, RepairTaskState } from '@/common/contracts/playback-repair';
 import MediaUtil from '@/common/utils/MediaUtil';
 import Eb from '@/fronted/components/shared/common/Eb';
 import { getRendererLogger } from '@/fronted/log/simple-logger';

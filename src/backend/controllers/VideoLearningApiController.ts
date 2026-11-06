@@ -1,11 +1,10 @@
-import { VideoLearningService } from '@/backend/services/VideoLearningService';
+import type { VideoLearningService } from '@/backend/services/VideoLearningService';
 import registerRoute from '@/backend/controllers/ipc/registerRoute';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import Controller from '@/backend/controllers/Controller';
-import StorageDirectoryProvider, {
-    StorageDirectoryTarget,
-} from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type Controller from '@/backend/controllers/Controller';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 
 @injectable()
 export default class VideoLearningApiController implements Controller {

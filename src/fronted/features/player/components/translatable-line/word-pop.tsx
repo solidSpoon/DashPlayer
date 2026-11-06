@@ -6,7 +6,7 @@ import {
     useFloating,
     useInteractions
 } from '@floating-ui/react';
-import { OpenAIDictionaryResult } from '@/common/types/DictionaryResult';
+import type { OpenAIDictionaryResult } from '@/common/types/DictionaryResult';
 import { cn } from '@/fronted/lib/utils';
 import OpenAIWordPop from './openai-word-pop';
 import { getRendererLogger } from '@/fronted/log/simple-logger';

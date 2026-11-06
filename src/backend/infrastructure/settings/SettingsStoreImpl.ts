@@ -1,6 +1,6 @@
-import { SettingsStore } from '@/backend/services/gateways/SettingsStore';
+import type { SettingsStore } from '@/backend/services/gateways/SettingsStore';
 import { storeGet, storeSet } from '@/backend/infrastructure/settings/store';
-import { SettingKey } from '@/common/types/store_schema';
+import type { SettingKey } from '@/common/types/store_schema';
 import { injectable } from 'inversify';
 
 @injectable()

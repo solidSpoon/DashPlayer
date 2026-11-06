@@ -3,9 +3,9 @@ import { Container } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import ClipOssServiceImpl from '@/backend/infrastructure/storage/ClipOssServiceImpl';
 import VideoLearningOssServiceImpl from '@/backend/infrastructure/storage/VideoLearningOssServiceImpl';
-import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
-import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
-import FfmpegService from '@/backend/services/FfmpegService';
+import type FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type FfmpegService from '@/backend/services/FfmpegService';
 
 // 日志模块是系统边界：测试里静音，避免真实落盘和对 Electron app 的依赖。
 vi.mock('@/backend/infrastructure/logger', () => ({

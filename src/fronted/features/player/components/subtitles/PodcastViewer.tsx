@@ -4,7 +4,7 @@ import { cn } from '@/fronted/lib/utils';
 import { usePlayer } from '@/fronted/features/player/playerStore';
 import { playerActions } from '@/fronted/features/player/components/PlayerActions';
 import { usePlayerUi } from '@/fronted/features/player/playerUiStore';
-import { Sentence } from '@/common/types/SentenceC';
+import type { Sentence } from '@/common/types/SentenceC';
 import TranslatableLinePodcast from './TranslatableLinePodcast';
 import PodcastControlBar from './PodcastControlBar';
 import StrUtil from '@/common/utils/str-util';

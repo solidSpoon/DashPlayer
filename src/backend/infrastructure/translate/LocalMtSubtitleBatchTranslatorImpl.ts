@@ -1,8 +1,8 @@
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import type LocalMtService from '@/backend/services/LocalMtService';
-import LocalMtSubtitleBatchTranslator from '@/backend/services/gateways/translate/LocalMtSubtitleBatchTranslator';
-import {
+import type LocalMtSubtitleBatchTranslator from '@/backend/services/gateways/translate/LocalMtSubtitleBatchTranslator';
+import type {
     SubtitleBatchTranslationInput,
     SubtitleTranslationResultItem,
 } from '@/backend/services/gateways/translate/SubtitleBatchTranslationInput';

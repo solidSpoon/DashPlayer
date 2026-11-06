@@ -1,5 +1,5 @@
 import React from 'react';
-import { UseFormReturn, useWatch } from 'react-hook-form';
+import { type UseFormReturn, useWatch } from 'react-hook-form';
 import { useTranslation } from 'react-i18next';
 import { CheckCircle2, Copy, ExternalLink, ListPlus, Loader2, Plus, TestTube, Trash2, XCircle } from 'lucide-react';
 import { cn } from '@/fronted/lib/utils';
@@ -16,10 +16,10 @@ import { Input } from '@/fronted/components/ui/input';
 import { Label } from '@/fronted/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/fronted/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/fronted/components/ui/table';
-import { ServiceCredentialSettingDetailVO } from '@/common/types/vo/service-credentials-setting-vo';
-import { OpenAiModelUsageFeature } from '@/common/utils/cloud-model-usage';
+import type { ServiceCredentialSettingDetailVO } from '@/common/types/vo/service-credentials-setting-vo';
+import type { OpenAiModelUsageFeature } from '@/common/utils/cloud-model-usage';
 import { CLOUD_AI_PROVIDER_PRESETS } from '@/common/constants/cloud-ai-provider-presets';
-import { AI_API_FORMATS, AiApiFormat } from '@/common/utils/cloud-ai-api-format';
+import { AI_API_FORMATS, type AiApiFormat } from '@/common/utils/cloud-ai-api-format';
 import toast from 'react-hot-toast';
 
 /** 单个模型的连通性测试结果。 */

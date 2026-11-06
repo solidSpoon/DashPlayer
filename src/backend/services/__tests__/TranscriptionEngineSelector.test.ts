@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type SpeechRecognitionGateway from '@/backend/services/gateways/media/SpeechRecognitionGateway';
-import { SettingsStore } from '@/backend/services/gateways/SettingsStore';
+import type { SettingsStore } from '@/backend/services/gateways/SettingsStore';
 import { TranscriptionEngineSelectorImpl } from '@/backend/services/TranscriptionEngineSelector';
 
 /**

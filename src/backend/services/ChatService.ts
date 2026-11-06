@@ -1,9 +1,9 @@
 import { inject, injectable } from 'inversify';
-import DpTaskService from '@/backend/services/DpTaskService';
+import type DpTaskService from '@/backend/services/DpTaskService';
 import TYPES from '@/backend/ioc/types';
 import { ZodType } from 'zod';
 import { Output, streamText } from 'ai';
-import AiProviderService from '@/backend/services/AiProviderService';
+import type AiProviderService from '@/backend/services/AiProviderService';
 import { WithRateLimit } from '@/backend/utils/concurrency/decorators';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 

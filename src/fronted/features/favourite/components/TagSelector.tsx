@@ -8,7 +8,7 @@ import {
     PopoverTrigger
 } from '@/fronted/components/ui/popover';
 import useSWR from 'swr';
-import { Tag } from '@/common/contracts/tag';
+import type { Tag } from '@/common/contracts/tag';
 import { CornerDownLeft, Plus, Search, Tag as TagIcon, X } from 'lucide-react';
 import { cn } from '@/fronted/lib/utils';
 import { Dialog, DialogContent } from '@/fronted/components/ui/dialog';

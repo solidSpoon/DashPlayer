@@ -1,5 +1,5 @@
-import { SrtSentence } from '@/common/types/SentenceC';
-import { SubtitleVocabularyAnalysisService } from '@/backend/services/SubtitleVocabularyAnalysisService';
+import type { SrtSentence } from '@/common/types/SentenceC';
+import type { SubtitleVocabularyAnalysisService } from '@/backend/services/SubtitleVocabularyAnalysisService';
 
 /**
  * 字幕分析得到的可裁切片段。

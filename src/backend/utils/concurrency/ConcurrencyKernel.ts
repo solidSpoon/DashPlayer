@@ -1,26 +1,26 @@
 import {
-    ConcurrencyProfiles,
+    type ConcurrencyProfiles,
     defaultConcurrencyProfiles,
-    RateLimiterProfile,
-    SchedulerProfile,
-    SemaphoreProfile,
+    type RateLimiterProfile,
+    type SchedulerProfile,
+    type SemaphoreProfile,
 } from '@/backend/utils/concurrency/config/ConcurrencyProfiles';
 import { AsyncLocalStorage } from 'async_hooks';
 import {
-    CooperativeScheduler,
+    type CooperativeScheduler,
     createCooperativeScheduler,
 } from '@/backend/utils/concurrency/primitives/CooperativeScheduler';
-import { createMutex, Mutex } from '@/backend/utils/concurrency/primitives/Mutex';
-import { createRateLimiter, RateLimiter } from '@/backend/utils/concurrency/primitives/RateLimiter';
-import { createSemaphore, Semaphore } from '@/backend/utils/concurrency/primitives/Semaphore';
+import { createMutex, type Mutex } from '@/backend/utils/concurrency/primitives/Mutex';
+import { createRateLimiter, type RateLimiter } from '@/backend/utils/concurrency/primitives/RateLimiter';
+import { createSemaphore, type Semaphore } from '@/backend/utils/concurrency/primitives/Semaphore';
 import {
-    AcquireOptions,
-    ConcurrencyLogger,
-    ConcurrencyLoggerRef,
-    KernelAcquireOptions,
+    type AcquireOptions,
+    type ConcurrencyLogger,
+    type ConcurrencyLoggerRef,
+    type KernelAcquireOptions,
     LockOrderViolationError,
-    Permit,
-    WaitTurnOptions,
+    type Permit,
+    type WaitTurnOptions,
 } from '@/backend/utils/concurrency/types';
 
 type HeldLock = {

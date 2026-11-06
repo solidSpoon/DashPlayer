@@ -15,7 +15,7 @@ import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { applyLanguageSetting } from '@/fronted/i18n';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
 import useSWR from 'swr';
-import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
+import type { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
 import { Globe, Palette, Sliders, Type, Moon, Sun } from 'lucide-react';
 
 const logger = getRendererLogger('AppearanceSetting');

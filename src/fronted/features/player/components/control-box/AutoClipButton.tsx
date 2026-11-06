@@ -5,7 +5,7 @@ import { codeBlock } from 'common-tags';
 import { Scissors } from 'lucide-react';
 import TooltippedButton from '@/fronted/components/shared/common/TooltippedButton';
 import useFile from '@/fronted/features/file-browser/fileStore';
-import { GlobalVideoLearningClipQueueStatusVO, VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
+import type { GlobalVideoLearningClipQueueStatusVO, VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { videoLearningApi } from '@/fronted/features/video-learning/videoLearningApi';
 import { useVocabularyState } from '@/fronted/features/player/vocabularyStore';

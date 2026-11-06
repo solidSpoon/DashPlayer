@@ -7,7 +7,7 @@ import {
   TooltipTrigger
 } from '@/fronted/components/ui/tooltip';
 import ConfirmDeleteButton from '@/fronted/components/shared/common/ConfirmDeleteButton';
-import { VideoClip } from '../types';
+import type { VideoClip } from '../types';
 import UrlUtil from '@/common/utils/UrlUtil';
 import TimeUtil from '@/common/utils/TimeUtil';
 import { cn } from '@/fronted/lib/utils';

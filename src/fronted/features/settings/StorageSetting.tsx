@@ -24,9 +24,9 @@ import { SETTINGS_DETAIL_SWR_OPTIONS, settingsApi } from '@/fronted/features/set
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
 import useSWR from 'swr';
-import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
-import { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
-import { StorageUsageVO } from '@/common/contracts/storage-usage-vo';
+import type { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
+import type { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
+import type { StorageUsageVO } from '@/common/contracts/storage-usage-vo';
 
 type StorageFormValues = StorageSettingVO;
 

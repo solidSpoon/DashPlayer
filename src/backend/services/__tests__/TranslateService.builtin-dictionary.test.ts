@@ -12,11 +12,11 @@ vi.mock('electron', () => ({
     ipcRenderer: undefined,
 }));
 
-import AiProviderService from '@/backend/services/AiProviderService';
+import type AiProviderService from '@/backend/services/AiProviderService';
 import { TranslateServiceImpl } from '@/backend/services/TranslateService';
-import SettingService from '@/backend/services/SettingService';
-import WordTranslatesRepository from '@/backend/services/repositories/WordTranslatesRepository';
-import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
+import type SettingService from '@/backend/services/SettingService';
+import type WordTranslatesRepository from '@/backend/services/repositories/WordTranslatesRepository';
+import type RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
 import { BuiltinDictionaryStoreImpl } from '@/backend/infrastructure/translate/BuiltinDictionaryStoreImpl';
 import { createBuiltinDictionaryFixture } from '@/test/builtinDictionaryFixture';
 

@@ -1,7 +1,7 @@
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
-import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 
 /**
  * 带访问权限自动恢复的文件系统网关装饰器。

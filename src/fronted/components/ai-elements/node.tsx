@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/fronted/components/ui/card";
 import { cn } from "@/fronted/lib/utils";
-import { Handle, Position } from "@xyflow/react";
+import { type Handle, Position } from "@xyflow/react";
 import type { ComponentProps } from "react";
 
 export type NodeProps = ComponentProps<typeof Card> & {

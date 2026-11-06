@@ -5,7 +5,7 @@ import TooltippedButton from '@/fronted/components/shared/common/TooltippedButto
 import { Eraser } from 'lucide-react';
 import useFile from '@/fronted/features/file-browser/fileStore';
 import useSetting from '@/fronted/features/settings/settingsStore';
-import { RuntimeSettingKey } from '@/common/contracts/runtime-settings';
+import type { RuntimeSettingKey } from '@/common/contracts/runtime-settings';
 import { playerApi } from '@/fronted/features/player/playerApi';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 

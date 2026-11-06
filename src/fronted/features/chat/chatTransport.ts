@@ -1,4 +1,4 @@
-import { ChatTransport, UIMessage, UIMessageChunk } from 'ai';
+import type { ChatTransport, UIMessage, UIMessageChunk } from 'ai';
 import { chatApi } from '@/fronted/features/chat/chatApi';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 

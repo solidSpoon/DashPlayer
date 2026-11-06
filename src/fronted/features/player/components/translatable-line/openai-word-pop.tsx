@@ -1,6 +1,6 @@
 import React from 'react';
 import { RefreshCw, Star, Loader2 } from 'lucide-react';
-import { OpenAIDictionaryResult } from '@/common/types/DictionaryResult';
+import type { OpenAIDictionaryResult } from '@/common/types/DictionaryResult';
 import Playable from '@/fronted/components/shared/common/Playable';
 import { cn } from '@/fronted/lib/utils';
 import { formatPhonetic } from '@/fronted/lib/phonetic';

@@ -1,6 +1,6 @@
-import { Sentence } from '@/common/types/SentenceC';
-import { ClipSrtLine } from '@/common/types/clipMeta';
-import { SrtLine, validateSrtLine } from './types';
+import type { Sentence } from '@/common/types/SentenceC';
+import type { ClipSrtLine } from '@/common/types/clipMeta';
+import { type SrtLine, validateSrtLine } from './types';
 import { sentenceToSrtLine } from './sentence';
 import { serializeSrt } from './serializer';
 

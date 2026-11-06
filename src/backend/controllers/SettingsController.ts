@@ -10,26 +10,26 @@ import type LocalAiService from '@/backend/services/LocalAiService';
 import type TranscriptionEngineSelector from '@/backend/services/TranscriptionEngineSelector';
 import type MobileAccessService from '@/backend/services/MobileAccessService';
 import { readSystemInfo } from '@/backend/utils/systemInfo';
-import Controller from '@/backend/controllers/Controller';
+import type Controller from '@/backend/controllers/Controller';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import SettingService from '@/backend/services/SettingService';
+import type SettingService from '@/backend/services/SettingService';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import {
+import type {
     ServiceCredentialSettingDetailVO,
     ServiceCredentialSettingSaveVO,
 } from '@/common/types/vo/service-credentials-setting-vo';
-import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
-import { ShortcutSettingDetailVO, ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
-import { ProxySettingDetailVO, ProxySettingSaveVO } from '@/common/contracts/proxy-setting-vo';
+import type { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
+import type { ShortcutSettingDetailVO, ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
+import type { ProxySettingDetailVO, ProxySettingSaveVO } from '@/common/contracts/proxy-setting-vo';
 import type { TranscriptionEngine } from '@/common/contracts/transcription-engine';
-import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
-import { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
-import {
+import type { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
+import type { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
+import type {
     RuntimeSettingSaveRequest,
     RuntimeSettingsSnapshot,
 } from '@/common/contracts/runtime-settings';
-import {
+import type {
     MobileAccessSettingDetailVO,
     MobileAccessSettingSaveVO,
 } from '@/common/contracts/mobile-access-setting-vo';

@@ -1,5 +1,5 @@
 import Store from 'electron-store';
-import {SettingKey, SettingKeyObj} from '@/common/types/store_schema';
+import {type SettingKey, SettingKeyObj} from '@/common/types/store_schema';
 import StrUtil from '@/common/utils/str-util';
 import { getEnvironmentConfigName } from '@/backend/utils/runtimeEnv';
 

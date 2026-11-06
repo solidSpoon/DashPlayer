@@ -1,17 +1,15 @@
 import path from 'path';
 
-import WatchHistoryRepository, {
-    WatchHistoryProjectType,
-} from '@/backend/services/repositories/WatchHistoryRepository';
-import WatchHistoryExtRepository from '@/backend/services/repositories/WatchHistoryExtRepository';
-import StorageDirectoryProvider, {
-    StorageDirectoryTarget,
-} from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type WatchHistoryRepository from '@/backend/services/repositories/WatchHistoryRepository';
+import { WatchHistoryProjectType } from '@/backend/services/repositories/WatchHistoryRepository';
+import type WatchHistoryExtRepository from '@/backend/services/repositories/WatchHistoryExtRepository';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import { ObjUtil } from '@/backend/utils/ObjUtil';
 import MediaUtil from '@/common/utils/MediaUtil';
 import TimeUtil from '@/common/utils/TimeUtil';
 import { getHtml5VariantPath } from '@/backend/services/watch-history-file-rules';
-import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
+import type FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
 
 /**
  * 负责扫描媒体文件并维护观看历史数据库记录。

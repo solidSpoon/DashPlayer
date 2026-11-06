@@ -1,5 +1,5 @@
 import path from 'path';
-import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
+import type FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
 
 /**
  * 基于内存 Map 的文件系统网关实现，供存储层测试替代真实磁盘 IO。

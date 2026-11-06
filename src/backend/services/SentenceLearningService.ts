@@ -3,8 +3,9 @@ import { generateObject } from 'ai';
 import { z } from 'zod';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import TYPES from '@/backend/ioc/types';
-import AiProviderService, { CLOUD_AI_NOT_CONFIGURED_MESSAGE } from '@/backend/services/AiProviderService';
-import {
+import type AiProviderService from '@/backend/services/AiProviderService';
+import { CLOUD_AI_NOT_CONFIGURED_MESSAGE } from '@/backend/services/AiProviderService';
+import type {
     CompleteSentenceParams,
     CompleteSentenceResult,
 } from '@/common/types/chat';

@@ -3,7 +3,7 @@
  */
 import { create } from 'zustand';
 import StrUtil from '@/common/utils/str-util';
-import { Sentence } from '@/common/types/SentenceC';
+import type { Sentence } from '@/common/types/SentenceC';
 
 /** 字幕可疑原因。 */
 export type SubtitleSuspicionReason =

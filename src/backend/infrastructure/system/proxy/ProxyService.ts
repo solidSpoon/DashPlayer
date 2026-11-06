@@ -4,10 +4,10 @@ import { storeGet } from '@/backend/infrastructure/settings/store';
 import { readSystemProxy } from './readSystemProxy';
 import { Dispatcher, EnvHttpProxyAgent, getGlobalDispatcher, setGlobalDispatcher } from 'undici';
 import { socksDispatcher } from 'fetch-socks';
-import { createProxyBypassMatcher, ProxyBypassMatcher } from '@/backend/utils/proxy/ProxyBypassMatcher';
+import { createProxyBypassMatcher, type ProxyBypassMatcher } from '@/backend/utils/proxy/ProxyBypassMatcher';
 import {
-    ProxyMode,
-    ProxySettingValues,
+    type ProxyMode,
+    type ProxySettingValues,
     proxyConfigKey,
     resolveProxyConfig,
 } from '@/backend/utils/proxy/ProxyConfigResolver';

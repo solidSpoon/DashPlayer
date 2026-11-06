@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import path from 'path';
-import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
+import type FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
 import AbstractOssServiceImpl from '@/backend/infrastructure/storage/AbstractOssServiceImpl';
-import { OssBaseMeta } from '@/common/types/clipMeta';
+import type { OssBaseMeta } from '@/common/types/clipMeta';
 import { MemoryFileSystemGateway } from '@/test/memory-file-system-gateway';
 
 // 日志模块是系统边界：测试里静音，避免真实落盘和对 Electron app 的依赖。

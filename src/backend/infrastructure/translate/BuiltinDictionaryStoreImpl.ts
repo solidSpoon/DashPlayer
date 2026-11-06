@@ -3,13 +3,13 @@ import fs from 'node:fs';
 import Database from 'better-sqlite3';
 import { inject, injectable } from 'inversify';
 
-import BuiltinDictionaryStore from '@/backend/services/gateways/translate/BuiltinDictionaryStore';
+import type BuiltinDictionaryStore from '@/backend/services/gateways/translate/BuiltinDictionaryStore';
 import { lemmatizeWord } from '@/backend/utils/language/VocabularyMatcher';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import TYPES from '@/backend/ioc/types';
-import { OpenAIDictionaryDefinition, OpenAIDictionaryResult } from '@/common/types/DictionaryResult';
+import type { OpenAIDictionaryDefinition, OpenAIDictionaryResult } from '@/common/types/DictionaryResult';
 import {
-    BuiltinDictionaryMeta,
+    type BuiltinDictionaryMeta,
     BUILTIN_DICTIONARY_SCHEMA_VERSION,
 } from '@/backend/infrastructure/translate/builtinDictionarySchema';
 

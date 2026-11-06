@@ -1,4 +1,4 @@
-import {DpTask} from '@/common/contracts/dp-task';
+import type {DpTask} from '@/common/contracts/dp-task';
 import type { LocalAiSpeedTestResult, LocalAiStatus } from '@/common/contracts/local-ai';
 import type { LocalMtStatus } from '@/common/contracts/local-mt';
 import type { ResourceFallbackSnapshot } from '@/common/contracts/resource-fallback';
@@ -6,14 +6,14 @@ import type { ResourceStatusSnapshot } from '@/common/contracts/resource-status'
 import type { MigrationFailureDetail } from '@/common/contracts/migration-failure';
 import type { GpuAcceleration } from '@/common/contracts/system-info';
 import type { SubtitleResolution } from '@/common/contracts/subtitle-resolution';
-import {OpenAIDictionaryResult} from '@/common/types/DictionaryResult';
-import {ChapterParseResult} from '@/common/types/chapter-result';
-import {SrtSentence, Sentence} from '@/common/types/SentenceC';
-import {SentenceStruct} from '@/common/types/SentenceStruct';
-import {WindowState} from '@/common/types/Types';
-import {SubtitleTimestampAdjustmentInput} from '@/common/contracts/subtitle-timestamp-adjustment';
-import { UpdateCheckResult } from '@/common/types/update-check';
-import {
+import type {OpenAIDictionaryResult} from '@/common/types/DictionaryResult';
+import type {ChapterParseResult} from '@/common/types/chapter-result';
+import type {SrtSentence, Sentence} from '@/common/types/SentenceC';
+import type {SentenceStruct} from '@/common/types/SentenceStruct';
+import type {WindowState} from '@/common/types/Types';
+import type {SubtitleTimestampAdjustmentInput} from '@/common/contracts/subtitle-timestamp-adjustment';
+import type { UpdateCheckResult } from '@/common/types/update-check';
+import type {
     FolderVideos,
     PlaybackEvidenceInput,
     PlaybackRepairDiagnosis,
@@ -25,14 +25,14 @@ import {
     RepairGroup,
 } from '@/common/contracts/playback-repair';
 
-import {Tag} from '@/common/contracts/tag';
-import {ClipQuery, SimpleClipQuery} from '@/common/api/dto';
-import {ClipMeta, OssBaseMeta} from '@/common/types/clipMeta';
-import WatchHistoryVO from '@/common/types/WatchHistoryVO';
-import {VideoLearningClipPage} from '@/common/types/vo/VideoLearningClipVO';
-import { GlobalVideoLearningClipQueueStatusVO, VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
-import { SentenceVocabularyVO } from '@/common/types/vo/SentenceVocabularyVO';
-import {
+import type {Tag} from '@/common/contracts/tag';
+import type {ClipQuery, SimpleClipQuery} from '@/common/api/dto';
+import type {ClipMeta, OssBaseMeta} from '@/common/types/clipMeta';
+import type WatchHistoryVO from '@/common/types/WatchHistoryVO';
+import type {VideoLearningClipPage} from '@/common/types/vo/VideoLearningClipVO';
+import type { GlobalVideoLearningClipQueueStatusVO, VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
+import type { SentenceVocabularyVO } from '@/common/types/vo/SentenceVocabularyVO';
+import type {
     ChatSessionCloseParams,
     ChatSessionCreateParams,
     ChatSessionCreateResult,
@@ -42,31 +42,31 @@ import {
     CompleteSentenceParams,
     CompleteSentenceResult,
 } from '@/common/types/chat';
-import { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
-import {
+import type { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
+import type {
     ServiceCredentialSettingDetailVO,
     ServiceCredentialSettingSaveVO,
 } from '@/common/types/vo/service-credentials-setting-vo';
-import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
+import type { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
 import type { TranscriptionEngine } from '@/common/contracts/transcription-engine';
-import { ShortcutSettingDetailVO, ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
-import { ProxySettingDetailVO, ProxySettingSaveVO } from '@/common/contracts/proxy-setting-vo';
-import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
-import { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
-import {
+import type { ShortcutSettingDetailVO, ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
+import type { ProxySettingDetailVO, ProxySettingSaveVO } from '@/common/contracts/proxy-setting-vo';
+import type { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
+import type { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
+import type {
     MobileAccessSettingDetailVO,
     MobileAccessSettingSaveVO,
 } from '@/common/contracts/mobile-access-setting-vo';
-import { StorageUsageVO } from '@/common/contracts/storage-usage-vo';
-import {
+import type { StorageUsageVO } from '@/common/contracts/storage-usage-vo';
+import type {
     RuntimeSettingSaveRequest,
     RuntimeSettingsSnapshot,
 } from '@/common/contracts/runtime-settings';
-import { ModelInstallationStatusVO } from '@/common/types/vo/model-installation-vo';
-import { VideoInfo } from '@/common/types/video-info';
-import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
-import { TranscriptTask } from '@/common/contracts/transcript/transcript-task';
-import { DubbingExportStatus, DubbingLibraryEntry, DubbingManifest, DubbingTakeVO } from '@/common/contracts/dubbing';
+import type { ModelInstallationStatusVO } from '@/common/types/vo/model-installation-vo';
+import type { VideoInfo } from '@/common/types/video-info';
+import type { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
+import type { TranscriptTask } from '@/common/contracts/transcript/transcript-task';
+import type { DubbingExportStatus, DubbingLibraryEntry, DubbingManifest, DubbingTakeVO } from '@/common/contracts/dubbing';
 
 /** 跨进程请求与返回值契约。 */
 interface ApiDefinition {

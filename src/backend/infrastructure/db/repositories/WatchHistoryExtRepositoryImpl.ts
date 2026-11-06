@@ -3,7 +3,8 @@ import { injectable } from 'inversify';
 
 import db from '@/backend/infrastructure/db';
 import { watchHistoryExt } from '@/backend/infrastructure/db/tables/watchHistoryExt';
-import WatchHistoryExtRepository, { WatchHistoryExtPatch, WatchHistoryExtRecord } from '@/backend/services/repositories/WatchHistoryExtRepository';
+import type WatchHistoryExtRepository from '@/backend/services/repositories/WatchHistoryExtRepository';
+import { type WatchHistoryExtPatch, type WatchHistoryExtRecord } from '@/backend/services/repositories/WatchHistoryExtRepository';
 
 @injectable()
 export default class WatchHistoryExtRepositoryImpl implements WatchHistoryExtRepository {

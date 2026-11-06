@@ -11,7 +11,7 @@ import StrUtil from '@/common/utils/str-util';
 import PathUtil from '@/common/utils/PathUtil';
 import BackNavItem from '@/fronted/features/file-browser/components/BackNavItem';
 import { transcriptApi } from '../transcriptApi';
-import { TranscriptTask } from '@/common/contracts/transcript/transcript-task';
+import type { TranscriptTask } from '@/common/contracts/transcript/transcript-task';
 import i18n from '@/fronted/i18n';
 
 /** 转录文件浏览区属性。 */

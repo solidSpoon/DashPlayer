@@ -1,33 +1,30 @@
 // @/backend/services/impl/LocalTranscriptionServiceImpl.ts
 import {injectable, inject} from 'inversify';
-import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
+import type RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
 import TYPES from '@/backend/ioc/types';
 import * as path from 'path';
-import FfmpegService from '@/backend/services/FfmpegService';
+import type FfmpegService from '@/backend/services/FfmpegService';
 import {getMainLogger} from '@/backend/infrastructure/logger';
 import objectHash from 'object-hash';
 import { serializeSrt } from '@/common/utils/subtitle';
-import SpeechRecognitionGateway, {
-    SpeechRecognitionResult,
-    SpeechRecognitionToken,
-} from '@/backend/services/gateways/media/SpeechRecognitionGateway';
-import StorageDirectoryProvider, {
-    StorageDirectoryTarget,
-} from '@/backend/services/gateways/storage/StorageDirectoryProvider';
-import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
+import type SpeechRecognitionGateway from '@/backend/services/gateways/media/SpeechRecognitionGateway';
+import { type SpeechRecognitionResult, type SpeechRecognitionToken } from '@/backend/services/gateways/media/SpeechRecognitionGateway';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
 import EnglishSubtitleSegmenter from '@/backend/utils/subtitle/EnglishSubtitleSegmenter';
 import { concurrency } from '@/backend/utils/concurrency';
 import {
     TRANSCRIPTION_CHUNK_SECONDS,
-    TranscriptTask,
-    TranscriptTaskResult,
+    type TranscriptTask,
+    type TranscriptTaskResult,
     TranscriptTaskState,
-    TranscriptChunkResult,
+    type TranscriptChunkResult,
 } from '@/common/contracts/transcript/transcript-task';
-import TranscriptionTaskRepository from '@/backend/services/repositories/TranscriptionTaskRepository';
-import SubtitleService from '@/backend/services/SubtitleService';
-import TranscriptionEngineSelector from '@/backend/services/TranscriptionEngineSelector';
-import { Sentence } from '@/common/types/SentenceC';
+import type TranscriptionTaskRepository from '@/backend/services/repositories/TranscriptionTaskRepository';
+import type SubtitleService from '@/backend/services/SubtitleService';
+import type TranscriptionEngineSelector from '@/backend/services/TranscriptionEngineSelector';
+import type { Sentence } from '@/common/types/SentenceC';
 import { CancelByUserError } from '@/backend/utils/errors/errors';
 
 /**

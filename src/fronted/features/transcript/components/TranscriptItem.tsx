@@ -3,7 +3,7 @@ import { cn } from '@/fronted/lib/utils';
 import { Button } from '@/fronted/components/ui/button';
 import React from 'react';
 import {
-    TranscriptTask,
+    type TranscriptTask,
     TranscriptTaskState,
 } from '@/common/contracts/transcript/transcript-task';
 import { getRendererLogger } from '@/fronted/log/simple-logger';

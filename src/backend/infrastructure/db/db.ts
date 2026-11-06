@@ -1,6 +1,6 @@
 import path from 'path';
 import fs from 'fs';
-import { and, ExtractTablesWithRelations, sql } from 'drizzle-orm';
+import { and, type ExtractTablesWithRelations, sql } from 'drizzle-orm';
 import { SQLiteTransaction } from 'drizzle-orm/sqlite-core';
 import Database from 'better-sqlite3';
 import { isDevelopmentMode } from '@/backend/utils/runtimeEnv';

@@ -1,6 +1,6 @@
 import { inject, injectable } from 'inversify';
 
-import FavouriteClipsRepository from '@/backend/services/repositories/FavouriteClipsRepository';
+import type FavouriteClipsRepository from '@/backend/services/repositories/FavouriteClipsRepository';
 import TYPES from '@/backend/ioc/types';
 import type { Tag } from '@/common/contracts/tag';
 import StrUtil from '@/common/utils/str-util';/**

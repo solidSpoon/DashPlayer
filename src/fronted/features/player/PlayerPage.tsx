@@ -15,11 +15,11 @@ import {SWR_KEY, swrMutate} from '@/fronted/lib/swr-util';
 import PathUtil from '@/common/utils/PathUtil';
 import MediaUtil from '@/common/utils/MediaUtil';
 import {getRendererLogger} from '@/fronted/log/simple-logger';
-import toast, { Toast } from 'react-hot-toast';
+import toast, { type Toast } from 'react-hot-toast';
 import {ModeSwitchToast} from '@/fronted/components/shared/toasts/ModeSwitchToast';
 import {
     PlaybackRepairToast,
-    RepairToastVariant,
+    type RepairToastVariant,
 } from '@/fronted/components/shared/toasts/PlaybackRepairToast';
 import { SubtitleSuspicionToast } from '@/fronted/components/shared/toasts/SubtitleSuspicionToast';
 import { useSubtitleSuspicion } from '@/fronted/features/player/subtitleSuspicion';

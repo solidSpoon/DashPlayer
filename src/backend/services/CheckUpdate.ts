@@ -1,8 +1,8 @@
-import axios, { AxiosResponse, isAxiosError } from 'axios';
+import axios, { type AxiosResponse, isAxiosError } from 'axios';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { compareVersions } from 'compare-versions';
-import Release from '@/common/types/release';
-import { UpdateCheckResult } from '@/common/types/update-check';
+import type Release from '@/common/types/release';
+import type { UpdateCheckResult } from '@/common/types/update-check';
 import { app } from 'electron';
 import { isDevelopmentMode } from '@/backend/utils/runtimeEnv';
 

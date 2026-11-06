@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/fronted/components/ui/button';
 import { useTranslation } from 'react-i18next';
-import { RepairReason } from '@/common/contracts/playback-repair';
+import type { RepairReason } from '@/common/contracts/playback-repair';
 
 /**
  * 修复提示的触发场景。

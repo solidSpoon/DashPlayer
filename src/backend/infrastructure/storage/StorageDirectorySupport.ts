@@ -3,7 +3,7 @@ import fs from 'fs/promises';
 import { app } from 'electron';
 import { getEnvironmentSuffix } from '@/backend/utils/runtimeEnv';
 import StrUtil from '@/common/utils/str-util';
-import { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
+import type { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
 import { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 
 const DEFAULT_STORAGE_FOLDER_NAME = 'DashPlayer';

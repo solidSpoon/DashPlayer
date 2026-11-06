@@ -1,6 +1,6 @@
-import { DpTask } from '@/common/contracts/dp-task';
-import { RuntimeSettingKey } from '@/common/contracts/runtime-settings';
-import { RepairTaskEvent } from '@/common/contracts/playback-repair';
+import type { DpTask } from '@/common/contracts/dp-task';
+import type { RuntimeSettingKey } from '@/common/contracts/runtime-settings';
+import type { RepairTaskEvent } from '@/common/contracts/playback-repair';
 
 /**
  * renderer 订阅 main 进程事件的统一入口。

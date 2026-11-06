@@ -1,5 +1,5 @@
 import { createConcurrencyKernel } from '@/backend/utils/concurrency/ConcurrencyKernel';
-import { ConcurrencyLogger } from '@/backend/utils/concurrency/types';
+import type { ConcurrencyLogger } from '@/backend/utils/concurrency/types';
 
 /**
  * 全局并发内核单例；内核本身不依赖基础设施，日志由组合根（main.ts）运行期注入。

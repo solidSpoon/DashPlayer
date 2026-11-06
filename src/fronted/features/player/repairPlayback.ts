@@ -1,7 +1,7 @@
 import toast from 'react-hot-toast';
 import {
-    PlaybackRepairDiagnosis,
-    RepairReason,
+    type PlaybackRepairDiagnosis,
+    type RepairReason,
     RepairTaskState,
 } from '@/common/contracts/playback-repair';
 import PathUtil from '@/common/utils/PathUtil';

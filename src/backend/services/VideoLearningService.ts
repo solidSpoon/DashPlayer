@@ -1,8 +1,9 @@
 import path from 'path';
-import { InsertVideoLearningClip, VideoLearningClip } from '@/backend/infrastructure/db/tables/videoLearningClip';
-import { InsertVideoLearningClipWord } from '@/backend/infrastructure/db/tables/videoLearningClipWord';
-import VideoLearningClipRepository from '@/backend/services/repositories/VideoLearningClipRepository';
-import VideoLearningClipWordRepository, { WordClipStats } from '@/backend/services/repositories/VideoLearningClipWordRepository';
+import type { InsertVideoLearningClip, VideoLearningClip } from '@/backend/infrastructure/db/tables/videoLearningClip';
+import type { InsertVideoLearningClipWord } from '@/backend/infrastructure/db/tables/videoLearningClipWord';
+import type VideoLearningClipRepository from '@/backend/services/repositories/VideoLearningClipRepository';
+import type VideoLearningClipWordRepository from '@/backend/services/repositories/VideoLearningClipWordRepository';
+import { type WordClipStats } from '@/backend/services/repositories/VideoLearningClipWordRepository';
 import ErrorConstants from '@/common/constants/error-constants';
 import TimeUtil from '@/common/utils/TimeUtil';
 import StrUtil from '@/common/utils/str-util';
@@ -10,27 +11,26 @@ import { buildClipContext } from '@/common/utils/subtitle';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import { SimpleClipQuery } from '@/common/api/dto';
-import CacheService from '@/backend/services/CacheService';
-import { ClipOssService } from '@/backend/services/OssService';
-import FfmpegService from '@/backend/services/FfmpegService';
-import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
-import SubtitleService from '@/backend/services/SubtitleService';
-import { ClipMeta, ClipSrtLine, OssBaseMeta } from '@/common/types/clipMeta';
-import { ClipVocabularyEntry, VideoLearningClipVO, VideoLearningClipPage } from '@/common/types/vo/VideoLearningClipVO';
-import { GlobalVideoLearningClipQueueStatusVO, VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
-import { WordMatchService } from '@/backend/services/WordMatchService';
-import { SrtSentence } from '@/common/types/SentenceC';
+import type { SimpleClipQuery } from '@/common/api/dto';
+import type CacheService from '@/backend/services/CacheService';
+import type { ClipOssService } from '@/backend/services/OssService';
+import type FfmpegService from '@/backend/services/FfmpegService';
+import type RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
+import type SubtitleService from '@/backend/services/SubtitleService';
+import type { ClipMeta, ClipSrtLine, OssBaseMeta } from '@/common/types/clipMeta';
+import type { ClipVocabularyEntry, VideoLearningClipVO, VideoLearningClipPage } from '@/common/types/vo/VideoLearningClipVO';
+import type { GlobalVideoLearningClipQueueStatusVO, VideoLearningClipStatusVO } from '@/common/types/vo/VideoLearningClipStatusVO';
+import type { WordMatchService } from '@/backend/services/WordMatchService';
+import type { SrtSentence } from '@/common/types/SentenceC';
 import { concurrency } from '@/backend/utils/concurrency';
-import StorageDirectoryProvider, {
-    StorageDirectoryTarget,
-} from '@/backend/services/gateways/storage/StorageDirectoryProvider';
-import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
-import VideoLearningClipAnalysis, { ClipCandidate } from '@/backend/services/VideoLearningClipAnalysis';
-import { SubtitleVocabularyAnalysisService } from '@/backend/services/SubtitleVocabularyAnalysisService';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
+import VideoLearningClipAnalysis, { type ClipCandidate } from '@/backend/services/VideoLearningClipAnalysis';
+import type { SubtitleVocabularyAnalysisService } from '@/backend/services/SubtitleVocabularyAnalysisService';
 import VideoLearningClipTaskQueue, {
-    LearningClipTask,
-    LearningClipTaskResult,
+    type LearningClipTask,
+    type LearningClipTaskResult,
 } from '@/backend/services/VideoLearningClipTaskQueue';
 
 /**

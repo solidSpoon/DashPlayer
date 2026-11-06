@@ -4,7 +4,7 @@ import { Cell, Pie, PieChart } from 'recharts';
 import { ChartPie, RefreshCw, HardDriveDownload } from 'lucide-react';
 import { Button } from '@/fronted/components/ui/button';
 import {
-    ChartConfig,
+    type ChartConfig,
     ChartContainer,
     ChartTooltip,
     ChartTooltipContent,
@@ -12,7 +12,7 @@ import {
 import { Skeleton } from '@/fronted/components/ui/skeleton';
 import { cn } from '@/fronted/lib/utils';
 import { SettingCard } from '@/fronted/features/settings/components/form';
-import {
+import type {
     StorageUsageCategory,
     StorageUsageVO,
 } from '@/common/contracts/storage-usage-vo';

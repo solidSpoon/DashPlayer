@@ -1,41 +1,41 @@
-import { SettingKey } from '@/common/types/store_schema';
+import type { SettingKey } from '@/common/types/store_schema';
 import { storeGet } from '@/backend/infrastructure/settings/store';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
 import { generateText } from 'ai';
-import AiProviderService from '@/backend/services/AiProviderService';
+import type AiProviderService from '@/backend/services/AiProviderService';
 import StrUtil from '@/common/utils/str-util';
-import ClientProviderService from '@/backend/services/ClientProviderService';
-import { TencentTranslateClient } from '@/backend/services/gateways/translate/TencentTranslateClient';
+import type ClientProviderService from '@/backend/services/ClientProviderService';
+import type { TencentTranslateClient } from '@/backend/services/gateways/translate/TencentTranslateClient';
 import { getMainLogger } from '@/backend/infrastructure/logger';
-import RendererEvents from '@/backend/services/gateways/renderer/RendererEvents';
-import { SettingsStore } from '@/backend/services/gateways/SettingsStore';
-import {
+import type RendererEvents from '@/backend/services/gateways/renderer/RendererEvents';
+import type { SettingsStore } from '@/backend/services/gateways/SettingsStore';
+import type {
     ServiceCredentialSettingDetailVO,
     ServiceCredentialSettingSaveVO,
 } from '@/common/types/vo/service-credentials-setting-vo';
 import {
-    CloudModelUsage,
+    type CloudModelUsage,
     computeCloudModelUsage,
-    OpenAiModelUsageFeature,
+    type OpenAiModelUsageFeature,
     OPEN_AI_MODEL_USAGE_FEATURES,
 } from '@/common/utils/cloud-model-usage';
-import { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
-import { ShortcutSettingDetailVO, ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
-import { ProxySettingDetailVO, ProxySettingSaveVO } from '@/common/contracts/proxy-setting-vo';
-import { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
-import { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
+import type { EngineSelectionSettingVO } from '@/common/types/vo/engine-selection-setting-vo';
+import type { ShortcutSettingDetailVO, ShortcutSettingSaveVO } from '@/common/types/vo/shortcut-setting-vo';
+import type { ProxySettingDetailVO, ProxySettingSaveVO } from '@/common/contracts/proxy-setting-vo';
+import type { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
+import type { StorageSettingVO } from '@/common/contracts/storage-setting-vo';
 import { getSubtitleDefaultStyle } from '@/common/constants/openaiSubtitlePrompts';
 import { AI_API_FORMATS } from '@/common/utils/cloud-ai-api-format';
-import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import type LocalAiService from '@/backend/services/LocalAiService';
 import {
     isRuntimeSettingKey,
     runtimeSettingKeys,
-    RuntimeSettingSaveRequest,
-    RuntimeSettingsSnapshot,
+    type RuntimeSettingSaveRequest,
+    type RuntimeSettingsSnapshot,
 } from '@/common/contracts/runtime-settings';
-import { TRANSCRIPTION_ENGINES, TranscriptionEngine } from '@/common/contracts/transcription-engine';
+import { TRANSCRIPTION_ENGINES, type TranscriptionEngine } from '@/common/contracts/transcription-engine';
 
 /** 字幕翻译引擎的合法取值；设置校验与运行时查询共用，避免各处字面量漂移。 */
 const SUBTITLE_TRANSLATION_ENGINES = ['openai', 'local', 'local-mt', 'tencent', 'none'] as const;

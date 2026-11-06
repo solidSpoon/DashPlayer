@@ -1,11 +1,11 @@
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import RendererEvents from '@/backend/services/gateways/renderer/RendererEvents';
-import { RuntimeSettingKey } from '@/common/contracts/runtime-settings';
-import { DpTask, DpTaskState } from '@/common/contracts/dp-task';
-import { RepairTaskEvent, RepairTaskState } from '@/common/contracts/playback-repair';
+import type RendererEvents from '@/backend/services/gateways/renderer/RendererEvents';
+import type { RuntimeSettingKey } from '@/common/contracts/runtime-settings';
+import { type DpTask, DpTaskState } from '@/common/contracts/dp-task';
+import { type RepairTaskEvent, RepairTaskState } from '@/common/contracts/playback-repair';
 import { createWindowedDeduper } from '@/common/log/windowed-dedup';
-import MainWindowRegistry from '@/backend/infrastructure/system/MainWindowRegistry';
+import type MainWindowRegistry from '@/backend/infrastructure/system/MainWindowRegistry';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 
 const logger = getMainLogger('RendererEvents');

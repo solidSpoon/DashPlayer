@@ -11,9 +11,9 @@ import StrUtil from '@/common/utils/str-util';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { TypeGuards } from '@/common/utils/TypeGuards';
 import { chatApi } from '@/fronted/features/chat/chatApi';
-import { AnalysisStreamEvent, DeepPartial } from '@/common/types/analysis';
-import { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
-import { Sentence } from '@/common/types/SentenceC';
+import type { AnalysisStreamEvent, DeepPartial } from '@/common/types/analysis';
+import type { AiUnifiedAnalysisRes } from '@/common/types/aiRes/AiUnifiedAnalysisRes';
+import type { Sentence } from '@/common/types/SentenceC';
 
 /** 整句学习面板中需要跨组件共享的状态。 */
 export type ChatPanelState = {

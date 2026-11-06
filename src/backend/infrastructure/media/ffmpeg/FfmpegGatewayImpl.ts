@@ -1,25 +1,12 @@
 import { injectable } from 'inversify';
-import FfmpegGateway, {
-    ConvertToWavArgs,
-    CreateThumbnailArgs,
-    ExtractSubtitleArgs,
-    FfmpegExecutionError,
-    FfmpegRunOptions,
-    MixDubbedAudioArgs,
-    ProcessRecordingArgs,
-    RepairArgs,
-    SplitVideoByTimesArgs,
-    SplitVideoRangeArgs,
-    TrimAudioArgs,
-    TrimVideoArgs,
-    VideoSegment,
-} from '@/backend/services/gateways/media/FfmpegGateway';
-import { VideoInfo } from '@/common/types/video-info';
+import type FfmpegGateway from '@/backend/services/gateways/media/FfmpegGateway';
+import { type ConvertToWavArgs, type CreateThumbnailArgs, type ExtractSubtitleArgs, FfmpegExecutionError, type FfmpegRunOptions, type MixDubbedAudioArgs, type ProcessRecordingArgs, type RepairArgs, type SplitVideoByTimesArgs, type SplitVideoRangeArgs, type TrimAudioArgs, type TrimVideoArgs, type VideoSegment } from '@/backend/services/gateways/media/FfmpegGateway';
+import type { VideoInfo } from '@/common/types/video-info';
 import fs from 'fs';
 import path from 'path';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { CancelByUserError } from '@/backend/utils/errors/errors';
-import { DefaultFfmpegCommandBuilder, FfmpegCommandBuilder } from '@/backend/infrastructure/media/ffmpeg/FfmpegCommandBuilder';
+import { DefaultFfmpegCommandBuilder, type FfmpegCommandBuilder } from '@/backend/infrastructure/media/ffmpeg/FfmpegCommandBuilder';
 import { FfmpegProcessRunner } from '@/backend/infrastructure/media/ffmpeg/FfmpegProcessRunner';
 import { getRuntimeResourcePath } from '@/backend/utils/runtimeEnv';
 

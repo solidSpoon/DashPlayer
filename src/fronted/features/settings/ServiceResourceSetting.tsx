@@ -23,7 +23,7 @@ import type { EngineSelectionSettingVO } from '@/common/types/vo/engine-selectio
 import type { ServiceCredentialSettingDetailVO } from '@/common/types/vo/service-credentials-setting-vo';
 import {
     computeCloudModelUsage,
-    OpenAiModelUsageFeature,
+    type OpenAiModelUsageFeature,
     OPEN_AI_MODEL_USAGE_FEATURES,
 } from '@/common/utils/cloud-model-usage';
 

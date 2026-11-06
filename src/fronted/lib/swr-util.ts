@@ -1,5 +1,5 @@
 import {mutate} from 'swr';
-import { ApiMap } from '@/common/api/api-def';
+import type { ApiMap } from '@/common/api/api-def';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 
 const logger = getRendererLogger('swr-util');

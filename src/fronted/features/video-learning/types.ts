@@ -1,5 +1,5 @@
-import { ClipSrtLine } from '@/common/types/clipMeta';
-import { ClipVocabularyEntry } from '@/common/types/vo/VideoLearningClipVO';
+import type { ClipSrtLine } from '@/common/types/clipMeta';
+import type { ClipVocabularyEntry } from '@/common/types/vo/VideoLearningClipVO';
 
 /**
  * 视频学习页使用的片段视图模型。

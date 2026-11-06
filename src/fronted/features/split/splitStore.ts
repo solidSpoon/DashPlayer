@@ -4,7 +4,7 @@
 import { create } from 'zustand';
 import i18n from '@/fronted/i18n';
 import { persist, subscribeWithSelector } from 'zustand/middleware';
-import { ChapterParseResult } from '@/common/types/chapter-result';
+import type { ChapterParseResult } from '@/common/types/chapter-result';
 import { DpTaskState } from '@/common/contracts/dp-task';
 import MediaUtil from '@/common/utils/MediaUtil';
 import useDpTaskCenter from '@/fronted/hooks/useDpTaskCenter';

@@ -1,4 +1,4 @@
-import { SettingKey } from '@/common/types/store_schema';
+import type { SettingKey } from '@/common/types/store_schema';
 
 /**
  * 渲染进程运行时确实需要读取的非敏感设置键。

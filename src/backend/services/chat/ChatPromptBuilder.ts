@@ -1,4 +1,4 @@
-import { ModelMessage } from 'ai';
+import type { ModelMessage } from 'ai';
 
 /**
  * 会话创建时冻结的字幕规模概览。

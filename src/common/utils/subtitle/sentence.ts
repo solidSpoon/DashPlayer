@@ -1,7 +1,7 @@
-import { Sentence } from '@/common/types/SentenceC';
-import { SentenceStruct } from '@/common/types/SentenceStruct';
-import { ClipSrtLine } from '@/common/types/clipMeta';
-import { SrtLine, createSrtLine } from './types';
+import type { Sentence } from '@/common/types/SentenceC';
+import type { SentenceStruct } from '@/common/types/SentenceStruct';
+import type { ClipSrtLine } from '@/common/types/clipMeta';
+import { type SrtLine, createSrtLine } from './types';
 
 /**
  * 从播放器句子创建字幕行。

@@ -3,7 +3,7 @@ import Word from './word';
 import useSetting from '@/fronted/features/settings/settingsStore';
 import { cn } from '@/fronted/lib/utils';
 import { FONT_SIZE } from '@/fronted/styles/style';
-import { Sentence } from '@/common/types/SentenceC';
+import type { Sentence } from '@/common/types/SentenceC';
 import hash from 'object-hash';
 import { useTransLineTheme } from './translatable-theme';
 

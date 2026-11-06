@@ -7,9 +7,10 @@ import * as tarFs from 'tar-fs';
 import unbzip2Stream from 'unbzip2-stream';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { probeReachableDownloadUrl } from '@/backend/utils/probeDownloadUrl';
-import RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
-import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
-import StorageDirectoryProvider, { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
+import type FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import type { ModelDownloadPhase } from '@/common/contracts/model-download-phase';
 import type { ModelInstallationStatusVO } from '@/common/types/vo/model-installation-vo';
 

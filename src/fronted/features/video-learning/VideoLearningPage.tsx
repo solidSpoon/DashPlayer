@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState, useRef } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { apiPath } from '@/fronted/lib/swr-util';
-import { VideoLearningClipPage } from '@/common/types/vo/VideoLearningClipVO';
-import { VideoClip } from './types';
+import type { VideoLearningClipPage } from '@/common/types/vo/VideoLearningClipVO';
+import type { VideoClip } from './types';
 import ClipGrid from '@/fronted/features/video-learning/components/ClipGrid';
 import VideoPlayerPane from '@/fronted/features/video-learning/components/VideoPlayerPane';
-import WordSidebar, { WordItem } from '@/fronted/features/video-learning/components/WordSidebar';
+import WordSidebar, { type WordItem } from '@/fronted/features/video-learning/components/WordSidebar';
 import WordEditDialog from '@/fronted/features/video-learning/components/WordEditDialog';
 import { videoLearningApi } from '@/fronted/features/video-learning/videoLearningApi';
 import { getRendererLogger } from '@/fronted/log/simple-logger';

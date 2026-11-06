@@ -1,11 +1,11 @@
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
-import {
+import type {
     ChatSessionCreateParams,
     ChatSendMessageParams,
     CompleteSentenceParams,
     CompleteSentenceResult,
 } from '@/common/types/chat';
-import { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
+import type { AnalysisStartParams, AnalysisStartResult } from '@/common/types/analysis';
 
 /**
  * 聊天功能调用的后端接口。

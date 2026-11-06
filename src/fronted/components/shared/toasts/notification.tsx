@@ -1,5 +1,5 @@
 import React from 'react';
-import toast, { ToastOptions } from 'react-hot-toast';
+import toast, { type ToastOptions } from 'react-hot-toast';
 
 /** 全局提示的统一视觉与去重出口：所有"系统级通知"（后端推送、跨组件错误）都经由此处展示。 */
 

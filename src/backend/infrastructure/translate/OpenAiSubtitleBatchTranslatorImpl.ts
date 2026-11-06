@@ -1,9 +1,9 @@
 import { generateText, Output } from 'ai';
 import { inject, injectable } from 'inversify';
 import TYPES from '@/backend/ioc/types';
-import AiProviderService from '@/backend/services/AiProviderService';
-import OpenAiSubtitleBatchTranslator from '@/backend/services/gateways/translate/OpenAiSubtitleBatchTranslator';
-import {
+import type AiProviderService from '@/backend/services/AiProviderService';
+import type OpenAiSubtitleBatchTranslator from '@/backend/services/gateways/translate/OpenAiSubtitleBatchTranslator';
+import type {
     SubtitleBatchTranslationInput,
     SubtitleTranslationResultItem,
 } from '@/backend/services/gateways/translate/SubtitleBatchTranslationInput';

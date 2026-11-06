@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import fs from 'fs';
 import path from 'path';
-import { ConfigStore, ConfigStoreReadOptions } from '@/backend/services/gateways/ConfigStore';
+import type { ConfigStore, ConfigStoreReadOptions } from '@/backend/services/gateways/ConfigStore';
 
 /**
  * 配置文件托管类

@@ -1,11 +1,11 @@
 import path from 'path';
 import { inject, injectable } from 'inversify';
-import FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
-import StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
-import FfmpegService from '@/backend/services/FfmpegService';
-import { VideoSegment } from '@/backend/services/gateways/media/FfmpegGateway';
+import type FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
+import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
+import type FfmpegService from '@/backend/services/FfmpegService';
+import type { VideoSegment } from '@/backend/services/gateways/media/FfmpegGateway';
 import TYPES from '@/backend/ioc/types';
-import { ChapterParseResult } from '@/common/types/chapter-result';
+import type { ChapterParseResult } from '@/common/types/chapter-result';
 import MediaUtil from '@/common/utils/MediaUtil';
 import { parseSrt, parseAss, serializeSrt, timeTextToSeconds } from '@/common/utils/subtitle';
 import parseChapter from '@/common/utils/parser/chapter-parser';

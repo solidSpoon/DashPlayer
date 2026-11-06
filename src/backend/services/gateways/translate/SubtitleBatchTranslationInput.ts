@@ -1,4 +1,4 @@
-import { TranslationMode } from '@/common/types/TranslationResult';
+import type { TranslationMode } from '@/common/types/TranslationResult';
 
 /**
  * 字幕翻译网关目标条目。

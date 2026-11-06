@@ -1,4 +1,4 @@
-import React, { ReactElement, useCallback, useEffect, useRef, useState } from 'react';
+import React, { type ReactElement, useCallback, useEffect, useRef, useState } from 'react';
 import { shallow } from 'zustand/shallow';
 
 import { playerActions } from '@/fronted/features/player/components/PlayerActions';

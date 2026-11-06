@@ -1,4 +1,4 @@
-import { InsertWord, Word } from '@/backend/infrastructure/db/tables/words';
+import type { InsertWord, Word } from '@/backend/infrastructure/db/tables/words';
 
 /**
  * 单词列表查询参数。
