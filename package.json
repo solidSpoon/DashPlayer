@@ -187,7 +187,7 @@
     "react-markdown": "^10.1.0",
     "react-player": "^3.4.0",
     "react-resizable-panels": "^3.0.6",
-    "react-router-dom": "^6.21.0",
+    "react-router-dom": "^7.18.5",
     "react-split": "^2.0.14",
     "react-syntax-highlighter": "^15.5.0",
     "react-virtuoso": "4.18.12",
