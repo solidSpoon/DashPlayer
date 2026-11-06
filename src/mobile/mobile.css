@@ -638,6 +638,25 @@ button {
     text-align: center;
 }
 
+/* ---------- iOS 主屏 Web App 的图层 ---------- */
+
+/*
+ * 手机页是「文档不滚动 + 内嵌滚动区」的布局（body overflow: hidden，列表各自在里面滚），
+ * 并且 page 里开了 apple-mobile-web-app-capable，所以是从主屏图标启动的 Web App。
+ *
+ * iOS 在 standalone 下会把不滚动的文档表面当成一张静态画布，按 1 倍分辨率画完再拉大到设备分辨率；
+ * 只有自带滚动或自带图层的部分才按 3 倍画。结果就是：滚动区里的内容清楚，
+ * 而落在页面表面上的那一块（底部三键、暂停菜单、“回到当前”、空列表提示）整体发虚。
+ * 这几块没有滚动语义，给它们一个图层即可，跟滚动列表回到同一种绘制路径。
+ */
+.controls-wrap,
+.follow-btn,
+.subs-empty,
+.video-note {
+    -webkit-transform: translateZ(0);
+    transform: translateZ(0);
+}
+
 
 /* ---------- 底部三键控制区 ---------- */
 
