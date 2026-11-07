@@ -80,6 +80,14 @@ const SECTION_TITLE = 'text-[11px] font-semibold uppercase tracking-wider text-m
  * 说明：只要浅色，标记意群边界就够了，不抢句子正文；
  * 相邻意群取到不同颜色，边界一眼可辨。
  */
+/** 主舞台上的一个文本片段：普通文本或一个意群。 */
+interface SentenceSegment {
+    text: string;
+    isGroup: boolean;
+    /** 意群在整句中的序号（从 0 起，用于取标记色）；普通片段为 -1。 */
+    groupOrdinal: number;
+}
+
 const PHRASE_GROUP_MARKS = [
     'decoration-sky-300',
     'decoration-amber-300',
@@ -96,32 +104,37 @@ const PHRASE_GROUP_MARKS = [
  *
  * @param text 原句。
  * @param groups 意群片段。
- * @returns 按原文顺序排列的文本片段及其是否属于意群。
+ * @returns 按原文顺序排列的文本片段；意群片段带 groupOrdinal（整句内第几个意群，从 0 起），
+ *          普通片段的 groupOrdinal 为 -1。
  */
-const splitSentenceByGroups = (text: string, groups: string[]): { text: string; isGroup: boolean }[] => {
+const splitSentenceByGroups = (text: string, groups: string[]): SentenceSegment[] => {
     if (groups.length === 0 || text.trim().length === 0) {
-        return [{ text, isGroup: false }];
+        return [{ text, isGroup: false, groupOrdinal: -1 }];
     }
-    const segments: { text: string; isGroup: boolean }[] = [];
+    const segments: SentenceSegment[] = [];
     let remaining = text;
-    groups.forEach((group) => {
+    // 意群序号在这里顺手算掉：序号只取决于切分结果，放到渲染里累加会让
+    // React Compiler 判定为「渲染结束后仍被改写」。
+    let groupOrdinal = -1;
+    for (const group of groups) {
         const target = group.trim();
         if (!target || remaining.trim().length === 0) {
-            return;
+            continue;
         }
         const index = remaining.toLowerCase().indexOf(target.toLowerCase());
         if (index < 0) {
-            return;
+            continue;
         }
         const before = remaining.slice(0, index);
         if (before) {
-            segments.push({ text: before, isGroup: false });
+            segments.push({ text: before, isGroup: false, groupOrdinal: -1 });
         }
-        segments.push({ text: remaining.slice(index, index + target.length), isGroup: true });
+        groupOrdinal += 1;
+        segments.push({ text: remaining.slice(index, index + target.length), isGroup: true, groupOrdinal });
         remaining = remaining.slice(index + target.length);
-    });
+    }
     if (remaining) {
-        segments.push({ text: remaining, isGroup: false });
+        segments.push({ text: remaining, isGroup: false, groupOrdinal: -1 });
     }
     return segments;
 };
@@ -164,8 +177,6 @@ const SentenceStrip = ({
         () => splitSentenceByGroups(sentence.en, phraseGroups),
         [phraseGroups, sentence.en]
     );
-    /** 意群在整句中的序号（非意群片段不占号），用于取标记色。 */
-    let groupIndex = -1;
 
     /**
      * 把一段文本渲染成可悬停的单词序列。
@@ -215,13 +226,12 @@ const SentenceStrip = ({
                         if (!segment.isGroup) {
                             return <span key={`plain-${index}`}>{renderWords(segment.text)}</span>;
                         }
-                        groupIndex += 1;
                         return (
                             <span
                                 key={`group-${index}`}
                                 className={cn(
                                     'underline underline-offset-[0.28em] decoration-[3px]',
-                                    PHRASE_GROUP_MARKS[groupIndex % PHRASE_GROUP_MARKS.length]
+                                    PHRASE_GROUP_MARKS[segment.groupOrdinal % PHRASE_GROUP_MARKS.length]
                                 )}
                             >
                                 {renderWords(segment.text)}

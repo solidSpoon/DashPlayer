@@ -38,9 +38,13 @@ const PodcastViewer = ({ className }: { className?: string }) => {
         ? sentences.findIndex((x) => x.index === current.index && x.fileHash === current.fileHash)
         : -1;
 
+    // 是否有聚焦句：单独取一个布尔值，让下面的 effect 不必把整个 current 对象挂进依赖
+    // （store 每次更新都可能换 current 的引用，挂进去会导致同一句被反复重新定位）。
+    const hasCurrent = current !== null;
+
     // 零延迟测量：将当前焦点句（中英双语完整块）的几何中心精确锁定在有效可用视口的正中心
     useLayoutEffect(() => {
-        if (!current || !viewerContainerRef.current || !activeItemRef.current) return;
+        if (!hasCurrent || !viewerContainerRef.current || !activeItemRef.current) return;
         const container = viewerContainerRef.current;
         const activeElem = activeItemRef.current;
 
@@ -50,7 +54,8 @@ const PodcastViewer = ({ className }: { className?: string }) => {
 
         const targetY = -(activeElem.offsetTop + activeElem.offsetHeight / 2 - viewportCenter);
         springY.set(targetY);
-    }, [current?.key, newTranslation, showCn, showSourceZh]);
+        // springY 是 framer-motion 的 MotionValue，实例稳定，挂进依赖不会造成额外执行
+    }, [current?.key, hasCurrent, newTranslation, showCn, showSourceZh, springY]);
 
     if (!current || !srtTender) {
         return (

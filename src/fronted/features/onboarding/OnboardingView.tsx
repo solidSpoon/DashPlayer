@@ -239,10 +239,16 @@ export const OnboardingView: React.FC<OnboardingViewProps> = ({ onCompleted }) =
     }, []);
 
     useEffect(() => {
-        void refreshAllStatuses();
+        // 首次进入与窗口重新获得焦点/可见时都拉一次状态。
+        // 包成异步函数再 await：refreshAllStatuses 的 setState 都在 await 之后发生，
+        // 直接同步调用会被编译器当成 effect 内的同步 setState。
+        const refreshOnce = async (): Promise<void> => {
+            await refreshAllStatuses();
+        };
+        void refreshOnce();
         // 用户可能在文件管理器里删掉或移动模型目录，窗口重新获得焦点时重新检测
-        const refreshOnFocus = () => { void refreshAllStatuses(); };
-        const refreshOnVisible = () => { if (!document.hidden) void refreshAllStatuses(); };
+        const refreshOnFocus = () => { void refreshOnce(); };
+        const refreshOnVisible = () => { if (!document.hidden) void refreshOnce(); };
         window.addEventListener('focus', refreshOnFocus);
         document.addEventListener('visibilitychange', refreshOnVisible);
         return () => {
