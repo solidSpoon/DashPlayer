@@ -1,15 +1,10 @@
 import React, { useState } from 'react';
-import { History, Bookmark } from 'lucide-react';
 import { cn } from '@/fronted/lib/utils';
 import { FONT_SIZE } from '@/fronted/styles/style';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/fronted/components/ui/tooltip';
-import { Button } from '@/fronted/components/ui/button';
 
 import type { Sentence } from '@/common/types/SentenceC';
 import { usePlayerUi } from '@/fronted/features/player/playerUiStore';
 import useSetting from '@/fronted/features/settings/settingsStore';
-import useFavouriteClip, { mapClipKey } from '@/fronted/features/favourite/favouriteStore';
-import useFile from '@/fronted/features/file-browser/fileStore';
 import TranslatableLine from '@/fronted/features/player/components/translatable-line/translatable-line';
 
 
@@ -24,8 +19,6 @@ interface TranslatableLineWrapperProps {
 
 const TranslatableLineWrapper: React.FC<TranslatableLineWrapperProps> = ({
   sentence,
-  adjusted,
-  clearAdjust,
   className,
   coreClassName,
   variant = 'default'
@@ -34,10 +27,6 @@ const TranslatableLineWrapper: React.FC<TranslatableLineWrapperProps> = ({
   const fontSize = useSetting((state) => state.values.get('appearance.fontSize'));
   const show = usePlayerUi((state) => state.showEn);
   const [hovered, setHovered] = useState(false);
-
-  const isFavourite = useFavouriteClip(
-    (s) => s.lineClip.get(mapClipKey(useFile.getState().srtHash, sentence.index)) ?? false
-  );
 
   if (!text) return <div />;
 

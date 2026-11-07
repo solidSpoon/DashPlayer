@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/fronted/lib/utils';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/fronted/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/fronted/components/ui/card';
 import useFile from '@/fronted/features/file-browser/fileStore';
 import ProjectListComp from '@/fronted/features/file-browser/components/project-list-comp';
 import { Folder, X } from 'lucide-react';

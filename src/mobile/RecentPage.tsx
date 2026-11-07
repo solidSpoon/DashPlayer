@@ -55,8 +55,11 @@ const RecentCard = ({ item }: { item: MobileRecentItem }) => {
  * 手机版最近播放页。
  */
 const RecentPage = () => {
-    const [items, setItems] = React.useState<MobileRecentItem[] | null>(null);
-    const [error, setError] = React.useState<string | null>(null);
+    // 列表数据与「它是第几次加载」绑在一起存：刷新时 reloadToken 变了，
+    // 旧结果自然视为还没有，不需要在 effect 里同步 setItems(null) 清空
+    // （那是一次同步 setState，会多一轮级联渲染）。
+    const [loaded, setLoaded] = React.useState<{ token: number; items: MobileRecentItem[] } | null>(null);
+    const [failure, setFailure] = React.useState<{ token: number; message: string } | null>(null);
     const [reloadToken, setReloadToken] = React.useState(0);
     const [theme, setTheme] = React.useState(() => readTheme());
     const [helpOpen, setHelpOpen] = React.useState(false);
@@ -77,23 +80,28 @@ const RecentPage = () => {
 
     React.useEffect(() => {
         let cancelled = false;
-        setItems(null);
-        setError(null);
         mobileApi.listRecent()
             .then((next) => {
                 if (!cancelled) {
-                    setItems(next);
+                    setLoaded({ token: reloadToken, items: next });
                 }
             })
             .catch((reason: unknown) => {
                 if (!cancelled) {
-                    setError(reason instanceof Error ? reason.message : String(reason));
+                    setFailure({
+                        token: reloadToken,
+                        message: reason instanceof Error ? reason.message : String(reason),
+                    });
                 }
             });
         return () => {
             cancelled = true;
         };
     }, [reloadToken]);
+
+    // 只有「当前这一次加载」的结果能上屏，上一轮的数据与错误一律当作没有
+    const items = loaded !== null && loaded.token === reloadToken ? loaded.items : null;
+    const error = failure !== null && failure.token === reloadToken ? failure.message : null;
 
     return (
         <div className="view">

@@ -3,18 +3,15 @@ import { Button } from '@/fronted/components/ui/button';
 import Md from '@/fronted/components/shared/markdown/Markdown';
 import { codeBlock } from 'common-tags';
 import useSWR from 'swr';
-import { Skeleton } from '@/fronted/components/ui/skeleton';
 import { settingsApi } from '@/fronted/features/settings/settingsApi';
 import type { UpdateCheckResult } from '@/common/types/update-check';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
 import {
     CheckCircle2,
-    Compass,
     ExternalLink,
     FileText,
     Info,
     RefreshCw,
-    Sparkles,
     Tag,
 } from 'lucide-react';
 import logoLight from '../../../../assets/logo-light.png';

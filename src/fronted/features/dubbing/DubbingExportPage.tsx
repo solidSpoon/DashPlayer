@@ -77,8 +77,13 @@ export default function DubbingExportPage() {
         }
     }, [t]);
 
+    // 挂载后拉一次列表。这里显式 await：loadEntries 的 setEntries / setLoading
+    // 都发生在 await 之后，不 await 的话编译器会把整串更新当成 effect 内的同步
+    // setState（react-hooks/set-state-in-effect），从而判定这个组件不可优化。
     useEffect(() => {
-        void loadEntries();
+        void (async () => {
+            await loadEntries();
+        })();
     }, [loadEntries]);
 
     // 挂载时恢复最近一次导出任务的状态：任务可能在离开本页期间完成或失败

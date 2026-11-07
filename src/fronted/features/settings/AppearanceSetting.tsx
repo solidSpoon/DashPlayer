@@ -16,7 +16,7 @@ import { applyLanguageSetting } from '@/fronted/i18n';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
 import useSWR from 'swr';
 import type { AppearanceSettingVO } from '@/common/contracts/appearance-setting-vo';
-import { Globe, Palette, Sliders, Type, Moon, Sun } from 'lucide-react';
+import { Globe, Palette, Type, Moon, Sun } from 'lucide-react';
 
 const logger = getRendererLogger('AppearanceSetting');
 type AppearanceFormValues = AppearanceSettingVO;
@@ -177,7 +177,7 @@ const AppearanceSetting = () => {
                         <SliderInput
                             values={['fontSizeSmall', 'fontSizeMedium', 'fontSizeLarge']}
                             valueLabelMap={fontSizeOptions}
-                            defaultValue={currentFontSize}
+                            value={currentFontSize}
                             inputWidth="w-56"
                             setValue={(v) => {
                                 if (v === 'fontSizeSmall' || v === 'fontSizeMedium' || v === 'fontSizeLarge') {

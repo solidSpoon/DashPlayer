@@ -2,7 +2,7 @@ import { inject, injectable } from 'inversify';
 import fs from 'node:fs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
-import axios from 'axios';
+import axios, { isCancel } from 'axios';
 import type { pipeline, TranslationOutput } from '@huggingface/transformers';
 import TYPES from '@/backend/ioc/types';
 import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
@@ -251,7 +251,7 @@ export class LocalMtRuntime implements LocalMtService {
         if (!task) return;
         this.activeDownload?.abort.abort();
         await task.catch((error) => {
-            if (!axios.isCancel(error) && error?.name !== 'AbortError') throw error;
+            if (!isCancel(error) && error?.name !== 'AbortError') throw error;
         });
     }
 

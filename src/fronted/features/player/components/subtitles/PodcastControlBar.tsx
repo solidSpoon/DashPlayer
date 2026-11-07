@@ -5,7 +5,6 @@ import {cn} from "@/fronted/lib/utils";
 import SpeedSlider from '../SpeedSlider';
 import { CONTROL_POPOVER_OFFSET_STACKED_BAR } from '@/fronted/features/player/components/ControlPopover';
 import { Slider } from '@/fronted/components/ui/slider';
-import { Card } from '@/fronted/components/ui/card';
 import {Pause, Play} from "lucide-react";
 import {Button} from "@/fronted/components/ui/button";
 import TimeUtil from "@/common/utils/TimeUtil";
@@ -34,7 +33,6 @@ const PodcastControlBar = ({
     const seekTo = usePlayer((s) => s.seekTo);
     const setAutoPause = usePlayer((s) => s.setAutoPause);
     const setSingleRepeat = usePlayer((s) => s.setSingleRepeat);
-    const [mouseOver, setMouseOver] = useState<boolean>(false);
     const [currentValue, setCurrentValue] = useState(0);
     const currentValueUpdateTime = useRef<number>(0);
     const [selecting, setSelecting] = useState(false);

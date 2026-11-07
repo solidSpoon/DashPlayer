@@ -98,19 +98,71 @@ function isTypingTarget(target: EventTarget | null): boolean {
 }
 
 /**
- * 长按判定计时器：按下时挂上，越过阈值即视为长按并开录。
- * 属于“当前这一按”的输入态，随监听卸载归零。
+ * 长按流程的输入态：属于“当前这一按”，随监听卸载归零。
+ *
+ * 状态与其全部写操作都放在模块级：键盘处理器是模块级的路由，hook 实例更替时
+ * 这一按的状态要能延续，所以不能放进 hook 的 ref/state；而组件内直接改写模块级
+ * 可变值会被 React Compiler 判为「修改外部可变值」，因此写入口一律走下面的函数。
  */
-let holdTimer: number | null = null;
+const holdState = {
+    /** 长按判定计时器：按下时挂上，越过阈值即视为长按并开录。 */
+    timer: null as number | null,
+    /** 本次按下是否已越过长按阈值（长按成立、录音流程已启动）。 */
+    activated: false,
+    /**
+     * 长按成立后、还没真正开始收音就松手：作废本次录音。
+     * 授权、开流、预备窗口都是异步的，松手可能落在其中任意一段，
+     * 靠这个标记让流程自行退出。
+     */
+    abortPending: false,
+};
 
-/** 本次按下是否已越过长按阈值（长按成立、录音流程已启动）。 */
-let holdActivated = false;
+/** 清掉长按计时器，并复位「已越过阈值」。 */
+function clearHoldTimer(): void {
+    if (holdState.timer !== null) {
+        window.clearTimeout(holdState.timer);
+        holdState.timer = null;
+    }
+}
+
+/** 复位整个长按输入态（监听卸载时调用，避免下一轮挂载继承上一轮的残留）。 */
+function resetHoldState(): void {
+    clearHoldTimer();
+    holdState.activated = false;
+}
 
 /**
- * 长按成立后、还没真正开始收音就松手：作废本次录音。
- * 授权、开流、预备窗口都是异步的，松手可能落在其中任意一段，靠这个标记让流程自行退出。
+ * 挂上长按判定计时器：越过阈值即视为长按成立，回调 onHold。
+ * 计时器已在跑（重复按下）时不做任何事。
  */
-let abortPending = false;
+function armHold(onHold: () => void): void {
+    if (holdState.timer !== null) {
+        return;
+    }
+    holdState.activated = false;
+    holdState.timer = window.setTimeout(() => {
+        holdState.timer = null;
+        holdState.activated = true;
+        onHold();
+    }, HOLD_THRESHOLD_MS);
+}
+
+/**
+ * 松手：收掉计时器。
+ *
+ * @returns 本次松手是否属于「长按成立」的那一路（false 表示没到阈值的短按）。
+ */
+function disarmHold(): boolean {
+    clearHoldTimer();
+    const wasActivated = holdState.activated;
+    holdState.activated = false;
+    return wasActivated;
+}
+
+/** 打上「本次录音作废」标记，等录音流程走到检查点自行退出。 */
+function requestAbortPending(): void {
+    holdState.abortPending = true;
+}
 
 /** 键盘监听当前的挂载数：只有第一份挂载安装监听、最后一份卸载移除。 */
 let keyboardMountCount = 0;
@@ -209,10 +261,10 @@ export function useDubbingRecorder(): DubbingRecorderControls {
      * @returns 本次是否被作废
      */
     const abortPendingRecording = (): boolean => {
-        if (!abortPending) {
+        if (!holdState.abortPending) {
             return false;
         }
-        abortPending = false;
+        holdState.abortPending = false;
         releaseStream();
         useDubbing.getState().setIdle();
         return true;
@@ -288,7 +340,7 @@ export function useDubbingRecorder(): DubbingRecorderControls {
         if (useChatPanel.getState().learningVisible) {
             return;
         }
-        abortPending = false;
+        holdState.abortPending = false;
         // 试听/回放中开录：先掐掉在播的一路，并沿用它记录的“试听前是否在播放”，
         // 避免被试听期间的暂停覆盖，导致连录结束后不再续播
         const takeWasPlaying = stopTake();
@@ -397,7 +449,8 @@ export function useDubbingRecorder(): DubbingRecorderControls {
      * （也就不会有开流那声咔哒）；越过阈值才真正进入录音流程。
      */
     const pressStart = (): void => {
-        if (holdTimer !== null) {
+        // 这一按已经有计时器在跑（重复按下）：保持原样，不因为阶段变化改变语义
+        if (holdState.timer !== null) {
             return;
         }
         const { phase } = useDubbing.getState();
@@ -409,12 +462,9 @@ export function useDubbingRecorder(): DubbingRecorderControls {
             stopRecording();
             return;
         }
-        holdActivated = false;
-        holdTimer = window.setTimeout(() => {
-            holdTimer = null;
-            holdActivated = true;
+        armHold(() => {
             void startRecording();
-        }, HOLD_THRESHOLD_MS);
+        });
     };
 
     /**
@@ -422,18 +472,13 @@ export function useDubbingRecorder(): DubbingRecorderControls {
      * 没到阈值的短按则试听本句已有录音（没录过则什么都不做）。
      */
     const pressEnd = (): void => {
-        if (holdTimer !== null) {
-            window.clearTimeout(holdTimer);
-            holdTimer = null;
-        }
-        if (holdActivated) {
-            holdActivated = false;
+        if (disarmHold()) {
             const { phase } = useDubbing.getState();
             if (phase === 'recording') {
                 stopRecording();
             } else if (phase !== 'saving') {
                 // 还没开始收音就松手：作废本次，别留下一段空壳录音
-                abortPending = true;
+                requestAbortPending();
             }
             return;
         }
@@ -477,21 +522,17 @@ export function useDubbingRecorder(): DubbingRecorderControls {
             if (keyboardMountCount === 0) {
                 window.removeEventListener('keydown', onRecordKeyDown);
                 window.removeEventListener('keyup', onRecordKeyUp);
-                if (holdTimer !== null) {
-                    window.clearTimeout(holdTimer);
-                    holdTimer = null;
-                }
-                holdActivated = false;
+                resetHoldState();
             }
             stopTake();
             // 卸载后录音不能再落地：预备窗口内直接作废并释放麦克风；还在授权/开流途中
             // （阶段仍是 idle）也打上作废标记，等它走到检查点自行退出
             if (useDubbing.getState().phase === 'preparing') {
-                abortPending = true;
+                requestAbortPending();
                 useDubbing.getState().setIdle();
                 releaseStream();
             } else if (useDubbing.getState().phase === 'idle') {
-                abortPending = true;
+                requestAbortPending();
             }
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps

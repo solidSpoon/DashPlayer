@@ -1,6 +1,5 @@
 import React from 'react';
 import { cn } from '@/fronted/lib/utils';
-import { Separator } from '@/fronted/components/ui/separator';
 
 export interface SettingCardProps extends Omit<React.HTMLAttributes<HTMLDivElement>, 'title'> {
     title?: React.ReactNode;

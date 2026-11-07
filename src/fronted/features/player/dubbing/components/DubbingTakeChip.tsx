@@ -130,18 +130,24 @@ function PendingCard({ state, recordingStartTs, hasTake }: {
     recordingStartTs: number | null;
     hasTake: boolean;
 }) {
-    const [elapsedSec, setElapsedSec] = useState(0);
+    const [now, setNow] = useState(() => Date.now());
 
+    // 只负责「跑计时器」，不在 effect 里重置秒数：
+    // 秒数由 now 与 recordingStartTs 在渲染期算出来，换一次录制、
+    // recordingStartTs 一变就自然回到 0，不会留下上一段录音的读数。
     useEffect(() => {
         if (state !== 'recording' || recordingStartTs === null) {
             return;
         }
-        setElapsedSec(0);
         const timer = window.setInterval(() => {
-            setElapsedSec(Math.floor((Date.now() - recordingStartTs) / 1000));
+            setNow(Date.now());
         }, 200);
         return () => window.clearInterval(timer);
     }, [state, recordingStartTs]);
+
+    const elapsedSec = state === 'recording' && recordingStartTs !== null
+        ? Math.max(0, Math.floor((now - recordingStartTs) / 1000))
+        : 0;
 
     return (
         <motion.div

@@ -52,8 +52,10 @@ export default function LearningPage() {
     }, [sentenceResolveError, t]);
     const vocabulary = useVocabulary();
     const sentences = usePlayerState((state) => state.sentences);
-    // 本地选词结果：生词卡与悬停取词共用同一份数据
-    const [sentenceVocabulary, setSentenceVocabulary] = useState<SentenceVocabularyVO | null>(null);
+    // 本地选词结果：生词卡与悬停取词共用同一份数据。
+    // 与它对应的句子文本一同存下：渲染时只在「文本对得上」时才用，
+    // 这样换句子不必在 effect 里同步清空旧结果（那会多一轮级联渲染）。
+    const [pickedVocabulary, setPickedVocabulary] = useState<{ text: string; vocabulary: SentenceVocabularyVO } | null>(null);
 
     // 主题所在字幕行：句子信息与位置标签都从它取值，句子列表不变时不必重算
     const topicLine = useMemo(
@@ -77,14 +79,13 @@ export default function LearningPage() {
     useEffect(() => {
         const text = topicText.trim();
         if (!text) {
-            setSentenceVocabulary(null);
             return;
         }
         let cancelled = false;
         chatApi.pickSentenceVocabulary(text)
             .then((result) => {
                 if (!cancelled) {
-                    setSentenceVocabulary(result);
+                    setPickedVocabulary({ text, vocabulary: result });
                 }
             })
             .catch((error) => {
@@ -93,7 +94,6 @@ export default function LearningPage() {
                     error: error instanceof Error ? error.message : error,
                 });
                 if (!cancelled) {
-                    setSentenceVocabulary(null);
                     toast.error(t('learning.vocabFailed'));
                 }
             });
@@ -101,6 +101,11 @@ export default function LearningPage() {
             cancelled = true;
         };
     }, [t, topicText]);
+
+    // 只有「当前句子的」选词结果能上屏：上一次选词（或空文本）一律当作没有
+    const sentenceVocabulary = pickedVocabulary && pickedVocabulary.text === topicText.trim()
+        ? pickedVocabulary.vocabulary
+        : null;
 
     const vocabWords = useMemo(() => sentenceVocabulary?.picks ?? [], [sentenceVocabulary]);
 

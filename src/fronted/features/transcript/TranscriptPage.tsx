@@ -6,7 +6,6 @@ import { useTranslation as useI18nTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { SWR_KEY } from '@/fronted/lib/swr-util';
 import { transcriptApi } from './transcriptApi';
-import { Badge } from '@/fronted/components/ui/badge';
 
 /** 展示转录文件浏览区与任务队列。 */
 const TranscriptPage = () => {
@@ -50,10 +49,6 @@ const TranscriptPage = () => {
         await transcriptApi.removeTask(filePath);
         await mutate();
     };
-
-    const activeTasksCount = tasks.filter(
-        (task) => task.status === 'in_progress' || task.status === 'init',
-    ).length;
 
     return (
         <div className="w-full h-full flex flex-col overflow-hidden select-none bg-background text-foreground">

@@ -25,12 +25,10 @@ import {
     TooltipTrigger,
 } from '@/fronted/components/ui/tooltip';
 import {
-    Eraser,
     Pencil,
     Plus,
     RotateCcw,
     Search,
-    Trash2,
     X,
     PlayCircle,
     Subtitles,
@@ -194,7 +192,8 @@ const RecordDialog = ({
     const { t } = useI18nTranslation('settings');
     const [keys, { start, stop }] = useRecordHotkeys();
     const [open, setOpen] = React.useState(false);
-    const [shortcuts, setShortcuts] = React.useState<string[]>([]);
+    // 初值就取当前字段值：即使弹窗将来改成默认打开，草稿也是对的
+    const [shortcuts, setShortcuts] = React.useState<string[]>(() => parseShortcutList(value));
     const [isListening, setIsListening] = React.useState(false);
     const recordContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -259,21 +258,34 @@ const RecordDialog = ({
         setShortcuts([]);
     }, []);
 
-    // 打开弹窗时自动激活录制监听
-    React.useEffect(() => {
+    // 打开时用当前字段值重置草稿（并进入“正在听”态）。
+    // 用「上一次的 open」在渲染期比较来重置，而不是在 effect 里同步 setState：
+    // 同样的语义，但少一轮级联渲染（React 官方对这种“随 prop 变化调整 state”
+    // 给的就是这个写法）。value 变化不参与比较：保存后弹窗已经关掉，
+    // 重新打开自然会重置，没必要在打开期间覆盖用户正在编的草稿。
+    const [lastOpen, setLastOpen] = React.useState(open);
+    if (open !== lastOpen) {
+        setLastOpen(open);
         if (open) {
             setShortcuts(parseShortcutList(value));
             setIsListening(true);
-            start();
-            // 聚焦录制容器
-            setTimeout(() => {
-                recordContainerRef.current?.focus();
-            }, 50);
         } else {
             setIsListening(false);
-            stop();
         }
-    }, [open, start, stop, value]);
+    }
+
+    // 打开时开启录制监听并聚焦收录区，关闭时停掉监听（外部副作用都收在这里）
+    React.useEffect(() => {
+        if (!open) {
+            stop();
+            return;
+        }
+        start();
+        const focusTimer = window.setTimeout(() => {
+            recordContainerRef.current?.focus();
+        }, 50);
+        return () => window.clearTimeout(focusTimer);
+    }, [open, start, stop]);
 
     return (
         <Dialog open={open} onOpenChange={setOpen}>
@@ -293,6 +305,10 @@ const RecordDialog = ({
                     {/* 录制捕获面板 */}
                     <div
                         ref={recordContainerRef}
+                        // 这块是「聚焦即开始收音」的录制控件：标成 button 语义，
+                        // 屏幕阅读器才会把它读成可操作控件而不是普通容器
+                        role="button"
+                        aria-label={dialogTitle}
                         tabIndex={0}
                         onFocus={() => {
                             setIsListening(true);

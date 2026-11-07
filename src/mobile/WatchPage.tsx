@@ -15,12 +15,64 @@ import { useWatchPlayer } from './useWatchPlayer';
 /**
  * 播放页主体：视频、字幕列表、底部三键和设置面板。
  *
+ * 播放器返回值在这里**逐个解构**，不要改回 `player.xxx` 的写法：
+ * useWatchPlayer 的返回对象里同时装着若干个 ref（videoRef / virtuosoRef /
+ * dictRef / scrollerRef），React Compiler 会把「装着 ref 的对象」整体当成
+ * ref 结构，于是渲染期读它的任何属性都会被 `react-hooks/refs` 判为
+ * “Cannot access refs during render”。解构后每个字段各自独立，编译器只把
+ * 真正的 ref 当 ref，也能正常为这个组件做记忆化。
+ *
  * @param detail 播放详情。
  */
 const WatchPlayer = ({ detail }: { detail: MobileWatchDetail }) => {
-    const player = useWatchPlayer(detail);
+    const {
+        videoRef,
+        virtuosoRef,
+        dictRef,
+        handleScrollerRef,
+        currentIndex,
+        currentLine,
+        currentTranslation,
+        controlText,
+        showEnglish,
+        showTranslation,
+        showFollow,
+        videoError,
+        paused,
+        settingsOpen,
+        dict,
+        repeatOn,
+        autoPauseOn,
+        speed,
+        theme,
+        openSettings,
+        closeSettings,
+        toggleEnglish,
+        toggleTranslation,
+        followCurrent,
+        toggleRepeat,
+        toggleAutoPause,
+        changeSpeed,
+        changeTheme,
+        seekLine,
+        stepLine,
+        replayCurrent,
+        lookupWord,
+        handleScroll,
+        handleUserScroll,
+        handleRangeChanged,
+        handleLoadedMetadata,
+        handleTimeUpdate,
+        handleSeeking,
+        handleSeeked,
+        handlePause,
+        handlePlay,
+        handleEnded,
+        handleError,
+        handleLoadedData,
+    } = useWatchPlayer(detail);
     const navigate = useNavigate();
-    const pauseMenuOpen = player.paused && !player.videoError;
+    const pauseMenuOpen = paused && !videoError;
 
     return (
         <div className="view watch">
@@ -28,22 +80,22 @@ const WatchPlayer = ({ detail }: { detail: MobileWatchDetail }) => {
                 {/* 字幕由页面自绘，不使用 WebVTT track，关闭 jsx-a11y 的 captions 规则。 */}
                 {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                 <video
-                    ref={player.videoRef}
+                    ref={videoRef}
                     controls
                     playsInline
                     preload="metadata"
                     src={detail.streamUrl}
-                    onLoadedMetadata={player.handleLoadedMetadata}
-                    onTimeUpdate={player.handleTimeUpdate}
-                    onSeeking={player.handleSeeking}
-                    onSeeked={player.handleSeeked}
-                    onPause={player.handlePause}
-                    onPlay={player.handlePlay}
-                    onEnded={player.handleEnded}
-                    onError={player.handleError}
-                    onLoadedData={player.handleLoadedData}
+                    onLoadedMetadata={handleLoadedMetadata}
+                    onTimeUpdate={handleTimeUpdate}
+                    onSeeking={handleSeeking}
+                    onSeeked={handleSeeked}
+                    onPause={handlePause}
+                    onPlay={handlePlay}
+                    onEnded={handleEnded}
+                    onError={handleError}
+                    onLoadedData={handleLoadedData}
                 />
-                {player.videoError && (
+                {videoError && (
                     <div className="video-note">
                         <div className="video-note-title">
                             {t('手机浏览器放不了这个格式', 'This format cannot play in the phone browser')}
@@ -60,17 +112,17 @@ const WatchPlayer = ({ detail }: { detail: MobileWatchDetail }) => {
 
             <div className="subs-wrap">
                 <MainSubtitle
-                    line={player.currentLine}
-                    translation={player.currentTranslation}
-                    showEnglish={player.showEnglish}
-                    showTranslation={player.showTranslation}
-                    onWord={player.lookupWord}
-                    onLongPress={player.openSettings}
+                    line={currentLine}
+                    translation={currentTranslation}
+                    showEnglish={showEnglish}
+                    showTranslation={showTranslation}
+                    onWord={lookupWord}
+                    onLongPress={openSettings}
                 />
                 <div
                     className={pauseMenuOpen ? 'subs menu-open' : 'subs'}
-                    onTouchMove={player.handleUserScroll}
-                    onWheel={player.handleUserScroll}
+                    onTouchMove={handleUserScroll}
+                    onWheel={handleUserScroll}
                 >
                     {detail.subtitles.length === 0 ? (
                         <div className="subs-empty">
@@ -78,29 +130,29 @@ const WatchPlayer = ({ detail }: { detail: MobileWatchDetail }) => {
                         </div>
                     ) : (
                         <Virtuoso
-                            ref={player.virtuosoRef}
-                            scrollerRef={player.handleScrollerRef}
+                            ref={virtuosoRef}
+                            scrollerRef={handleScrollerRef}
                             style={{ height: '100%' }}
                             data={detail.subtitles}
                             computeItemKey={(index) => index}
                             defaultItemHeight={70}
                             increaseViewportBy={200}
                             minOverscanItemCount={{ top: 3, bottom: 6 }}
-                            onScroll={player.handleScroll}
-                            rangeChanged={player.handleRangeChanged}
+                            onScroll={handleScroll}
+                            rangeChanged={handleRangeChanged}
                             itemContent={(index, line) => (
                                 <SubtitleRow
                                     line={line}
                                     index={index}
-                                    active={index === player.currentIndex}
-                                    onSeek={player.seekLine}
+                                    active={index === currentIndex}
+                                    onSeek={seekLine}
                                 />
                             )}
                         />
                     )}
                 </div>
-                {player.showFollow && (
-                    <button type="button" className="follow-btn" onClick={player.followCurrent}>
+                {showFollow && (
+                    <button type="button" className="follow-btn" onClick={followCurrent}>
                         {t('回到当前', 'Back to current')}
                     </button>
                 )}
@@ -109,60 +161,57 @@ const WatchPlayer = ({ detail }: { detail: MobileWatchDetail }) => {
             <div className="controls-wrap">
                 <PlaybackControls
                     hasSubtitles={detail.subtitles.length > 0}
-                    text={player.controlText}
-                    onPrevious={() => player.stepLine(-1)}
-                    onCurrent={player.replayCurrent}
-                    onNext={() => player.stepLine(1)}
+                    text={controlText}
+                    onPrevious={() => stepLine(-1)}
+                    onCurrent={replayCurrent}
+                    onNext={() => stepLine(1)}
                 />
                 <PauseMenu
                     open={pauseMenuOpen}
-                    onSettings={player.openSettings}
+                    onSettings={openSettings}
                     onHome={() => navigate('/', { replace: true })}
                 />
             </div>
 
             <SettingsSheet
-                open={player.settingsOpen}
-                onClose={player.closeSettings}
-                showEnglish={player.showEnglish}
-                showTranslation={player.showTranslation}
-                onToggleEnglish={player.toggleEnglish}
-                onToggleTranslation={player.toggleTranslation}
-                repeatOn={player.repeatOn}
-                onToggleRepeat={player.toggleRepeat}
-                autoPauseOn={player.autoPauseOn}
-                onToggleAutoPause={player.toggleAutoPause}
-                speed={player.speed}
-                onChangeSpeed={player.changeSpeed}
-                theme={player.theme}
-                onChangeTheme={player.changeTheme}
+                open={settingsOpen}
+                onClose={closeSettings}
+                showEnglish={showEnglish}
+                showTranslation={showTranslation}
+                onToggleEnglish={toggleEnglish}
+                onToggleTranslation={toggleTranslation}
+                repeatOn={repeatOn}
+                onToggleRepeat={toggleRepeat}
+                autoPauseOn={autoPauseOn}
+                onToggleAutoPause={toggleAutoPause}
+                speed={speed}
+                onChangeSpeed={changeSpeed}
+                theme={theme}
+                onChangeTheme={changeTheme}
             />
 
-            <DictionaryBar ref={player.dictRef} dict={player.dict} />
+            <DictionaryBar ref={dictRef} dict={dict} />
         </div>
     );
 };
 
 /**
- * 手机版播放页：加载详情，成功后挂播放器。
+ * 单个视频的加载外壳：负责拉详情，拿到后挂播放器。
+ *
+ * 外层用 `key={id}` 挂载它，换视频时组件整体重挂、state 自然回到初始值；
+ * 因此**不要**在 effect 里先 setState(null) 清空旧数据（那是同步 setState，
+ * 只会多一轮级联渲染），也不要换成在 effect 里比对 id 再改 state 的写法。
+ *
+ * @param videoId 已确认非空的视频标识。
  */
-const WatchPage = () => {
-    const { id } = useParams<{ id: string }>();
+const WatchDetailLoader = ({ videoId }: { videoId: string }) => {
     const [detail, setDetail] = React.useState<MobileWatchDetail | null>(null);
     const [error, setError] = React.useState<string | null>(null);
 
     React.useEffect(() => {
         let cancelled = false;
-        setDetail(null);
-        setError(null);
-        if (!id) {
-            setError(t('缺少视频标识', 'Missing video id'));
-            return () => {
-                cancelled = true;
-            };
-        }
         document.title = 'DashPlayer';
-        mobileApi.getWatchDetail(id)
+        mobileApi.getWatchDetail(videoId)
             .then((next) => {
                 if (cancelled) {
                     return;
@@ -178,7 +227,7 @@ const WatchPage = () => {
         return () => {
             cancelled = true;
         };
-    }, [id]);
+    }, [videoId]);
 
     if (error !== null) {
         return (
@@ -205,6 +254,27 @@ const WatchPage = () => {
     }
 
     return <WatchPlayer key={detail.id} detail={detail} />;
+};
+
+/**
+ * 手机版播放页：校验视频标识后交给加载外壳。
+ */
+const WatchPage = () => {
+    const { id } = useParams<{ id: string }>();
+    if (!id) {
+        return (
+            <div className="view watch">
+                <div className="state">
+                    <div className="state-title">{t('打不开这个视频', 'Cannot open this video')}</div>
+                    <div className="state-text">{t('缺少视频标识', 'Missing video id')}</div>
+                    <Link className="retry-btn" to="/">
+                        {t('返回最近播放', 'Back to recent plays')}
+                    </Link>
+                </div>
+            </div>
+        );
+    }
+    return <WatchDetailLoader key={id} videoId={id} />;
 };
 
 export default WatchPage;
