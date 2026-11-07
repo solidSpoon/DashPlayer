@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import TitleBar from '@/fronted/components/layout/TitleBar/TitleBar';
-import { cn } from '@/fronted/lib/utils';
 import useLayout from '@/fronted/hooks/useLayout';
 import useFile from '@/fronted/features/file-browser/fileStore';
 import ProjectListCard from '@/fronted/features/file-browser/components/project-list-card';
@@ -15,8 +14,6 @@ import {
     Captions,
     ChevronsDown,
     Clock,
-    Film,
-    FolderOpen,
     PlayCircle,
     Rotate3D,
     Scissors,

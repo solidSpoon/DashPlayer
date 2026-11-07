@@ -1,6 +1,5 @@
 import React from 'react';
 import { cn } from '@/fronted/lib/utils';
-import useSystem from '@/fronted/hooks/useSystem';
 
 /**
  * 页面标题栏参数。

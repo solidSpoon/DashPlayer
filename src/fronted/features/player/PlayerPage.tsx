@@ -1,5 +1,5 @@
 import React, {useCallback, useEffect, useLayoutEffect, useRef, useState} from 'react';
-import {useLocation, useNavigate, useParams, useSearchParams} from 'react-router-dom';
+import {useLocation, useParams, useSearchParams} from 'react-router-dom';
 import useLayout, {cpW} from '@/fronted/hooks/useLayout';
 import {cn} from '@/fronted/lib/utils';
 import FileBrowser from '@/fronted/features/file-browser/components/FileBrowser';
@@ -28,11 +28,9 @@ import { startTranscriptionForCurrentVideo } from '@/fronted/features/player/sta
 import useSystem from '@/fronted/hooks/useSystem';
 import { playerApi } from '@/fronted/features/player/playerApi';
 import { diagnosePlayback, probeAndRecordPlaybackCapability, repairPlayback } from '@/fronted/features/player/repairPlayback';
-import { useTranslation as useI18nTranslation } from 'react-i18next';
 import useSubtitleTranslation from '@/fronted/features/player/translationStore';
 import { playerActions } from '@/fronted/features/player/components/PlayerActions';
 import { usePlayer } from '@/fronted/features/player/playerStore';
-import {Button} from "@/fronted/components/ui/button";
 import { useDevPlayerEntry } from '@/fronted/features/player/dev/useDevPlayerEntry';
 
 const logger = getRendererLogger('PlayerWithControlsPage');
@@ -50,9 +48,7 @@ function playbackRepairToastId(variant: RepairToastVariant): string {
     return `playback-repair-toast-${variant}`;
 }
 const PlayerWithControlsPage = () => {
-    const { t } = useI18nTranslation('player');
     const {videoId} = useParams();
-    const navigate = useNavigate();
     const [_searchParams, setSearchParams] = useSearchParams();
     // dev/qa 入口：`?file=` 直接把路径换成观看记录，跳过「入库 → 点进去」的前置（打包版忽略）
     const devEntry = useDevPlayerEntry(_searchParams);

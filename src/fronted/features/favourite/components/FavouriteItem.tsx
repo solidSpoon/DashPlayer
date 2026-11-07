@@ -41,6 +41,19 @@ const FavouriteItem = ({ item }: { item: OssBaseMeta & ClipMeta }) => {
   }, [playInfo?.video.key, item.key, currentSentence, lines, currentLine]);
 
   const isCurrentPlaying = playInfo?.video.key === item.key;
+
+  /**
+   * 从这段收藏的第一句开始播放。
+   * 鼠标点击与键盘激活（Enter / 空格）共用同一入口，保证两种操作行为一致。
+   */
+  const playFromBeginning = () => {
+    setPlayInfo({
+      video: item,
+      time: lines[0]?.start ?? 0,
+      timeUpdated: Date.now(),
+      sentenceIndex: 0,
+    });
+  };
   // 提取纯文件名，避免显示过长且杂乱的绝对路径
   const displayName = item.video_name ? item.video_name.split('/').pop()?.replace(/\.[^/.]+$/, '') || item.video_name : '';
 
@@ -56,13 +69,14 @@ const FavouriteItem = ({ item }: { item: OssBaseMeta & ClipMeta }) => {
       <div
         role="button"
         tabIndex={0}
-        onClick={() => {
-          setPlayInfo({
-            video: item,
-            time: lines[0]?.start ?? 0,
-            timeUpdated: Date.now(),
-            sentenceIndex: 0
-          });
+        onClick={playFromBeginning}
+        onKeyDown={(event) => {
+          // role="button" 要有键盘等价操作：Enter / 空格触发，空格要拦住页面滚动
+          if (event.key !== 'Enter' && event.key !== ' ') {
+            return;
+          }
+          event.preventDefault();
+          playFromBeginning();
         }}
         className="relative flex flex-col w-32 sm:w-36 shrink-0 aspect-video rounded-lg overflow-hidden bg-muted cursor-pointer"
       >

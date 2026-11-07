@@ -11,7 +11,6 @@ import { cn } from '@/fronted/lib/utils';
 import OpenAIWordPop from './openai-word-pop';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import { useTransLineTheme } from './translatable-theme';
-import useSetting from '@/fronted/features/settings/settingsStore';
 
 const logger = getRendererLogger('WordPop');
 
@@ -61,14 +60,6 @@ const WordPop = React.forwardRef(
         logger.debug('WordPop translation data', { translation, openaiStreamingData, isStreaming });
 
         const theme = useTransLineTheme();
-        const setting = useSetting((state) => state.setting);
-        const dictionaryEngineRaw = setting('providers.dictionary');
-        const dictionaryEngine =
-            dictionaryEngineRaw === 'openai' || dictionaryEngineRaw === 'local'
-                ? dictionaryEngineRaw
-                : 'openai';
-        // 本地词典与 OpenAI 返回同一结构，复用 AI 词典卡片展示
-        const openaiDictionaryEnabled = dictionaryEngine === 'openai' || dictionaryEngine === 'local';
         const { refs, floatingStyles } = useFloating({
             middleware: [
                 offset(50),

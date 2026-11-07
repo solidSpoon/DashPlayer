@@ -6,8 +6,10 @@ import '@/fronted/i18n';
 import AboutSetting from '../AboutSetting';
 import { settingsApi } from '../settingsApi';
 
+// 用假 store 顶替 zustand 选择器：只提供这条用例读到的 values
 vi.mock('../settingsStore', () => ({
-    default: (selector: any) => selector({ values: new Map([['appearance.theme', 'dark']]) }),
+    default: <T,>(selector: (state: { values: Map<string, string> }) => T): T =>
+        selector({ values: new Map([['appearance.theme', 'dark']]) }),
 }));
 
 vi.mock('../settingsApi', () => ({

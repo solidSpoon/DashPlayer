@@ -1,7 +1,6 @@
 import {Tooltip, TooltipContent, TooltipProvider, TooltipTrigger} from '@/fronted/components/ui/tooltip';
 import React from 'react';
 import {useTranslation} from 'react-i18next';
-import {cn} from '@/fronted/lib/utils';
 import {Maximize, Minimize} from "lucide-react";
 import {Button} from "@/fronted/components/ui/button";
 

@@ -6,7 +6,7 @@ import { spawn, ChildProcess } from 'node:child_process';
 import net from 'node:net';
 import { pipeline } from 'node:stream/promises';
 import { setTimeout as delay } from 'node:timers/promises';
-import axios from 'axios';
+import axios, { isAxiosError, isCancel } from 'axios';
 import { z } from 'zod';
 import TYPES from '@/backend/ioc/types';
 import type LocalAiService from '@/backend/services/LocalAiService';
@@ -441,7 +441,7 @@ export class LocalAiRuntime implements LocalAiService {
         if (!task) return;
         this.activeDownload?.abort.abort();
         await task.catch((error) => {
-            if (!axios.isCancel(error) && error?.name !== 'AbortError') throw error;
+            if (!isCancel(error) && error?.name !== 'AbortError') throw error;
         });
     }
 
@@ -480,7 +480,7 @@ export class LocalAiRuntime implements LocalAiService {
 
     /** 判断加载轮询中捕获的错误是否属于“进程仍在启动”的可重试状态。 */
     private static isRuntimeWarmingUp(error: unknown): boolean {
-        if (!axios.isAxiosError(error)) return false;
+        if (!isAxiosError(error)) return false;
         if (error.code === 'ECONNREFUSED' || error.code === 'ECONNABORTED') return true;
         return error.response?.status === 503;
     }

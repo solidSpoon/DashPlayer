@@ -3,7 +3,7 @@ import { useTranslation as useI18nTranslation } from 'react-i18next';
 import { Slider } from '@/fronted/components/ui/slider';
 import { Button } from '@/fronted/components/ui/button';
 import { cn } from '@/fronted/lib/utils';
-import { Volume, Volume1, Volume2, VolumeX } from 'lucide-react';
+import { Volume1, Volume2, VolumeX } from 'lucide-react';
 
 export interface VolumeSliderProps {
     volume: number;

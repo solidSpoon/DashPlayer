@@ -10,7 +10,6 @@ import {
     BreadcrumbPage,
     BreadcrumbSeparator,
 } from '@/fronted/components/ui/breadcrumb';
-import { Separator } from '@/fronted/components/ui/separator';
 import { cn } from '@/fronted/lib/utils';
 
 export type SettingType =
