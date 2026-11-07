@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.17.1](https://github.com/solidSpoon/DashPlayer/compare/v6.17.0...v6.17.1) (2026-11-07)
+
+
+### Bug Fixes
+
+* 消除 react-hooks 编译器规则的 59 个报错 ([952f2f2](https://github.com/solidSpoon/DashPlayer/commit/952f2f281a19b9e3da77006541734aed5f5989a1))
+* 清掉 react-hooks 编译器规则的 59 个 lint 报错 ([b944adf](https://github.com/solidSpoon/DashPlayer/commit/b944adfd11900da893b74fbeb602d32083f53d4c))
+
 ## [6.17.0](https://github.com/solidSpoon/DashPlayer/compare/v6.16.0...v6.17.0) (2026-11-06)
 
 
