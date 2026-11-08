@@ -2,6 +2,20 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.18.0](https://github.com/solidSpoon/DashPlayer/compare/v6.17.0...v6.18.0) (2026-11-08)
+
+
+### Features
+
+* 重构移动端播放控制为 Dock 悬浮风格与详情页极简体验 ([92d53ca](https://github.com/solidSpoon/DashPlayer/commit/92d53caf00116ad2a8f6f9229b1ae3e53010bb20))
+* 重构移动端播放控制为 Dock 悬浮风格与详情页极简体验 ([ce9fa0f](https://github.com/solidSpoon/DashPlayer/commit/ce9fa0f01fbe54eea1171fcf3e58c7d8c1ee19a7))
+
+
+### Bug Fixes
+
+* 消除 react-hooks 编译器规则的 59 个报错 ([952f2f2](https://github.com/solidSpoon/DashPlayer/commit/952f2f281a19b9e3da77006541734aed5f5989a1))
+* 清掉 react-hooks 编译器规则的 59 个 lint 报错 ([b944adf](https://github.com/solidSpoon/DashPlayer/commit/b944adfd11900da893b74fbeb602d32083f53d4c))
+
 ## [6.17.0](https://github.com/solidSpoon/DashPlayer/compare/v6.16.0...v6.17.0) (2026-11-06)
 
 
