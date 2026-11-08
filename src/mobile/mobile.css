@@ -717,7 +717,8 @@ html[data-page='watch'] .top-guard {
 
 /* ---------- 暂停时压在视频上的圆形按钮 ---------- */
 
-/* 浮层不占布局，也不拦视频上的点击（只有两个圆钮自己接）。 */
+/* 浮层不占布局，也不拦视频上的点击（只有两个圆钮自己接）。
+   暂停时直接展示，不加位移动画，避免分散视觉注意力。 */
 .pause-bar {
     position: absolute;
     top: 12px;
@@ -727,18 +728,6 @@ html[data-page='watch'] .top-guard {
     display: flex;
     justify-content: space-between;
     pointer-events: none;
-    animation: pause-bar-in 0.22s cubic-bezier(0.2, 0, 0, 1) forwards;
-}
-
-@keyframes pause-bar-in {
-    from {
-        opacity: 0;
-        transform: translateY(-8px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
 }
 
 .pause-btn {
