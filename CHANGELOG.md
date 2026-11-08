@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.19.1](https://github.com/solidSpoon/DashPlayer/compare/v6.19.0...v6.19.1) (2026-11-08)
+
+
+### Bug Fixes
+
+* 移除视频暂停时顶部操作按钮的入场位移动效 ([9f1dd2d](https://github.com/solidSpoon/DashPlayer/commit/9f1dd2d7db8ad6bed0a7eca3a3d3da1ef7de3236))
+
 ## [6.19.0](https://github.com/solidSpoon/DashPlayer/compare/v6.18.0...v6.19.0) (2026-11-08)
 
 
