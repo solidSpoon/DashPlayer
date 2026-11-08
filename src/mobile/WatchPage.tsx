@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { LocateFixed } from 'lucide-react';
 import { Virtuoso } from 'react-virtuoso';
 import type { MobileWatchDetail } from '@/common/contracts/mobile-web';
 import { mobileApi } from './api';
@@ -9,8 +10,19 @@ import PauseMenu from './PauseMenu';
 import PlaybackControls from './PlaybackControls';
 import SettingsSheet from './SettingsSheet';
 import SubtitleRow from './SubtitleRow';
+import VideoBar from './VideoBar';
 import { t } from './lib';
 import { useWatchPlayer } from './useWatchPlayer';
+
+/**
+ * 字幕列表末尾的占位：把最后一行的滚动余量抬到控制坞上方。
+ *
+ * 必须定义在组件外：Virtuoso 的 components 每次渲染换引用会重挂 Footer，滚动会跳。
+ */
+const SubtitleListTail = () => <div className="subs-tail" aria-hidden="true" />;
+
+/** Virtuoso 的自定义组件，空定义一次、全局复用。 */
+const VIRTUOSO_COMPONENTS = { Footer: SubtitleListTail };
 
 /**
  * 播放页主体：视频、字幕列表、底部三键和设置面板。
@@ -33,12 +45,13 @@ const WatchPlayer = ({ detail }: { detail: MobileWatchDetail }) => {
         currentIndex,
         currentLine,
         currentTranslation,
-        controlText,
         showEnglish,
         showTranslation,
         showFollow,
         videoError,
         paused,
+        position,
+        duration,
         settingsOpen,
         dict,
         repeatOn,
@@ -55,6 +68,9 @@ const WatchPlayer = ({ detail }: { detail: MobileWatchDetail }) => {
         changeSpeed,
         changeTheme,
         seekLine,
+        togglePlay,
+        seekTo,
+        enterFullscreen,
         stepLine,
         replayCurrent,
         lookupWord,
@@ -74,14 +90,35 @@ const WatchPlayer = ({ detail }: { detail: MobileWatchDetail }) => {
     const navigate = useNavigate();
     const pauseMenuOpen = paused && !videoError;
 
+    /**
+     * 点视频切播放 / 暂停。
+     *
+     * 视频上所有控件（圆钮、进度条）都叠在它上面，点它们不能顺带切到播放，
+     * 所以先看事件源是不是落在了交互元素里。
+     *
+     * @param event 点击事件。
+     */
+    const handlePlayerClick = (event: React.MouseEvent<HTMLDivElement>): void => {
+        if (videoError) {
+            return;
+        }
+        if ((event.target as HTMLElement).closest('button, input, a')) {
+            return;
+        }
+        togglePlay();
+    };
+
     return (
         <div className="view watch">
-            <div className={`player${detail.isAudio ? ' audio' : ''}`}>
+            {/* 点视频切播放/暂停是触屏习惯；键盘和读屏用户走 VideoBar 里的播放键（有 aria-label）。 */}
+            {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
+            <div className={`player${detail.isAudio ? ' audio' : ''}`} onClick={handlePlayerClick}>
                 {/* 字幕由页面自绘，不使用 WebVTT track，关闭 jsx-a11y 的 captions 规则。 */}
+                {/* 不用 controls：iOS 会在暂停时浮出系统控件层，位置不受页面控制且会和叠在视频上的圆钮重叠；
+                    播放/进度/全屏由 VideoBar 自绘。 */}
                 {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                 <video
                     ref={videoRef}
-                    controls
                     playsInline
                     preload="metadata"
                     src={detail.streamUrl}
@@ -108,6 +145,20 @@ const WatchPlayer = ({ detail }: { detail: MobileWatchDetail }) => {
                         </div>
                     </div>
                 )}
+                <PauseMenu
+                    open={pauseMenuOpen}
+                    onSettings={openSettings}
+                    onHome={() => navigate('/', { replace: true })}
+                />
+                <VideoBar
+                    paused={paused}
+                    position={position}
+                    duration={duration}
+                    disabled={videoError}
+                    onTogglePlay={togglePlay}
+                    onSeek={seekTo}
+                    onFullscreen={enterFullscreen}
+                />
             </div>
 
             <div className="subs-wrap">
@@ -120,7 +171,7 @@ const WatchPlayer = ({ detail }: { detail: MobileWatchDetail }) => {
                     onLongPress={openSettings}
                 />
                 <div
-                    className={pauseMenuOpen ? 'subs menu-open' : 'subs'}
+                    className="subs"
                     onTouchMove={handleUserScroll}
                     onWheel={handleUserScroll}
                 >
@@ -134,10 +185,11 @@ const WatchPlayer = ({ detail }: { detail: MobileWatchDetail }) => {
                             scrollerRef={handleScrollerRef}
                             style={{ height: '100%' }}
                             data={detail.subtitles}
+                            components={VIRTUOSO_COMPONENTS}
                             computeItemKey={(index) => index}
-                            defaultItemHeight={70}
-                            increaseViewportBy={200}
-                            minOverscanItemCount={{ top: 3, bottom: 6 }}
+                            defaultItemHeight={42}
+                            increaseViewportBy={300}
+                            minOverscanItemCount={{ top: 4, bottom: 8 }}
                             onScroll={handleScroll}
                             rangeChanged={handleRangeChanged}
                             itemContent={(index, line) => (
@@ -152,24 +204,21 @@ const WatchPlayer = ({ detail }: { detail: MobileWatchDetail }) => {
                     )}
                 </div>
                 {showFollow && (
-                    <button type="button" className="follow-btn" onClick={followCurrent}>
-                        {t('回到当前', 'Back to current')}
-                    </button>
+                    <div className="follow-btn-wrap">
+                        <button type="button" className="follow-btn" onClick={followCurrent}>
+                            <LocateFixed size={14} strokeWidth={2.4} aria-hidden />
+                            <span>{t('回到当前播放句', 'Back to current')}</span>
+                        </button>
+                    </div>
                 )}
             </div>
 
             <div className="controls-wrap">
                 <PlaybackControls
                     hasSubtitles={detail.subtitles.length > 0}
-                    text={controlText}
                     onPrevious={() => stepLine(-1)}
                     onCurrent={replayCurrent}
                     onNext={() => stepLine(1)}
-                />
-                <PauseMenu
-                    open={pauseMenuOpen}
-                    onSettings={openSettings}
-                    onHome={() => navigate('/', { replace: true })}
                 />
             </div>
 

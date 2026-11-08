@@ -1,7 +1,22 @@
 import React from 'react';
-import { HashRouter, Route, Routes } from 'react-router-dom';
+import { HashRouter, Route, Routes, useLocation } from 'react-router-dom';
 import RecentPage from './RecentPage';
 import WatchPage from './WatchPage';
+import { setPageChrome } from './theme';
+
+/**
+ * 按当前路由切换顶部媒体栏配色。
+ *
+ * 播放页的视频、圆钮和状态栏都压在黑底上，列表页跟主题；用 layout effect
+ * 让属性在首帧前就位，免得一瞬奶油色再变黑。
+ */
+const PageChrome = () => {
+    const { pathname } = useLocation();
+    React.useLayoutEffect(() => {
+        setPageChrome(pathname.startsWith('/watch/') ? 'watch' : 'list');
+    }, [pathname]);
+    return null;
+};
 
 /**
  * 手机版应用路由。
@@ -25,6 +40,7 @@ const MobileApp = () => {
 
     return (
         <HashRouter>
+            <PageChrome />
             <Routes>
                 <Route path="/" element={<RecentPage />} />
                 <Route path="/watch/:id" element={<WatchPage />} />

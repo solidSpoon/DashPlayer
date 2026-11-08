@@ -4,7 +4,6 @@
     --bg: #0b0b0b;
     --surface: #151515;
     --surface-press: #1d1d1d;
-    --controls-bg: #101010;
     --line: rgba(255, 255, 255, 0.08);
     --line-strong: rgba(255, 255, 255, 0.16);
     --text: #ededed;
@@ -22,10 +21,21 @@
     --pill-active-border: #3f3f3f;
     --pill-active-text: #ffffff;
     --ctrl-glyph: #d0d0d0;
+    /* 顶部一体化渐隐背景 */
+    --bg-fade: rgba(11, 11, 11, 0.4);
+    --surface-glass: rgba(255, 255, 255, 0.08);
     /* 主字幕区高度：按两行英文加一行中文估，字幕列表顶部让出同样高度。 */
     --main-sub-h: 108px;
-    /* 暂停菜单横条高度，字幕列表底部让出同样高度。 */
-    --pause-menu-h: 65px;
+    /* 底部控制坞（macOS Dock 风格）：高度舒适大气，悬浮在屏幕底部。 */
+    --dock-h: 88px;
+    --dock-radius: 36px;
+    --dock-bg: rgba(30, 30, 30, 0.76);
+    --dock-border: rgba(255, 255, 255, 0.16);
+    --dock-shadow: 0 12px 36px -4px rgba(0, 0, 0, 0.5), 0 4px 12px rgba(0, 0, 0, 0.25), inset 0 1px 1.5px rgba(255, 255, 255, 0.2);
+    /* dock 离屏幕底边的悬浮留白：保持与左右留白（14px）三向等距，与全面屏 iPhone 边角完美同心 */
+    --dock-bottom: max(14px, calc(var(--safe-bottom) - 18px));
+    /* 从屏幕底边到 dock 顶边的高度：列表底部收尾占位据此避让，避免最后一行被 dock 遮挡。 */
+    --dock-clear: calc(var(--dock-h) + var(--dock-bottom));
     --safe-top: env(safe-area-inset-top, 0px);
     --safe-bottom: env(safe-area-inset-bottom, 0px);
 }
@@ -33,9 +43,10 @@
 :root[data-theme='light'] {
     color-scheme: light;
     --bg: #f5f4f0;
+    --bg-fade: rgba(245, 244, 240, 0.4);
+    --surface-glass: rgba(0, 0, 0, 0.05);
     --surface: #ffffff;
     --surface-press: #ebe9e3;
-    --controls-bg: #efede7;
     --line: rgba(20, 20, 20, 0.1);
     --line-strong: rgba(20, 20, 20, 0.18);
     --text: #1c1c1c;
@@ -53,6 +64,9 @@
     --pill-active-border: #c9c4ba;
     --pill-active-text: #1c1c1c;
     --ctrl-glyph: #3a3a3a;
+    --dock-bg: rgba(255, 255, 255, 0.82);
+    --dock-border: rgba(0, 0, 0, 0.08);
+    --dock-shadow: 0 12px 36px -4px rgba(0, 0, 0, 0.12), 0 4px 12px rgba(0, 0, 0, 0.05), inset 0 1px 1.5px rgba(255, 255, 255, 0.95);
 }
 
 * {
@@ -66,6 +80,9 @@ body {
     padding: 0;
     background: var(--bg);
     color: var(--text);
+    /* 禁止整页被拖拽回弹（消除 iOS 网页 rubber-banding 弹性过滚动） */
+    overscroll-behavior: none;
+    -webkit-overflow-scrolling: touch;
 }
 
 body {
@@ -103,195 +120,136 @@ button {
     background: var(--bg);
 }
 
+/* 顶端护栏：主屏 Web App 里，页面顶端没东西可采时 iOS 26 会从页面顶端往下画一条约 43px 的
+   渐进虚化，把最上面那段内容糊掉（真机实测：条纹振幅从 0 一路渐变到满幅，跨 43px）。
+   只要页面顶端存在一个 fixed 元素，系统就不画这条：实测同一个页面，无元素时顶端虚化、
+   11px 不透明 / 11px 带文字 / 11px background-clip:text 三种都有时都没虚化。
+   而且状态栏会取这个元素的 background-color 当底色（实测 clip:text 那张元素背景 #000，
+   状态栏就变成纯黑 #000，而页面底色是 #0b0b0b）——取的是元素背景色，不是渲染出的像素。
+   所以这里放一个 11px、背景取页面底色、`background-clip: text` 且不含文字的元素：
+   它不画任何像素、也不占布局，只当“顶端有一面”的声明；去掉它就会退回那条虚化。
+   高度 11px 是按实测阈值定的（> 10px），改小不一定还有人认。 */
+.top-guard {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 11px;
+    z-index: 2147483647;
+    pointer-events: none;
+    background-color: var(--bg);
+    -webkit-background-clip: text;
+    background-clip: text;
+}
+
 .view {
     display: flex;
     flex-direction: column;
     flex: 1;
     min-height: 0;
     height: 100%;
+    overscroll-behavior: none;
 }
 
-/* ---------- 最近播放 ---------- */
+/* ---------- 最近播放页（一体化 iOS 风格） ---------- */
 
-.home-scroll {
-    flex: 1;
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
-    padding: calc(var(--safe-top) + 30px) 16px calc(var(--safe-bottom) + 24px);
+.home-view {
+    position: relative;
+    overflow: hidden;
+    overscroll-behavior: none;
 }
 
+/*
+ * 顶部一体化渐隐导航栏：
+ * 绝无任何生硬的 1px 底边分割线！通过向下的线性渐隐遮罩（mask-image）和毛玻璃，
+ * 让列表卡片向上滑行时平滑雾化消融在背景光晕中，营造浑然一体的现代 iOS 质感。
+ */
 .home-head {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: 10;
     display: flex;
-    align-items: center;
+    align-items: flex-end;
     justify-content: space-between;
-    gap: 12px;
-    padding: 0 2px 16px;
-}
-
-.home-actions {
-    display: flex;
-    flex: none;
-    align-items: center;
-    gap: 8px;
-}
-
-.theme-toggle {
-    flex: none;
-    padding: 4px 8px;
-    border: 1px solid var(--line);
-    border-radius: 6px;
-    color: var(--muted);
-    font-size: 11.5px;
-}
-
-.theme-toggle:active {
-    background: var(--surface-press);
-    color: var(--text);
-}
-
-.help-btn {
-    display: flex;
-    flex: none;
-    align-items: center;
-    justify-content: center;
-    width: 28px;
-    height: 28px;
-    border: 1px solid var(--line);
-    border-radius: 50%;
-    color: var(--muted);
-    font-size: 13px;
-    font-weight: 500;
-    line-height: 1;
-}
-
-.help-btn:active {
-    background: var(--surface-press);
-    color: var(--text);
-}
-
-.help-diagram {
-    width: 100%;
-    max-width: 232px;
-    margin: 2px auto 10px;
-}
-
-.help-diagram svg {
-    display: block;
-    width: 100%;
-    height: auto;
-}
-
-.help-diagram text {
-    font-family: inherit;
-}
-
-.help-diagram .hd-frame {
-    fill: var(--bg);
-    stroke: var(--line-strong);
-    stroke-width: 1.5;
-}
-
-.help-diagram .hd-video {
-    fill: var(--surface-press);
-    stroke: var(--line);
-}
-
-.help-diagram .hd-surface {
-    fill: var(--surface);
-    stroke: var(--line);
-}
-
-.help-diagram .hd-label {
-    fill: var(--muted);
-    font-size: 8px;
-}
-
-.help-diagram .hd-bar {
-    fill: var(--line-strong);
-}
-
-.help-diagram .hd-bar-strong {
-    fill: var(--muted-2);
-}
-
-.help-diagram .hd-muted {
-    fill: var(--muted-2);
-}
-
-.help-diagram .hd-accent {
-    fill: var(--accent);
-}
-
-.help-diagram .hd-ring {
-    fill: none;
-    stroke: var(--accent);
-    stroke-width: 1.5;
-}
-
-.help-diagram .hd-main {
-    fill: var(--surface);
-    stroke: var(--accent);
-    stroke-width: 1.3;
-    stroke-dasharray: 4 3;
-}
-
-.help-diagram .hd-on-accent {
-    fill: var(--bg);
-    font-size: 8.5px;
-    font-weight: 500;
-}
-
-.help-diagram .hd-arrow {
-    fill: none;
-    stroke: var(--muted);
-    stroke-width: 2;
-    stroke-linecap: round;
-    stroke-linejoin: round;
-}
-
-.help-body {
-    padding: 4px 0;
-}
-
-.help-line {
-    margin: 0 0 10px;
-    color: var(--muted);
-    font-size: 13px;
-    line-height: 1.7;
-}
-
-.help-line:last-child {
-    margin-bottom: 0;
-}
-
-.help-line strong {
-    color: var(--text);
-    font-weight: 500;
+    gap: 16px;
+    padding: calc(var(--safe-top) + 16px) 20px 24px;
+    background: linear-gradient(
+        to bottom,
+        var(--bg) 0%,
+        var(--bg) 45%,
+        var(--bg-fade) 78%,
+        transparent 100%
+    );
+    -webkit-backdrop-filter: blur(24px) saturate(190%);
+    backdrop-filter: blur(24px) saturate(190%);
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, black 60%, transparent 100%);
+    mask-image: linear-gradient(to bottom, black 0%, black 60%, transparent 100%);
+    pointer-events: none;
 }
 
 .home-title {
     margin: 0;
-    font-size: 26px;
-    font-weight: 600;
-    letter-spacing: -0.01em;
+    font-size: 30px;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--text);
+    line-height: 1.15;
+}
+
+/* 顶部明暗模式切换：高透玻璃质感圆形图标按钮 */
+.theme-icon-btn {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: var(--surface-glass);
+    color: var(--text);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    pointer-events: auto;
+    transition: transform 0.15s cubic-bezier(0.2, 0, 0, 1), background 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.theme-icon-btn:active {
+    background: var(--surface-press);
+    transform: scale(0.9);
+}
+
+/* 列表滚动容器：全屏贯穿，顶部为渐隐 Header 预留充足空间，禁止网页弹性晃动 */
+.home-scroll {
+    flex: 1;
+    min-height: 0;
+    height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    padding: calc(var(--safe-top) + 84px) 18px calc(var(--safe-bottom) + 36px);
 }
 
 .list {
     display: flex;
     flex-direction: column;
-    gap: 22px;
+    gap: 20px;
 }
 
 .item {
     display: flex;
     flex-direction: column;
-    gap: 9px;
+    gap: 10px;
     color: inherit;
     text-decoration: none;
+    transition: transform 0.14s ease, opacity 0.14s ease;
 }
 
 .item:active {
-    opacity: 0.72;
+    opacity: 0.85;
+    transform: scale(0.985);
 }
 
 .item-media {
@@ -299,8 +257,10 @@ button {
     width: 100%;
     aspect-ratio: 16 / 9;
     overflow: hidden;
-    border-radius: 10px;
+    border-radius: 14px;
     background: var(--media-bg);
+    border: 1px solid var(--line);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.08);
 }
 
 .item-media img {
@@ -352,11 +312,14 @@ button {
     position: absolute;
     right: 8px;
     bottom: 8px;
-    padding: 2px 6px;
-    border-radius: 4px;
-    background: rgba(0, 0, 0, 0.72);
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.68);
+    -webkit-backdrop-filter: blur(8px);
+    backdrop-filter: blur(8px);
     color: #ffffff;
-    font-size: 10.5px;
+    font-size: 11px;
+    font-weight: 500;
     font-variant-numeric: tabular-nums;
 }
 
@@ -365,14 +328,15 @@ button {
     flex-direction: column;
     gap: 4px;
     min-width: 0;
+    padding: 0 2px;
 }
 
 .item-title {
     overflow: hidden;
     color: var(--text);
-    font-size: 15.5px;
-    font-weight: 500;
-    line-height: 1.35;
+    font-size: 16px;
+    font-weight: 600;
+    line-height: 1.4;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -380,15 +344,15 @@ button {
 .item-sub {
     overflow: hidden;
     color: var(--muted);
-    font-size: 12px;
-    line-height: 1.35;
+    font-size: 12.5px;
+    line-height: 1.4;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
 .item-meta {
     color: var(--muted-2);
-    font-size: 11px;
+    font-size: 11.5px;
     font-variant-numeric: tabular-nums;
 }
 
@@ -457,7 +421,18 @@ button {
 
 /* ---------- 播放页 ---------- */
 
+/* 播放页顶端不让位：主屏 Web App 里那条把顶部约 40px 糊掉的渐变罩来自
+   apple-mobile-web-app-status-bar-style 这个 meta 键（见 index.html），删掉后系统不再画。 */
+/* 播放页顶端是一条黑色媒体栏：视频、圆钮、状态栏都压在黑底上（参考设计）。
+   这里只动 top-guard：它不画像素，但它的 background-color 会被系统拿去当状态栏底色。
+   不能给 .view.watch 加黑底——字幕列表本身就靠页面底色，浅色主题下会变成黑底黑字。
+   meta theme-color 由 theme.ts 的 setPageChrome 跟着改，两者保持一致。 */
+html[data-page='watch'] .top-guard {
+    background-color: #000000;
+}
+
 .view.watch {
+    position: relative;
     padding-top: var(--safe-top);
 }
 
@@ -468,21 +443,6 @@ button {
     max-height: 40dvh;
     aspect-ratio: 16 / 9;
     background: #000;
-}
-
-/* 主屏 Web App 里，系统会采样页面顶端画一条浅→深的过渡，把那里约 40px 的内容糊掉：
-   视频贴在最上面时看得到那条过渡；查词条顶在最上面时它的第一行发灰发软
-   （实测：字典词名最暗像素 105，同一屏的释义行 36、字幕 43）。
-   给元素加合成层（translateZ）对这个没用，实测照糊——它画在页面之上的系统层里。
-   所以播放页顶端让出 44px：里面只放页面底色，过渡对着纯色看不出来。
-   查词条浮层也从这条以下开始，不再压在糊的那一段上。
-   Safari 标签页没有这条过渡，所以不让位。 */
-html[data-standalone] .view.watch {
-    padding-top: 44px;
-}
-
-html[data-standalone] .dict-bar {
-    top: 44px;
 }
 
 .player.audio {
@@ -528,25 +488,27 @@ html[data-standalone] .dict-bar {
     flex: 1;
     flex-direction: column;
     min-height: 0;
-    border-top: 1px solid var(--line);
 }
 
+/*
+ * 主字幕区：当前播放句的聚焦显示区。
+ * 取消生硬的底部分割实线，使用微弱立体光影与精致的中英文字阶对比。
+ */
 .main-sub {
     position: absolute;
     top: 0;
     right: 0;
     left: 0;
-    z-index: 1;
+    z-index: 2;
     display: flex;
     flex-direction: column;
     justify-content: center;
-    /* 内容超出固定高度时（很少见）从上往下裁，别把首行挤掉。 */
     justify-content: safe center;
     height: var(--main-sub-h);
     overflow-y: auto;
-    padding: 0 14px;
-    border-bottom: 1px solid var(--line);
+    padding: 10px 18px;
     background: var(--surface);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.05);
     -webkit-overflow-scrolling: touch;
     -webkit-user-select: none;
     user-select: none;
@@ -555,93 +517,170 @@ html[data-standalone] .dict-bar {
 }
 
 .main-sub-en {
-    color: var(--line-en);
-    font-size: 18px;
-    font-weight: 500;
-    line-height: 1.55;
+    color: var(--text);
+    font-size: 19px;
+    font-weight: 600;
+    line-height: 1.45;
+    letter-spacing: -0.01em;
     text-align: center;
 }
 
 .main-sub-zh {
-    margin-top: 6px;
+    margin-top: 5px;
     color: var(--muted);
     font-size: 14px;
-    line-height: 1.55;
+    line-height: 1.45;
     text-align: center;
+    opacity: 0.85;
 }
 
-/* 列表整体落在主字幕区下方，前几行不会再被盖住。 */
+/*
+ * 字幕列表：上下边缘采用平滑渐隐遮罩（mask-image），
+ * 穿梭在主字幕区与底部控制坞之间，没有硬边界割裂。
+ */
 .subs {
     position: relative;
     flex: 1;
     min-height: 0;
     overflow: hidden;
     padding: var(--main-sub-h) 0 0;
+    -webkit-mask-image: linear-gradient(
+        to bottom,
+        transparent 0px,
+        black var(--main-sub-h),
+        black calc(100% - 70px),
+        transparent 100%
+    );
+    mask-image: linear-gradient(
+        to bottom,
+        transparent 0px,
+        black var(--main-sub-h),
+        black calc(100% - 70px),
+        transparent 100%
+    );
 }
 
-/* 暂停菜单出现时，列表底部让出横条的高度，最后几行也能滚出来。 */
-.subs.menu-open {
-    padding-bottom: var(--pause-menu-h);
+/* 增强 Virtuoso 内部真实滚动手感与动量惯性 */
+.subs [data-virtuoso-scroller="true"] {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
 }
 
+/* 列表末尾的占位：高度 = dock 顶边到屏幕底边 + 一点呼吸空间。
+   它渲染在 Virtuoso 的滚动内容里（components.Footer），所以只影响“能滚多远”，
+   不影响列表本身的高度——最后一行因此能停在 dock 上方。 */
+.subs-tail {
+    height: calc(var(--dock-clear) + 16px);
+}
+
+/*
+ * 字幕行：低干扰、克制且沉静的辅助列表。
+ * 注意力完全留给顶部的主字幕区，字幕流不使用显眼的色块框或缩放放大动效，
+ * 仅以柔和的字色差异安静指示当前进度，不喧宾夺主。
+ */
 .line {
     display: flex;
     align-items: stretch;
     width: 100%;
-    padding: 10px 14px;
+    padding: 9px 18px;
     color: inherit;
     font: inherit;
     text-align: center;
     -webkit-user-select: none;
     user-select: none;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .line-main {
     flex: 1;
     min-width: 0;
+    padding: 2px 8px;
 }
 
 .line .en {
     display: block;
     color: var(--line-en);
     font-size: 15px;
+    font-weight: 400;
     line-height: 1.55;
     text-align: center;
+    opacity: 0.65;
+    transition: opacity 0.2s ease, color 0.2s ease;
 }
 
+/* 当前播放句：仅提升为清晰的主文本色并适度凝聚，无背景色块闪烁，无字号膨胀跳跃 */
 .line.current .en {
-    text-decoration: underline;
-    text-decoration-color: var(--muted);
+    color: var(--text);
+    font-weight: 500;
+    opacity: 1;
 }
 
-.follow-btn {
+.line:active {
+    opacity: 0.45;
+}
+
+/* 回到当前按钮容器：悬浮在底部 Dock 正上方居中呈现 */
+.follow-btn-wrap {
     position: absolute;
-    right: 14px;
-    bottom: 12px;
-    z-index: 2;
-    padding: 9px 15px;
-    border: 1px solid var(--line-strong);
+    bottom: calc(var(--dock-clear) + 14px);
+    right: 0;
+    left: 0;
+    z-index: 3;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+    animation: follow-btn-in 0.22s cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+@keyframes follow-btn-in {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.94);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+/* 回到当前按钮：圆润饱满的 iOS 毛玻璃灵动药丸 */
+.follow-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 38px;
+    padding: 0 18px;
+    border: 1px solid var(--dock-border);
     border-radius: 999px;
-    background: var(--surface);
+    background: var(--dock-bg);
     color: var(--text);
-    font-size: 12.5px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
+    font-size: 13px;
+    font-weight: 500;
+    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.22), 0 2px 8px rgba(0, 0, 0, 0.1);
+    -webkit-backdrop-filter: blur(24px) saturate(190%);
+    backdrop-filter: blur(24px) saturate(190%);
+    pointer-events: auto;
+    transition: transform 0.15s cubic-bezier(0.2, 0, 0, 1), background 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .follow-btn:active {
     background: var(--surface-press);
+    transform: scale(0.92);
 }
 
 .word {
-    display: inline;
-    padding: 0;
+    display: inline-block;
+    padding: 1px 3px;
     border: 0;
     background: none;
     color: inherit;
     font: inherit;
     line-height: inherit;
-    border-radius: 3px;
+    border-radius: 6px;
     cursor: pointer;
+    transition: background 0.12s ease;
 }
 
 .word:active {
@@ -676,95 +715,242 @@ html[data-standalone] .dict-bar {
 }
 
 
-/* ---------- 底部三键控制区 ---------- */
+/* ---------- 暂停时压在视频上的圆形按钮 ---------- */
 
-.controls-wrap {
-    position: relative;
-    flex: none;
-}
-
-/* 暂停菜单：贴在三键上方的整条横栏，不占布局，播放时整块移除。 */
-.pause-menu {
+/* 浮层不占布局，也不拦视频上的点击（只有两个圆钮自己接）。 */
+.pause-bar {
     position: absolute;
-    right: 0;
-    bottom: 100%;
-    left: 0;
+    top: 12px;
+    right: 14px;
+    left: 14px;
     z-index: 3;
     display: flex;
-    border-top: 1px solid var(--line);
-    background: var(--controls-bg);
+    justify-content: space-between;
+    pointer-events: none;
+    animation: pause-bar-in 0.22s cubic-bezier(0.2, 0, 0, 1) forwards;
 }
 
-.pause-menu-item {
+@keyframes pause-bar-in {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.pause-btn {
     display: flex;
-    flex: 1;
     align-items: center;
     justify-content: center;
+    width: 44px;
+    height: 44px;
+    border: 1px solid rgba(255, 255, 255, 0.24);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.48);
+    color: #ffffff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    pointer-events: auto;
+    transition: transform 0.12s ease, background 0.15s ease;
+}
+
+.pause-btn:active {
+    background: rgba(0, 0, 0, 0.72);
+    transform: scale(0.9);
+}
+
+/* ---------- 视频下沿自绘的播放控件 ---------- */
+
+/* 覆盖在视频底部：上边缘透明、下边缘压暗，让白图标在任何画面上都看得清。 */
+.video-bar {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 2;
+    display: flex;
+    align-items: center;
     gap: 8px;
-    min-height: 64px;
-    color: var(--text);
-    font-size: 14.5px;
+    padding: 6px 8px 7px;
+    background: linear-gradient(
+        180deg,
+        rgba(0, 0, 0, 0) 0%,
+        rgba(0, 0, 0, 0.45) 40%,
+        rgba(0, 0, 0, 0.72) 100%
+    );
+    color: #ffffff;
+    transition: opacity 0.22s ease;
 }
 
-.pause-menu-item:active {
-    background: var(--surface-press);
+/* 播放中自动隐起：用 CSS 动画而不是 JS 计时（播放/暂停一翻就重算），
+   结束后 visibility: hidden，不再接住点到视频上的手势。 */
+.video-bar.playing {
+    animation: video-bar-autohide 0.24s ease 2.5s forwards;
 }
 
-.controls {
-    display: grid;
+@keyframes video-bar-autohide {
+    to {
+        opacity: 0;
+        visibility: hidden;
+    }
+}
+
+.vb-btn {
+    display: flex;
     flex: none;
-    grid-template-columns: 78px minmax(0, 1fr) 78px;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    color: #ffffff;
+}
+
+.vb-btn:active {
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.vb-btn:disabled {
+    opacity: 0.4;
+}
+
+/* 进度条：只留一根细轨 + 小圆点，不画默认轨道背景。 */
+.vb-seek {
+    flex: 1;
+    min-width: 0;
+    height: 28px;
+    margin: 0;
+    background: transparent;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.vb-seek::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 2px;
+    /* 已播部分白色、未播部分半透明白；比例由行内 --played 传入。 */
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.95) 0 var(--played, 0%),
+        rgba(255, 255, 255, 0.32) var(--played, 0%) 100%
+    );
+}
+
+.vb-seek::-webkit-slider-thumb {
+    width: 13px;
+    height: 13px;
+    margin-top: -4.5px;
+    border: 0;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.45);
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.vb-seek::-moz-range-track {
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(
+        90deg,
+        rgba(255, 255, 255, 0.95) 0 var(--played, 0%),
+        rgba(255, 255, 255, 0.32) var(--played, 0%) 100%
+    );
+}
+
+.vb-seek::-moz-range-thumb {
+    width: 13px;
+    height: 13px;
+    border: 0;
+    border-radius: 50%;
+    background: #ffffff;
+}
+
+.vb-seek:disabled {
+    opacity: 0.45;
+}
+
+.vb-time {
+    flex: none;
+    color: rgba(255, 255, 255, 0.92);
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+/* ---------- 底部悬浮控制坞 ---------- */
+
+/* 定位层不接点击，字幕列表从 dock 背后滚过去时照样能滑、能点句。 */
+.controls-wrap {
+    position: absolute;
+    right: 0;
+    bottom: var(--dock-bottom);
+    left: 0;
+    z-index: 4;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+}
+
+/*
+ * macOS Dock 风格悬浮控制坞：
+ * 1. 悬浮于屏幕底部中央，宽度在手机上充满屏幕并三向等距留白（左/右/底各 14px），与 iPhone 屏幕同心；
+ * 2. 圆角（36px）与屏幕物理圆角（约 48px）内外同心（48px - 14px ≈ 34~36px），边缘弧线处处平行；
+ * 3. 尺寸更加开阔大气（高度 88px），每个按键拥有超大舒适点击区域与圆角按压态；
+ * 4. 采用顶级半透明毛玻璃材质（backdrop-filter）与立体微高光描边，悬浮质感纯正。
+ */
+.controls {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     gap: 8px;
-    align-items: stretch;
-    padding: 8px 10px calc(8px + var(--safe-bottom));
-    border-top: 1px solid var(--line);
-    background: var(--controls-bg);
+    width: calc(100% - 28px);
+    max-width: 500px;
+    height: var(--dock-h);
+    padding: 8px;
+    border-radius: var(--dock-radius);
+    background: var(--dock-bg);
+    border: 1px solid var(--dock-border);
+    box-shadow: var(--dock-shadow);
+    -webkit-backdrop-filter: blur(28px) saturate(190%);
+    backdrop-filter: blur(28px) saturate(190%);
+    pointer-events: auto;
 }
 
 .ctrl {
     display: flex;
-    height: 80px;
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    background: var(--surface);
+    flex: 1;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    border-radius: calc(var(--dock-radius) - 12px);
+    color: var(--ctrl-glyph);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.12s cubic-bezier(0.2, 0, 0, 1), background 0.15s ease, opacity 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
 }
 
 .ctrl:disabled {
-    opacity: 0.35;
+    opacity: 0.3;
+    cursor: default;
 }
 
-.ctrl-step {
-    align-items: center;
-    justify-content: center;
-    color: var(--ctrl-glyph);
-    font-size: 30px;
-    line-height: 1;
-}
-
-.ctrl-step:active {
+.ctrl:active:not(:disabled) {
     background: var(--surface-press);
+    transform: scale(0.92);
 }
 
-.ctrl-main {
-    align-items: center;
-    justify-content: flex-start;
-    padding: 10px 14px;
-    text-align: left;
-}
-
-.ctrl-main:active {
-    background: var(--surface-press);
-}
-
-.ctrl-main-text {
-    display: -webkit-box;
-    width: 100%;
-    overflow: hidden;
-    color: var(--text);
-    font-size: 14px;
-    line-height: 1.4;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+/* 中间的「重播当前句」用主色，和两侧的跳句分开。 */
+.ctrl-accent {
+    color: var(--accent);
 }
 
 /* ---------- 播放设置面板 ---------- */
@@ -788,29 +974,49 @@ html[data-standalone] .dict-bar {
     left: 0;
     max-height: 90vh;
     overflow-y: auto;
-    padding: 10px 16px calc(12px + var(--safe-bottom));
+    padding: 8px 20px calc(16px + var(--safe-bottom));
     border-top: 1px solid var(--line-strong);
-    border-radius: 14px 14px 0 0;
+    border-radius: 28px 28px 0 0;
     background: var(--panel);
+    -webkit-backdrop-filter: blur(32px) saturate(190%);
+    backdrop-filter: blur(32px) saturate(190%);
+    box-shadow: 0 -12px 40px rgba(0, 0, 0, 0.35);
+}
+
+.sheet-grabber {
+    width: 38px;
+    height: 5px;
+    margin: 4px auto 14px;
+    border-radius: 999px;
+    background: var(--line-strong);
 }
 
 .sheet-head {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 4px 0 8px;
+    padding: 0 0 14px;
 }
 
 .sheet-title {
     color: var(--text);
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 17px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
 }
 
 .sheet-done {
-    padding: 4px 0 4px 10px;
-    color: var(--muted);
-    font-size: 12.5px;
+    padding: 5px 14px;
+    border-radius: 999px;
+    background: var(--surface-press);
+    color: var(--text);
+    font-size: 13px;
+    font-weight: 600;
+    transition: transform 0.12s ease;
+}
+
+.sheet-done:active {
+    transform: scale(0.94);
 }
 
 .sheet-row {
@@ -819,40 +1025,44 @@ html[data-standalone] .dict-bar {
     justify-content: space-between;
     flex-wrap: wrap;
     gap: 10px;
-    min-height: 46px;
+    min-height: 50px;
     border-top: 1px solid var(--line);
 }
 
 .sheet-label {
     flex: none;
     color: var(--muted);
-    font-size: 13px;
+    font-size: 13.5px;
 }
 
 .pill-group {
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-end;
-    gap: 6px;
+    gap: 7px;
 }
 
 .pill {
-    min-width: 46px;
-    height: 32px;
-    padding: 0 10px;
+    min-width: 48px;
+    height: 34px;
+    padding: 0 12px;
     border: 1px solid var(--line);
-    border-radius: 8px;
+    border-radius: 999px;
     color: var(--muted);
-    font-size: 12.5px;
+    font-size: 13px;
+    font-weight: 500;
+    transition: transform 0.12s ease, background 0.15s ease, color 0.15s ease;
 }
 
 .pill[aria-pressed="true"] {
     border-color: var(--pill-active-border);
     background: var(--pill-active-bg);
     color: var(--pill-active-text);
+    font-weight: 600;
 }
 
 .pill:active {
+    transform: scale(0.94);
     background: var(--surface-press);
 }
 
@@ -861,85 +1071,184 @@ html[data-standalone] .dict-bar {
 }
 
 .pill-speed {
-    min-width: 42px;
-    padding: 0 8px;
+    min-width: 44px;
+    padding: 0 9px;
 }
 
-/* ---------- 顶部查词条 ---------- */
+/* ---------- 查词面板（悬浮在视频区内的极简轻量卡片） ---------- */
 
-.dict-bar {
-    position: fixed;
-    top: 0;
-    right: 0;
-    left: 0;
-    z-index: 100;
+.dict-card {
+    position: absolute;
+    top: calc(var(--safe-top) + 8px);
+    left: 12px;
+    right: 12px;
+    z-index: 50;
+    /* 高度恒定稳定在视频区内，从弹出到数据返回无丝毫高度跳动/抖动 */
+    height: min(120px, calc(100vw * 9 / 16 - 16px));
+    max-height: calc(min(100vw * 9 / 16, 40dvh, 260px) - 16px);
     display: flex;
-    align-items: flex-start;
-    gap: 10px;
-    padding: calc(var(--safe-top) + 9px) 12px 10px;
-    border-bottom: 1px solid var(--line-strong);
-    background: var(--panel);
+    flex-direction: column;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: 11px 15px 12px;
+    border-radius: 18px;
+    background: var(--dock-bg);
+    border: 1px solid var(--dock-border);
+    box-shadow: 0 10px 28px -4px rgba(0, 0, 0, 0.45), 0 3px 10px rgba(0, 0, 0, 0.2);
+    -webkit-backdrop-filter: blur(28px) saturate(190%);
+    backdrop-filter: blur(28px) saturate(190%);
+    pointer-events: auto;
+    animation: dict-top-in 0.18s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-.dict-body {
-    flex: 1;
-    min-width: 0;
+@keyframes dict-top-in {
+    from {
+        opacity: 0;
+        transform: translateY(-8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
-.dict-head {
+.dict-header {
     display: flex;
     align-items: baseline;
+    padding-bottom: 3px;
+}
+
+.dict-title-wrap {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
     gap: 8px;
     min-width: 0;
 }
 
 .dict-word {
     color: var(--text);
-    font-size: 15px;
-    font-weight: 600;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
 }
 
 .dict-phonetic {
-    overflow: hidden;
     color: var(--muted);
     font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-    font-size: 11px;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    font-size: 13px;
+    font-weight: 500;
 }
 
-.dict-defs {
-    display: -webkit-box;
-    margin-top: 3px;
-    overflow: hidden;
-    color: var(--panel-text);
-    font-size: 12.5px;
-    line-height: 1.5;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
+.dict-content {
+    flex: 1;
+    min-height: 0;
+    margin-top: 5px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
 }
 
-.dict-defs.muted {
+/* 骨架屏：与实际释义高度对齐，加载期静候数据，杜绝页面抖动 */
+.dict-skeleton {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding-top: 3px;
+}
+
+.dict-skeleton-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.dict-skeleton-tag {
+    flex: none;
+    width: 22px;
+    height: 14px;
+    border-radius: 4px;
+    background: var(--skeleton);
+    animation: dict-pulse 1.2s ease-in-out infinite;
+}
+
+.dict-skeleton-text {
+    height: 14px;
+    border-radius: 4px;
+    background: var(--skeleton);
+    animation: dict-pulse 1.2s ease-in-out infinite;
+}
+
+.dict-skeleton-text.w-long {
+    width: 72%;
+}
+
+.dict-skeleton-text.w-short {
+    width: 46%;
+}
+
+@keyframes dict-pulse {
+    0%, 100% {
+        opacity: 0.35;
+    }
+    50% {
+        opacity: 0.75;
+    }
+}
+
+.dict-state {
+    padding: 10px 0 6px;
     color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+}
+
+.dict-state.error {
+    color: var(--danger);
+}
+
+.dict-def-list {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.dict-def-item {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    line-height: 1.45;
+}
+
+.dict-pos-tag {
+    flex: none;
+    padding: 1px 5px;
+    border-radius: 4px;
+    background: var(--surface-press);
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+.dict-meaning {
+    color: var(--text);
+    font-size: 13.5px;
 }
 
 
 /* ---------- 宽屏时收窄内容 ---------- */
 
 @media (min-width: 720px) {
+    .home-head,
     .home-scroll,
-    .subs {
+    .subs,
+    .sheet,
+    .dict-card {
         width: 100%;
-        max-width: 720px;
+        max-width: 680px;
         margin-right: auto;
         margin-left: auto;
-    }
-
-    .controls {
-        width: 100%;
-        max-width: 720px;
-        margin: 0 auto;
-        border-right: 1px solid var(--line);
-        border-left: 1px solid var(--line);
     }
 }

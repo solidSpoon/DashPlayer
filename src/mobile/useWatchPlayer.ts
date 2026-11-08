@@ -10,7 +10,6 @@ import {
     loadBoolPref,
     loadSpeedPref,
     savePref,
-    t,
     tapFeedback,
 } from './lib';
 
@@ -35,7 +34,10 @@ export interface WatchPlayerApi {
     currentIndex: number;
     currentLine: MobileSubtitleLine | null;
     currentTranslation: string;
-    controlText: string;
+    /** 当前播放位置，单位秒；没拿到元数据时为 0。 */
+    position: number;
+    /** 视频总时长，单位秒；未知时为 0。 */
+    duration: number;
     showEnglish: boolean;
     showTranslation: boolean;
     /** 列表滚离当前句时显示“回到当前”。 */
@@ -60,6 +62,12 @@ export interface WatchPlayerApi {
     changeSpeed: (rate: number) => void;
     changeTheme: (theme: AppTheme) => void;
     seekLine: (index: number, play?: boolean) => void;
+    /** 切播放 / 暂停：视频区自己画的播放键和点击视频都走这里。 */
+    togglePlay: () => void;
+    /** 跳到指定秒数，用于自绘进度条；不会自动开始播放。 */
+    seekTo: (seconds: number) => void;
+    /** 进全屏：iOS 走 webkitEnterFullscreen，其它平台走标准全屏。 */
+    enterFullscreen: () => void;
     stepLine: (delta: number) => void;
     replayCurrent: () => void;
     lookupWord: (word: string) => void;
@@ -141,6 +149,9 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
     const [settingsOpen, setSettingsOpen] = React.useState(false);
     const [videoError, setVideoError] = React.useState(false);
     const [paused, setPaused] = React.useState(true);
+    /** 自绘进度条用的位置与总时长；时间轴的当前句另有 tender 负责，不靠它们。 */
+    const [position, setPosition] = React.useState(0);
+    const [duration, setDuration] = React.useState(0);
 
     const resumeDoneRef = React.useRef(detail.currentPosition <= 3);
     const resumeTimerRef = React.useRef<number | null>(null);
@@ -231,7 +242,17 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
         }
         const listRect = list.getBoundingClientRect();
         const rowRect = row.getBoundingClientRect();
-        return rowRect.top >= listRect.top + 8 && rowRect.bottom <= listRect.bottom - 8;
+
+        // 计算底部被悬浮控制坞（Dock）遮挡的实际可视底线。
+        // 以 Dock 顶边为下限（留出 12px 呼吸缓冲），一旦进入 Dock 遮挡区域即视为不可见；
+        // 否则保底以容器底部扣除 Dock 高度与间距（约 110px）为准。
+        const dockEl = document.querySelector('.controls');
+        const visibleBottomLimit = dockEl
+            ? dockEl.getBoundingClientRect().top - 12
+            : listRect.bottom - 110;
+        const visibleTopLimit = listRect.top + 8;
+
+        return rowRect.top >= visibleTopLimit && rowRect.bottom <= visibleBottomLimit;
     }, []);
 
     /** 续一下程序滚动的静默计时；scroll 事件再来就重新计时。 */
@@ -246,7 +267,7 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
     }, []);
 
     /**
-     * 只在当前句快离开可视区时滚动列表，滚到列表顶部，下面留出接下来的几句。
+     * 只在当前句快离开可视区或被底部的 Dock 遮挡时滚动列表，滚到舒适区域。
      *
      * @param index 字幕下标。
      */
@@ -256,7 +277,7 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
         }
         autoScrollingRef.current = true;
         settleAutoScroll();
-        virtuosoRef.current?.scrollIntoView({ index, align: 'start', behavior: 'auto' });
+        virtuosoRef.current?.scrollIntoView({ index, align: 'start', behavior: 'smooth' });
     }, [isRowVisible, settleAutoScroll]);
 
     /**
@@ -424,7 +445,11 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
     /** 处理视频时间更新。 */
     const handleTimeUpdate = React.useCallback((): void => {
         const video = videoRef.current;
-        if (!video || !resumeDoneRef.current) {
+        if (!video) {
+            return;
+        }
+        setPosition(video.currentTime);
+        if (!resumeDoneRef.current) {
             return;
         }
 
@@ -489,6 +514,7 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
             return;
         }
         video.playbackRate = speedRef.current;
+        setDuration(Number.isFinite(video.duration) ? video.duration : 0);
 
         if (!resumeDoneRef.current) {
             const duration = Number.isFinite(video.duration) ? video.duration : 0;
@@ -514,6 +540,7 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
         if (resumeDoneRef.current) {
             applyIndex(resolveCurrentIndex(video.currentTime));
         }
+        setPosition(video.currentTime);
     }, [detail.currentPosition, applyIndex, resolveCurrentIndex]);
 
     /** 暂停时写回进度，并让暂停菜单出现。 */
@@ -572,7 +599,7 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
         }
         autoScrollingRef.current = true;
         settleAutoScroll();
-        virtuosoRef.current?.scrollToIndex({ index, align: 'start', behavior: 'auto' });
+        virtuosoRef.current?.scrollToIndex({ index, align: 'start', behavior: 'smooth' });
         tapFeedback();
     }, [settleAutoScroll]);
 
@@ -719,6 +746,75 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
         seekLine(base < 0 ? 0 : base, true);
     }, [detail.subtitles, seekLine, tender]);
 
+    /**
+     * 切播放 / 暂停。
+     *
+     * 自绘控件后没有原生控件层的播放键，视频区和视频本身都走这里；
+     * iOS 上 play() 可能因手势时机被拒，失败时保持原状（paused 由 play/pause 事件维护）。
+     */
+    const togglePlay = React.useCallback((): void => {
+        closeDict();
+        const video = videoRef.current;
+        if (!video) {
+            return;
+        }
+        if (video.paused) {
+            void video.play().catch(() => undefined);
+            return;
+        }
+        video.pause();
+    }, [closeDict]);
+
+    /**
+     * 跳到指定秒数。
+     *
+     * 按「程序内 seek」标记，避免 repeat / 自动暂停用旧位置误判；
+     * 末尾留 0.3 秒，免得一跳就 ended。
+     *
+     * @param seconds 目标位置，单位秒。
+     */
+    const seekTo = React.useCallback((seconds: number): void => {
+        closeDict();
+        const video = videoRef.current;
+        if (!video) {
+            return;
+        }
+        const total = Number.isFinite(video.duration) ? video.duration : 0;
+        const upper = total > 0 ? Math.max(0, total - 0.3) : seconds;
+        const target = Math.max(0, Math.min(seconds, upper));
+        programmaticSeekRef.current = true;
+        seekTargetIndexRef.current = null;
+        try {
+            video.currentTime = target;
+        } catch {
+            // 元数据还没到等情形：放弃这次跳转，别把标记留在那里。
+            programmaticSeekRef.current = false;
+            return;
+        }
+        setPosition(target);
+        applyIndex(resolveCurrentIndex(target));
+        autoPauseArmedRef.current = true;
+    }, [applyIndex, resolveCurrentIndex, closeDict]);
+
+    /**
+     * 进入全屏。
+     *
+     * 去掉原生控件后没有系统全屏键，用户手势里调：iOS Safari 只提供带 webkit 前缀的
+     * 视频全屏 API，其它平台用标准 requestFullscreen。
+     */
+    const enterFullscreen = React.useCallback((): void => {
+        const video = videoRef.current;
+        if (!video) {
+            return;
+        }
+        const legacy = video as HTMLVideoElement & { webkitEnterFullscreen?: () => void };
+        if (typeof legacy.webkitEnterFullscreen === 'function') {
+            legacy.webkitEnterFullscreen();
+            return;
+        }
+        void video.requestFullscreen?.()?.catch(() => undefined);
+    }, []);
+
     /** 打开播放设置。 */
     const openSettings = React.useCallback((): void => setSettingsOpen(true), []);
     /** 关闭播放设置。 */
@@ -783,7 +879,7 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
         if (!dict) {
             return;
         }
-        const handler = (event: PointerEvent): void => {
+        const onPointerDown = (event: PointerEvent): void => {
             if (!(event.target instanceof Node) || dictRef.current?.contains(event.target)) {
                 return;
             }
@@ -792,8 +888,24 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
             }
             closeDict();
         };
-        document.addEventListener('pointerdown', handler, true);
-        return () => document.removeEventListener('pointerdown', handler, true);
+
+        const onScrollOrTouch = (event: Event): void => {
+            if (event.target instanceof Node && dictRef.current?.contains(event.target)) {
+                return;
+            }
+            closeDict();
+        };
+
+        document.addEventListener('pointerdown', onPointerDown, true);
+        window.addEventListener('scroll', onScrollOrTouch, { capture: true, passive: true });
+        window.addEventListener('touchmove', onScrollOrTouch, { passive: true });
+        window.addEventListener('wheel', onScrollOrTouch, { passive: true });
+        return () => {
+            document.removeEventListener('pointerdown', onPointerDown, true);
+            window.removeEventListener('scroll', onScrollOrTouch, true);
+            window.removeEventListener('touchmove', onScrollOrTouch);
+            window.removeEventListener('wheel', onScrollOrTouch);
+        };
     }, [dict, closeDict]);
 
     React.useEffect(() => {
@@ -848,13 +960,6 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
     const currentTranslation = currentLine
         ? (currentLine.zh || translations[currentIndex >= 0 ? currentIndex : 0] || '')
         : '';
-    const controlText = detail.subtitles.length === 0
-        ? t('没有字幕', 'No subtitles')
-        : (showEnglish && currentLine?.en
-            ? currentLine.en
-            : showTranslation && currentTranslation
-                ? currentTranslation
-                : '—');
 
     return {
         videoRef,
@@ -864,7 +969,8 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
         currentIndex,
         currentLine,
         currentTranslation,
-        controlText,
+        position,
+        duration,
         showEnglish,
         showTranslation,
         showFollow,
@@ -886,6 +992,9 @@ export const useWatchPlayer = (detail: MobileWatchDetail): WatchPlayerApi => {
         changeSpeed,
         changeTheme,
         seekLine,
+        togglePlay,
+        seekTo,
+        enterFullscreen,
         stepLine,
         replayCurrent,
         lookupWord,

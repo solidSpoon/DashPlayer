@@ -5,10 +5,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="theme-color" content="#0b0b0b" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <!-- 不要用 black-translucent：那会让页面画到状态栏底下，iOS 26 会把那条做成毛玻璃，视频和列表滚到下面时顶部发糊；
-         而且这种模式下 CSS 量到的视口比实际绘制区域矮一个状态栏（实测视口 793 / 窗口 852），外壳高度怎么算都不对。
-         用 default：页面从状态栏下方开始，量到的就是真的。 -->
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <!-- 这里不写 apple-mobile-web-app-status-bar-style，任何取值都要出事：
+         black-translucent 让页面画到状态栏底下，iOS 26 把那条做成毛玻璃，而且 CSS 量到的视口比实际绘制区
+         矮一个状态栏（实测视口 793 / 窗口 852）；换成 default 后顶端那条渐变罩也还在——iOS 26.1+ 会在主屏
+         Web App 的页面顶端画一条浅→深的罩（系统层，页面上改不掉），把最上面约 40px 的内容糊掉
+         （实测：字典词名最暗像素 105，同一屏的释义行 36、字幕 43）。
+         去掉这个键，状态栏就自己取页面底色、坐在页面上面而不是盖住页面，顶端不再被罩住（WebKit 317153 里
+         Apple 给的做法就是删掉这个键：该键已废弃，主屏 Web App 不支持在状态栏下画自定义内容）。
+         注意两点：iOS 只在这枚图标被添加到主屏的那一刻读这个键，改完必须删掉图标重新添加才生效；
+         另外 WebKit 316008 说没有这个键时 100vh / 100lvh 会把状态栏高度算进去，所以外壳高度一律取
+         appHeight.ts 实测的 --app-h，不要改用 vh 单位。 -->
     <!-- 三个图标都是构建时从 assets/icons 复制进产物的文件，见 vite.mobile.config.ts；
          SVG 优先，位图给不认 SVG 图标的浏览器兵底；缺了它们时浏览器标签页是空白页图标，
          iOS「添加到主屏幕」只会拿页面截图当图标。 -->
@@ -31,22 +37,15 @@
             } catch (error) {
                 // 隐私模式下 localStorage 不可用，保持默认深色。
             }
-
-            // 标记是不是从主屏图标启动的 Web App。CSS 的 @media (display-mode: standalone)
-            // 在 iOS 的主屏 Web App 里实测没匹配上，所以用这里先标好，供样式挑选用。
-            try {
-                if (window.navigator.standalone === true
-                    || window.matchMedia('(display-mode: standalone)').matches) {
-                    document.documentElement.dataset.standalone = '1';
-                }
-            } catch (error) {
-                // 同上：判断不了就当普通浏览器处理。
-            }
         }());
     </script>
 </head>
 <body>
 <div id="root"></div>
+
+<!-- 顶端护栏：不画像素，只用来让 iOS 知道“页面顶端有一面”，否则主屏 Web App 会从页面顶端往下
+     画一条约 43px 的渐进虚化（原因与实测见 mobile.css 里 .top-guard 的注释）。 -->
+<div class="top-guard" aria-hidden="true"></div>
 <script type="module" src="/main.tsx"></script>
 </body>
 </html>
