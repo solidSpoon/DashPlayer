@@ -1,5 +1,5 @@
 import React from 'react';
-import { House, Settings } from 'lucide-react';
+import { ChevronLeft, Settings } from 'lucide-react';
 import { t } from './lib';
 
 interface PauseMenuProps {
@@ -12,10 +12,11 @@ interface PauseMenuProps {
 }
 
 /**
- * 暂停时贴在底部三键上方的横条菜单。
+ * 暂停时压在视频上沿的两个圆形按钮：左边回最近播放、右边打开设置。
  *
- * 绝对定位，不占布局；只有暂停时出现，播放中整块收起。样式贴着控制区
- * 走，像导航栏的一行按键，不做悬浮卡片。目前只有设置和返回最近播放两项。
+ * 覆盖在视频上（不占布局），播放中整块不渲染。圆形底衬用半透明黑而不是
+ * 毛玻璃——手机上任何 backdrop-filter 都会让 WebKit 把周围内容按更粗的层光栅化，
+ * 视频周围会跟着发糊。
  */
 const PauseMenu = ({ open, onSettings, onHome }: PauseMenuProps) => {
     if (!open) {
@@ -23,14 +24,22 @@ const PauseMenu = ({ open, onSettings, onHome }: PauseMenuProps) => {
     }
 
     return (
-        <div className="pause-menu">
-            <button type="button" className="pause-menu-item" onClick={onHome}>
-                <House size={20} strokeWidth={1.8} aria-hidden />
-                <span>{t('返回最近播放', 'Back to recent plays')}</span>
+        <div className="pause-bar">
+            <button
+                type="button"
+                className="pause-btn"
+                aria-label={t('返回最近播放', 'Back to recent plays')}
+                onClick={onHome}
+            >
+                <ChevronLeft size={24} strokeWidth={2.2} aria-hidden />
             </button>
-            <button type="button" className="pause-menu-item" onClick={onSettings}>
-                <Settings size={20} strokeWidth={1.8} aria-hidden />
-                <span>{t('设置', 'Settings')}</span>
+            <button
+                type="button"
+                className="pause-btn"
+                aria-label={t('播放设置', 'Playback settings')}
+                onClick={onSettings}
+            >
+                <Settings size={22} strokeWidth={1.9} aria-hidden />
             </button>
         </div>
     );

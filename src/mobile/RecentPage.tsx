@@ -1,8 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { Moon, Sun } from 'lucide-react';
 import type { MobileRecentItem } from '@/common/contracts/mobile-web';
 import { mobileApi } from './api';
-import HelpDiagram from './HelpDiagram';
 import { formatClock, formatRelative, t } from './lib';
 import { applyTheme, readTheme, saveTheme } from './theme';
 
@@ -62,7 +62,6 @@ const RecentPage = () => {
     const [failure, setFailure] = React.useState<{ token: number; message: string } | null>(null);
     const [reloadToken, setReloadToken] = React.useState(0);
     const [theme, setTheme] = React.useState(() => readTheme());
-    const [helpOpen, setHelpOpen] = React.useState(false);
 
     React.useEffect(() => {
         document.title = 'DashPlayer';
@@ -104,32 +103,26 @@ const RecentPage = () => {
     const error = failure !== null && failure.token === reloadToken ? failure.message : null;
 
     return (
-        <div className="view">
-            <div className="home-scroll">
-                <div className="home-head">
-                    <h1 className="home-title">{t('最近播放', 'Recently played')}</h1>
-                    <div className="home-actions">
-                        <button
-                            type="button"
-                            className="theme-toggle"
-                            aria-label={theme === 'dark'
-                                ? t('切换到浅色模式', 'Switch to light mode')
-                                : t('切换到深色模式', 'Switch to dark mode')}
-                            onClick={toggleTheme}
-                        >
-                            {theme === 'dark' ? t('浅色', 'Light') : t('深色', 'Dark')}
-                        </button>
-                        <button
-                            type="button"
-                            className="help-btn"
-                            aria-label={t('使用说明', 'Help')}
-                            onClick={() => setHelpOpen(true)}
-                        >
-                            ?
-                        </button>
-                    </div>
-                </div>
+        <div className="view home-view">
+            <header className="home-head">
+                <h1 className="home-title">{t('最近播放', 'Recently played')}</h1>
+                <button
+                    type="button"
+                    className="theme-icon-btn"
+                    aria-label={theme === 'dark'
+                        ? t('切换到浅色模式', 'Switch to light mode')
+                        : t('切换到深色模式', 'Switch to dark mode')}
+                    onClick={toggleTheme}
+                >
+                    {theme === 'dark' ? (
+                        <Sun size={20} strokeWidth={2.2} aria-hidden />
+                    ) : (
+                        <Moon size={20} strokeWidth={2.2} aria-hidden />
+                    )}
+                </button>
+            </header>
 
+            <div className="home-scroll">
                 {error !== null && (
                     <div className="state">
                         <div className="state-title">{t('加载失败', 'Failed to load')}</div>
@@ -176,47 +169,6 @@ const RecentPage = () => {
                     </div>
                 )}
             </div>
-
-            {helpOpen && (
-                <div className="sheet-layer">
-                    <button
-                        type="button"
-                        className="sheet-backdrop"
-                        aria-label={t('关闭', 'Close')}
-                        onClick={() => setHelpOpen(false)}
-                    />
-                    <div
-                        className="sheet"
-                        role="dialog"
-                        aria-modal="true"
-                        aria-label={t('播放页操作', 'Playback gestures')}
-                    >
-                        <div className="sheet-head">
-                            <div className="sheet-title">{t('播放页操作', 'Playback gestures')}</div>
-                            <button
-                                type="button"
-                                className="sheet-done"
-                                onClick={() => setHelpOpen(false)}
-                            >
-                                {t('关闭', 'Close')}
-                            </button>
-                        </div>
-                        <HelpDiagram />
-                        <div className="help-body">
-                            <p className="help-line">
-                                <strong>{t('长按主字幕区', 'Long-press the main subtitle')}</strong>
-                                {t('，打开播放设置。', ' to open playback settings.')}
-                            </p>
-                            <p className="help-line">
-                                {t(
-                                    '主字幕区点单词查词；点下面的英文句子，从该句开始播放。',
-                                    'Tap a word in the main subtitle to look it up; tap a line below to play from it.',
-                                )}
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };

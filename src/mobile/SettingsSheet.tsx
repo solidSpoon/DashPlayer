@@ -58,6 +58,7 @@ const SettingsSheet = ({
         <div className="sheet-layer" hidden={!open}>
             <button type="button" className="sheet-backdrop" aria-label={t('关闭', 'Close')} onClick={onClose} />
             <div className="sheet">
+                <div className="sheet-grabber" aria-hidden="true" />
                 <div className="sheet-head">
                     <div className="sheet-title">{t('播放设置', 'Playback settings')}</div>
                     <button type="button" className="sheet-done" onClick={onClose}>
