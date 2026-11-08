@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.19.0](https://github.com/solidSpoon/DashPlayer/compare/v6.18.0...v6.19.0) (2026-11-08)
+
+
+### Features
+
+* 支持移动端首页切前台自动刷新与 iOS 原生手感下拉刷新 ([35f16b6](https://github.com/solidSpoon/DashPlayer/commit/35f16b6343a6eaf44b0e731ea2f029439d59098a))
+* 支持移动端首页切前台自动刷新与 iOS 原生手感下拉刷新 ([f987130](https://github.com/solidSpoon/DashPlayer/commit/f987130b9e8e3affa41fa42dd8ebd99fa939047c))
+
+
+### Bug Fixes
+
+* 移除视频暂停时顶部操作按钮的入场位移动效 ([53c4206](https://github.com/solidSpoon/DashPlayer/commit/53c4206e1e76f472c16ad08e453f70257b054aca))
+* 移除视频暂停时顶部操作按钮的入场位移动效 ([e1aad21](https://github.com/solidSpoon/DashPlayer/commit/e1aad216a5f3fb59aff3a5c404cf7cc644256684))
+* 裁剪 better-sqlite3 13 的异架构预编译产物，修复 Linux RPM 打包失败 ([b15d2b9](https://github.com/solidSpoon/DashPlayer/commit/b15d2b93f455a9d048034fd8cf6f0b4642eb99ee))
+* 裁剪 better-sqlite3 13 的异架构预编译产物，修复 Linux RPM 打包失败 ([0650461](https://github.com/solidSpoon/DashPlayer/commit/0650461f51d669f5ef654d3089ba7fc8597c0666))
+
 ## [6.18.0](https://github.com/solidSpoon/DashPlayer/compare/v6.17.0...v6.18.0) (2026-11-08)
 
 
