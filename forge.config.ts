@@ -40,6 +40,11 @@ const pathExists = async (target: string): Promise<boolean> => {
  * ELF 还会让 Linux RPM 打包阶段的 brp-strip 报 "Unable to recognise the
  * format" 而整包失败。sharp 的平台包、better-sqlite3 的预编译目录同理。
  *
+ * 裁剪路径与依赖包内的实际布局强耦合：依赖升级改变布局后，失效的路径只会静默
+ * 跳过（pathExists 判空），异架构文件重新混进产物，直到 RPM 打包阶段才以看不懂的
+ * strip 报错暴露（v6.18.0 Linux 产物缺失即此因）。因此升级这些依赖时要同步核对
+ * 下面每条路径，宁可在此显式失败。
+ *
  * @param buildPath 打包暂存目录（应用根目录）。
  * @param platform 目标平台（darwin/linux/win32/mas）。
  * @param arch 目标架构（x64/arm64/ia32）。
@@ -80,13 +85,20 @@ const pruneForeignNativeVariants = async (buildPath: string, platform: string, a
         }
     }
 
-    // better-sqlite3：bin/<platform>-<arch>-<abi> 只保留目标组合
-    const sqliteBinRoot = path.join(buildPath, 'node_modules/better-sqlite3/bin');
-    if (await pathExists(sqliteBinRoot)) {
-        for (const variant of await fs.readdir(sqliteBinRoot)) {
-            if (variant.startsWith(`${nativePlatform}-${arch}-`)) continue;
-            await drop(path.join(sqliteBinRoot, variant));
-        }
+    // better-sqlite3：13 起改为 NAPI 预编译，全部平台/架构扁平平铺在 prebuilds/ 下
+    // （prebuilds/<platform>-<arch>.node；12 及更早的 bin/<platform>-<arch>-<abi>/ 已不存在）。
+    // 运行时 lib/binding.js 只按 process.platform/arch 取一个文件，其余组合既无用又是
+    // RPM brp-strip 的失败源；linuxmusl-* 同理（glibc 发行版上永远不会被加载）。
+    const sqlitePrebuildsRoot = path.join(buildPath, 'node_modules/better-sqlite3/prebuilds');
+    const sqlitePrebuildKeep = `${nativePlatform}-${arch}.node`;
+    if (!await pathExists(path.join(sqlitePrebuildsRoot, sqlitePrebuildKeep))) {
+        // 布局再次变化时必须当场失败：静默跳过会重新发出含异架构原生库的包，
+        // 且只在 Linux RPM 阶段以 strip 报错的形式间接暴露
+        throw new Error(`better-sqlite3 缺少本平台预编译产物，prebuilds 布局可能已变化：${sqlitePrebuildsRoot}`);
+    }
+    for (const variant of await fs.readdir(sqlitePrebuildsRoot)) {
+        if (variant === sqlitePrebuildKeep) continue;
+        await drop(path.join(sqlitePrebuildsRoot, variant));
     }
 };
 
