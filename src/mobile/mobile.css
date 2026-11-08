@@ -232,6 +232,62 @@ button {
     padding: calc(var(--safe-top) + 84px) 18px calc(var(--safe-bottom) + 36px);
 }
 
+/* 下拉刷新内部包裹层：随手势位移 */
+.home-scroll-inner {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+    will-change: transform;
+}
+
+/* 下拉刷新指示器架子：居于列表正上方，通过负 margin 隐于上沿，下拉时整体推开列表，绝不遮挡视频卡片 */
+.home-pull-shelf {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 48px;
+    margin-top: -48px;
+    padding-bottom: 8px;
+    opacity: 0;
+    pointer-events: none;
+    will-change: opacity;
+}
+
+/* 下拉刷新胶囊徽章：纯净毛玻璃微质感 */
+.home-pull-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--surface-glass);
+    border: 1px solid var(--dock-border);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.1);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+    color: var(--text);
+}
+
+.home-pull-shelf .pull-spinner {
+    color: var(--text-dim);
+    will-change: transform;
+}
+
+.home-pull-shelf.refreshing .pull-spinner {
+    color: var(--text);
+    animation: home-pull-spin 0.8s linear infinite;
+}
+
+@keyframes home-pull-spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
 .list {
     display: flex;
     flex-direction: column;
