@@ -112,4 +112,11 @@ export const CLOUD_AI_PROVIDER_PRESETS: CloudAiProviderPreset[] = [
         endpoint: 'https://generativelanguage.googleapis.com/v1beta',
         consoleUrl: 'https://aistudio.google.com',
     },
+    {
+        id: 'teapotrouter',
+        name: 'TeapotRouter',
+        apiFormat: 'openai',
+        endpoint: 'https://api.teapotrouter.com/v1',
+        consoleUrl: 'https://teapotrouter.com',
+    },
 ];
