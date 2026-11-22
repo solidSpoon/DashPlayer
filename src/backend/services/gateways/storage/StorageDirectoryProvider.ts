@@ -17,7 +17,7 @@ export enum StorageDirectoryTarget {
     TEMP_OSS = 'temp_oss',
     MODELS = 'models',
     RUNTIMES = 'runtimes',
-    DOWNLOADS = 'downloads',
+    DOWNLOAD_WORKSPACE = 'download_workspace',
     DUBBING = 'dubbing',
 }
 

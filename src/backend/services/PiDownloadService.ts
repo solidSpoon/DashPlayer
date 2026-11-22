@@ -110,7 +110,7 @@ export class PiDownloadServiceImpl implements PiDownloadService {
         await ensurePiStageExtension(agentDir);
         const modelId = await this.syncIsolatedModelsConfig(agentDir);
 
-        const downloadsRoot = await this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.DOWNLOADS);
+        const downloadsRoot = await this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.DOWNLOAD_WORKSPACE);
         let videosDir: string;
         if (rawOutputDir && rawOutputDir.trim().length > 0) {
             videosDir = path.resolve(rawOutputDir.trim());
@@ -360,7 +360,7 @@ export class PiDownloadServiceImpl implements PiDownloadService {
 
     private async listPersistedSessionDirs(): Promise<string[]> {
         try {
-            const downloadsRoot = await this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.DOWNLOADS);
+            const downloadsRoot = await this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.DOWNLOAD_WORKSPACE);
             const sessionsRoot = path.join(downloadsRoot, SESSIONS_DIR_NAME);
             const entries = await fsp.readdir(sessionsRoot, { withFileTypes: true });
             return entries
