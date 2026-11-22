@@ -368,31 +368,87 @@ export class PiRuntimeServiceImpl implements PiRuntimeService {
         fallbackTotal: number,
         signal: AbortSignal,
     ): Promise<void> {
-        const response = await axios.get<NodeJS.ReadableStream>(url, {
-            signal,
-            responseType: 'stream',
-            timeout: 60_000,
-            maxRedirects: 5,
-            headers: { 'User-Agent': 'DashPlayer' },
-        });
+        const maxAttempts = 3;
+        let lastError: unknown;
 
-        const headerLength = Number(response.headers['content-length'] ?? 0);
-        const total = headerLength > 0 ? headerLength : fallbackTotal;
-        let downloaded = 0;
-        let lastEmitAt = 0;
-
-        response.data.on('data', (chunk: Buffer) => {
-            downloaded += chunk.length;
-            const now = Date.now();
-            if (now - lastEmitAt >= 120 || (total > 0 && downloaded >= total)) {
-                lastEmitAt = now;
-                const percent = total > 0 ? Math.min(100, Math.round((downloaded / total) * 100)) : 0;
-                this.updateProgress(percent, downloaded, total, 'downloading');
+        for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+            try {
+                await this.downloadFileOnce(url, destPath, fallbackTotal, signal);
+                return;
+            } catch (error) {
+                lastError = error;
+                if (signal.aborted) {
+                    throw error;
+                }
+                await fsp.rm(destPath, { force: true }).catch(() => undefined);
+                if (attempt < maxAttempts) {
+                    this.logger.warn('pi runtime download interrupted, retrying', {
+                        attempt,
+                        error: error instanceof Error ? error.message : String(error),
+                    });
+                    this.updateProgress(0, 0, fallbackTotal, 'downloading');
+                }
             }
-        });
+        }
+        throw lastError;
+    }
 
-        await pipeline(response.data, fs.createWriteStream(destPath));
-        this.updateProgress(100, downloaded, total || downloaded, 'downloading');
+    private async downloadFileOnce(
+        url: string,
+        destPath: string,
+        fallbackTotal: number,
+        signal: AbortSignal,
+    ): Promise<void> {
+        // 使用无活动超时替代固定总时长超时，避免大文件慢速下载在 60 秒时被误杀
+        const attemptController = new AbortController();
+        const onParentAbort = () => attemptController.abort();
+        signal.addEventListener('abort', onParentAbort, { once: true });
+
+        let inactivityTimer: NodeJS.Timeout | null = null;
+        const resetInactivityTimer = () => {
+            if (inactivityTimer) {
+                clearTimeout(inactivityTimer);
+            }
+            inactivityTimer = setTimeout(() => {
+                attemptController.abort();
+            }, 45_000);
+            inactivityTimer.unref?.();
+        };
+
+        try {
+            resetInactivityTimer();
+            const response = await axios.get<NodeJS.ReadableStream>(url, {
+                signal: attemptController.signal,
+                responseType: 'stream',
+                timeout: 0,
+                maxRedirects: 5,
+                headers: { 'User-Agent': 'DashPlayer' },
+            });
+
+            const headerLength = Number(response.headers['content-length'] ?? 0);
+            const total = headerLength > 0 ? headerLength : fallbackTotal;
+            let downloaded = 0;
+            let lastEmitAt = 0;
+
+            response.data.on('data', (chunk: Buffer) => {
+                resetInactivityTimer();
+                downloaded += chunk.length;
+                const now = Date.now();
+                if (now - lastEmitAt >= 120 || (total > 0 && downloaded >= total)) {
+                    lastEmitAt = now;
+                    const percent = total > 0 ? Math.min(100, Math.round((downloaded / total) * 100)) : 0;
+                    this.updateProgress(percent, downloaded, total, 'downloading');
+                }
+            });
+
+            await pipeline(response.data, fs.createWriteStream(destPath));
+            this.updateProgress(100, downloaded, total || downloaded, 'downloading');
+        } finally {
+            if (inactivityTimer) {
+                clearTimeout(inactivityTimer);
+            }
+            signal.removeEventListener('abort', onParentAbort);
+        }
     }
 
     private async computeFileSha256(filePath: string): Promise<string> {
