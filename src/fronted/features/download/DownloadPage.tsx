@@ -556,7 +556,7 @@ export default function DownloadPage() {
                                         size="sm"
                                         variant="outline"
                                         className="h-7 shrink-0 text-xs"
-                                        onClick={() => navigate('/settings/service')}
+                                        onClick={() => navigate('/settings/resources')}
                                     >
                                         <Settings className="mr-1.5 h-3.5 w-3.5" />
                                         去设置
