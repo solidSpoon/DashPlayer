@@ -62,6 +62,12 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y squashfs-tools
       - name: Install dependencies
         if: matrix.os.name != 'windows'
+        env:
+          # onnxruntime-node 的 postinstall 只在 Linux/x64 去 GitHub Release 拉 CUDA EP 二进制
+          # （核心运行时随 npm 包自带）。桌面应用不需要 CUDA EP，而这个下载是外部强依赖：
+          # 上游仓库 microsoft/onnxruntime 不可访问时（2026-11-22 起整个仓库 404），
+          # 下载失败会让整个 yarn install 失败，直接卡死 linux 出包。显式 skip，不依赖上游可用性。
+          ONNXRUNTIME_NODE_INSTALL_CUDA: skip
         run: yarn install --frozen-lockfile
       - name: Install dependencies with Visual Studio (Windows only)
         if: matrix.os.name == 'windows'
