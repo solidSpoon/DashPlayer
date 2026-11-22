@@ -34,7 +34,11 @@ jobs:
       matrix:
         os:
           [
-            { name: 'linux', image: 'ubuntu-latest' },
+            # 固定 24.04：ubuntu-latest 已于 2026-11 迁到 26.04（rpm 6.0.1），新版的 %install
+            # 会先用 %mkbuilddir 切到 BUILD/<name>-<version>-build/，而 electron-installer-redhat
+            # 的 spec 模板写的是 `cp -r usr/*`（依赖 cwd 就是 BUILD/），于是 rpm 打包必然失败。
+            # 24.04 的 rpm 4.18.2 行为与模板匹配；升到 26.04 需先改造 spec 模板。
+            { name: 'linux', image: 'ubuntu-24.04' },
             { name: 'windows', image: 'windows-2022' },
             { name: 'macos-x64', image: 'macos-15-intel' },
             { name: 'macos-arm64', image: 'macos-15' },
