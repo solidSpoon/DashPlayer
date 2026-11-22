@@ -80,6 +80,8 @@ const TYPES = {
     SettingsStore: Symbol('SettingsStore'),
     BuiltinDictionaryStore: Symbol('BuiltinDictionaryStore'),
     BuiltinDictionaryPath: Symbol('BuiltinDictionaryPath'),
+    PiRuntimeService: Symbol('PiRuntimeService'),
+    PiDownloadService: Symbol('PiDownloadService'),
 };
 
 export default TYPES;

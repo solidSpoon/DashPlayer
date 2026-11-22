@@ -3,7 +3,7 @@ import { useForm, useWatch } from 'react-hook-form';
 import useSWR from 'swr';
 import toast from 'react-hot-toast';
 import { useTranslation as useI18nTranslation } from 'react-i18next';
-import { AlertTriangle, BookA, Captions, Cloud, Eraser, HardDrive, Languages, Loader2, Settings2, Sparkles, Volume2 } from 'lucide-react';
+import { AlertTriangle, BookA, Captions, Cloud, Eraser, HardDrive, Languages, Loader2, Settings2, Sparkles, Terminal, Volume2 } from 'lucide-react';
 import SettingsPageShell from '@/fronted/features/settings/components/form/SettingsPageShell';
 import { SettingCard, SettingRow, SettingsLoadingSkeleton } from '@/fronted/features/settings/components/form';
 import { Button } from '@/fronted/components/ui/button';
@@ -14,6 +14,7 @@ import { Textarea } from '@/fronted/components/ui/textarea';
 import { ResourcePackCard } from '@/fronted/features/settings/components/ResourcePackCard';
 import { LocalLlmCard } from '@/fronted/features/settings/components/LocalLlmCard';
 import { OpenAiCredentialCard } from '@/fronted/features/settings/components/OpenAiCredentialCard';
+import { PiRuntimeCard } from '@/fronted/features/settings/components/PiRuntimeCard';
 import { SETTINGS_DETAIL_SWR_OPTIONS, settingsApi } from '@/fronted/features/settings/settingsApi';
 import { useAutoSaveSettingsForm } from '@/fronted/features/settings/useAutoSaveSettingsForm';
 import { OPENAI_SUBTITLE_DEFAULT_STYLES } from '@/common/constants/openaiSubtitlePrompts';
@@ -636,6 +637,15 @@ const ServiceResourceSetting: React.FC = () => {
                         onCopy={(text) => copyText(text).catch(() => null)}
                         onOpenUrl={(url) => openUrl(url).catch(() => null)}
                     />
+                </SettingCard>
+
+                {/* Agent 运行环境：为视频下载等自动化任务提供独立运行支持 */}
+                <SettingCard
+                    title="Agent 运行环境"
+                    description="为应用内的自动化任务（如视频下载）提供独立运行支持。"
+                    icon={Terminal}
+                >
+                    <PiRuntimeCard />
                 </SettingCard>
 
                 {/* ③ 云端服务：可选的云端模型与密钥 */}

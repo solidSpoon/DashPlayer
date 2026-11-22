@@ -6,6 +6,8 @@ import type { TranscriptTaskUpdate } from '@/common/contracts/transcript/transcr
 import type { Sentence } from '@/common/types/SentenceC';
 import type { ModelDownloadPhase } from '@/common/contracts/model-download-phase';
 import type { DubbingExportStatus } from '@/common/contracts/dubbing';
+import type { PiRuntimeDownloadProgress } from '@/common/contracts/pi-runtime';
+import type { PiDownloadStreamEvent } from '@/common/contracts/pi-download';
 
 /**
  * 前端API定义文件 - 定义后端可以调用的前端方法
@@ -40,6 +42,10 @@ interface UIRendererDef {
     };
     'settings/local-mt-download-progress': {
         params: { downloaded: number; total: number; phase: 'idle' | 'downloading' | 'verifying' },
+        return: void
+    };
+    'settings/pi-runtime-download-progress': {
+        params: PiRuntimeDownloadProgress,
         return: void
     };
 }
@@ -102,6 +108,11 @@ interface AnalysisRendererDef {
     'chat/analysis/stream': { params: AnalysisStreamEvent, return: void };
 }
 
+/** Pi 下载 Agent 实时事件推送定义。 */
+interface PiDownloadRendererDef {
+    'download/pi-event': { params: PiDownloadStreamEvent, return: void };
+}
+
 
 // 使用交叉类型合并所有前端API定义
 export type RendererApiDefinitions = RendererApiDefinition
@@ -112,7 +123,8 @@ export type RendererApiDefinitions = RendererApiDefinition
     & VideoLearningRendererDef
     & DubbingRendererDef
     & ChatRendererDef
-    & AnalysisRendererDef;
+    & AnalysisRendererDef
+    & PiDownloadRendererDef;
 
 // 定义前端API函数类型
 type RendererApiFunction<P, R> = (params: P) => R | Promise<R>;

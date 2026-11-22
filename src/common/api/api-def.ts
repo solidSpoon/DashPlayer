@@ -67,6 +67,14 @@ import type { VideoInfo } from '@/common/types/video-info';
 import type { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
 import type { TranscriptTask } from '@/common/contracts/transcript/transcript-task';
 import type { DubbingExportStatus, DubbingLibraryEntry, DubbingManifest, DubbingTakeVO } from '@/common/contracts/dubbing';
+import type { PiRuntimeStatusVO } from '@/common/contracts/pi-runtime';
+import type {
+    PiDownloadSendMessageRequest,
+    PiDownloadSessionActionRequest,
+    PiDownloadSessionDetailVO,
+    PiDownloadSessionVO,
+    PiDownloadStartRequest,
+} from '@/common/contracts/pi-download';
 
 /** 跨进程请求与返回值契约。 */
 interface ApiDefinition {
@@ -498,6 +506,26 @@ interface DubbingDef {
     'dubbing/export-status': { params: void, return: DubbingExportStatus | null };
 }
 
+/** Pi 二进制运行环境管理 IPC 定义。 */
+interface PiRuntimeDef {
+    'pi-runtime/status': { params: void, return: PiRuntimeStatusVO };
+    'pi-runtime/download': { params: void, return: { success: boolean; message: string } };
+    'pi-runtime/cancel-download': { params: void, return: void };
+    'pi-runtime/remove': { params: void, return: void };
+}
+
+/** Pi 下载 Agent 会话 IPC 定义。 */
+interface PiDownloadDef {
+    'pi-download/start': { params: PiDownloadStartRequest, return: PiDownloadSessionDetailVO };
+    'pi-download/send-message': { params: PiDownloadSendMessageRequest, return: void };
+    'pi-download/abort': { params: PiDownloadSessionActionRequest, return: void };
+    'pi-download/close': { params: PiDownloadSessionActionRequest, return: void };
+    'pi-download/list-sessions': { params: void, return: PiDownloadSessionVO[] };
+    'pi-download/get-session': { params: { sessionId: string }, return: PiDownloadSessionDetailVO | null };
+    'pi-download/delete-session': { params: PiDownloadSessionActionRequest, return: void };
+    'pi-download/context': { params: void, return: { videosDir: string } };
+}
+
 // 使用交叉类型合并 ApiDefinitions 和 ExtraApiDefinition
 export type ApiDefinitions = ApiDefinition
     & AiFuncDef
@@ -522,7 +550,9 @@ export type ApiDefinitions = ApiDefinition
     & TagDef
     & VocabularyDef
     & VideoLearningDef
-    & DubbingDef;
+    & DubbingDef
+    & PiRuntimeDef
+    & PiDownloadDef;
 
 // 更新 ApiMap 类型以使用 CombinedApiDefinitions
 export type ApiMap = {

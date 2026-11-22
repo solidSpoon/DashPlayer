@@ -65,6 +65,14 @@ export function initRendererApis(): () => void {
         window.dispatchEvent(new CustomEvent('local-mt-download-progress', { detail: params }));
     });
 
+    register('settings/pi-runtime-download-progress', async (params) => {
+        window.dispatchEvent(new CustomEvent('pi-runtime-download-progress', { detail: params }));
+    });
+
+    register('download/pi-event', async (params) => {
+        window.dispatchEvent(new CustomEvent('pi-download-event', { detail: params }));
+    });
+
     register('translation/batch-result', async (params) => {
         useTranslation.getState().updateTranslations(params.translations);
     });

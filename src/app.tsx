@@ -25,6 +25,7 @@ import Eb from '@/fronted/components/shared/common/Eb';
 import FavouritePage from '@/fronted/features/favourite/FavouritePage';
 import VideoLearningPage from '@/fronted/features/video-learning/VideoLearningPage';
 import DubbingExportPage from '@/fronted/features/dubbing/DubbingExportPage';
+import DownloadPage from '@/fronted/features/download/DownloadPage';
 import { OnboardingView } from '@/fronted/features/onboarding/OnboardingView';
 import { getOnboardingCompletedVersion } from '@/fronted/features/onboarding/onboardingApi';
 import { MigrationFailureGate } from '@/fronted/features/migration-failure/MigrationFailureGate';
@@ -189,6 +190,10 @@ export const App = () => {
                                     <Route
                                         path="dubbing"
                                         element={<Eb key="dubbing"><DubbingExportPage /></Eb>}
+                                    />
+                                    <Route
+                                        path="download"
+                                        element={<Eb key="download"><DownloadPage /></Eb>}
                                     />
                                     <Route path="about" element={<Navigate to="/settings/about" replace />} />
                                     <Route

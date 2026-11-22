@@ -343,6 +343,26 @@ export const settingsApi = {
     openCacheFolder: () => backendClient.call('system/open-folder/cache'),
 
     /**
+     * 查询受管 Pi 二进制运行环境状态。
+     */
+    getPiRuntimeStatus: () => backendClient.call('pi-runtime/status'),
+
+    /**
+     * 下载并安装官方 Pi 二进制运行环境。
+     */
+    downloadPiRuntime: () => backendClient.call('pi-runtime/download'),
+
+    /**
+     * 取消正在进行的 Pi 运行环境下载。
+     */
+    cancelPiRuntimeDownload: () => backendClient.call('pi-runtime/cancel-download'),
+
+    /**
+     * 删除受管 Pi 二进制运行环境。
+     */
+    removePiRuntime: () => backendClient.call('pi-runtime/remove'),
+
+    /**
      * 选择存储目录。
      *
      * @param options 文件夹选择选项。
