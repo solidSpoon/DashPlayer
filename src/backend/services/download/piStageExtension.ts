@@ -31,6 +31,11 @@ export default function (pi: ExtensionAPI) {
                     description: "简短中文说明，例如：正在检测 yt-dlp 环境 / 正在合并音视频。",
                 }),
             ),
+            title: Type.Optional(
+                Type.String({
+                    description: "可选：进入 downloading 阶段时传入已解析到的视频标题，用于下载卡片展示。",
+                }),
+            ),
         }),
         async execute(_toolCallId, params) {
             return {
@@ -43,6 +48,7 @@ export default function (pi: ExtensionAPI) {
                 details: {
                     phase: params.phase,
                     detail: params.detail ?? "",
+                    title: params.title ?? "",
                 },
             };
         },
@@ -51,7 +57,7 @@ export default function (pi: ExtensionAPI) {
     pi.registerTool({
         name: "present_video",
         label: "Present Video",
-        description: "下载并整理完成后调用，在 DashPlayer 对话流中生成可点击观看的视频卡片。",
+        description: "单个视频下载并整理到保存目录后立即调用，在对话流中生成可点击观看的视频卡片（时长等信息由应用自动读取，无需单独跑 ffprobe）。",
         parameters: Type.Object({
             videoPath: Type.String({
                 description: "最终保存到目标目录的视频文件绝对路径。",
@@ -66,12 +72,7 @@ export default function (pi: ExtensionAPI) {
             ),
             resolution: Type.Optional(
                 Type.String({
-                    description: "视频分辨率标签，例如 1080p。",
-                }),
-            ),
-            durationText: Type.Optional(
-                Type.String({
-                    description: "视频时长文本，例如 04:26。",
+                    description: "可选的视频分辨率标签，例如 1080p。",
                 }),
             ),
         }),

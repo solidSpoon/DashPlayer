@@ -16,12 +16,14 @@ import {
     parseReportStageToolArgs,
 } from '@/backend/services/download/piProgressParser';
 import { ensurePiStageExtension } from '@/backend/services/download/piStageExtension';
+import type MediaService from '@/backend/services/MediaService';
 import type PiRuntimeService from '@/backend/services/PiRuntimeService';
 import type RendererGateway from '@/backend/services/gateways/renderer/RendererGateway';
 import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import { StorageDirectoryTarget } from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 import { AI_API_FORMATS, type AiApiFormat } from '@/common/utils/cloud-ai-api-format';
 import StrUtil from '@/common/utils/str-util';
+import TimeUtil from '@/common/utils/TimeUtil';
 import type {
     PiDownloadMediaCardInfo,
     PiDownloadProgressInfo,
@@ -89,6 +91,7 @@ export class PiDownloadServiceImpl implements PiDownloadService {
         @inject(TYPES.PiRuntimeService) private readonly piRuntimeService: PiRuntimeService,
         @inject(TYPES.StorageDirectoryProvider) private readonly storageDirectoryProvider: StorageDirectoryProvider,
         @inject(TYPES.RendererGateway) private readonly rendererGateway: RendererGateway,
+        @inject(TYPES.MediaService) private readonly mediaService: MediaService,
     ) {}
 
     /**
@@ -571,13 +574,13 @@ export class PiDownloadServiceImpl implements PiDownloadService {
         if (type === 'tool_execution_start') {
             const toolName = String(record.toolName ?? 'tool');
             if (toolName === 'report_stage') {
-                const stageProgress = parseReportStageToolArgs(record.args);
-                if (stageProgress) {
-                    this.emitProgressIfChanged(sessionId, stageProgress);
-                    if (stageProgress.phase === 'downloading') {
+                const parsedStage = parseReportStageToolArgs(record.args);
+                if (parsedStage) {
+                    this.emitProgressIfChanged(sessionId, parsedStage.progress);
+                    if (parsedStage.progress.phase === 'downloading') {
                         this.upsertMediaCard(sessionId, {
                             state: 'downloading',
-                            title: stageProgress.detail ?? '正在下载视频...',
+                            title: parsedStage.title ?? parsedStage.progress.detail ?? '正在下载视频...',
                             percent: null,
                         });
                     }
@@ -587,7 +590,7 @@ export class PiDownloadServiceImpl implements PiDownloadService {
             if (toolName === 'present_video') {
                 const card = parsePresentVideoToolArgs(record.args);
                 if (card) {
-                    this.upsertMediaCard(sessionId, card);
+                    void this.enrichAndUpsertVideoCard(sessionId, card);
                 }
                 return;
             }
@@ -677,6 +680,27 @@ export class PiDownloadServiceImpl implements PiDownloadService {
             kind: 'media_card',
             card,
         });
+    }
+
+    /**
+     * 补全视频时长等元数据后推送就绪视频卡片，避免 AI 额外跑 ffprobe。
+     */
+    private async enrichAndUpsertVideoCard(sessionId: string, card: PiDownloadMediaCardInfo): Promise<void> {
+        let enriched = card;
+        if (card.videoPath && !card.durationText) {
+            try {
+                const info = await this.mediaService.info(card.videoPath);
+                if (info.duration > 0) {
+                    enriched = {
+                        ...card,
+                        durationText: TimeUtil.secondToTimeStrCompact(info.duration),
+                    };
+                }
+            } catch {
+                // 探测失败时仍展示基础视频卡片，不阻塞流程
+            }
+        }
+        this.upsertMediaCard(sessionId, enriched);
     }
 
     private emitProgressIfChanged(sessionId: string, progress: PiDownloadProgressInfo): void {

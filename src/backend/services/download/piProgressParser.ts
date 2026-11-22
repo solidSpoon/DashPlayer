@@ -33,25 +33,35 @@ function parsePercentValue(raw: unknown): number | null {
     return null;
 }
 
+export interface ParsedStageToolArgs {
+    /** 解析后的进度信息。 */
+    progress: PiDownloadProgressInfo;
+    /** 若工具参数中带了视频标题则返回。 */
+    title?: string;
+}
+
 /**
  * 解析自定义工具 `report_stage` 的调用参数。
  *
  * @param args 工具调用参数对象。
- * @returns 阶段进度信息；参数非法时返回 null。
+ * @returns 阶段进度信息与可选标题；参数非法时返回 null。
  */
-export function parseReportStageToolArgs(args: unknown): PiDownloadProgressInfo | null {
+export function parseReportStageToolArgs(args: unknown): ParsedStageToolArgs | null {
     if (!args || typeof args !== 'object') {
         return null;
     }
-    const { phase, detail } = args as { phase?: unknown; detail?: unknown };
+    const { phase, detail, title } = args as { phase?: unknown; detail?: unknown; title?: unknown };
     if (typeof phase !== 'string' || !VALID_PHASES.has(phase)) {
         return null;
     }
     const typedPhase = phase as PiDownloadPhase;
     return {
-        phase: typedPhase,
-        percent: typedPhase === 'completed' ? 100 : null,
-        detail: typeof detail === 'string' && detail.trim().length > 0 ? detail.trim() : undefined,
+        progress: {
+            phase: typedPhase,
+            percent: typedPhase === 'completed' ? 100 : null,
+            detail: typeof detail === 'string' && detail.trim().length > 0 ? detail.trim() : undefined,
+        },
+        title: typeof title === 'string' && title.trim().length > 0 ? title.trim() : undefined,
     };
 }
 
