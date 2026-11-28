@@ -1,3 +1,4 @@
+import { useRef } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useHotkeys } from 'react-hotkeys-hook';
 import toast from 'react-hot-toast';
@@ -9,6 +10,27 @@ import useFavouriteClip from '@/fronted/features/favourite/favouriteStore';
 import { playerActions } from '@/fronted/features/player/components/PlayerActions';
 import { usePlayer } from '@/fronted/features/player/playerStore';
 import { usePlayerUi } from '@/fronted/features/player/playerUiStore';
+
+/** 键盘长按切句起步间隔（毫秒）：前段偏稳，便于微调 2~3 句。 */
+const NAV_REPEAT_START_INTERVAL_MS = 160;
+/** 键盘长按切句最快间隔（毫秒）：持续按住后段快速跨句翻阅。 */
+const NAV_REPEAT_MIN_INTERVAL_MS = 45;
+/** 从起步间隔加速到最快间隔的总时长（毫秒）。 */
+const NAV_REPEAT_RAMP_MS = 1800;
+
+/**
+ * 计算当前长按时长对应的切句节流间隔（毫秒）。
+ *
+ * 采用温和加速曲线（幂次 1.3），前段稳步递进、后段平滑提速至上限。
+ *
+ * @param holdMs 同方向持续按住的时长（毫秒）。
+ * @returns 当前允许的最小切句间隔（毫秒）。
+ */
+function calcNavRepeatIntervalMs(holdMs: number): number {
+    const progress = Math.min(1, Math.max(0, holdMs / NAV_REPEAT_RAMP_MS));
+    const eased = Math.pow(progress, 1.3);
+    return NAV_REPEAT_START_INTERVAL_MS - (NAV_REPEAT_START_INTERVAL_MS - NAV_REPEAT_MIN_INTERVAL_MS) * eased;
+}
 
 const process = (values: string) => values
     .split(',')
@@ -70,6 +92,35 @@ export default function PlayerShortCut() {
     const learningVisible = useChatPanel((s) => s.learningVisible);
     // 学习页打开期间停用播放类快捷键；开关学习页的快捷键除外
     const playbackKeysEnabled = !learningVisible;
+    const lastNavAtRef = useRef(0);
+    const navHoldStartAtRef = useRef(0);
+    const lastNavDirRef = useRef<'prev' | 'next' | null>(null);
+
+    /**
+     * 判断本次切句按键是否应被长按动态节流跳过。
+     *
+     * 单次点按、手动连点（`!event.repeat`）或切换方向时立即放行并重置加速起点；
+     * 仅在同方向按住不放产生的连发事件（`event.repeat === true`）中按渐进加速间隔限流。
+     *
+     * @param event 原生键盘事件。
+     * @param direction 切句方向（上一句或下一句）。
+     * @returns 需要跳过本次连发时返回 `true`。
+     */
+    const shouldSkipSentenceNav = (event: KeyboardEvent, direction: 'prev' | 'next'): boolean => {
+        const now = Date.now();
+        if (!event.repeat || lastNavDirRef.current !== direction) {
+            navHoldStartAtRef.current = now;
+            lastNavAtRef.current = now;
+            lastNavDirRef.current = direction;
+            return false;
+        }
+        const minInterval = calcNavRepeatIntervalMs(now - navHoldStartAtRef.current);
+        if (now - lastNavAtRef.current < minInterval) {
+            return true;
+        }
+        lastNavAtRef.current = now;
+        return false;
+    };
 
     const toggleSingleRepeat = () => {
         playerActions.setSingleRepeat(!singleRepeat);
@@ -78,13 +129,15 @@ export default function PlayerShortCut() {
         playerActions.setAutoPause(!autoPause);
     };
 
-    useHotkeys('left', () => {
+    useHotkeys('left', (e) => {
+        if (shouldSkipSentenceNav(e, 'prev')) return;
         playerActions.prevSentence();
         if (scrollState === 'USER_BROWSING') {
             onUserFinishScrolling();
         }
     }, { enabled: playbackKeysEnabled }, [onUserFinishScrolling, scrollState]);
-    useHotkeys('right', () => {
+    useHotkeys('right', (e) => {
+        if (shouldSkipSentenceNav(e, 'next')) return;
         playerActions.nextSentence();
         if (scrollState === 'USER_BROWSING') {
             onUserFinishScrolling();
@@ -105,13 +158,15 @@ export default function PlayerShortCut() {
         e.preventDefault();
         playerActions.togglePlay();
     }, { enabled: playbackKeysEnabled });
-    useHotkeys(process(shortcuts.previousSentence), () => {
+    useHotkeys(process(shortcuts.previousSentence), (e) => {
+        if (shouldSkipSentenceNav(e, 'prev')) return;
         playerActions.prevSentence();
         if (scrollState === 'USER_BROWSING') {
             onUserFinishScrolling();
         }
     }, { enabled: playbackKeysEnabled }, [onUserFinishScrolling, scrollState]);
-    useHotkeys(process(shortcuts.nextSentence), () => {
+    useHotkeys(process(shortcuts.nextSentence), (e) => {
+        if (shouldSkipSentenceNav(e, 'next')) return;
         playerActions.nextSentence();
         if (scrollState === 'USER_BROWSING') {
             onUserFinishScrolling();

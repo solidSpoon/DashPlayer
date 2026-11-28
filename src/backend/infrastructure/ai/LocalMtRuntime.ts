@@ -1,5 +1,6 @@
 import { inject, injectable } from 'inversify';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import axios, { isCancel } from 'axios';
@@ -23,6 +24,17 @@ import {
 
 /** transformers.js 翻译 pipeline 的实例类型。 */
 type MtPipeline = Awaited<ReturnType<typeof pipeline<'translation'>>>;
+
+/**
+ * 计算本地轻量翻译 ONNX 推理的算子内线程上限。
+ *
+ * 保留至少一半逻辑核心给视频解码与渲染管线，避免切句触发翻译时打满全部 CPU。
+ *
+ * @returns 限制在 `1..3` 范围内的线程数。
+ */
+function resolveOnnxIntraOpThreads(): number {
+    return Math.max(1, Math.min(3, Math.floor(os.availableParallelism() / 2)));
+}
 
 /**
  * 管理轻量翻译模型（OPUS-MT en→zh，ONNX）的安装与推理。
@@ -293,6 +305,10 @@ export class LocalMtRuntime implements LocalMtService {
             env.allowRemoteModels = false;
             const loaded = await pipeline('translation', modelPath, {
                 dtype: { encoder_model: 'q8', decoder_model_merged: 'fp32' },
+                session_options: {
+                    intraOpNumThreads: resolveOnnxIntraOpThreads(),
+                    interOpNumThreads: 1,
+                },
             });
             this.logger.info('local mt pipeline loaded', { durationMs: Date.now() - startedAt });
             return loaded;
@@ -307,9 +323,9 @@ export class LocalMtRuntime implements LocalMtService {
     }
 
     /**
-     * 批量翻译：整批占 localMt 信号量串行，批内逐句并发提交
-     * （onnxruntime 会话支持并发 run）。取消语义是「停止新工作、在途跑完」：
-     * 信号只在批次边界检查，已提交给 onnx 会话的推理不可中断，会完整结束。
+     * 批量翻译：整批占 localMt 信号量串行，批内逐句顺序推理并限制单次会话线程，
+     * 避免并发提交与全核心打满抢占前台视频解码资源。取消语义是「停止新句子、在途单句跑完」：
+     * 在每句推理前检查取消信号，快速切句时可及时中止尚未开始的句子。
      */
     public async translateLines(texts: string[], signal?: AbortSignal): Promise<string[]> {
         // 批次级超时兜底：单批 5 句正常远低于该上限，超时说明会话异常。
@@ -319,13 +335,18 @@ export class LocalMtRuntime implements LocalMtService {
             const translator = await this.ensurePipeline();
             combined.throwIfAborted();
             const startedAt = Date.now();
-            const outputs = await Promise.all(texts.map((text) => translator(text))) as TranslationOutput[];
+            const results: string[] = [];
+            for (const text of texts) {
+                combined.throwIfAborted();
+                const output = await translator(text) as TranslationOutput;
+                results.push(output[0].translation_text.trim());
+            }
             this.logger.info('local mt batch translated', {
                 count: texts.length,
                 durationMs: Date.now() - startedAt,
             });
             combined.throwIfAborted();
-            return outputs.map((output) => output[0].translation_text.trim());
+            return results;
         });
     }
 

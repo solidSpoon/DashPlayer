@@ -499,8 +499,8 @@ export const usePlayer = create<PlayerState>((set, get) => {
     return units;
   };
 
-  const findFocusedNavIndex = (): number => {
-    const units = buildNavUnits();
+  const findFocusedNavIndex = (precomputedUnits?: NavUnit[]): number => {
+    const units = precomputedUnits ?? buildNavUnits();
     if (units.length === 0) return -1;
     const focus = getFocusedSentence();
     if (!focus) return -1;
@@ -1015,6 +1015,7 @@ export const usePlayer = create<PlayerState>((set, get) => {
 
     /**
      * 基础 seek：按时间匹配高亮，用于进度条拖动等通用场景。
+     * 不在此处递增 playRequestId，避免在 PlayerEngine 写入 video.currentTime 前抢先触发原生 play()。
      * @param seekTime 目标时间（可传函数形式读取上一次 seek）
      */
     seekTo: (seekTime) => {
@@ -1028,7 +1029,6 @@ export const usePlayer = create<PlayerState>((set, get) => {
 
       set((prev) => ({
         playing: wantPlay,
-        playRequestId: wantPlay ? prev.playRequestId + 1 : prev.playRequestId,
         seekTime: next,
         currentSentence: srtTender ? srtTender.getByTime(next.time) : prev.currentSentence,
         internal: {
@@ -1043,26 +1043,51 @@ export const usePlayer = create<PlayerState>((set, get) => {
 
     /**
      * 带目标句的 seek：立即设定 currentSentence + timeOverride + currentLock（上一句/下一句/跳转推荐入口）。
+     * 合并单次 Zustand 更新以减少连续切句时的重渲染次数；播放恢复由 PlayerEngine 在 seek 提交后统一驱动。
      * @param time 目标时间（秒）
      * @param target 目标句子，用于高亮锁定
+     * @param overrideMs 时间覆盖持续时间（毫秒）
+     * @param lockMs 当前句高亮锁定时长（毫秒）
      * @param play 是否在 seek 后继续播放
      */
     seekToTarget: ({ time, target, overrideMs = SEEK_OVERRIDE_MS, lockMs = CURRENT_LOCK_MS, play = true }) => {
       clearShadowTimer();
       shadowedSentenceKey = null;
+      if (timeOverrideTimer) {
+        clearTimeout(timeOverrideTimer);
+        timeOverrideTimer = null;
+      }
+      if (currentLockTimer) {
+        clearTimeout(currentLockTimer);
+        currentLockTimer = null;
+      }
+      const now = Date.now();
+      const key = target ? sentenceKey(target) : null;
       set((prev) => ({
         playing: play,
-        playRequestId: play ? prev.playRequestId + 1 : prev.playRequestId,
         seekTime: { time, play },
         currentSentence: target ?? prev.currentSentence, // 直接设目标句
         internal: {
           ...prev.internal,
+          exactPlayTime: time,
           onPlaySeekTime: null,
-          lastSeekAt: Date.now()
+          lastSeekAt: now,
+          timeOverride: { active: true, time, untilTs: now + overrideMs },
+          currentLock: { active: true, untilTs: now + lockMs, key }
         }
       }));
-      activateTimeOverride(time, overrideMs);
-      activateCurrentLock(target, lockMs);
+      timeOverrideTimer = setTimeout(() => {
+        set((prev) => ({
+          internal: { ...prev.internal, timeOverride: null }
+        }));
+        timeOverrideTimer = null;
+      }, overrideMs);
+      currentLockTimer = setTimeout(() => {
+        set((prev) => ({
+          internal: { ...prev.internal, currentLock: null }
+        }));
+        currentLockTimer = null;
+      }, lockMs);
     },
 
     setDuration: (duration) => set({ duration }),
@@ -1225,13 +1250,28 @@ export const usePlayer = create<PlayerState>((set, get) => {
     // 高级 API —— 下一句（虚拟组当作一行）
     nextSentence: (step = 1) => {
       clearTailPreview();
-      const { srtTender } = get();
-      if (!srtTender) return;
+      const { srtTender, sentences, virtualGroup, internal } = get();
+      if (!srtTender || sentences.length === 0) return;
+
+      // 无虚拟组时走 O(1) 索引快路径，避免每次切句全量重建与排序导航单元数组
+      if (!virtualGroup.active || virtualGroup.sentences.length === 0) {
+        const focus = getFocusedSentence();
+        const pos = focus ? internal.indexing?.posMap.get(sentenceKey(focus)) : undefined;
+        if (pos !== undefined) {
+          const nextIdx = Math.min(sentences.length - 1, Math.max(0, pos + step));
+          const target = sentences[nextIdx];
+          if (target) {
+            const { start } = srtTender.mapSeekTime(target);
+            get().seekToTarget({ time: start, target });
+          }
+          return;
+        }
+      }
 
       const units = buildNavUnits();
       if (units.length === 0) return;
 
-      const pos = findFocusedNavIndex();
+      const pos = findFocusedNavIndex(units);
       if (pos < 0) return;
 
       const nextIdx = Math.min(units.length - 1, Math.max(0, pos + step));
@@ -1250,13 +1290,28 @@ export const usePlayer = create<PlayerState>((set, get) => {
     // 高级 API —— 上一句
     prevSentence: (step = 1) => {
       clearTailPreview();
-      const { srtTender } = get();
-      if (!srtTender) return;
+      const { srtTender, sentences, virtualGroup, internal } = get();
+      if (!srtTender || sentences.length === 0) return;
+
+      // 无虚拟组时走 O(1) 索引快路径，避免每次切句全量重建与排序导航单元数组
+      if (!virtualGroup.active || virtualGroup.sentences.length === 0) {
+        const focus = getFocusedSentence();
+        const pos = focus ? internal.indexing?.posMap.get(sentenceKey(focus)) : undefined;
+        if (pos !== undefined) {
+          const nextIdx = Math.max(0, Math.min(sentences.length - 1, pos - step));
+          const target = sentences[nextIdx];
+          if (target) {
+            const { start } = srtTender.mapSeekTime(target);
+            get().seekToTarget({ time: start, target });
+          }
+          return;
+        }
+      }
 
       const units = buildNavUnits();
       if (units.length === 0) return;
 
-      const pos = findFocusedNavIndex();
+      const pos = findFocusedNavIndex(units);
       if (pos < 0) return;
 
       const nextIdx = Math.max(0, Math.min(units.length - 1, pos - step));
