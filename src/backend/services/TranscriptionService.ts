@@ -54,6 +54,11 @@ export interface TranscriptionService {
     remove(filePath: string): Promise<void>;
 
     /**
+     * 清空所有未在执行中的转录任务，保留正在排队或处理的任务。
+     */
+    clearInactive(): Promise<void>;
+
+    /**
      * 将应用重启前未完成的任务标记为中断。
      */
     recoverInterruptedTasks(): Promise<void>;
@@ -331,6 +336,14 @@ export class LocalTranscriptionServiceImpl implements TranscriptionService {
             throw new Error(`转录任务正在执行，不能删除: ${normalizedFilePath}`);
         }
         await this.transcriptionTaskRepository.deleteByFilePath(normalizedFilePath);
+    }
+
+    /**
+     * 批量删除所有未在内存队列中执行的转录任务，保留活动任务。
+     */
+    public async clearInactive(): Promise<void> {
+        const activePaths = Array.from(this.tasks.keys());
+        await this.transcriptionTaskRepository.deleteNotInFilePaths(activePaths);
     }
 
     /**

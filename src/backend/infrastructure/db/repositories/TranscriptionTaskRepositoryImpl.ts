@@ -1,4 +1,4 @@
-import { asc, eq, or } from 'drizzle-orm';
+import { asc, eq, notInArray, or } from 'drizzle-orm';
 import { injectable } from 'inversify';
 import db from '@/backend/infrastructure/db';
 import {
@@ -123,6 +123,21 @@ export default class TranscriptionTaskRepositoryImpl implements TranscriptionTas
         if (result.changes !== 1) {
             throw new Error(`待删除的转录任务不存在: ${filePath}`);
         }
+    }
+
+    /**
+     * 批量删除除指定活动路径之外的所有转录任务。
+     *
+     * @param activeFilePaths 仍在进行中、需保留的媒体路径集合。
+     */
+    public async deleteNotInFilePaths(activeFilePaths: string[]): Promise<void> {
+        if (activeFilePaths.length === 0) {
+            await db.delete(transcriptionTask);
+            return;
+        }
+        await db
+            .delete(transcriptionTask)
+            .where(notInArray(transcriptionTask.file_path, activeFilePaths));
     }
 
     /**

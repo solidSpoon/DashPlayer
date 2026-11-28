@@ -50,6 +50,14 @@ const TranscriptPage = () => {
         await mutate();
     };
 
+    /**
+     * 清空所有未在执行中的转录任务，并刷新列表。
+     */
+    const clearInactive = async (): Promise<void> => {
+        await transcriptApi.clearTasks();
+        await mutate();
+    };
+
     return (
         <div className="w-full h-full flex flex-col overflow-hidden select-none bg-background text-foreground">
             {/* 顶栏标题区：保持现代无分割线设计 */}
@@ -66,7 +74,7 @@ const TranscriptPage = () => {
                     <TranscriptFile tasks={tasks} onEnqueue={enqueue} />
                 </div>
                 <div className="flex-1 min-w-0 min-h-0 flex flex-col">
-                    <TranscriptTable tasks={tasks} onStart={start} onDelete={remove} />
+                    <TranscriptTable tasks={tasks} onStart={start} onDelete={remove} onClear={clearInactive} />
                 </div>
             </div>
         </div>

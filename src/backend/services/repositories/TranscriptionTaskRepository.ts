@@ -36,6 +36,8 @@ export default interface TranscriptionTaskRepository {
     updateByFilePath(filePath: string, patch: TranscriptionTaskUpdatePatch): Promise<void>;
     /** 删除指定任务。 */
     deleteByFilePath(filePath: string): Promise<void>;
+    /** 批量删除除指定活动路径之外的所有任务。 */
+    deleteNotInFilePaths(activeFilePaths: string[]): Promise<void>;
     /** 将重启前遗留的活动任务标记为中断。 */
     markActiveAsInterrupted(): Promise<void>;
 }
