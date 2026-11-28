@@ -2,6 +2,22 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.21.0](https://github.com/solidSpoon/DashPlayer/compare/v6.20.0...v6.21.0) (2026-11-28)
+
+
+### Features
+
+* **transcript:** 新增任务队列一键清空并升级为现代卡片流布局 ([1cb87c7](https://github.com/solidSpoon/DashPlayer/commit/1cb87c72575dd8abb2f16b5e83f8b4307b4b419e))
+* **transcript:** 新增任务队列一键清空并升级为现代卡片流布局 ([88ed4e3](https://github.com/solidSpoon/DashPlayer/commit/88ed4e360e40187b7c5917642e086d96469b6962))
+
+
+### Bug Fixes
+
+* **player:** 改用节流尾调用执行切句跳转并微调长按节奏 ([5710fd2](https://github.com/solidSpoon/DashPlayer/commit/5710fd2074d11616749cba5420fe061057bd362b))
+* **player:** 改用节流尾调用执行切句跳转并微调长按节奏 ([f1cd3ef](https://github.com/solidSpoon/DashPlayer/commit/f1cd3effd045fa4c59e177ec55a5d6b5bde4ead9))
+* 修复无声片段与音频切片导致的字幕生成失败 ([469788d](https://github.com/solidSpoon/DashPlayer/commit/469788d06ea3f7c68c403346beaa4162febce8bb))
+* 修复无声片段与音频切片导致的字幕生成失败 ([6bed87a](https://github.com/solidSpoon/DashPlayer/commit/6bed87a8fdc924811b822b3b32e960c7bc9769de))
+
 ## [6.20.0](https://github.com/solidSpoon/DashPlayer/compare/v6.19.1...v6.20.0) (2026-11-28)
 
 
