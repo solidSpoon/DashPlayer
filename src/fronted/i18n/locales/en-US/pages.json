@@ -92,37 +92,6 @@
         "forceApplied": "Force repaired {{count}} file(s)",
         "forceAppliedPartial": "Force repaired {{done}}; {{skipped}} file(s) do not support this recipe and were skipped"
     },
-    "sentenceSplitter": {
-        "title": "Split Long Videos",
-        "description": "Split long videos and subtitles into smaller chapters by timestamps",
-        "inputLabel": "Split Configuration",
-        "inputPlaceholder": "Enter one timestamp and title per line, e.g.: 00:01:30 Chapter Title",
-        "filesLabel": "Video Files",
-        "clickToSelect": "Click to select a file",
-        "loadExample": "Load example configuration",
-        "aiFormat": "Format input with AI",
-        "selectFile": "Select File",
-        "splitAll": "Split All",
-        "splitting": "Splitting...",
-        "splitSuccess": "Split Finished",
-        "splitFailed": "Split Failed",
-        "tabs": {
-            "preview": "Preview",
-            "quickSelect": "Quick Select"
-        },
-        "preview": {
-            "startTime": "Start Time",
-            "endTime": "End Time",
-            "title": "Title",
-            "empty": "No configuration yet — enter timestamps on the left to preview",
-            "shortDuration": "Segment duration is less than 1 minute",
-            "unnamed": "(untitled segment)"
-        },
-        "videoSuffix": "(video)",
-        "subtitleSuffix": "(subtitle)",
-        "aiFormatFailed": "AI formatting failed",
-        "aiFormatParseFailed": "Could not parse the AI response. Please try again"
-    },
     "subtitleWorkspace": {
         "title": "Subtitle Generator",
         "description": "Generate high-accuracy subtitles for videos using AI speech recognition",
