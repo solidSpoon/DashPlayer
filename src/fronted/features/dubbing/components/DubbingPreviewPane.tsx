@@ -583,11 +583,15 @@ export default function DubbingPreviewPane({
                     </div>
 
                     <div className="min-w-0 flex-1 flex flex-col justify-between py-0.5">
-                        <div className="text-xs text-foreground/85 line-clamp-2 leading-5">
-                            {currentSentence?.text ?? (
-                                <span className="text-muted-foreground/70">{t('dubbingExport.preview.pickSentenceHint')}</span>
-                            )}
-                        </div>
+                        {currentSentence?.text ? (
+                            <div className="text-base font-medium text-foreground line-clamp-2 leading-6">
+                                {currentSentence.text}
+                            </div>
+                        ) : (
+                            <div className="text-xs text-muted-foreground/70 leading-5">
+                                {t('dubbingExport.preview.pickSentenceHint')}
+                            </div>
+                        )}
 
                         <div className="flex items-center gap-1.5 flex-wrap">
                             <Button
