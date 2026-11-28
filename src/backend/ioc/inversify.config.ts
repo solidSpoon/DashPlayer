@@ -55,6 +55,10 @@ import { FfmpegServiceImpl } from '@/backend/services/FfmpegService';
 import type DubbingService from '@/backend/services/DubbingService';
 import { DubbingServiceImpl } from '@/backend/services/DubbingService';
 import DubbingController from '@/backend/controllers/DubbingController';
+import PiRuntimeController from '@/backend/controllers/PiRuntimeController';
+import PiDownloadController from '@/backend/controllers/PiDownloadController';
+import PiRuntimeService, { PiRuntimeServiceImpl } from '@/backend/services/PiRuntimeService';
+import PiDownloadService, { PiDownloadServiceImpl } from '@/backend/services/PiDownloadService';
 import type DpTaskService from '@/backend/services/DpTaskService';
 import { DpTaskServiceImpl } from '@/backend/services/DpTaskService';
 import type ChatService from '@/backend/services/ChatService';
@@ -214,11 +218,15 @@ container.bind<Controller>(TYPES.Controller).to(LocalAiController).inSingletonSc
 container.bind<LocalAiService>(TYPES.LocalAiService).to(LocalAiRuntime).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(LocalMtController).inSingletonScope();
 container.bind<LocalMtService>(TYPES.LocalMtService).to(LocalMtRuntime).inSingletonScope();
+container.bind<PiRuntimeService>(TYPES.PiRuntimeService).to(PiRuntimeServiceImpl).inSingletonScope();
+container.bind<PiDownloadService>(TYPES.PiDownloadService).to(PiDownloadServiceImpl).inSingletonScope();
 container.bind<ResourceFallbackService>(TYPES.ResourceFallbackService).to(ResourceFallbackServiceImpl).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(SherpaTtsModelController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VocabularyController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(VideoLearningApiController).inSingletonScope();
 container.bind<Controller>(TYPES.Controller).to(DubbingController).inSingletonScope();
+container.bind<Controller>(TYPES.Controller).to(PiRuntimeController).inSingletonScope();
+container.bind<Controller>(TYPES.Controller).to(PiDownloadController).inSingletonScope();
 // 恢复路由控制器：不绑定到 TYPES.Controller（恢复模式下不解析业务控制器），单独绑定。
 container.bind<MigrationFailureController>(TYPES.MigrationFailureController).to(MigrationFailureController).inSingletonScope();
 // Services

@@ -40,6 +40,7 @@ export const SettingKeyObj = {
     'models.openai.sentenceLearning': 'gpt-5.4-nano',
     'models.openai.subtitleTranslation': 'gpt-5.4-nano',
     'models.openai.dictionary': 'gpt-5.4-nano',
+    'models.openai.downloadAgent': '',
     'models.local.active': LOCAL_AI_DEFAULT_MODEL_ID,
     'subtitleTranslation.engine': 'openai',
     'dictionary.engine': 'openai',

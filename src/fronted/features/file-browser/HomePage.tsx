@@ -8,12 +8,15 @@ import { Button } from '@/fronted/components/ui/button';
 import useSWR from 'swr';
 import { apiPath } from '@/fronted/lib/swr-util';
 import ProjectListItem from '@/fronted/features/file-browser/components/project-list-item';
+import { Input } from '@/fronted/components/ui/input';
 import {
     AudioLines,
     BookOpen,
     Captions,
     ChevronsDown,
     Clock,
+    Download,
+    Link2,
     PlayCircle,
     Rotate3D,
     Scissors,
@@ -45,8 +48,22 @@ const HomePage = () => {
     const vps = vpsFull ?? vpsBasic;
     const clear = useFile((s) => s.clear);
     const [num, setNum] = React.useState(4);
+    const [downloadUrl, setDownloadUrl] = React.useState('');
     // 从第四个开始截取num个
     const rest = vps?.slice(3, num + 3);
+
+    /**
+     * 提交启动页输入的在线视频链接，切到下载工作台并尝试自动开始下载。
+     */
+    const handleQuickDownload = async (event: React.FormEvent) => {
+        event.preventDefault();
+        const trimmed = downloadUrl.trim();
+        if (!trimmed) {
+            return;
+        }
+        await fileBrowserApi.changeWindowSize('player');
+        navigate('/download', { state: { initialUrl: trimmed, autoStart: true } });
+    };
 
     useEffect(() => {
         fileBrowserApi.changeWindowSize('home').then();
@@ -87,8 +104,32 @@ const HomePage = () => {
         { title: t('playbackRepair'), path: '/repair', icon: Rotate3D },
         { title: t('vocabularyStudio'), path: '/vocabulary', icon: BookOpen },
         { title: t('dubbingExport'), path: '/dubbing', icon: AudioLines },
+        { title: t('mediaDownload'), path: '/download', icon: Download },
         { title: t('settingsCenter'), path: '/settings', icon: Settings },
     ];
+
+    const renderQuickDownloadForm = () => (
+        <form onSubmit={(e) => { void handleQuickDownload(e); }} className="flex w-full items-center gap-2.5">
+            <div className="relative flex-1">
+                <Link2 className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                    value={downloadUrl}
+                    onChange={(e) => setDownloadUrl(e.target.value)}
+                    placeholder={tc('quickDownloadPlaceholder')}
+                    className="h-9 rounded-xl pl-9 text-xs select-text"
+                />
+            </div>
+            <Button
+                type="submit"
+                size="sm"
+                disabled={!downloadUrl.trim()}
+                className="h-9 shrink-0 rounded-xl px-4 text-xs"
+            >
+                <Download className="mr-1.5 h-3.5 w-3.5" />
+                {tc('quickDownloadAction')}
+            </Button>
+        </form>
+    );
 
     const hasHistory = vps && vps.length > 0;
 
@@ -134,28 +175,33 @@ const HomePage = () => {
                     {/* 有播放历史时的布局 */}
                     {hasHistory ? (
                         <div className="flex flex-col gap-8 pb-8">
-                            {/* 顶部快速打开区域：简洁优雅的圆角栏 */}
-                            <div className="flex flex-col sm:flex-row items-center justify-between gap-4 p-4 px-6 rounded-2xl border border-border/70 bg-card shadow-2xs">
-                                <div className="flex flex-col gap-0.5 text-center sm:text-left">
-                                    <span className="text-sm font-semibold text-foreground">{tc('quickStartTitle')}</span>
-                                    <span className="text-xs text-muted-foreground">{tc('quickStartDesc')}</span>
+                            {/* 顶部快速打开区域：本地媒体选择与在线链接下载 */}
+                            <div className="flex flex-col gap-3.5 p-4 px-6 rounded-2xl border border-border/70 bg-card shadow-2xs">
+                                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                                    <div className="flex flex-col gap-0.5 text-center sm:text-left">
+                                        <span className="text-sm font-semibold text-foreground">{tc('quickStartTitle')}</span>
+                                        <span className="text-xs text-muted-foreground">{tc('quickStartDesc')}</span>
+                                    </div>
+                                    <div className="flex items-center gap-3 shrink-0">
+                                        <div className="w-36">
+                                            <FileSelector
+                                                onSelected={FileAction.playerAction2(navigate)}
+                                                withMkv
+                                            />
+                                        </div>
+                                        <div className="w-36">
+                                            <FolderSelector
+                                                onSelected={FolderSelectAction.defaultAction2(async (vid) => {
+                                                    await fileBrowserApi.changeWindowSize('player');
+                                                    changeSideBar(false);
+                                                    navigate(`/player/${vid}`);
+                                                })}
+                                            />
+                                        </div>
+                                    </div>
                                 </div>
-                                <div className="flex items-center gap-3 shrink-0">
-                                    <div className="w-36">
-                                        <FileSelector
-                                            onSelected={FileAction.playerAction2(navigate)}
-                                            withMkv
-                                        />
-                                    </div>
-                                    <div className="w-36">
-                                        <FolderSelector
-                                            onSelected={FolderSelectAction.defaultAction2(async (vid) => {
-                                                await fileBrowserApi.changeWindowSize('player');
-                                                changeSideBar(false);
-                                                navigate(`/player/${vid}`);
-                                            })}
-                                        />
-                                    </div>
+                                <div className="border-t border-border/60 pt-3.5">
+                                    {renderQuickDownloadForm()}
                                 </div>
                             </div>
 
@@ -216,7 +262,7 @@ const HomePage = () => {
                     ) : (
                         /* 无播放历史时的专属初始场景 (Empty State) */
                         <div className="flex flex-col items-center justify-center h-full min-h-[420px] text-center p-8">
-                            <div className="flex flex-col items-center max-w-md w-full">
+                            <div className="flex flex-col items-center max-w-lg w-full">
                                 <div className="h-16 w-16 rounded-3xl bg-primary/10 flex items-center justify-center text-primary mb-5 shadow-xs">
                                     <PlayCircle className="h-8 w-8 stroke-[1.75]" />
                                 </div>
@@ -244,6 +290,14 @@ const HomePage = () => {
                                         />
                                     </div>
                                 </div>
+
+                                <div className="my-5 flex w-full items-center gap-3 text-xs text-muted-foreground/80">
+                                    <div className="h-px flex-1 bg-border/70" />
+                                    <span>{tc('quickDownloadDivider')}</span>
+                                    <div className="h-px flex-1 bg-border/70" />
+                                </div>
+
+                                {renderQuickDownloadForm()}
                             </div>
                         </div>
                     )}

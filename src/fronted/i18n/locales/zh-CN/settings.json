@@ -362,7 +362,8 @@
             "duplicateModel": "模型已存在：{{model}}",
             "usageSentenceLearning": "整句讲解",
             "usageSubtitleTranslation": "字幕翻译",
-            "usageDictionary": "词典查询"
+            "usageDictionary": "词典查询",
+            "usageDownloadAgent": "视频下载"
         },
         "transcription": {
             "whisperCppModelFile": "Parakeet TDT 0.6B v3（GGUF q8_0，约 640 MB）",
@@ -478,7 +479,10 @@
             "notReadyHint": "所选资源还没下载，请先在上方下载本地基础资源包。",
             "sentenceLabel": "整句讲解",
             "sentenceDesc": "按快捷键为当前句打开讲解面板，讲解语法与用法。",
+            "downloadAgentLabel": "视频下载 Agent",
+            "downloadAgentDesc": "用于视频下载工作区的 AI 助手，负责分析链接、调用工具与交互决策。",
             "engineDisabled": "禁用",
+            "engineUnset": "未选择",
             "engineNoSupplement": "不补充",
             "engineLocalBase": "本地基础资源包",
             "cacheLabel": "翻译缓存",

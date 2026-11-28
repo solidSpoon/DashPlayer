@@ -27,6 +27,7 @@ import { storeGet } from '@/backend/infrastructure/settings/store';
 import type { TranscriptionService } from '@/backend/services/TranscriptionService';
 import type PlaybackRepairService from '@/backend/services/PlaybackRepairService';
 import type MobileAccessService from '@/backend/services/MobileAccessService';
+import type PiDownloadService from '@/backend/services/PiDownloadService';
 
 // 导入日志 IPC 监听
 import '@/backend/controllers/ipc/renderer-log';
@@ -371,11 +372,15 @@ app.on('before-quit', (event) => {
             .catch((error) => {
                 logger.error('mobile access shutdown failed', { error });
             });
+        const piDownloadShutdown = container.get<PiDownloadService>(TYPES.PiDownloadService).shutdown()
+            .catch((error) => {
+                logger.error('pi download shutdown failed', { error });
+            });
         const graceTimeout = new Promise<'timeout'>((resolve) => {
             graceTimer = setTimeout(() => resolve('timeout'), SHUTDOWN_GRACE_TIMEOUT_MS);
         });
         void Promise.race([
-            Promise.allSettled([localAiShutdown, mobileAccessShutdown]).then(() => 'settled' as const),
+            Promise.allSettled([localAiShutdown, mobileAccessShutdown, piDownloadShutdown]).then(() => 'settled' as const),
             graceTimeout,
         ]).then((outcome) => {
             if (graceTimer) {

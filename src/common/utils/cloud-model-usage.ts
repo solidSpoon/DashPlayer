@@ -8,13 +8,14 @@
  */
 
 /** 云端模型的使用方（功能标识）。 */
-export type OpenAiModelUsageFeature = 'sentenceLearning' | 'subtitleTranslation' | 'dictionary';
+export type OpenAiModelUsageFeature = 'sentenceLearning' | 'subtitleTranslation' | 'dictionary' | 'downloadAgent';
 
 /** 全部功能标识；迭代顺序即展示顺序。 */
 export const OPEN_AI_MODEL_USAGE_FEATURES: readonly OpenAiModelUsageFeature[] = [
     'sentenceLearning',
     'subtitleTranslation',
     'dictionary',
+    'downloadAgent',
 ];
 
 /** 占用判定的入参。 */
@@ -51,5 +52,6 @@ export function computeCloudModelUsage(inputs: CloudModelUsageInputs): CloudMode
         sentenceLearning: usesCloud.sentenceLearning ? inputs.modelSlots.sentenceLearning : '',
         subtitleTranslation: usesCloud.subtitleTranslation ? inputs.modelSlots.subtitleTranslation : '',
         dictionary: usesCloud.dictionary ? inputs.modelSlots.dictionary : '',
+        downloadAgent: inputs.modelSlots.downloadAgent.trim(),
     };
 }

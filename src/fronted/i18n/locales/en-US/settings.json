@@ -362,7 +362,8 @@
             "duplicateModel": "Model already exists: {{model}}",
             "usageSentenceLearning": "Sentence explanation",
             "usageSubtitleTranslation": "Subtitle translation",
-            "usageDictionary": "Dictionary"
+            "usageDictionary": "Dictionary",
+            "usageDownloadAgent": "Video download"
         },
         "transcription": {
             "whisperCppModelFile": "Parakeet TDT 0.6B v3 (GGUF q8_0, ~640 MB)",
@@ -478,7 +479,10 @@
             "notReadyHint": "The selected resource is not downloaded yet. Download the local base resource pack above first.",
             "sentenceLabel": "Sentence explanation",
             "sentenceDesc": "Press the shortcut to open an explanation panel for the current sentence, covering grammar and usage.",
+            "downloadAgentLabel": "Video download agent",
+            "downloadAgentDesc": "AI assistant for the video download workspace, handling link analysis, tool execution, and interactive prompts.",
             "engineDisabled": "Disabled",
+            "engineUnset": "Not selected",
             "engineNoSupplement": "No supplement",
             "engineLocalBase": "Local base resource pack",
             "cacheLabel": "Translation cache",

@@ -300,6 +300,10 @@ export function resolveStorageDirectory(rootPath: string, target: StorageDirecto
             return path.join(rootPath, 'temp_oss');
         case StorageDirectoryTarget.MODELS:
             return path.join(rootPath, 'models');
+        case StorageDirectoryTarget.RUNTIMES:
+            return path.join(rootPath, 'runtimes');
+        case StorageDirectoryTarget.DOWNLOAD_WORKSPACE:
+            return path.join(rootPath, 'download_workspace');
         case StorageDirectoryTarget.DUBBING:
             return path.join(rootPath, 'dubbing');
         default:

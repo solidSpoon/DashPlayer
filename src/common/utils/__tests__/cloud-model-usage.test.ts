@@ -11,6 +11,7 @@ describe('computeCloudModelUsage', () => {
                 sentenceLearning: 'gpt-5.4-nano',
                 subtitleTranslation: 'gpt-5.4-nano',
                 dictionary: 'gpt-5.4-nano',
+                downloadAgent: '',
             },
         });
 
@@ -18,6 +19,7 @@ describe('computeCloudModelUsage', () => {
             sentenceLearning: '',
             subtitleTranslation: '',
             dictionary: '',
+            downloadAgent: '',
         });
     });
 
@@ -30,6 +32,7 @@ describe('computeCloudModelUsage', () => {
                 sentenceLearning: 'gpt-5.4-nano',
                 subtitleTranslation: 'deepseek-flash',
                 dictionary: 'gpt-5.4-nano',
+                downloadAgent: 'deepseek-flash',
             },
         });
 
@@ -37,6 +40,7 @@ describe('computeCloudModelUsage', () => {
             sentenceLearning: 'gpt-5.4-nano',
             subtitleTranslation: 'deepseek-flash',
             dictionary: '',
+            downloadAgent: 'deepseek-flash',
         });
     });
 
@@ -49,10 +53,12 @@ describe('computeCloudModelUsage', () => {
                 sentenceLearning: 'gpt-5.4-nano',
                 subtitleTranslation: 'gpt-5.4-nano',
                 dictionary: 'deepseek-flash',
+                downloadAgent: '',
             },
         });
 
         expect(usage.subtitleTranslation).toBe('');
         expect(usage.dictionary).toBe('deepseek-flash');
+        expect(usage.downloadAgent).toBe('');
     });
 });
