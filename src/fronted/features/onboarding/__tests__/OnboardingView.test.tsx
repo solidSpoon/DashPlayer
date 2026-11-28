@@ -98,6 +98,7 @@ describe('OnboardingView Component', () => {
                     sentenceLearning: 'gpt-4o-mini',
                     subtitleTranslation: 'gpt-4o-mini',
                     dictionary: 'gpt-4o-mini',
+                    downloadAgent: '',
                 },
             },
             providers: {

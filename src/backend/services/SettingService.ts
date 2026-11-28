@@ -47,6 +47,7 @@ const OPEN_AI_FEATURE_LABELS: Record<OpenAiModelUsageFeature, string> = {
     sentenceLearning: '整句讲解',
     subtitleTranslation: '字幕翻译',
     dictionary: '词典查词',
+    downloadAgent: '视频下载',
 };
 
 /** 功能引擎取值（含 'invalid' 占位）。 */
@@ -193,6 +194,7 @@ export class SettingServiceImpl implements SettingService {
                 sentenceLearning: this.getValue('models.openai.sentenceLearning'),
                 subtitleTranslation: this.getValue('models.openai.subtitleTranslation'),
                 dictionary: this.getValue('models.openai.dictionary'),
+                downloadAgent: this.getValue('models.openai.downloadAgent'),
             },
         });
     }
@@ -468,6 +470,7 @@ export class SettingServiceImpl implements SettingService {
                     sentenceLearning: this.getValue('models.openai.sentenceLearning'),
                     subtitleTranslation: this.getValue('models.openai.subtitleTranslation'),
                     dictionary: this.getValue('models.openai.dictionary'),
+                    downloadAgent: this.getValue('models.openai.downloadAgent'),
                 },
             },
             providers: {
@@ -537,6 +540,13 @@ export class SettingServiceImpl implements SettingService {
             engineUsesCloud(settings.providers.dictionaryEngine),
             '词典查词',
         );
+        const downloadAgentCandidate = settings.openai.featureModels.downloadAgent.trim();
+        const downloadAgentSlot = this.resolveFeatureModelSlot(
+            downloadAgentCandidate,
+            availableModels,
+            downloadAgentCandidate.length > 0,
+            '视频下载',
+        );
 
         if (subtitleEngine === null) {
             this.logger.warn('providers.subtitleTranslationEngine 为非法占位值，跳过保存并保留原存储值');
@@ -562,6 +572,7 @@ export class SettingServiceImpl implements SettingService {
         await this.setValue('models.openai.sentenceLearning', sentenceLearningSlot);
         await this.setValue('models.openai.subtitleTranslation', subtitleTranslationSlot);
         await this.setValue('models.openai.dictionary', dictionarySlot);
+        await this.setValue('models.openai.downloadAgent', downloadAgentSlot);
     }
 
     /**

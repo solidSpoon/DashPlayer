@@ -85,6 +85,7 @@ export const OpenAiCredentialCard: React.FC<OpenAiCredentialCardProps> = ({
         sentenceLearning: t('serviceCredentials.openai.usageSentenceLearning'),
         subtitleTranslation: t('serviceCredentials.openai.usageSubtitleTranslation'),
         dictionary: t('serviceCredentials.openai.usageDictionary'),
+        downloadAgent: t('serviceCredentials.openai.usageDownloadAgent'),
     }), [t]);
 
     const apiFormatLabelMap: Record<AiApiFormat, string> = React.useMemo(() => ({

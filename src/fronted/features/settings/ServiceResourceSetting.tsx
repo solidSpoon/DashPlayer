@@ -203,6 +203,7 @@ const ServiceResourceSetting: React.FC = () => {
                 sentenceLearning: watched.openai?.featureModels?.sentenceLearning ?? '',
                 subtitleTranslation: watched.openai?.featureModels?.subtitleTranslation ?? '',
                 dictionary: watched.openai?.featureModels?.dictionary ?? '',
+                downloadAgent: watched.openai?.featureModels?.downloadAgent ?? '',
             },
         });
         const map = new Map<string, OpenAiModelUsageFeature[]>();
@@ -447,6 +448,20 @@ const ServiceResourceSetting: React.FC = () => {
         const { model } = parseEngineValue(value);
         setValue('openai.enableSentenceLearning', model !== null, { shouldDirty: true });
         setValue('openai.featureModels.sentenceLearning', model ?? '', { shouldDirty: true });
+    };
+
+    /** 视频下载 Agent 当前选中的云端模型；未设置时为空。 */
+    const downloadAgentModel = watched.openai?.featureModels?.downloadAgent ?? '';
+    const downloadAgentValue = downloadAgentModel ? `openai:${downloadAgentModel}` : 'none';
+
+    /**
+     * 写回视频下载 Agent 选中的云端模型。
+     *
+     * @param value 下拉项值，`none` 或 `openai:<model>`。
+     */
+    const applyDownloadAgentValue = (value: string) => {
+        const { model } = parseEngineValue(value);
+        setValue('openai.featureModels.downloadAgent', model ?? '', { shouldDirty: true });
     };
 
     /** 渲染云端模型选项；各下拉共用，展平不分组。 */
@@ -807,6 +822,25 @@ const ServiceResourceSetting: React.FC = () => {
                             <SelectContent>
                                 <SelectItem value="none">{t('resources.preference.engineDisabled')}</SelectItem>
                                 {renderCloudModels('learn')}
+                            </SelectContent>
+                        </Select>
+                    </SettingRow>
+
+                    <SettingRow
+                        title={t('resources.preference.downloadAgentLabel')}
+                        description={t('resources.preference.downloadAgentDesc')}
+                        icon={Terminal}
+                    >
+                        <Select value={downloadAgentValue} onValueChange={applyDownloadAgentValue}>
+                            <SelectTrigger className="w-56"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="none">{t('resources.preference.engineUnset')}</SelectItem>
+                                {renderCloudModels('download')}
+                                {downloadAgentModel && !availableModels.includes(downloadAgentModel) && (
+                                    <SelectItem value={`openai:${downloadAgentModel}`} disabled>
+                                        {downloadAgentModel}
+                                    </SelectItem>
+                                )}
                             </SelectContent>
                         </Select>
                     </SettingRow>

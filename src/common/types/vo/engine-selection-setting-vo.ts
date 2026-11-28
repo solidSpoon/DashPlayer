@@ -16,6 +16,7 @@ export type EngineSelectionSettingVO = {
             sentenceLearning: string;
             subtitleTranslation: string;
             dictionary: string;
+            downloadAgent: string;
         };
     };
     providers: {
