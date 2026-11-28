@@ -88,6 +88,8 @@ const PlayerEngine: React.FC<PlayerEngineProps> = ({
   const lastSeekRef = useRef<SeekRequest>({ time: -1, play: true });
   const lastSeekTsRef = useRef<number>(0);
   const pendingTimerRef = useRef<NodeJS.Timeout | null>(null);
+  /** 节流窗口内等待尾调用提交的最新 seek 请求。 */
+  const pendingSeekRef = useRef<SeekRequest | null>(null);
   const videoGenerationRef = useRef(0);
   /** 已消费过的 playRequestId，避免无新增播放请求时重复调原生 play()。 */
   const lastHandledPlayRequestIdRef = useRef(0);
@@ -142,7 +144,8 @@ const PlayerEngine: React.FC<PlayerEngineProps> = ({
     }
   }, [recoveryKey]);
 
-  // seek 执行：首按立即定位（0ms 延迟），连按或硬件解码中按短窗口合并后再提交；
+  // seek 执行：首按立即定位（0ms 延迟），连按或硬件解码中采用“节流 + 尾调用”合并，
+  // 保证长按期间按固定周期持续刷新画面/声音，且松手后精准落到最后目标。
   // 放在 playing 订阅之前执行，保证同一轮更新先设 currentTime 再同步播放意图。
   useEffect(() => {
     const video = videoRef.current;
@@ -154,43 +157,40 @@ const PlayerEngine: React.FC<PlayerEngineProps> = ({
     // 新 seek 到达时，使未完成的卡死恢复失效（用户意图优先）
     pendingRecoveryRef.current = null;
 
-    if (pendingTimerRef.current) {
-      clearTimeout(pendingTimerRef.current);
-      pendingTimerRef.current = null;
-    }
-
     /**
      * 执行一次实际 seek，并根据播放意图决定是否继续播放。
+     * @param targetVideo 目标媒体元素
      * @param sec 目标时间（秒）
      * @param shouldPlay 是否在 seek 后继续播放
      */
-    const applySeek = (sec: number, shouldPlay: boolean) => {
+    const applySeek = (targetVideo: HTMLVideoElement, sec: number, shouldPlay: boolean) => {
       try {
-        video.currentTime = sec;
+        targetVideo.currentTime = sec;
         // 播放意图为否时在原生层强制暂停；为是时若元素处于暂停则补一次 play
         if (!shouldPlay) {
-          video.pause();
-        } else if (video.paused) {
+          targetVideo.pause();
+        } else if (targetVideo.paused) {
           nativePlay();
         }
       } catch (error) {
         logger.error('seek failed', {
           error: error instanceof Error ? error.message : String(error),
           time: sec,
-          currentTime: video.currentTime,
-          readyState: video.readyState
+          currentTime: targetVideo.currentTime,
+          readyState: targetVideo.readyState
         });
       }
     };
 
     /**
      * 提交目标 seek 并同步时间戳、播放请求消费记录与看门狗代际。
+     * @param targetVideo 目标媒体元素
      * @param req 待提交的 seek 请求
      */
-    const commitSeek = (req: SeekRequest) => {
+    const commitSeek = (targetVideo: HTMLVideoElement, req: SeekRequest) => {
       // 提交时刻读取 store 当前 playing 与 playRequestId 作为权威意图
       const storeState = usePlayer.getState();
-      applySeek(req.time, storeState.playing);
+      applySeek(targetVideo, req.time, storeState.playing);
       if (storeState.playing) {
         lastHandledPlayRequestIdRef.current = storeState.playRequestId;
       }
@@ -200,24 +200,43 @@ const PlayerEngine: React.FC<PlayerEngineProps> = ({
     };
 
     const delta = Date.now() - lastSeekTsRef.current;
-    // 首按或间隔充裕且上次解码已结束时立即 seek；连续快按或仍在 seeking 时合并为最后目标
-    if (delta >= SEEK_COALESCE_MS && !video.seeking) {
-      commitSeek(next);
+    // 首按或间隔充裕且上次解码已结束时立即 seek；否则进入节流尾调用
+    if (pendingTimerRef.current === null && delta >= SEEK_COALESCE_MS && !video.seeking) {
+      pendingSeekRef.current = null;
+      commitSeek(video, next);
       return;
     }
 
+    // 更新待提交的最新目标，若节流定时器已在运行则不重置，避免连续长按饿死
+    pendingSeekRef.current = next;
+    if (pendingTimerRef.current !== null) {
+      return;
+    }
+
+    // 处于合并窗口内时只等待剩余时间；若已超窗口但仍在解码中则短退避后再试
+    const waitMs = delta < SEEK_COALESCE_MS ? SEEK_COALESCE_MS - delta : 60;
     pendingTimerRef.current = setTimeout(() => {
       pendingTimerRef.current = null;
-      commitSeek(next);
-    }, SEEK_COALESCE_MS);
+      const target = pendingSeekRef.current;
+      pendingSeekRef.current = null;
+      const currentVideo = videoRef.current;
+      if (!currentVideo || !target || lastSeekRef.current === target) {
+        return;
+      }
+      commitSeek(currentVideo, target);
+    }, waitMs);
+  }, [seekTime, nativePlay, src, recoveryKey]);
 
+  // 切源、重建或卸载时清理未提交的节流 seek 定时器，避免跨源串扰
+  useEffect(() => {
     return () => {
       if (pendingTimerRef.current) {
         clearTimeout(pendingTimerRef.current);
         pendingTimerRef.current = null;
       }
+      pendingSeekRef.current = null;
     };
-  }, [seekTime, nativePlay, src, recoveryKey]);
+  }, [src, recoveryKey]);
 
   // 订阅 store 的播放意图：期望播放且无待提交 seek 时同步原生 play()，期望暂停则立即原生 pause()
   useEffect(() => {

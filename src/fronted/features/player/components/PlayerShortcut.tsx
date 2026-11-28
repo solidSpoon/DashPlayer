@@ -11,12 +11,12 @@ import { playerActions } from '@/fronted/features/player/components/PlayerAction
 import { usePlayer } from '@/fronted/features/player/playerStore';
 import { usePlayerUi } from '@/fronted/features/player/playerUiStore';
 
-/** 键盘长按切句起步间隔（毫秒）：前段偏稳，便于微调 2~3 句。 */
-const NAV_REPEAT_START_INTERVAL_MS = 160;
-/** 键盘长按切句最快间隔（毫秒）：持续按住后段快速跨句翻阅。 */
-const NAV_REPEAT_MIN_INTERVAL_MS = 45;
+/** 键盘长按切句起步间隔（毫秒）：前段轻快跟手，便于微调 2~3 句。 */
+const NAV_REPEAT_START_INTERVAL_MS = 135;
+/** 键盘长按切句最快间隔（毫秒）：兼顾跨句翻阅速度与字幕可读性，避免过冲。 */
+const NAV_REPEAT_MIN_INTERVAL_MS = 80;
 /** 从起步间隔加速到最快间隔的总时长（毫秒）。 */
-const NAV_REPEAT_RAMP_MS = 1800;
+const NAV_REPEAT_RAMP_MS = 1100;
 
 /**
  * 计算当前长按时长对应的切句节流间隔（毫秒）。
