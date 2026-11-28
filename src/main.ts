@@ -5,7 +5,8 @@ import { app, BrowserWindow, type Session } from 'electron';
 import squirrelStartup from 'electron-squirrel-startup';
 import { spawn } from 'node:child_process';
 import fs from 'fs';
-import path from 'path';import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
+import path from 'path';
+import installExtension, { REACT_DEVELOPER_TOOLS } from 'electron-devtools-installer';
 import registerHandler from '@/backend/dispatcher';
 import { setConcurrencyLogger } from '@/backend/utils/concurrency';
 import { seedDefaultVocabularyIfNeeded } from '@/backend/startup/seedDefaultVocabulary';
@@ -283,9 +284,17 @@ app.on('window-all-closed', () => {
     }
 });
 /**
- * 退出兜底超时。
+ * 优雅停机收尾等待上限（毫秒）。
  *
  * 正常退出是秒级：本地模型子进程最多等 3s 自然退出，手机访问只是关监听。
+ * 超时说明某项后台服务自身挂起，不再继续拦住退出流程。
+ */
+const SHUTDOWN_GRACE_TIMEOUT_MS = 5_000;
+
+/**
+ * 进程外退出兜底超时（毫秒，仅 POSIX 使用）。
+ *
+ * 留出比优雅停机上限更宽裕的时间窗口，仅在 JS 环境销毁后的 C++ 清理期卡死时介入。
  */
 const QUIT_FORCE_EXIT_TIMEOUT_MS = 8_000;
 
@@ -295,27 +304,32 @@ type ShutdownPhase = 'idle' | 'stopping' | 'ready';
 let shutdownPhase: ShutdownPhase = 'idle';
 
 /**
- * 部署退出兜底：超时后如果本进程还活着，从外部直接 SIGKILL。
+ * 部署 POSIX 进程外退出兜底：超时后如果本进程还活着，从外部直接 SIGKILL。
  *
- * 为什么不用 JS 定时器：卡死发生在 Electron 关掉 JS 环境之后的清理阶段，那时定时器不会再跑。
- * 实测一个卡在文件读上的线程池请求（等一个没人点的 TCC 授权弹窗就会这样）能让 app.quit()、
- * app.exit(0) 甚至 process.exit(0) 全部退不掉，只有来自进程外的信号能把它杀掉，
- * 所以这里起一个脱离父进程的 shell 来收尾；正常退出时它醒来发现进程已经没了，自行结束。
+ * 为什么需要进程外兜底（仅 POSIX）：卡死发生在 Electron 关掉 JS 环境之后的清理阶段，
+ * 那时定时器不会再跑。实测 macOS 上一个卡在文件读上的线程池请求（等一个没人点的 TCC 授权弹窗）
+ * 会让 app.quit()、app.exit(0) 甚至 process.exit(0) 全部退不掉，主线程停在
+ * node::Environment::CleanupHandles 的 uv_run 里，只能从外部强杀；硬杀必须连直接子进程一起，
+ * 否则被 SIGKILL 的 ffprobe 会被 launchd 收养继续卡住。
  *
- * 硬杀必须连子进程一起：主进程被 SIGKILL 后，子进程会被 launchd 收养、继续卡在原来的读上
- * （实测漏了 5 个 ffprobe），所以先杀直接子进程再杀自己；Windows 用 taskkill /t 直接杀整棵进程树。
+ * 为什么 Windows 不起外部壳看门狗：
+ * - Windows 不存在 macOS TCC 授权阻塞线程池的问题；
+ * - Node.js 在 Windows 传 detached + shell 会带出 CREATE_NEW_CONSOLE，导致每次关闭应用都会弹出可见控制台窗口；
+ * - 无控制台 stdin 下 timeout /t 会报错，搭配 & 会无条件立即触发 taskkill 误杀正在优雅停机的主进程；
+ * - 且打包版禁用了 RunAsNode fuse，也无法静默复用主程序跑超时脚本。
+ * 因此 Windows 侧由 before-quit 的收尾超时与 app.exit(0) 负责兜底。
  */
 const armForceExitWatchdog = (): void => {
+    if (process.platform === 'win32') {
+        return;
+    }
     const pid = process.pid;
     const seconds = Math.ceil(QUIT_FORCE_EXIT_TIMEOUT_MS / 1000);
-    const command = process.platform === 'win32'
-        ? `timeout /t ${seconds} /nobreak >nul & taskkill /f /t /pid ${pid}`
-        : `sleep ${seconds}; for child in $(pgrep -P ${pid}); do [ "$child" = "$$" ] || kill -9 "$child" 2>/dev/null; done; kill -9 ${pid} 2>/dev/null`;
+    const command = `sleep ${seconds}; for child in $(pgrep -P ${pid}); do [ "$child" = "$$" ] || kill -9 "$child" 2>/dev/null; done; kill -9 ${pid} 2>/dev/null`;
     const watchdog = spawn(command, {
         shell: true,
         detached: true,
         stdio: 'ignore',
-        windowsHide: true,
     });
     watchdog.on('error', (error) => {
         logger.warn('quit watchdog failed to start', { error });
@@ -329,7 +343,8 @@ const armForceExitWatchdog = (): void => {
  * 这段收尾会把退出拦下来（preventDefault），所以这里必须保证最终还能退出：
  * - 收尾期间重复的退出请求（右键 Dock 退出、Cmd+Q 连按、系统注销）直接忽略，
  *   不再重复关闭同一批服务；只有本函数的 app.quit() 会把状态推到 ready 放行；
- * - 收尾或随后的 Electron/Node 清理一旦卡住，由外部兜底进程硬杀（见 armForceExitWatchdog）。
+ * - 收尾阶段设置 JS 层超时（SHUTDOWN_GRACE_TIMEOUT_MS），超时时直接 app.exit(0) 强退；
+ * - POSIX 下若随后进入 Electron/Node C++ 清理期仍卡死，由外部兜底进程硬杀（见 armForceExitWatchdog）。
  */
 app.on('before-quit', (event) => {
     if (shutdownPhase === 'ready') {
@@ -341,8 +356,12 @@ app.on('before-quit', (event) => {
         return;
     }
     shutdownPhase = 'stopping';
-    logger.info('app before quit', { forceExitAfterMs: QUIT_FORCE_EXIT_TIMEOUT_MS });
+    logger.info('app before quit', {
+        graceTimeoutMs: SHUTDOWN_GRACE_TIMEOUT_MS,
+        ...(process.platform !== 'win32' ? { forceExitAfterMs: QUIT_FORCE_EXIT_TIMEOUT_MS } : {}),
+    });
     armForceExitWatchdog();
+    let graceTimer: ReturnType<typeof setTimeout> | null = null;
     try {
         const localAiShutdown = container.get<LocalAiService>(TYPES.LocalAiService).shutdown()
             .catch((error) => {
@@ -352,12 +371,31 @@ app.on('before-quit', (event) => {
             .catch((error) => {
                 logger.error('mobile access shutdown failed', { error });
             });
-        void Promise.allSettled([localAiShutdown, mobileAccessShutdown]).finally(() => {
+        const graceTimeout = new Promise<'timeout'>((resolve) => {
+            graceTimer = setTimeout(() => resolve('timeout'), SHUTDOWN_GRACE_TIMEOUT_MS);
+        });
+        void Promise.race([
+            Promise.allSettled([localAiShutdown, mobileAccessShutdown]).then(() => 'settled' as const),
+            graceTimeout,
+        ]).then((outcome) => {
+            if (graceTimer) {
+                clearTimeout(graceTimer);
+                graceTimer = null;
+            }
             shutdownPhase = 'ready';
+            if (outcome === 'timeout') {
+                logger.warn('graceful shutdown timed out, forcing exit', { timeoutMs: SHUTDOWN_GRACE_TIMEOUT_MS });
+                app.exit(0);
+                return;
+            }
             app.quit();
         });
     } catch (error) {
         // 容器未初始化等同步异常也必须继续退出，否则应用会卡在“退不出”状态。
+        if (graceTimer) {
+            clearTimeout(graceTimer);
+            graceTimer = null;
+        }
         logger.error('service shutdown failed', { error });
         shutdownPhase = 'ready';
         app.quit();
