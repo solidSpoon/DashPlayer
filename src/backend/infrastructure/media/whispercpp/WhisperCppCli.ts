@@ -11,6 +11,12 @@ import type { SpeechRecognitionToken } from '@/backend/services/gateways/media/S
 /** token 调试行的时间单位为 10ms，除以该常数得到秒。 */
 const TOKEN_TIME_UNIT_MS = 100;
 
+/** whisper.cpp 输出的 Segments 汇总行（无对白时仍会打印 `Segments (0):`）。 */
+const SEGMENTS_HEADER_PATTERN = /^Segments\s*\(\d+\):/m;
+
+/** whisper.cpp 逐 token 调试行格式。 */
+const TOKEN_LINE_PATTERN = /^\s*\[\s*\d+\]\s+.*?\bt0=\s*(-?\d+)\s+t1=\s*(-?\d+)\s+word_start=(?:true|false)\s+"(.*)"$/;
+
 /** stderr 中标记"无核显、静默回退 CPU"的行前缀（输出契约随二进制版本固定）。 */
 const GPU_FALLBACK_MARKERS = [
     // 设备枚举不到任何 GPU：parakeet_backend_init_gpu 直接返回空
@@ -122,14 +128,9 @@ export interface WhisperCppOutput {
  * @returns 严格校验后的识别结果；文本与时间轴缺失或非法时抛错，不做静默兜底。
  */
 export function parseWhisperCppOutput(stdout: string, stderr: string): WhisperCppOutput {
-    const text = stdout.trim();
-    if (!text) {
-        throw new Error(`whisper.cpp 未返回识别文本：${stderr.slice(-2000)}`);
-    }
     const tokens: SpeechRecognitionToken[] = [];
-    const tokenPattern = /^\s*\[\s*\d+\]\s+.*?\bt0=\s*(-?\d+)\s+t1=\s*(-?\d+)\s+word_start=(?:true|false)\s+"(.*)"$/;
     for (const line of stderr.split(/\r?\n/)) {
-        const match = tokenPattern.exec(line);
+        const match = TOKEN_LINE_PATTERN.exec(line);
         if (!match) continue;
         const startMs = Number(match[1]);
         const endMs = Number(match[2]);
@@ -144,13 +145,22 @@ export function parseWhisperCppOutput(stdout: string, stderr: string): WhisperCp
         }
         tokens.push({ text: tokenText, start: startMs / TOKEN_TIME_UNIT_MS, end: endMs / TOKEN_TIME_UNIT_MS });
     }
-    if (tokens.length === 0) {
-        throw new Error(`whisper.cpp 未返回 token 时间轴：${stderr.slice(-2000)}`);
-    }
     for (let i = 1; i < tokens.length; i++) {
         if (tokens[i].start < tokens[i - 1].start) {
             throw new Error('whisper.cpp 返回的 token 时间轴不是单调递增的');
         }
+    }
+
+    const text = stdout.trim();
+    if (!text) {
+        // 无声或纯背景音分片会正常完成解码并输出 `Segments (0):`，此时应视为空识别结果。
+        if (tokens.length === 0 && SEGMENTS_HEADER_PATTERN.test(stderr)) {
+            return { text: '', tokens: [] };
+        }
+        throw new Error(`whisper.cpp 未返回识别文本：${stderr.slice(-2000)}`);
+    }
+    if (tokens.length === 0) {
+        throw new Error(`whisper.cpp 未返回 token 时间轴：${stderr.slice(-2000)}`);
     }
     return { text, tokens };
 }

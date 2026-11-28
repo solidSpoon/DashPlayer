@@ -92,6 +92,7 @@ export class SherpaOnnxCli {
                 }, 4000);
 
                 child.on('error', (error) => {
+                    clearInterval(heartbeat);
                     this.logger.error('sherpa-onnx spawn failed', { job: request.job, pid: child.pid, error });
                     reject(error);
                 });

@@ -56,6 +56,32 @@ describe('whisper.cpp 输出解析', () => {
         expect(() => parseWhisperCppOutput('\n', JFK_STDERR)).toThrow('whisper.cpp 未返回识别文本');
     });
 
+    it('无声或纯背景音分片输出 Segments (0) 时返回空结果而不抛错', () => {
+        const stderr = [
+            'parakeet_decode: starting decode with n_frames=1200',
+            'parakeet_print_timings: total time = 402.47 ms',
+            '',
+            'Segments (0):',
+        ].join('\n');
+
+        expect(parseWhisperCppOutput('\n', stderr)).toEqual({ text: '', tokens: [] });
+    });
+
+    it('仅含占位空格 token 且无识别文本时返回空结果', () => {
+        const stderr = [
+            'Segments (0):',
+            '  [ 0] id= 7863 frame=  2 dur_idx= 1 dur_val= 1 p=0.9900 plog=-0.0100 t0=  10 t1=  20 word_start=true "▁"',
+        ].join('\n');
+
+        expect(parseWhisperCppOutput('   \n', stderr)).toEqual({ text: '', tokens: [] });
+    });
+
+    it('缺少 Segments 汇总行（如读取音频失败）时仍抛错', () => {
+        const stderr = "error: failed to read the frames of the audio data (Invalid argument)\nerror: failed to read audio file '/tmp/empty.wav'";
+
+        expect(() => parseWhisperCppOutput('', stderr)).toThrow('whisper.cpp 未返回识别文本');
+    });
+
     it('没有任何 token 时间轴时抛错', () => {
         expect(() => parseWhisperCppOutput(JFK_STDOUT, 'parakeet_decode: starting decode')).toThrow('whisper.cpp 未返回 token 时间轴');
     });

@@ -201,6 +201,34 @@ export interface ConvertToWavArgs {
 }
 
 /**
+ * 抽取整轨原始 PCM 参数。
+ */
+export interface ExtractAudioPcmArgs {
+    /** 输入音视频文件路径。 */
+    inputFile: string;
+    /** 输出原始 PCM（s16le）文件路径。 */
+    outputFile: string;
+    /** 采样率，默认 16000。 */
+    sampleRate?: number;
+    /** 声道数，默认 1。 */
+    channels?: number;
+}
+
+/**
+ * 从本地 PCM 文件切出单段 WAV 参数。
+ */
+export interface SlicePcmToWavArgs {
+    /** 原始 16kHz 单声道 PCM 文件路径。 */
+    pcmPath: string;
+    /** 输出 WAV 文件路径。 */
+    outputWavPath: string;
+    /** 切片起始时间（秒）。 */
+    startSecond: number;
+    /** 切片结束时间（秒）。 */
+    endSecond: number;
+}
+
+/**
  * 播放修复参数。
  */
 export interface RepairArgs {
@@ -285,6 +313,12 @@ export default interface FfmpegGateway {
 
     /** 转 WAV。 */
     convertToWav(args: ConvertToWavArgs, options?: FfmpegRunOptions): Promise<void>;
+
+    /** 将媒体音轨一次性解码为无头部的 16-bit PCM 流，供本地按字节精确切片。 */
+    extractAudioPcm(args: ExtractAudioPcmArgs, options?: FfmpegRunOptions): Promise<void>;
+
+    /** 从本地 PCM 文件按时间区间切出 WAV 片段；区间无可用音频数据时返回 false。 */
+    slicePcmToWav(args: SlicePcmToWavArgs): Promise<boolean>;
 
     /** 裁剪音频。 */
     trimAudio(args: TrimAudioArgs, options?: FfmpegRunOptions): Promise<void>;

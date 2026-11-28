@@ -1,6 +1,6 @@
 import { injectable } from 'inversify';
 import type FfmpegGateway from '@/backend/services/gateways/media/FfmpegGateway';
-import { type ConvertToWavArgs, type CreateThumbnailArgs, type ExtractSubtitleArgs, FfmpegExecutionError, type FfmpegRunOptions, type MixDubbedAudioArgs, type ProcessRecordingArgs, type RepairArgs, type SplitVideoByTimesArgs, type SplitVideoRangeArgs, type TrimAudioArgs, type TrimVideoArgs, type VideoSegment } from '@/backend/services/gateways/media/FfmpegGateway';
+import { type ConvertToWavArgs, type CreateThumbnailArgs, type ExtractAudioPcmArgs, type ExtractSubtitleArgs, FfmpegExecutionError, type FfmpegRunOptions, type MixDubbedAudioArgs, type ProcessRecordingArgs, type RepairArgs, type SlicePcmToWavArgs, type SplitVideoByTimesArgs, type SplitVideoRangeArgs, type TrimAudioArgs, type TrimVideoArgs, type VideoSegment } from '@/backend/services/gateways/media/FfmpegGateway';
 import type { VideoInfo } from '@/common/types/video-info';
 import fs from 'fs';
 import path from 'path';
@@ -8,6 +8,7 @@ import { getMainLogger } from '@/backend/infrastructure/logger';
 import { CancelByUserError } from '@/backend/utils/errors/errors';
 import { DefaultFfmpegCommandBuilder, type FfmpegCommandBuilder } from '@/backend/infrastructure/media/ffmpeg/FfmpegCommandBuilder';
 import { FfmpegProcessRunner } from '@/backend/infrastructure/media/ffmpeg/FfmpegProcessRunner';
+import { slicePcmFileToWav } from '@/backend/infrastructure/media/ffmpeg/pcmWav';
 import { getRuntimeResourcePath } from '@/backend/utils/runtimeEnv';
 
 /**
@@ -228,6 +229,22 @@ export default class FfmpegGatewayImpl implements FfmpegGateway {
      */
     public async convertToWav(args: ConvertToWavArgs, options: FfmpegRunOptions = {}): Promise<void> {
         await this.runCommand(args, (a) => this.commandBuilder.buildConvertToWav(a), options);
+    }
+
+    /**
+     * 整轨解码为 16-bit 原始 PCM 文件。
+     */
+    public async extractAudioPcm(args: ExtractAudioPcmArgs, options: FfmpegRunOptions = {}): Promise<void> {
+        await this.runCommand(args, (a) => this.commandBuilder.buildExtractAudioPcm(a), options);
+    }
+
+    /**
+     * 从本地 PCM 文件按时间区间切出 WAV 片段。
+     */
+    public async slicePcmToWav(args: SlicePcmToWavArgs): Promise<boolean> {
+        this.assertInputFileExists(args.pcmPath);
+        this.assertOutputDirectoryExists(args.outputWavPath);
+        return await slicePcmFileToWav(args);
     }
 
     /**

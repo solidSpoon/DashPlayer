@@ -54,6 +54,7 @@ function createGateway(probeStdout = JSON.stringify({ format: { duration: 66.6 }
         buildExtractSubtitle: vi.fn(() => ['-extract-sub']),
         buildRepair: vi.fn(() => ['-repair']),
         buildConvertToWav: vi.fn(() => ['-to-wav']),
+        buildExtractAudioPcm: vi.fn(() => ['-to-pcm']),
         buildTrimAudio: vi.fn(() => ['-trim-audio']),
     } as unknown as FfmpegCommandBuilder;
 

@@ -82,7 +82,9 @@ export function usePlayerBridge(navigate: (path: string) => void) {
             useTranslation.getState().setActiveFileHash(null);
             playerActions.clearSubtitles();
             const currentPath = StrUtil.isBlank(subtitlePath) ? null : subtitlePath!;
-            const incrementalSnapshot = await transcriptApi.getSessionSnapshot(videoPath!);
+            const incrementalSnapshot = StrUtil.isNotBlank(videoPath)
+                ? await transcriptApi.getSessionSnapshot(videoPath!)
+                : null;
             if (cancelled || videoPath !== useFile.getState().videoPath) return;
             if (incrementalSnapshot && incrementalSnapshot.sentences.length > 0) {
                 // 转录进行中：增量字幕优先于已挂载的 SRT，直到会话结束。
