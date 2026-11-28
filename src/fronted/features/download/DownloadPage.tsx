@@ -802,7 +802,7 @@ export default function DownloadPage() {
                                             }
                                         }}
                                         className={cn(
-                                            'group relative flex cursor-pointer items-center justify-between gap-2 rounded-xl px-3 py-2.5 text-left transition-colors',
+                                            'group relative flex h-10 cursor-pointer items-center justify-between gap-2 rounded-xl px-3 text-left transition-colors',
                                             isSelected
                                                 ? 'bg-accent text-accent-foreground'
                                                 : 'text-muted-foreground hover:bg-muted/60 hover:text-foreground',
@@ -821,15 +821,15 @@ export default function DownloadPage() {
                                                 </span>
                                             </div>
                                         </div>
-                                        <div className="flex shrink-0 items-center gap-1">
-                                            <span className="text-[11px] tabular-nums text-muted-foreground/70 group-hover:hidden">
+                                        <div className="relative flex h-6 w-10 shrink-0 items-center justify-end">
+                                            <span className="whitespace-nowrap text-[11px] tabular-nums text-muted-foreground/70 transition-opacity group-hover:opacity-0">
                                                 {formatSessionTime(item.createdAt)}
                                             </span>
                                             <button
                                                 type="button"
                                                 title="删除记录"
                                                 onClick={(e) => { void handleDeleteSession(e, item.sessionId); }}
-                                                className="hidden rounded-md p-1 text-muted-foreground hover:bg-destructive/15 hover:text-destructive group-hover:block"
+                                                className="pointer-events-none absolute right-0 rounded-md p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/15 hover:text-destructive group-hover:pointer-events-auto group-hover:opacity-100"
                                             >
                                                 <Trash2 className="h-3.5 w-3.5" />
                                             </button>
@@ -988,7 +988,7 @@ export default function DownloadPage() {
                                         if (item.kind === 'user') {
                                             return (
                                                 <div key={item.id} className="flex justify-end">
-                                                    <div className="max-w-[80%] rounded-2xl bg-primary px-4 py-2.5 text-sm text-primary-foreground whitespace-pre-wrap">
+                                                    <div className="max-w-[80%] rounded-2xl bg-primary px-4 py-2.5 text-sm text-primary-foreground whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
                                                         {item.text}
                                                     </div>
                                                 </div>

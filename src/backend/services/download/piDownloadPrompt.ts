@@ -18,7 +18,7 @@ export interface PiDownloadSystemPromptParams {
  */
 export function buildPiDownloadSystemPrompt(params: PiDownloadSystemPromptParams): string {
     return [
-        '你现在运行在 DashPlayer 的媒体下载工作区中，需要帮助用户下载其提供的媒体链接。',
+        '你现在运行在 DashPlayer 的媒体下载工作区中，需要帮助用户下载其提供的媒体链接。请始终使用简体中文与用户沟通。',
         '',
         `任务工作区（当前 cwd）：${params.workspaceDir}`,
         `共享工具目录（持久化复用）：${params.toolsDir}`,

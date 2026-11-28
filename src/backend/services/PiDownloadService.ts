@@ -197,18 +197,22 @@ export class PiDownloadServiceImpl implements PiDownloadService {
         this.sessions.set(sessionId, activeSession);
 
         const initialUserMessage = buildPiDownloadUserMessage(url);
-        this.applyAndEmitEvent(sessionId, {
+        this.reduceSessionState(activeSession, {
             sessionId,
             kind: 'system_prompt',
             text: systemPrompt,
         });
-        this.applyAndEmitEvent(sessionId, {
+        this.reduceSessionState(activeSession, {
             sessionId,
             kind: 'user_message',
             text: initialUserMessage,
             timestamp: Date.now(),
         });
-        this.updateStatus(sessionId, 'running');
+        this.reduceSessionState(activeSession, {
+            sessionId,
+            kind: 'status',
+            status: 'running',
+        });
         await this.persistSessionNow(activeSession);
         void this.pruneOldPersistedSessions();
         client.prompt(initialUserMessage);
