@@ -1,5 +1,5 @@
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
-import type { DubbingExportStatus, DubbingLibraryEntry, DubbingManifest, DubbingTakeVO } from '@/common/contracts/dubbing';
+import type { DubbingExportStatus, DubbingLibraryEntry, DubbingManifest, DubbingPreview, DubbingTakeVO } from '@/common/contracts/dubbing';
 
 /**
  * 配音功能的 backendClient 封装。
@@ -16,6 +16,10 @@ export const dubbingApi = {
 
     list: (videoKey: string): Promise<DubbingManifest | null> =>
         backendClient.call('dubbing/list', { videoKey }),
+
+    /** 读取配音导出页预览所需的清单与字幕句子列表。 */
+    preview: (videoKey: string): Promise<DubbingPreview> =>
+        backendClient.call('dubbing/preview', { videoKey }),
 
     /** 列出所有可导出的配音视频（视频文件仍存在且已录过音）。 */
     listLibrary: (): Promise<DubbingLibraryEntry[]> =>

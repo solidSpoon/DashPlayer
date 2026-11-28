@@ -152,7 +152,27 @@
         "cancel": "Cancel",
         "cleared": "Dubbing cleared",
         "clearFailed": "Failed to clear, please retry",
-        "loadFailed": "Failed to load the dubbing list"
+        "loadFailed": "Failed to load the dubbing list",
+        "preview": {
+            "totalSentences": "{{count}} subtitles total",
+            "pickSentenceHint": "Click any sentence below to play; dubbed sentences use your recording",
+            "playingDubbed": "Playing your dubbing",
+            "play": "Play",
+            "pause": "Pause",
+            "repeat": "Repeat",
+            "tabDubbed": "Dubbed ({{count}})",
+            "tabAll": "All Subtitles ({{count}})",
+            "emptyDubbed": "No dubbed recordings for this video",
+            "sentenceFallback": "Sentence #{{index}} (subtitle text unavailable)",
+            "playTake": "Play recording",
+            "stopTake": "Stop recording",
+            "clearSentence": "Delete recording",
+            "sentenceCleared": "Recording deleted",
+            "speedUpHint": "Recording is {{over}}s longer than this subtitle; preview and export will play at {{rate}}x speed",
+            "omittedCount": "{{count}} un-dubbed sentences omitted",
+            "noSubtitle": "No subtitle file is linked to this dubbing record",
+            "subtitleLoadFailed": "Failed to load subtitle file; please check if it still exists"
+        }
     },
     "videoLearning": {
         "playbackGuide": "Click a clip above to start playing"

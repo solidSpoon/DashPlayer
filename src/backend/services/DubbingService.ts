@@ -7,6 +7,7 @@ import type {
     DubbingExportStatus,
     DubbingLibraryEntry,
     DubbingManifest,
+    DubbingPreview,
     DubbingTake,
     DubbingTakeVO,
 } from '@/common/contracts/dubbing';
@@ -47,6 +48,13 @@ export default interface DubbingService {
      * 读取视频配音清单；从未录过音时返回 null。
      */
     list(videoKey: string): Promise<DubbingManifest | null>;
+
+    /**
+     * 读取配音导出页预览所需的清单与字幕句子列表。
+     *
+     * 直接解析清单记录的字幕文件，不依赖播放页的活跃会话状态。
+     */
+    preview(videoKey: string): Promise<DubbingPreview>;
 
     /**
      * 列出所有可导出的配音记录：视频文件仍存在且已录过音的视频。
@@ -214,6 +222,19 @@ export class DubbingServiceImpl implements DubbingService {
             return null;
         }
         return await this.readManifest(videoKey);
+    }
+
+    public async preview(videoKey: string): Promise<DubbingPreview> {
+        const manifest = await this.list(videoKey);
+        if (!manifest?.subtitlePath) {
+            return { manifest, sentences: [], subtitleStatus: 'missing-path' };
+        }
+        if (!(await this.fileSystemGateway.fileExists(manifest.subtitlePath))) {
+            this.logger.warn('配音预览字幕文件不存在', { videoKey, subtitlePath: manifest.subtitlePath });
+            return { manifest, sentences: [], subtitleStatus: 'missing-file' };
+        }
+        const parsed = await this.subtitleService.parseSrt(manifest.subtitlePath);
+        return { manifest, sentences: parsed.sentences, subtitleStatus: 'ok' };
     }
 
     public async listLibrary(): Promise<DubbingLibraryEntry[]> {
