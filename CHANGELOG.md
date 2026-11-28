@@ -2,6 +2,14 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.22.0](https://github.com/solidSpoon/DashPlayer/compare/v6.21.0...v6.22.0) (2026-11-28)
+
+
+### Features
+
+* redesign dubbing export page with two-column preview ([62f39c9](https://github.com/solidSpoon/DashPlayer/commit/62f39c9fef84cd14aaaf7c0a6c8f972a8fbbf0b0))
+* redesign dubbing export page with two-column preview ([c6b96b2](https://github.com/solidSpoon/DashPlayer/commit/c6b96b2d71e162ef6d3f764e3e1575b679046533))
+
 ## [6.21.0](https://github.com/solidSpoon/DashPlayer/compare/v6.20.0...v6.21.0) (2026-11-28)
 
 
