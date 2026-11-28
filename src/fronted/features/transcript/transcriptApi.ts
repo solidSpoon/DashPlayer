@@ -24,6 +24,11 @@ export const transcriptApi = {
     removeTask: (filePath: string) => backendClient.call('transcript/remove', { filePath }),
 
     /**
+     * 清空所有未在执行中的转录任务，保留活动任务。
+     */
+    clearTasks: () => backendClient.call('transcript/clear'),
+
+    /**
      * 查询本地转录模型是否可用。
      *
      * @returns 当前模型状态。

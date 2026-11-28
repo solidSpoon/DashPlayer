@@ -102,6 +102,7 @@ interface TranscriptDef {
     'transcript/list': { params: void, return: TranscriptTask[] };
     'transcript/enqueue': { params: { filePath: string }, return: TranscriptTask };
     'transcript/remove': { params: { filePath: string }, return: void };
+    'transcript/clear': { params: void, return: void };
     'transcript/start': { params: { filePath: string; currentPosition?: number }, return: 'started' | 'model_missing' };
     'transcript/update-demand': { params: { filePath: string; currentPosition: number }, return: void };
     'transcript/session-snapshot': { params: { filePath: string }, return: { sessionId: string; sentences: Sentence[] } | null };

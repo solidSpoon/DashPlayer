@@ -131,6 +131,7 @@
         "importSectionDesc": "选择本地媒体文件或已浏览的项目添加至转录队列",
         "queueSectionTitle": "任务队列",
         "queueSectionDesc": "管理视频转录任务与实时进度",
+        "queueSummary": "共 {{count}} 项",
         "table": {
             "videoColumn": "视频",
             "statusColumn": "状态",
@@ -143,7 +144,7 @@
             "initializing": "初始化中...",
             "processing": "转录处理中...",
             "done": "已完成",
-            "doneWithDuration": "已完成（耗时 {{duration}}s）",
+            "doneWithDuration": "已完成 · {{duration}}",
             "cancelled": "已取消",
             "failed": "转录失败",
             "unknown": "未知状态",
@@ -151,8 +152,13 @@
         },
         "actions": {
             "transcribe": "转录",
+            "retry": "重试",
+            "retranscribe": "重新转录",
+            "playVideo": "去播放",
+            "startAll": "全部开始",
             "delete": "删除",
             "cancel": "取消",
+            "clear": "清空",
             "cancelledMessage": "转录任务已取消"
         }
     },

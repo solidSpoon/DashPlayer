@@ -131,6 +131,7 @@
         "importSectionDesc": "Select local media files or recent projects to add to the queue",
         "queueSectionTitle": "Task Queue",
         "queueSectionDesc": "Manage transcription tasks and live progress",
+        "queueSummary": "{{count}} items",
         "table": {
             "videoColumn": "Video",
             "statusColumn": "Status",
@@ -143,7 +144,7 @@
             "initializing": "Initializing...",
             "processing": "Processing...",
             "done": "Done",
-            "doneWithDuration": "Done ({{duration}}s)",
+            "doneWithDuration": "Done · {{duration}}",
             "cancelled": "Cancelled",
             "failed": "Failed",
             "unknown": "Unknown",
@@ -151,8 +152,13 @@
         },
         "actions": {
             "transcribe": "Transcribe",
+            "retry": "Retry",
+            "retranscribe": "Re-transcribe",
+            "playVideo": "Watch",
+            "startAll": "Start All",
             "delete": "Delete",
             "cancel": "Cancel",
+            "clear": "Clear",
             "cancelledMessage": "Transcription cancelled"
         }
     },

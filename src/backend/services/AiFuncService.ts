@@ -31,6 +31,8 @@ export default interface AiFuncService {
 
     removeTranscription(params: { filePath: string }): Promise<void>;
 
+    clearInactiveTranscriptions(): Promise<void>;
+
     transcript(params: { filePath: string; currentPosition?: number }): Promise<'started' | 'model_missing'>;
     updateTranscriptionDemand(params: { filePath: string; currentPosition: number }): Promise<void>;
     getTranscriptionSnapshot(params: { filePath: string }): Promise<ReturnType<TranscriptionService['getSessionSnapshot']>>;
@@ -117,6 +119,13 @@ export class AiFuncServiceImpl implements AiFuncService {
      */
     public removeTranscription(params: { filePath: string }): Promise<void> {
         return this.localTranscriptionService.remove(params.filePath);
+    }
+
+    /**
+     * 清空所有未在执行中的转录任务。
+     */
+    public clearInactiveTranscriptions(): Promise<void> {
+        return this.localTranscriptionService.clearInactive();
     }
 
     /**
