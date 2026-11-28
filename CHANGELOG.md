@@ -2,6 +2,28 @@
 
 All notable changes to this project are documented in this file.
 
+## [6.20.0](https://github.com/solidSpoon/DashPlayer/compare/v6.19.1...v6.20.0) (2026-11-28)
+
+
+### Features
+
+* add pi-agent based video download workspace and runtime manager ([0428ee6](https://github.com/solidSpoon/DashPlayer/commit/0428ee65951343b7df30a2493e02fa9a8f2ee1b6))
+* add pi-agent based video download workspace and runtime manager ([ef13938](https://github.com/solidSpoon/DashPlayer/commit/ef13938625d30b48ec269f5ac0261d6b25b4aa7f))
+* **download:** 优化下载提示词、交互提问卡片与启动页快捷入口 ([ac81bf6](https://github.com/solidSpoon/DashPlayer/commit/ac81bf617404340b686447fd33662b968803a82f))
+* **settings:** 为视频下载 Agent 新增独立云端模型配置 ([2484ed5](https://github.com/solidSpoon/DashPlayer/commit/2484ed5021b2953d6a70b20a4571adcc204793ff))
+
+
+### Bug Fixes
+
+* **app:** 修复 Windows 关闭应用时弹出倒计时终端窗口 ([ed07a0f](https://github.com/solidSpoon/DashPlayer/commit/ed07a0f6b64cd0e767303ebdbd14ecfe40353686))
+* **app:** 修复 Windows 关闭应用时弹出倒计时终端窗口 ([79ea207](https://github.com/solidSpoon/DashPlayer/commit/79ea2071c87137d6d9a0a31a9ace072d4405a9eb))
+* **download:** 修复首条用户气泡重复、长链接溢出与侧栏悬停抖动 ([d361795](https://github.com/solidSpoon/DashPlayer/commit/d3617951203db41bf5a079f1fab9687c1c84aba4))
+* **download:** 补齐 Pi 子进程退出清理与 Windows 兼容 ([112ec47](https://github.com/solidSpoon/DashPlayer/commit/112ec474adc397eb1b7123a23a853bced2691ab8))
+* navigate to /settings/resources when agent runtime is missing ([28904eb](https://github.com/solidSpoon/DashPlayer/commit/28904eb8e30133780f4a2cdc0b991a8111eb1f84))
+* **player:** 优化 Windows 切句跳转卡顿与长按切句手感 ([63c4b71](https://github.com/solidSpoon/DashPlayer/commit/63c4b71f1153b5ce841ff6ea9591822bd05a9c4b))
+* **player:** 优化 Windows 切句跳转卡顿与长按切句手感 ([0059795](https://github.com/solidSpoon/DashPlayer/commit/00597950e3a5d58f6342cfb67e1e74b4ff73e64d))
+* replace fixed 60s download timeout with inactivity timeout and retries ([fd9a39b](https://github.com/solidSpoon/DashPlayer/commit/fd9a39baa9a6931847c18f3514727eb595121b0c))
+
 ## [6.19.1](https://github.com/solidSpoon/DashPlayer/compare/v6.19.0...v6.19.1) (2026-11-08)
 
 
