@@ -327,18 +327,32 @@ export class PiRuntimeServiceImpl implements PiRuntimeService {
     }
 
     private async fetchLatestRelease(signal: AbortSignal): Promise<GitHubLatestRelease> {
-        const response = await axios.get<GitHubLatestRelease>(PI_LATEST_RELEASE_API, {
-            signal,
-            timeout: 20_000,
-            headers: {
-                Accept: 'application/vnd.github+json',
-                'User-Agent': 'DashPlayer',
-            },
-        });
-        if (!response.data || !Array.isArray(response.data.assets)) {
-            throw new Error('GitHub Release 响应格式异常');
+        try {
+            const response = await axios.get<GitHubLatestRelease>(PI_LATEST_RELEASE_API, {
+                signal,
+                timeout: 20_000,
+                headers: {
+                    Accept: 'application/vnd.github+json',
+                    'User-Agent': 'DashPlayer',
+                },
+            });
+            if (!response.data || !Array.isArray(response.data.assets)) {
+                throw new Error('GitHub Release 响应格式异常');
+            }
+            return response.data;
+        } catch (error) {
+            if (signal.aborted || (isAxiosError(error) && error.code === 'ERR_CANCELED')) {
+                throw error;
+            }
+            if (isAxiosError(error)) {
+                const status = error.response?.status;
+                if (status === 403 || status === 429) {
+                    throw new Error(`GitHub API 请求受限 (HTTP ${status})，请在「设置 → 代理」检查代理或稍后重试`);
+                }
+                throw new Error(`无法连接 GitHub 获取 Pi 最新版本（${error.message}），请检查网络或代理设置`);
+            }
+            throw error;
         }
-        return response.data;
     }
 
     private async fetchExpectedSha256(
@@ -479,7 +493,7 @@ export class PiRuntimeServiceImpl implements PiRuntimeService {
                 '-NonInteractive',
                 '-Command',
                 `Expand-Archive -Force -LiteralPath '${escapedZip}' -DestinationPath '${escapedDest}'`,
-            ]);
+            ], { windowsHide: true });
             return;
         }
 

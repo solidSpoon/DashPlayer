@@ -40,8 +40,14 @@ export class PiRpcClient {
     private stdoutBuffer = '';
     private reqCounter = 0;
     private disposed = false;
+    private exited = false;
+    private resolveExit!: () => void;
+    private readonly exitPromise: Promise<void>;
 
     constructor(private readonly options: PiRpcClientOptions) {
+        this.exitPromise = new Promise<void>((resolve) => {
+            this.resolveExit = resolve;
+        });
         const args = [
             '--mode', 'rpc',
             '--no-session',
@@ -76,11 +82,15 @@ export class PiRpcClient {
         });
 
         this.child.on('error', (error) => {
+            this.exited = true;
+            this.resolveExit();
             this.logger.error('pi rpc process error', { error: error.message });
             this.options.onError?.(error);
         });
 
         this.child.on('exit', (code, signal) => {
+            this.exited = true;
+            this.resolveExit();
             if (this.stdoutBuffer.trim().length > 0) {
                 this.parseAndEmitLine(this.stdoutBuffer);
                 this.stdoutBuffer = '';
@@ -117,13 +127,43 @@ export class PiRpcClient {
     }
 
     /**
-     * 优雅关闭 Pi RPC 子进程（先关闭 stdin，超时后发送 SIGTERM）。
+     * 优雅关闭 Pi RPC 子进程（先关闭 stdin，超时后终止进程树）。
      */
     public dispose(): void {
         if (this.disposed) {
             return;
         }
         this.disposed = true;
+        this.closeStdin();
+
+        const timer = setTimeout(() => {
+            this.killProcessTree();
+        }, 1500);
+        timer.unref?.();
+    }
+
+    /**
+     * 优雅关闭 Pi RPC 子进程并等待退出，超时后强制终止整棵子进程树（用于应用退出收尾）。
+     *
+     * @param timeoutMs 等待优雅退出的最大毫秒数。
+     */
+    public async disposeAndWait(timeoutMs = 1500): Promise<void> {
+        if (!this.disposed) {
+            this.disposed = true;
+            this.closeStdin();
+        }
+        if (this.exited) {
+            return;
+        }
+
+        await this.waitForExitOrTimeout(timeoutMs);
+        if (!this.exited) {
+            this.killProcessTree();
+            await this.waitForExitOrTimeout(400);
+        }
+    }
+
+    private closeStdin(): void {
         try {
             if (!this.child.stdin.destroyed) {
                 this.child.stdin.end();
@@ -131,13 +171,37 @@ export class PiRpcClient {
         } catch {
             // 忽略关闭流异常
         }
+    }
 
-        const timer = setTimeout(() => {
-            if (!this.child.killed) {
-                this.child.kill('SIGTERM');
+    private waitForExitOrTimeout(ms: number): Promise<void> {
+        return Promise.race([
+            this.exitPromise,
+            new Promise<void>((resolve) => {
+                const timer = setTimeout(resolve, ms);
+                timer.unref?.();
+            }),
+        ]);
+    }
+
+    private killProcessTree(): void {
+        if (this.exited) {
+            return;
+        }
+        if (process.platform === 'win32' && this.child.pid) {
+            try {
+                const killer = spawn('taskkill', ['/pid', String(this.child.pid), '/T', '/F'], {
+                    windowsHide: true,
+                    stdio: 'ignore',
+                });
+                killer.unref();
+                return;
+            } catch {
+                // 回退到基础 kill
             }
-        }, 1500);
-        timer.unref?.();
+        }
+        if (!this.child.killed) {
+            this.child.kill('SIGTERM');
+        }
     }
 
     private nextRequestId(): string {
