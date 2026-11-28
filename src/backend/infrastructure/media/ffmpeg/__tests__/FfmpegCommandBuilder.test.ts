@@ -222,6 +222,24 @@ describe('DefaultFfmpegCommandBuilder', () => {
         expect(args).toContain('pcm_s16le');
     });
 
+    it('构建整轨 PCM 抽取参数时应去掉视频流并输出 16kHz 单声道 s16le', () => {
+        const args = builder.buildExtractAudioPcm({
+            inputFile: '/in.mkv',
+            outputFile: '/tmp/full.pcm',
+        });
+
+        expect(args).toEqual([
+            '-y',
+            '-i', '/in.mkv',
+            '-vn',
+            '-ar', '16000',
+            '-ac', '1',
+            '-c:a', 'pcm_s16le',
+            '-f', 's16le',
+            '/tmp/full.pcm',
+        ]);
+    });
+
     it('音频裁剪时间区间非法时应抛错', () => {
         expect(() => {
             builder.buildTrimAudio({

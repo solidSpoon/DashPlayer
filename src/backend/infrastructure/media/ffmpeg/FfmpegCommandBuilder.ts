@@ -3,6 +3,7 @@ import type {
     ConvertToWavArgs,
     CreateThumbnailArgs,
     DubbingMixSegment,
+    ExtractAudioPcmArgs,
     ExtractSubtitleCommandArgs,
     MixDubbedAudioArgs,
     ProcessRecordingArgs,
@@ -79,6 +80,11 @@ export interface FfmpegCommandBuilder {
      * 构建音频转 WAV 命令参数。
      */
     buildConvertToWav(args: ConvertToWavArgs): string[];
+
+    /**
+     * 构建整轨解码为原始 PCM（s16le）命令参数。
+     */
+    buildExtractAudioPcm(args: ExtractAudioPcmArgs): string[];
 
     /**
      * 构建音频裁剪命令参数。
@@ -317,6 +323,24 @@ export class DefaultFfmpegCommandBuilder implements FfmpegCommandBuilder {
             args.outputFile,
         );
         return result;
+    }
+
+    /**
+     * 构建整轨解码为原始 PCM（s16le）命令参数。
+     */
+    public buildExtractAudioPcm(args: ExtractAudioPcmArgs): string[] {
+        const sampleRate = args.sampleRate ?? 16000;
+        const channels = args.channels ?? 1;
+        return [
+            '-y',
+            '-i', args.inputFile,
+            '-vn',
+            '-ar', `${sampleRate}`,
+            '-ac', `${channels}`,
+            '-c:a', 'pcm_s16le',
+            '-f', 's16le',
+            args.outputFile,
+        ];
     }
 
     /**

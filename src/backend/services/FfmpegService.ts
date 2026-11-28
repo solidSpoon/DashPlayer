@@ -8,7 +8,7 @@ import type { VideoInfo } from '@/common/types/video-info';
 import { CancelByUserError } from '@/backend/utils/errors/errors';
 import type { RepairRecipe } from '@/common/contracts/playback-repair';
 import type FfmpegGateway from '@/backend/services/gateways/media/FfmpegGateway';
-import { FfmpegExecutionError, type VideoSegment } from '@/backend/services/gateways/media/FfmpegGateway';
+import { FfmpegExecutionError, type SlicePcmToWavArgs, type VideoSegment } from '@/backend/services/gateways/media/FfmpegGateway';
 import type FileSystemGateway from '@/backend/services/gateways/storage/FileSystemGateway';
 import type StorageDirectoryProvider from '@/backend/services/gateways/storage/StorageDirectoryProvider';
 
@@ -122,14 +122,19 @@ export default interface FfmpegService {
     convertToWav(inputPath: string, outputPath: string): Promise<void>;
 
     /**
-     * 将媒体按时间范围直接转换为 16kHz 单声道 PCM WAV 分片。
+     * 将媒体音轨一次性解码为 16kHz 单声道 PCM 文件，供后续按字节精确切片。
      */
-    createRecognitionWavChunks(args: {
+    extractRecognitionPcm(args: {
         inputFile: string;
-        ranges: Array<{ start: number; end: number }>;
-        outputFolder: string;
-        job?: string;
-    }): Promise<string[]>;
+        outputFile: string;
+        job: string;
+        registerCancel?: (cancel: () => void) => void;
+    }): Promise<void>;
+
+    /**
+     * 从本地 PCM 文件切出单段 16kHz 单声道 WAV；区间无可用音频数据时返回 false。
+     */
+    slicePcmToWav(args: SlicePcmToWavArgs): Promise<boolean>;
 
     /**
      * 按时间范围裁剪音频并转码为 MP3。
@@ -487,36 +492,38 @@ export class FfmpegServiceImpl implements FfmpegService {
     }
 
     /**
-     * 将媒体直接裁剪并转换为语音识别需要的 WAV 分片，避免有损中间格式和嵌套信号量。
-     * @param args 输入媒体、分片时间范围和输出目录。
-     * @returns 与时间范围顺序一致的 WAV 文件路径。
+     * 将媒体音轨一次性解码为 16kHz 单声道 PCM 文件，避免多次 seek 导致的切片失败。
+     * @param args 输入媒体、输出 PCM 路径、任务检索键与取消注册回调。
      */
     @WithSemaphore('ffmpeg')
-    public async createRecognitionWavChunks(args: {
+    public async extractRecognitionPcm(args: {
         inputFile: string;
-        ranges: Array<{ start: number; end: number }>;
-        outputFolder: string;
-        job?: string;
-    }): Promise<string[]> {
+        outputFile: string;
+        job: string;
+        registerCancel?: (cancel: () => void) => void;
+    }): Promise<void> {
         await this.storageDirectoryProvider.ensurePathAccessPermissionIfExists(args.inputFile);
-        await this.fileSystemGateway.ensureDirectory(args.outputFolder);
-        const outputs: string[] = [];
-        for (let index = 0; index < args.ranges.length; index++) {
-            const range = args.ranges[index];
-            const outputPath = path.join(args.outputFolder, `parakeet_${String(index + 1).padStart(3, '0')}.wav`);
-            await this.ffmpegGateway.convertToWav({
+        await this.fileSystemGateway.ensureDirectory(path.dirname(args.outputFile));
+        await this.runCancelableTask(args.job, args.registerCancel, async (onCancelable) => {
+            await this.ffmpegGateway.extractAudioPcm({
                 inputFile: args.inputFile,
-                outputFile: outputPath,
+                outputFile: args.outputFile,
                 sampleRate: 16000,
                 channels: 1,
-                startSecond: range.start,
-                endSecond: range.end,
             }, {
                 job: args.job,
+                onCancelable,
             });
-            outputs.push(outputPath);
-        }
-        return outputs;
+        });
+    }
+
+    /**
+     * 从本地 PCM 文件切出单段 16kHz 单声道 WAV（纯本地文件 I/O，不占用 ffmpeg 并发槽位）。
+     * @param args PCM 源路径、WAV 输出路径与时间区间。
+     * @returns 实际写出有效音频切片时返回 true；区间无可用音频数据时返回 false。
+     */
+    public async slicePcmToWav(args: SlicePcmToWavArgs): Promise<boolean> {
+        return await this.ffmpegGateway.slicePcmToWav(args);
     }
 
     /**
