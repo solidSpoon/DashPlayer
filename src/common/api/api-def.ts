@@ -7,7 +7,6 @@ import type { MigrationFailureDetail } from '@/common/contracts/migration-failur
 import type { GpuAcceleration } from '@/common/contracts/system-info';
 import type { SubtitleResolution } from '@/common/contracts/subtitle-resolution';
 import type {OpenAIDictionaryResult} from '@/common/types/DictionaryResult';
-import type {ChapterParseResult} from '@/common/types/chapter-result';
 import type {SrtSentence, Sentence} from '@/common/types/SentenceC';
 import type {SentenceStruct} from '@/common/types/SentenceStruct';
 import type {WindowState} from '@/common/types/Types';
@@ -95,7 +94,6 @@ interface ApiDefinition {
 // 定义额外的接口
 interface AiFuncDef {
     'ai-func/tts': { params: string, return: string };
-    'ai-func/format-split': { params: string, return: number };
 }
 
 interface TranscriptDef {
@@ -339,15 +337,6 @@ interface WhisperCppModelDef {
     'whisper-cpp/models/delete': { params: void, return: { success: boolean; message: string } };
 }
 
-/** 视频切分 IPC 定义。 */
-interface SplitVideoDef {
-    'split-video/preview': { params: string, return: ChapterParseResult[] };
-    'split-video/split': {
-        params: { videoPath: string, srtPath: string | null, chapters: ChapterParseResult[] },
-        return: string
-    };
-}
-
 /** 通用媒体信息和缩略图 IPC 定义。 */
 interface MediaDef {
     'media/thumbnail': {
@@ -540,7 +529,6 @@ export type ApiDefinitions = ApiDefinition
     & WatchHistoryDef
     & SubtitleControllerDef
     & SherpaTtsModelDef
-    & SplitVideoDef
     & MediaDef
     & SubtitleTimestampAdjustmentControllerDef
     & StorageDef

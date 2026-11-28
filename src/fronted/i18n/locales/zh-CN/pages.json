@@ -92,37 +92,6 @@
         "forceApplied": "已强制重做 {{count}} 个文件",
         "forceAppliedPartial": "已强制重做 {{done}} 个；另有 {{skipped}} 个不支持这种做法，未处理"
     },
-    "sentenceSplitter": {
-        "title": "切分长视频",
-        "description": "按时间戳将长视频与对应字幕切分为独立学习小节",
-        "inputLabel": "切分配置",
-        "inputPlaceholder": "每行输入一个时间戳和标题，例如：00:01:30 章节标题",
-        "filesLabel": "视频文件",
-        "clickToSelect": "点击选择文件",
-        "loadExample": "载入示例配置",
-        "aiFormat": "使用 AI 整理格式",
-        "selectFile": "选择文件",
-        "splitAll": "开始切分",
-        "splitting": "切分中...",
-        "splitSuccess": "切分完成",
-        "splitFailed": "切分失败",
-        "tabs": {
-            "preview": "效果预览",
-            "quickSelect": "快捷选择"
-        },
-        "preview": {
-            "startTime": "开始时间",
-            "endTime": "结束时间",
-            "title": "标题",
-            "empty": "暂无切分配置，请在左侧输入时间戳",
-            "shortDuration": "片段时长小于 1 分钟",
-            "unnamed": "(未命名字段)"
-        },
-        "videoSuffix": "(视频)",
-        "subtitleSuffix": "(字幕)",
-        "aiFormatFailed": "AI 整理失败",
-        "aiFormatParseFailed": "AI 整理结果无法解析，请重试"
-    },
     "subtitleWorkspace": {
         "title": "视频字幕生成",
         "description": "基于 AI 语音识别，为视频自动生成高精度时间轴字幕",

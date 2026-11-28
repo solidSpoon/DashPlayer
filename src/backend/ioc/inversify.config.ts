@@ -77,8 +77,6 @@ import type PlaybackRepairService from '@/backend/services/PlaybackRepairService
 import { PlaybackRepairServiceImpl } from '@/backend/services/PlaybackRepairService';
 import type PlaybackCapabilityService from '@/backend/services/PlaybackCapabilityService';
 import { PlaybackCapabilityServiceImpl } from '@/backend/services/PlaybackCapabilityService';
-import type SplitVideoService from '@/backend/services/SplitVideoService';
-import { SplitVideoServiceImpl } from '@/backend/services/SplitVideoService';
 import type MediaService from '@/backend/services/MediaService';
 import { MediaServiceImpl } from '@/backend/services/MediaService';
 import type ClientProviderService from '@/backend/services/ClientProviderService';
@@ -286,7 +284,6 @@ container.bind<ChatSessionService>(TYPES.ChatSessionService).to(ChatSessionServi
 container.bind<SentenceLearningService>(TYPES.SentenceLearningService).to(SentenceLearningServiceImpl).inSingletonScope();
 container.bind<PlaybackRepairService>(TYPES.PlaybackRepairService).to(PlaybackRepairServiceImpl).inSingletonScope();
 container.bind<PlaybackCapabilityService>(TYPES.PlaybackCapabilityService).to(PlaybackCapabilityServiceImpl).inSingletonScope();
-container.bind<SplitVideoService>(TYPES.SplitVideoService).to(SplitVideoServiceImpl).inSingletonScope();
 container.bind<MediaService>(TYPES.MediaService).to(MediaServiceImpl).inSingletonScope();
 container.bind<TranslateService>(TYPES.TranslateService).to(TranslateServiceImpl).inSingletonScope();
 container.bind<SubtitleTranslationService>(TYPES.SubtitleTranslationService)
