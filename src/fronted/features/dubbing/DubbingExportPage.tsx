@@ -1,14 +1,15 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import toast from 'react-hot-toast';
-import { AudioLines, FolderOpen, Loader2, Trash2 } from 'lucide-react';
+import { AudioLines, Loader2 } from 'lucide-react';
 
 import type { DubbingExportStatus, DubbingLibraryEntry } from '@/common/contracts/dubbing';
+import UrlUtil from '@/common/utils/UrlUtil';
 import { dubbingApi } from '@/fronted/features/player/dubbing/dubbingApi';
 import { registerRendererApi } from '@/fronted/infrastructure/electron/rendererApiRegistry';
+import { requestVideoThumbnail } from '@/fronted/lib/video-thumbnail';
 import { getRendererLogger } from '@/fronted/log/simple-logger';
 import PageHeader from '@/fronted/components/shared/common/PageHeader';
-import { Button } from '@/fronted/components/ui/button';
 import { Progress } from '@/fronted/components/ui/progress';
 import {
     AlertDialog,
@@ -20,23 +21,17 @@ import {
     AlertDialogHeader,
     AlertDialogTitle,
 } from '@/fronted/components/ui/alert-dialog';
+import { cn } from '@/fronted/lib/utils';
+import DubbingPreviewPane, { type VideoExportState } from './components/DubbingPreviewPane';
 
 const logger = getRendererLogger('DubbingExportPage');
 
 /**
- * 单行导出任务的界面状态；仅在该行有过导出动作后存在。
- */
-type RowExportState =
-    | { stage: 'running'; progress: number }
-    | { stage: 'done'; outputPath: string }
-    | { stage: 'failed'; message: string };
-
-/**
- * 后端导出状态 → 单行界面状态。
+ * 后端导出状态 → 单条视频的界面导出状态。
  *
  * completed 时 outputPath 由后端保证给出（成功即有产物路径）。
  */
-const statusToRowState = (status: DubbingExportStatus): RowExportState => {
+const statusToRowState = (status: DubbingExportStatus): VideoExportState => {
     if (status.status === 'running') {
         return { stage: 'running', progress: status.progress };
     }
@@ -47,20 +42,19 @@ const statusToRowState = (status: DubbingExportStatus): RowExportState => {
 };
 
 /**
- * 配音导出页。
+ * 配音导出页（两栏布局）。
  *
- * 列出所有「视频文件仍存在且录过音」的视频，每行可单独导出（已配音句子替换为录音）或清除配音。
- * 播放器控制台的导出按钮只是进入本页的快捷方式，真正的导出动作在这里完成。
- *
- * 行状态唯一真相源是后端：导出是后台长任务，用户可能中途离开本页，回来时靠挂载查询
- * 恢复状态；进行中的进度则由后端持续推送，本页发起导出的 promise 只负责完成/失败 toast。
+ * 左栏展示已配音视频的缩略图、标题与已录句数；
+ * 右栏联动展示当前选中视频的精简播放器、右上角导出按钮与上下文折叠字幕列表。
  */
 export default function DubbingExportPage() {
     const { t } = useTranslation('pages');
 
     const [entries, setEntries] = useState<DubbingLibraryEntry[]>([]);
+    const [selectedVideoKey, setSelectedVideoKey] = useState<string | null>(null);
+    const [thumbnails, setThumbnails] = useState<Record<string, string | null>>({});
     const [loading, setLoading] = useState(true);
-    const [rowStates, setRowStates] = useState<Record<string, RowExportState>>({});
+    const [rowStates, setRowStates] = useState<Record<string, VideoExportState>>({});
     const [pendingClear, setPendingClear] = useState<DubbingLibraryEntry | null>(null);
 
     // 后端同一时间只允许一个导出任务；有行在跑时禁用所有行的动作按钮
@@ -68,7 +62,14 @@ export default function DubbingExportPage() {
 
     const loadEntries = useCallback(async (): Promise<void> => {
         try {
-            setEntries(await dubbingApi.listLibrary());
+            const list = await dubbingApi.listLibrary();
+            setEntries(list);
+            setSelectedVideoKey((prev) => {
+                if (prev && list.some((item) => item.videoKey === prev)) {
+                    return prev;
+                }
+                return list[0]?.videoKey ?? null;
+            });
         } catch (error) {
             logger.error('加载配音列表失败', { error });
             toast.error(t('dubbingExport.loadFailed'));
@@ -85,6 +86,37 @@ export default function DubbingExportPage() {
             await loadEntries();
         })();
     }, [loadEntries]);
+
+    // 为列表中的视频按需生成低分辨率缩略图（纯音频返回 null 显示占位图标）
+    useEffect(() => {
+        let cancelled = false;
+        const missing = entries.filter((item) => !(item.videoKey in thumbnails));
+        if (missing.length === 0) {
+            return;
+        }
+        void (async () => {
+            const updates: Record<string, string | null> = {};
+            for (const item of missing) {
+                try {
+                    const thumbPath = await requestVideoThumbnail({
+                        filePath: item.videoPath,
+                        time: 1,
+                        quality: 'low',
+                        width: 240,
+                    });
+                    updates[item.videoKey] = thumbPath ? UrlUtil.toUrl(thumbPath) : null;
+                } catch {
+                    updates[item.videoKey] = null;
+                }
+            }
+            if (!cancelled) {
+                setThumbnails((prev) => ({ ...prev, ...updates }));
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
+    }, [entries, thumbnails]);
 
     // 挂载时恢复最近一次导出任务的状态：任务可能在离开本页期间完成或失败
     useEffect(() => {
@@ -137,35 +169,7 @@ export default function DubbingExportPage() {
         }
     };
 
-    const renderRowState = (entry: DubbingLibraryEntry): ReactNode => {
-        const state = rowStates[entry.videoKey];
-        if (!state) {
-            return null;
-        }
-        if (state.stage === 'running') {
-            return (
-                <div className="flex items-center gap-2 w-40">
-                    <Progress value={state.progress} className="flex-1" />
-                    <span className="text-xs text-muted-foreground tabular-nums shrink-0">
-                        {t('dubbingExport.exporting', { progress: state.progress })}
-                    </span>
-                </div>
-            );
-        }
-        if (state.stage === 'done') {
-            return (
-                <button
-                    type="button"
-                    onClick={() => void dubbingApi.openFolder(state.outputPath)}
-                    className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                >
-                    <FolderOpen className="w-3.5 h-3.5" />
-                    {t('dubbingExport.openFolder')}
-                </button>
-            );
-        }
-        return <span className="text-xs text-red-500">{state.message || t('dubbingExport.exportFailed')}</span>;
-    };
+    const selectedEntry = entries.find((item) => item.videoKey === selectedVideoKey) ?? null;
 
     return (
         <div className="w-full h-full flex flex-col overflow-hidden select-none bg-background text-foreground">
@@ -173,7 +177,7 @@ export default function DubbingExportPage() {
                 <PageHeader title={t('dubbingExport.title')} description={t('dubbingExport.description')} />
             </div>
 
-            <div className="flex-1 min-h-0 overflow-y-auto px-6 pb-5 pt-1">
+            <div className="flex-1 min-h-0 px-6 pb-5 pt-1 overflow-hidden">
                 {loading ? (
                     <div className="w-full h-full flex items-center justify-center text-muted-foreground">
                         <Loader2 className="w-4 h-4 animate-spin" />
@@ -185,48 +189,92 @@ export default function DubbingExportPage() {
                         <p className="text-xs max-w-sm leading-5">{t('dubbingExport.empty.guide')}</p>
                     </div>
                 ) : (
-                    <div className="flex flex-col gap-2">
-                        {entries.map((entry) => (
-                            <div
-                                key={entry.videoKey}
-                                className="flex items-center gap-4 rounded-xl border border-border/60 bg-card px-4 py-3"
-                            >
-                                <div className="min-w-0 flex-1">
-                                    <div className="text-sm font-medium text-foreground truncate" title={entry.videoPath}>
-                                        {entry.videoName}
-                                    </div>
-                                    <div className="text-xs text-muted-foreground mt-0.5">
-                                        {t('dubbingExport.recordedCount', { count: entry.dubbedSentenceCount })}
-                                        <span className="mx-1.5">·</span>
-                                        {t('dubbingExport.updatedAt', { time: new Date(entry.updatedAt).toLocaleString() })}
-                                    </div>
-                                </div>
-
-                                {renderRowState(entry)}
-
-                                <div className="flex items-center gap-1.5 shrink-0">
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="h-8 rounded-lg"
-                                        disabled={exporting}
-                                        onClick={() => void handleExport(entry)}
+                    <div
+                        className="w-full h-full min-h-0 grid gap-5"
+                        style={{
+                            gridTemplateColumns: 'minmax(340px, 0.85fr) minmax(460px, 1.15fr)',
+                            gridTemplateRows: '100%',
+                        }}
+                    >
+                        {/* 左栏：缩略图 + 标题 + 已录句数 */}
+                        <div className="h-full min-h-0 overflow-y-auto pr-2 border-r border-border/40 flex flex-col gap-2">
+                            {entries.map((entry) => {
+                                const isSelected = entry.videoKey === selectedVideoKey;
+                                const thumbUrl = thumbnails[entry.videoKey];
+                                const state = rowStates[entry.videoKey];
+                                return (
+                                    <div
+                                        key={entry.videoKey}
+                                        role="button"
+                                        tabIndex={0}
+                                        onClick={() => setSelectedVideoKey(entry.videoKey)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault();
+                                                setSelectedVideoKey(entry.videoKey);
+                                            }
+                                        }}
+                                        className={cn(
+                                            'rounded-xl border p-2.5 cursor-pointer transition-colors',
+                                            isSelected
+                                                ? 'border-primary/50 bg-accent/50'
+                                                : 'border-border/60 bg-card hover:bg-accent/30',
+                                        )}
                                     >
-                                        {t('dubbingExport.export')}
-                                    </Button>
-                                    <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        className="h-8 w-8 p-0 rounded-lg text-muted-foreground hover:text-red-500 hover:bg-red-500/10"
-                                        disabled={exporting}
-                                        onClick={() => setPendingClear(entry)}
-                                        aria-label={t('dubbingExport.clear')}
-                                    >
-                                        <Trash2 className="w-4 h-4" />
-                                    </Button>
-                                </div>
-                            </div>
-                        ))}
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-20 h-[45px] shrink-0 rounded-lg overflow-hidden bg-muted flex items-center justify-center">
+                                                {thumbUrl ? (
+                                                    <img
+                                                        src={thumbUrl}
+                                                        alt={entry.videoName}
+                                                        className="w-full h-full object-cover"
+                                                    />
+                                                ) : (
+                                                    <AudioLines className="w-4 h-4 text-muted-foreground/50" />
+                                                )}
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                                <div className="text-xs font-medium text-foreground truncate" title={entry.videoPath}>
+                                                    {entry.videoName}
+                                                </div>
+                                                <div className="text-[11px] text-muted-foreground mt-1">
+                                                    {t('dubbingExport.recordedCount', { count: entry.dubbedSentenceCount })}
+                                                    {entry.updatedAt > 0 && (
+                                                        <>
+                                                            <span className="mx-1">·</span>
+                                                            {new Date(entry.updatedAt).toLocaleDateString()}
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        {state?.stage === 'running' && (
+                                            <div className="flex items-center gap-2 mt-2">
+                                                <Progress value={state.progress} className="flex-1 h-1" />
+                                                <span className="text-[10px] text-muted-foreground tabular-nums">
+                                                    {state.progress}%
+                                                </span>
+                                            </div>
+                                        )}
+                                    </div>
+                                );
+                            })}
+                        </div>
+
+                        {/* 右栏：精简播放器 + 右上角导出 + 上下文折叠列表 */}
+                        <div className="h-full min-h-0 overflow-hidden">
+                            {selectedEntry && (
+                                <DubbingPreviewPane
+                                    key={selectedEntry.videoKey}
+                                    entry={selectedEntry}
+                                    exportState={rowStates[selectedEntry.videoKey]}
+                                    exporting={exporting}
+                                    onExport={() => void handleExport(selectedEntry)}
+                                    onClearVideo={() => setPendingClear(selectedEntry)}
+                                    onSentenceCleared={loadEntries}
+                                />
+                            )}
+                        </div>
                     </div>
                 )}
             </div>

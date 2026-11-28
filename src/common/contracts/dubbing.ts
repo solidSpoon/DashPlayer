@@ -1,3 +1,5 @@
+import type { Sentence } from '@/common/types/SentenceC';
+
 /**
  * 配音功能契约类型。
  *
@@ -85,4 +87,16 @@ export interface DubbingExportStatus {
     message?: string;
     /** 导出产物绝对路径。 */
     outputPath?: string;
+}
+
+/**
+ * 配音导出页预览详情：清单 + 解析后的字幕句子。
+ */
+export interface DubbingPreview {
+    /** 视频配音清单；从未录过音时为 null。 */
+    manifest: DubbingManifest | null;
+    /** 解析出的字幕句子；无字幕或文件缺失时为空数组。 */
+    sentences: Sentence[];
+    /** 字幕加载状态：ok=正常；missing-path=未关联字幕；missing-file=原字幕文件已不存在。 */
+    subtitleStatus: 'ok' | 'missing-path' | 'missing-file';
 }

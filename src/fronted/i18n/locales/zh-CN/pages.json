@@ -152,7 +152,27 @@
         "cancel": "取消",
         "cleared": "已清除该视频的配音",
         "clearFailed": "清除失败，请重试",
-        "loadFailed": "加载配音列表失败"
+        "loadFailed": "加载配音列表失败",
+        "preview": {
+            "totalSentences": "共 {{count}} 句字幕",
+            "pickSentenceHint": "点击下方句子播放，已配音句子会自动播放你的配音",
+            "playingDubbed": "正在播放你的配音",
+            "play": "播放",
+            "pause": "暂停",
+            "repeat": "重听本句",
+            "tabDubbed": "已配音 ({{count}})",
+            "tabAll": "全部字幕 ({{count}})",
+            "emptyDubbed": "该视频暂无已录制的配音",
+            "sentenceFallback": "第 {{index}} 句（未匹配到字幕文本）",
+            "playTake": "试听录音",
+            "stopTake": "停止试听",
+            "clearSentence": "删除本句配音",
+            "sentenceCleared": "已删除该句配音",
+            "speedUpHint": "录音超出该句 {{over}}s，预览与导出将自动 {{rate}}x 加速",
+            "omittedCount": "已省略 {{count}} 句未配音字幕",
+            "noSubtitle": "该配音记录未关联字幕文件，无法展示全部字幕",
+            "subtitleLoadFailed": "字幕文件加载失败，请检查文件是否仍存在"
+        }
     },
     "videoLearning": {
         "playbackGuide": "点击上方片段开始播放"

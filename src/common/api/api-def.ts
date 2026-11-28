@@ -65,7 +65,7 @@ import type { ModelInstallationStatusVO } from '@/common/types/vo/model-installa
 import type { VideoInfo } from '@/common/types/video-info';
 import type { StorageStatusVO } from '@/common/types/vo/StorageStatusVO';
 import type { TranscriptTask } from '@/common/contracts/transcript/transcript-task';
-import type { DubbingExportStatus, DubbingLibraryEntry, DubbingManifest, DubbingTakeVO } from '@/common/contracts/dubbing';
+import type { DubbingExportStatus, DubbingLibraryEntry, DubbingManifest, DubbingPreview, DubbingTakeVO } from '@/common/contracts/dubbing';
 import type { PiRuntimeStatusVO } from '@/common/contracts/pi-runtime';
 import type {
     PiDownloadContextVO,
@@ -484,6 +484,7 @@ interface DubbingDef {
         return: DubbingTakeVO | null
     };
     'dubbing/list': { params: { videoKey: string }, return: DubbingManifest | null };
+    'dubbing/preview': { params: { videoKey: string }, return: DubbingPreview };
     'dubbing/list-library': { params: void, return: DubbingLibraryEntry[] };
     'dubbing/clear-sentence': { params: { videoKey: string; sentenceIndex: number }, return: void };
     'dubbing/clear-video': { params: { videoKey: string }, return: void };
