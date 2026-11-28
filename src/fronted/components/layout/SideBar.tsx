@@ -76,7 +76,7 @@ const SideBar = ({ compact }: SideBarProps) => {
                 />
             </div>
             <div className={cn('basis-3/4 flex flex-col p-3 gap-1')}>
-                {/* {item('Home', '/home', 'home', <HiOutlineHome />)} */}
+                {/* 核心学习与复习 */}
                 {item(
                     t('playbackLab'),
                     `/player/${videoId}?sideBarAnimation=false`,
@@ -90,22 +90,26 @@ const SideBar = ({ compact }: SideBarProps) => {
                     <Star />
                 )}
                 {item(
-                    t('subtitleWorkspace'),
-                    '/transcript',
-                    'transcript',
-                    <Captions />
-                )}
-                {item(
-                    t('playbackRepair'),
-                    '/repair',
-                    'repair',
-                    <Rotate3D />
-                )}
-                {item(
                     t('vocabularyStudio'),
                     '/vocabulary',
                     'vocabulary',
                     <BookOpen />
+                )}
+
+                <div className="my-1.5 border-t border-border/40" />
+
+                {/* 素材准备与工具 */}
+                {item(
+                    t('mediaDownload'),
+                    '/download',
+                    'download',
+                    <Download />
+                )}
+                {item(
+                    t('subtitleWorkspace'),
+                    '/transcript',
+                    'transcript',
+                    <Captions />
                 )}
                 {item(
                     t('dubbingExport'),
@@ -114,12 +118,16 @@ const SideBar = ({ compact }: SideBarProps) => {
                     <AudioLines />
                 )}
                 {item(
-                    t('mediaDownload'),
-                    '/download',
-                    'download',
-                    <Download />
+                    t('playbackRepair'),
+                    '/repair',
+                    'repair',
+                    <Rotate3D />
                 )}
-                {item(t('settingsCenter'), '/settings', 'settings', <Settings />)}
+
+                {/* 系统设置固定在底部 */}
+                <div className="mt-auto pt-2">
+                    {item(t('settingsCenter'), '/settings', 'settings', <Settings />)}
+                </div>
             </div>
         </div>
     );

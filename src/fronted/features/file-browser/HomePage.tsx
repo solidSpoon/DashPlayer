@@ -98,11 +98,11 @@ const HomePage = () => {
 
     const navItems = [
         { title: t('savedMoments'), path: '/favorite', icon: Star },
-        { title: t('subtitleWorkspace'), path: '/transcript', icon: Captions },
-        { title: t('playbackRepair'), path: '/repair', icon: Rotate3D },
         { title: t('vocabularyStudio'), path: '/vocabulary', icon: BookOpen },
-        { title: t('dubbingExport'), path: '/dubbing', icon: AudioLines },
         { title: t('mediaDownload'), path: '/download', icon: Download },
+        { title: t('subtitleWorkspace'), path: '/transcript', icon: Captions },
+        { title: t('dubbingExport'), path: '/dubbing', icon: AudioLines },
+        { title: t('playbackRepair'), path: '/repair', icon: Rotate3D },
         { title: t('settingsCenter'), path: '/settings', icon: Settings },
     ];
 
