@@ -21,6 +21,25 @@ import { CAPTION_CARD_ANCHOR_CLASS, CAPTION_CARD_CLASS } from '@/fronted/feature
 
 const logger = getRendererLogger('PlaybackLayout');
 
+/** 环境光采样帧率：低频更新光晕色彩即可保证平滑过渡，同时避免高分屏抢占视频解码纹理带宽。 */
+const AMBIENT_FPS = 10;
+/** 环境光画布最大宽度（像素）：在极小离屏分辨率上做模糊，替代全屏大半径 CSS 高斯模糊。 */
+const AMBIENT_MAX_WIDTH = 96;
+/** 在低分辨率画布内部应用的模糊半径（像素），放大铺满窗口后等效大半径柔光。 */
+const AMBIENT_CANVAS_BLUR_PX = 5;
+
+/** 缓存的矩形几何信息，避免在绘制帧内重复触发布局测量。 */
+interface AmbientGeometry {
+    rootLeft: number;
+    rootTop: number;
+    rootWidth: number;
+    rootHeight: number;
+    videoLeft: number;
+    videoTop: number;
+    videoWidth: number;
+    videoHeight: number;
+}
+
 const PlaybackLayout = () => {
     const hasSubTitle = useFile((s) => StrUtil.isNotBlank(s.subtitlePath));
     const showSideBar = useLayout((state) => state.showSideBar);
@@ -42,7 +61,7 @@ const PlaybackLayout = () => {
     const ambientCanvasRef = useRef<HTMLCanvasElement>(null);
     const rootContainerRef = useRef<HTMLDivElement>(null);
 
-    // 在根容器底层驱动空间环境光：动态感知视频实际相对位置与比例，实现不规则空间光场投射
+    // 在根容器底层驱动空间环境光：低分辨率离屏绘制与模糊，缓存几何尺寸避免帧内回流与 4K 全屏合成卡顿
     useEffect(() => {
         if (!videoElement || podcastMode || !hasSource) {
             return undefined;
@@ -52,46 +71,91 @@ const PlaybackLayout = () => {
         let lastDrawTime = 0;
         let lastCanvasW = 0;
         let lastCanvasH = 0;
-        const fps = 24;
-        const drawInterval = 1000 / fps;
+        const drawInterval = 1000 / AMBIENT_FPS;
+        let geometry: AmbientGeometry | null = null;
+
+        /**
+         * 同步根容器与视频元素的布局矩形，仅在尺寸变化时调用一次测量。
+         */
+        const measureGeometry = () => {
+            const rootContainer = rootContainerRef.current;
+            if (!rootContainer || !videoElement) {
+                return;
+            }
+            const rootRect = rootContainer.getBoundingClientRect();
+            const videoRect = videoElement.getBoundingClientRect();
+            if (rootRect.width <= 0 || rootRect.height <= 0 || videoRect.width <= 0 || videoRect.height <= 0) {
+                return;
+            }
+            geometry = {
+                rootLeft: rootRect.left,
+                rootTop: rootRect.top,
+                rootWidth: rootRect.width,
+                rootHeight: rootRect.height,
+                videoLeft: videoRect.left,
+                videoTop: videoRect.top,
+                videoWidth: videoRect.width,
+                videoHeight: videoRect.height,
+            };
+        };
+
+        measureGeometry();
+        const resizeObserver = typeof ResizeObserver !== 'undefined'
+            ? new ResizeObserver(() => measureGeometry())
+            : null;
+        if (resizeObserver) {
+            if (rootContainerRef.current) {
+                resizeObserver.observe(rootContainerRef.current);
+            }
+            resizeObserver.observe(videoElement);
+        }
+        window.addEventListener('resize', measureGeometry);
 
         const syncVideos = () => {
             if (cancelled) return;
             const now = performance.now();
             if (now - lastDrawTime >= drawInterval) {
                 const backgroundCanvas = ambientCanvasRef.current;
-                const rootContainer = rootContainerRef.current;
-                if (videoElement && backgroundCanvas && rootContainer && videoElement.readyState >= 2 && !videoElement.seeking && !videoElement.paused) {
+                const learningOpen = useChatPanel.getState().learningVisible;
+                if (
+                    !document.hidden &&
+                    !learningOpen &&
+                    geometry &&
+                    backgroundCanvas &&
+                    videoElement.readyState >= 2 &&
+                    !videoElement.seeking &&
+                    !videoElement.paused
+                ) {
                     const ctx = backgroundCanvas.getContext('2d', { alpha: false });
                     if (ctx) {
-                        const rootRect = rootContainer.getBoundingClientRect();
-                        const videoRect = videoElement.getBoundingClientRect();
+                        const { rootLeft, rootTop, rootWidth, rootHeight, videoLeft, videoTop, videoWidth, videoHeight } = geometry;
+                        const canvasW = AMBIENT_MAX_WIDTH;
+                        const canvasH = Math.max(1, Math.round((rootHeight / rootWidth) * canvasW));
 
-                        const ratio = window.devicePixelRatio || 1;
-                        const resolutionFactor = 0.2; // 高性能低分辨率缓冲绘制
-                        const scaledRootW = Math.max(1, Math.floor(rootRect.width * ratio * resolutionFactor));
-                        const scaledRootH = Math.max(1, Math.floor(rootRect.height * ratio * resolutionFactor));
-
-                        if (scaledRootW !== lastCanvasW || scaledRootH !== lastCanvasH) {
-                            backgroundCanvas.width = scaledRootW;
-                            backgroundCanvas.height = scaledRootH;
-                            lastCanvasW = scaledRootW;
-                            lastCanvasH = scaledRootH;
+                        if (canvasW !== lastCanvasW || canvasH !== lastCanvasH) {
+                            backgroundCanvas.width = canvasW;
+                            backgroundCanvas.height = canvasH;
+                            lastCanvasW = canvasW;
+                            lastCanvasH = canvasH;
                         }
 
-                        // 动态计算视频在根容器中的真实绝对坐标与尺寸（自动适应普通分栏拖拽与全屏居中）
-                        const relX = (videoRect.left - rootRect.left) / rootRect.width;
-                        const relY = (videoRect.top - rootRect.top) / rootRect.height;
-                        const relW = videoRect.width / rootRect.width;
-                        const relH = videoRect.height / rootRect.height;
+                        // 动态计算视频在根容器中的相对坐标与尺寸（适应分栏拖拽与全屏居中）
+                        const relX = (videoLeft - rootLeft) / rootWidth;
+                        const relY = (videoTop - rootTop) / rootHeight;
+                        const relW = videoWidth / rootWidth;
+                        const relH = videoHeight / rootHeight;
 
-                        // 柔和向外溢出延伸（Padding Expansion），让光晕自然蔓延渗透到右侧和下方
-                        const expandFactor = 0.25; 
-                        const drawX = Math.max(0, (relX - relW * expandFactor) * scaledRootW);
-                        const drawY = Math.max(0, (relY - relH * expandFactor) * scaledRootH);
-                        const drawW = Math.min(scaledRootW, (relW * (1 + expandFactor * 2)) * scaledRootW);
-                        const drawH = Math.min(scaledRootH, (relH * (1 + expandFactor * 2)) * scaledRootH);
+                        // 柔和向外溢出延伸，让光晕自然蔓延渗透到右侧和下方
+                        const expandFactor = 0.25;
+                        const drawX = Math.max(0, (relX - relW * expandFactor) * canvasW);
+                        const drawY = Math.max(0, (relY - relH * expandFactor) * canvasH);
+                        const drawW = Math.min(canvasW, relW * (1 + expandFactor * 2) * canvasW);
+                        const drawH = Math.min(canvasH, relH * (1 + expandFactor * 2) * canvasH);
 
+                        ctx.filter = 'none';
+                        ctx.fillStyle = '#000';
+                        ctx.fillRect(0, 0, canvasW, canvasH);
+                        ctx.filter = `blur(${AMBIENT_CANVAS_BLUR_PX}px)`;
                         ctx.drawImage(videoElement, drawX, drawY, drawW, drawH);
                     }
                 }
@@ -104,6 +168,8 @@ const PlaybackLayout = () => {
         animationFrameId = requestAnimationFrame(syncVideos);
         return () => {
             cancelled = true;
+            resizeObserver?.disconnect();
+            window.removeEventListener('resize', measureGeometry);
             if (animationFrameId) {
                 cancelAnimationFrame(animationFrameId);
             }
@@ -126,13 +192,13 @@ const PlaybackLayout = () => {
 
     return (
         <div ref={rootContainerRef} className={containerClass}>
-            {/* 顶层全局真实空间环境光 Canvas：覆盖整个播放器窗口 */}
+            {/* 顶层全局真实空间环境光 Canvas：覆盖整个播放器窗口；模糊已在低分画布内完成，scale-110 避免边缘暗边 */}
             <canvas
                 ref={ambientCanvasRef}
                 className={cn(
-                    'absolute inset-0 w-full h-full pointer-events-none transition-opacity duration-500 z-0',
-                    'blur-[80px] saturate-[1.1] brightness-[0.78]',
-                    'dark:blur-[80px] dark:saturate-[1.15] dark:brightness-[0.52]',
+                    'absolute inset-0 w-full h-full scale-110 pointer-events-none transition-opacity duration-500 z-0',
+                    'saturate-[1.1] brightness-[0.78]',
+                    'dark:saturate-[1.15] dark:brightness-[0.52]',
                     videoElement ? 'opacity-80 dark:opacity-75' : 'opacity-0',
                     podcastMode && 'hidden'
                 )}
@@ -199,7 +265,7 @@ const PlaybackLayout = () => {
                                         <div className="w-10 h-1 rounded-full bg-stone-500/70 dark:bg-neutral-400/70 group-hover:bg-rose-600 dark:group-hover:bg-rose-400 group-hover:w-14 transition-all duration-200 shadow-xs" />
                                     </ResizableHandle>
                                     <ResizablePanel
-                                        className={cn('overflow-hidden bg-stone-50/75 dark:bg-neutral-800/65 backdrop-blur-2xl')}
+                                        className={cn('overflow-hidden bg-stone-50/75 dark:bg-neutral-800/65')}
                                         minSize={0}
                                         defaultSize={sizeIb}
                                         onResize={(e) => {
@@ -250,7 +316,7 @@ const PlaybackLayout = () => {
                         </ResizableHandle>
                         <ResizablePanel
                             className={cn(
-                                'relative overflow-hidden backdrop-blur-2xl shadow-[inset_1px_1px_6px_rgba(0,0,0,0.06)] dark:shadow-[inset_1px_1px_8px_rgba(0,0,0,0.4)]',
+                                'relative overflow-hidden shadow-[inset_1px_1px_6px_rgba(0,0,0,0.06)] dark:shadow-[inset_1px_1px_8px_rgba(0,0,0,0.4)]',
                                 // 学习页打开时把字幕列表提亮到与学习区面板一致的浅色系，关闭时平滑恢复
                                 'transition-colors duration-300',
                                 learningVisible
