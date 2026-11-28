@@ -1,5 +1,7 @@
 import { backendClient } from '@/fronted/infrastructure/electron/backendClient';
 import type {
+    PiDownloadContextVO,
+    PiDownloadSendMessageRequest,
     PiDownloadSessionDetailVO,
     PiDownloadSessionVO,
 } from '@/common/contracts/pi-download';
@@ -16,9 +18,13 @@ export const downloadApi = {
     selectFolder: (): Promise<string[] | null> =>
         backendClient.call('system/select-folder', { createDirectory: true }),
 
-    /** 向运行中或空闲的 Pi 下载会话发送后续指令。 */
-    sendMessage: (sessionId: string, message: string): Promise<void> =>
-        backendClient.call('pi-download/send-message', { sessionId, message }),
+    /** 向运行中或空闲的 Pi 下载会话发送后续指令（可附带交互卡片选择结果）。 */
+    sendMessage: (
+        sessionId: string,
+        message: string,
+        choiceReply?: PiDownloadSendMessageRequest['choiceReply'],
+    ): Promise<void> =>
+        backendClient.call('pi-download/send-message', { sessionId, message, choiceReply }),
 
     /** 中止指定下载会话当前回合。 */
     abort: (sessionId: string): Promise<void> =>
@@ -40,7 +46,7 @@ export const downloadApi = {
     deleteSession: (sessionId: string): Promise<void> =>
         backendClient.call('pi-download/delete-session', { sessionId }),
 
-    /** 获取下载工作台上下文（最终输出目录等）。 */
-    getContext: (): Promise<{ videosDir: string }> =>
+    /** 获取下载工作台上下文（最终输出目录与云端 AI 就绪状态）。 */
+    getContext: (): Promise<PiDownloadContextVO> =>
         backendClient.call('pi-download/context'),
 };

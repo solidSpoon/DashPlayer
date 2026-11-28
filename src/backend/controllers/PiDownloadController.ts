@@ -18,7 +18,7 @@ export default class PiDownloadController implements Controller {
      */
     public registerRoutes(): void {
         registerRoute('pi-download/start', (req) => this.piDownloadService.startDownload(req.url, req.outputDir));
-        registerRoute('pi-download/send-message', (req) => this.piDownloadService.sendMessage(req.sessionId, req.message));
+        registerRoute('pi-download/send-message', (req) => this.piDownloadService.sendMessage(req.sessionId, req.message, req.choiceReply));
         registerRoute('pi-download/abort', (req) => this.piDownloadService.abort(req.sessionId));
         registerRoute('pi-download/close', (req) => this.piDownloadService.close(req.sessionId));
         registerRoute('pi-download/list-sessions', () => this.piDownloadService.listSessions());

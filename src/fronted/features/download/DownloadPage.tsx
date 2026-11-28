@@ -1,17 +1,19 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import toast from 'react-hot-toast';
 import {
     AlertTriangle,
     ArrowUp,
+    Check,
     CheckCircle2,
     ChevronDown,
     ChevronRight,
     Download,
     Film,
     FolderOpen,
+    ListChecks,
     Loader2,
     Play,
     Plus,
@@ -34,9 +36,12 @@ import { requestVideoThumbnail } from '@/fronted/lib/video-thumbnail';
 import UrlUtil from '@/common/utils/UrlUtil';
 import { cn } from '@/fronted/lib/utils';
 import type {
+    PiDownloadChoiceCardInfo,
+    PiDownloadContextVO,
     PiDownloadMediaCardInfo,
     PiDownloadPhase,
     PiDownloadProgressInfo,
+    PiDownloadSendMessageRequest,
     PiDownloadStreamEvent,
 } from '@/common/contracts/pi-download';
 import type { PiRuntimeStatusVO } from '@/common/contracts/pi-runtime';
@@ -48,6 +53,54 @@ const PHASE_LABEL: Record<PiDownloadPhase, string> = {
     postprocessing: '后处理中',
     completed: '已完成',
     error: '处理异常',
+};
+
+const QUICK_SUBTITLE_PROMPT =
+    '请为已下载的视频补充下载人工英文字幕（仅下载原版人工英文字幕，不要下载自动生成字幕），转成同名 .srt 放到视频同目录。';
+
+type RenderBlock =
+    | { key: string; kind: 'item'; item: Exclude<DownloadTimelineItem, { kind: 'tool' }> }
+    | { key: string; kind: 'tool_group'; tools: Array<Extract<DownloadTimelineItem, { kind: 'tool' }>> };
+
+/**
+ * 将原始时间线条目归并为渲染块：合并连续工具步骤、忽略空助理消息，
+ * 并把下载中的临时占位卡片挂到相邻工具组下方，避免把工具步骤拆成两行。
+ */
+const buildRenderBlocks = (items: DownloadTimelineItem[]): RenderBlock[] => {
+    const blocks: RenderBlock[] = [];
+    let pendingDownloadingCard: Extract<DownloadTimelineItem, { kind: 'media_card' }> | null = null;
+
+    const flushPendingDownloadingCard = () => {
+        if (!pendingDownloadingCard) {
+            return;
+        }
+        blocks.push({ key: pendingDownloadingCard.id, kind: 'item', item: pendingDownloadingCard });
+        pendingDownloadingCard = null;
+    };
+
+    for (const item of items) {
+        if (item.kind === 'tool') {
+            const prev = blocks[blocks.length - 1];
+            if (prev && prev.kind === 'tool_group') {
+                prev.tools.push(item);
+            } else {
+                blocks.push({ key: `tg-${item.id}`, kind: 'tool_group', tools: [item] });
+            }
+            continue;
+        }
+        if (item.kind === 'assistant' && item.text.trim().length === 0) {
+            continue;
+        }
+        if (item.kind === 'media_card' && item.card.state === 'downloading') {
+            pendingDownloadingCard = item;
+            continue;
+        }
+        flushPendingDownloadingCard();
+        blocks.push({ key: item.id, kind: 'item', item });
+    }
+
+    flushPendingDownloadingCard();
+    return blocks;
 };
 
 /**
@@ -286,14 +339,174 @@ const MediaDownloadCard: React.FC<{
 };
 
 /**
+ * 对话流内嵌交互提问卡片：支持单选与多选，提交后自动锁定并回传给下载 Agent。
+ */
+const ChoiceQuestionCard: React.FC<{
+    card: PiDownloadChoiceCardInfo;
+    disabled: boolean;
+    onSubmit: (card: PiDownloadChoiceCardInfo, selectedValues: string[]) => Promise<void> | void;
+}> = ({ card, disabled, onSubmit }) => {
+    const [draftValues, setDraftValues] = useState<string[]>(() => card.selectedValues ?? []);
+    const [submitting, setSubmitting] = useState(false);
+
+    const isAnswered = Boolean(card.selectedValues && card.selectedValues.length > 0);
+    const isReadOnly = isAnswered || disabled || submitting;
+    const displayValues = isAnswered ? card.selectedValues! : draftValues;
+    const isMultiple = card.selectionMode === 'multiple';
+
+    const toggleValue = (value: string) => {
+        if (isReadOnly) {
+            return;
+        }
+        if (!isMultiple) {
+            setDraftValues([value]);
+            return;
+        }
+        setDraftValues((prev) => (
+            prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]
+        ));
+    };
+
+    const handleToggleAll = () => {
+        if (isReadOnly || !isMultiple) {
+            return;
+        }
+        if (draftValues.length === card.options.length) {
+            setDraftValues([]);
+        } else {
+            setDraftValues(card.options.map((opt) => opt.value));
+        }
+    };
+
+    const handleConfirm = async () => {
+        if (isReadOnly || draftValues.length === 0) {
+            return;
+        }
+        setSubmitting(true);
+        try {
+            await onSubmit(card, draftValues);
+        } finally {
+            setSubmitting(false);
+        }
+    };
+
+    return (
+        <div className="rounded-xl border bg-card p-4 shadow-xs space-y-3">
+            <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                    <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                        <ListChecks className="h-4 w-4 shrink-0 text-primary" />
+                        <span>{card.question}</span>
+                    </div>
+                    {card.description && (
+                        <p className="text-xs text-muted-foreground">{card.description}</p>
+                    )}
+                </div>
+                {isAnswered ? (
+                    <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">
+                        <CheckCircle2 className="h-3 w-3" />
+                        已选择
+                    </span>
+                ) : (
+                    isMultiple && !isReadOnly && card.options.length >= 3 && (
+                        <button
+                            type="button"
+                            onClick={handleToggleAll}
+                            className="shrink-0 text-xs text-primary hover:underline"
+                        >
+                            {draftValues.length === card.options.length ? '清空' : '全选'}
+                        </button>
+                    )
+                )}
+            </div>
+
+            <div className="space-y-1.5">
+                {card.options.map((option) => {
+                    const checked = displayValues.includes(option.value);
+                    return (
+                        <button
+                            key={option.value}
+                            type="button"
+                            disabled={isReadOnly}
+                            onClick={() => toggleValue(option.value)}
+                            className={cn(
+                                'flex w-full items-start gap-2.5 rounded-lg border px-3 py-2 text-left transition-colors',
+                                checked
+                                    ? 'border-primary/60 bg-primary/5 text-foreground'
+                                    : 'border-border/70 bg-background/60 text-foreground/90',
+                                !isReadOnly && !checked && 'hover:border-border hover:bg-muted/40',
+                                isReadOnly && 'cursor-default opacity-90',
+                            )}
+                        >
+                            <span
+                                className={cn(
+                                    'mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center border transition-colors',
+                                    isMultiple ? 'rounded' : 'rounded-full',
+                                    checked
+                                        ? 'border-primary bg-primary text-primary-foreground'
+                                        : 'border-muted-foreground/40 bg-background',
+                                )}
+                            >
+                                {checked && (
+                                    isMultiple
+                                        ? <Check className="h-3 w-3" />
+                                        : <span className="h-1.5 w-1.5 rounded-full bg-current" />
+                                )}
+                            </span>
+                            <span className="min-w-0 flex-1">
+                                <span className="block text-xs font-medium">{option.label}</span>
+                                {option.description && (
+                                    <span className="mt-0.5 block text-[11px] text-muted-foreground">
+                                        {option.description}
+                                    </span>
+                                )}
+                            </span>
+                        </button>
+                    );
+                })}
+            </div>
+
+            {!isReadOnly && (
+                <div className="flex items-center justify-end pt-1">
+                    <Button
+                        type="button"
+                        size="sm"
+                        disabled={draftValues.length === 0 || submitting}
+                        onClick={() => { void handleConfirm(); }}
+                    >
+                        {submitting && <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
+                        {card.confirmLabel || '确认选择'}
+                    </Button>
+                </div>
+            )}
+        </div>
+    );
+};
+
+/**
+ * 从启动页跳转携带的路由参数。
+ */
+interface DownloadRouteState {
+    /** 预填或自动触发下载的目标链接。 */
+    initialUrl?: string;
+    /** 环境就绪时是否自动发起下载。 */
+    autoStart?: boolean;
+}
+
+/**
  * 媒体下载页：左历史列表 + 中间标准聊天对话流（含内嵌进度/结果视频卡片）。
  */
 export default function DownloadPage() {
     const navigate = useNavigate();
+    const location = useLocation();
+    const initialRouteStateRef = useRef<DownloadRouteState | null>((location.state as DownloadRouteState | null) ?? null);
+    const handledInitialUrlRef = useRef(false);
     const [urlInput, setUrlInput] = useState('');
     const [followUpInput, setFollowUpInput] = useState('');
     const [starting, setStarting] = useState(false);
+    const [sendingFollowUp, setSendingFollowUp] = useState(false);
     const [runtimeStatus, setRuntimeStatus] = useState<PiRuntimeStatusVO | null>(null);
+    const [downloadContext, setDownloadContext] = useState<PiDownloadContextVO | null>(null);
     const [defaultVideosDir, setDefaultVideosDir] = useState<string>('');
     const [customOutputDir, setCustomOutputDir] = useState<string | null>(null);
     const [expandedInitialPrompt, setExpandedInitialPrompt] = useState(false);
@@ -324,23 +537,66 @@ export default function DownloadPage() {
     }, [loadSessionDetail]);
 
     useEffect(() => {
-        settingsApi.getPiRuntimeStatus()
-            .then(setRuntimeStatus)
-            .catch(() => undefined);
+        let cancelled = false;
+        const routeState = initialRouteStateRef.current;
+        const pendingUrl = routeState?.initialUrl?.trim() ?? '';
+        const hasPendingUrl = pendingUrl.length > 0 && !handledInitialUrlRef.current;
+        if (hasPendingUrl) {
+            reset();
+        }
 
-        downloadApi.getContext()
-            .then((ctx) => setDefaultVideosDir(ctx.videosDir))
-            .catch(() => undefined);
-
-        downloadApi.listSessions()
-            .then((list) => {
+        void (async () => {
+            const [runtime, ctx, list] = await Promise.all([
+                settingsApi.getPiRuntimeStatus().catch(() => null),
+                downloadApi.getContext().catch(() => null),
+                downloadApi.listSessions().catch(() => null),
+            ]);
+            if (cancelled) {
+                return;
+            }
+            if (runtime) {
+                setRuntimeStatus(runtime);
+            }
+            if (ctx) {
+                setDownloadContext(ctx);
+                setDefaultVideosDir(ctx.videosDir);
+            }
+            if (list) {
                 setSessions(list);
-                const activeItem = list.find((item) => item.status === 'running' || item.status === 'starting');
-                if (!useDownloadStore.getState().session && activeItem) {
-                    void selectSession(activeItem.sessionId);
+                if (!hasPendingUrl) {
+                    const activeItem = list.find((item) => item.status === 'running' || item.status === 'starting');
+                    if (!useDownloadStore.getState().session && activeItem) {
+                        void selectSession(activeItem.sessionId);
+                    }
                 }
-            })
-            .catch(() => undefined);
+            }
+
+            if (hasPendingUrl && !handledInitialUrlRef.current) {
+                handledInitialUrlRef.current = true;
+                navigate(location.pathname, { replace: true, state: null });
+                if (routeState?.autoStart && runtime?.installed && ctx?.aiReady) {
+                    setStarting(true);
+                    try {
+                        const detail = await downloadApi.start(pendingUrl);
+                        if (!cancelled) {
+                            loadSessionDetail(detail);
+                            setExpandedInitialPrompt(false);
+                        }
+                    } catch (err) {
+                        if (!cancelled) {
+                            toast.error(err instanceof Error ? err.message : String(err));
+                            setUrlInput(pendingUrl);
+                        }
+                    } finally {
+                        if (!cancelled) {
+                            setStarting(false);
+                        }
+                    }
+                } else {
+                    setUrlInput(pendingUrl);
+                }
+            }
+        })();
 
         const handlePiEvent = (event: Event) => {
             const customEvent = event as CustomEvent<PiDownloadStreamEvent>;
@@ -348,9 +604,10 @@ export default function DownloadPage() {
         };
         window.addEventListener('pi-download-event', handlePiEvent);
         return () => {
+            cancelled = true;
             window.removeEventListener('pi-download-event', handlePiEvent);
         };
-    }, [applyStreamEvent, selectSession, setSessions]);
+    }, [applyStreamEvent, loadSessionDetail, location.pathname, navigate, reset, selectSession, setSessions]);
 
     const lastItem = items[items.length - 1];
     useEffect(() => {
@@ -389,20 +646,62 @@ export default function DownloadPage() {
         }
     };
 
-    const handleSendFollowUp = async (event?: React.FormEvent) => {
-        event?.preventDefault();
-        if (!session) {
-            return;
+    /**
+     * 向当前会话发送补充指令，供底部输入框提交、快捷指令与交互卡片复用。
+     *
+     * @param rawText 待发送的原始指令文本。
+     * @param choiceReply 若来自交互选择卡片，附带卡片 ID 与已选值。
+     * @returns 是否成功发送。
+     */
+    const sendFollowUpMessage = async (
+        rawText: string,
+        choiceReply?: PiDownloadSendMessageRequest['choiceReply'],
+    ): Promise<boolean> => {
+        if (!session || sendingFollowUp) {
+            return false;
         }
-        const trimmed = followUpInput.trim();
+        const trimmed = rawText.trim();
         if (!trimmed) {
-            return;
+            return false;
         }
-        setFollowUpInput('');
+        setSendingFollowUp(true);
         try {
-            await downloadApi.sendMessage(session.sessionId, trimmed);
+            await downloadApi.sendMessage(session.sessionId, trimmed, choiceReply);
+            return true;
         } catch (err) {
             toast.error(err instanceof Error ? err.message : String(err));
+            return false;
+        } finally {
+            setSendingFollowUp(false);
+        }
+    };
+
+    /**
+     * 提交交互提问卡片的选中结果，锁定卡片状态并回传给 Agent。
+     */
+    const handleSubmitChoiceCard = async (
+        card: PiDownloadChoiceCardInfo,
+        selectedValues: string[],
+    ): Promise<void> => {
+        const selectedLabels = selectedValues.map((val) => {
+            const matched = card.options.find((opt) => opt.value === val);
+            return matched ? `${matched.label} (${matched.value})` : val;
+        });
+        const replyText = `针对「${card.question}」的选择：${selectedLabels.join('、')}`;
+        await sendFollowUpMessage(replyText, {
+            choiceId: card.choiceId,
+            selectedValues,
+        });
+    };
+
+    /**
+     * 提交底部输入框的后续指令，发送成功后清空输入内容。
+     */
+    const handleSendFollowUp = async (event?: React.FormEvent) => {
+        event?.preventDefault();
+        const sent = await sendFollowUpMessage(followUpInput);
+        if (sent) {
+            setFollowUpInput('');
         }
     };
 
@@ -434,12 +733,22 @@ export default function DownloadPage() {
     }, [navigate]);
 
     const isRunning = session?.status === 'running' || session?.status === 'starting';
+    const hasReadyVideoWithoutSubtitle = items.some(
+        (item) => item.kind === 'media_card' && item.card.state === 'ready' && !item.card.subtitlePath,
+    );
     const activeStageLabel = (progress: PiDownloadProgressInfo | null): string | undefined => {
         if (!progress) {
             return undefined;
         }
         return progress.detail || PHASE_LABEL[progress.phase];
     };
+    const renderBlocks = buildRenderBlocks(items);
+    const lastBlock = renderBlocks[renderBlocks.length - 1];
+    const showBottomRunningIndicator =
+        isRunning
+        && renderBlocks.length > 0
+        && lastBlock?.kind !== 'tool_group'
+        && !(lastBlock?.kind === 'item' && lastBlock.item.kind === 'media_card' && lastBlock.item.card.state === 'downloading');
 
     return (
         <div className="flex h-full w-full flex-col overflow-hidden select-none bg-background text-foreground">
@@ -447,7 +756,7 @@ export default function DownloadPage() {
             <div className="shrink-0 border-b px-6 pt-5 pb-3">
                 <PageHeader
                     title="视频下载"
-                    description="粘贴链接，自动获取 1080p 视频与字幕"
+                    description="粘贴链接，自动获取 1080p 视频"
                 />
             </div>
 
@@ -541,7 +850,7 @@ export default function DownloadPage() {
                                     输入链接开始下载
                                 </h2>
                                 <p className="text-sm text-muted-foreground">
-                                    默认优先下载 1080p 视频与可用字幕
+                                    默认优先下载 1080p 兼容视频，完成后可按需补充下载字幕
                                 </p>
                             </div>
 
@@ -550,6 +859,25 @@ export default function DownloadPage() {
                                     <div className="flex items-center gap-2">
                                         <AlertTriangle className="h-4 w-4 shrink-0" />
                                         <span>Agent 运行环境尚未安装，请先前往设置页下载</span>
+                                    </div>
+                                    <Button
+                                        type="button"
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-7 shrink-0 text-xs"
+                                        onClick={() => navigate('/settings/resources')}
+                                    >
+                                        <Settings className="mr-1.5 h-3.5 w-3.5" />
+                                        去设置
+                                    </Button>
+                                </div>
+                            )}
+
+                            {downloadContext && !downloadContext.aiReady && downloadContext.aiIssue && (
+                                <div className="flex items-center justify-between gap-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3.5 py-2.5 text-xs text-amber-700 dark:text-amber-300">
+                                    <div className="flex items-center gap-2">
+                                        <AlertTriangle className="h-4 w-4 shrink-0" />
+                                        <span>{downloadContext.aiIssue}</span>
                                     </div>
                                     <Button
                                         type="button"
@@ -620,31 +948,10 @@ export default function DownloadPage() {
                         <div className="flex-1 overflow-y-auto px-6 py-5 select-text">
                             <div className="mx-auto max-w-3xl space-y-4">
                                 {(() => {
-                                    type RenderBlock =
-                                        | { key: string; kind: 'item'; item: Exclude<DownloadTimelineItem, { kind: 'tool' }> }
-                                        | { key: string; kind: 'tool_group'; tools: Array<Extract<DownloadTimelineItem, { kind: 'tool' }>> };
-
-                                    const blocks: RenderBlock[] = [];
-                                    for (const item of items) {
-                                        if (item.kind === 'tool') {
-                                            const prev = blocks[blocks.length - 1];
-                                            if (prev && prev.kind === 'tool_group') {
-                                                prev.tools.push(item);
-                                            } else {
-                                                blocks.push({ key: `tg-${item.id}`, kind: 'tool_group', tools: [item] });
-                                            }
-                                            continue;
-                                        }
-                                        if (item.kind === 'assistant' && item.text.trim().length === 0) {
-                                            continue;
-                                        }
-                                        blocks.push({ key: item.id, kind: 'item', item });
-                                    }
-
                                     const stageText = activeStageLabel(progress);
 
-                                    return blocks.map((block, index) => {
-                                        const isLastBlock = index === blocks.length - 1;
+                                    return renderBlocks.map((block, index) => {
+                                        const isLastBlock = index === renderBlocks.length - 1;
                                         if (block.kind === 'tool_group') {
                                             return (
                                                 <StageActivityGroup
@@ -698,6 +1005,17 @@ export default function DownloadPage() {
                                             );
                                         }
 
+                                        if (item.kind === 'choice_card') {
+                                            return (
+                                                <ChoiceQuestionCard
+                                                    key={item.id}
+                                                    card={item.card}
+                                                    disabled={isRunning || session.status === 'closed' || sendingFollowUp}
+                                                    onSubmit={handleSubmitChoiceCard}
+                                                />
+                                            );
+                                        }
+
                                         if (item.kind === 'assistant') {
                                             return (
                                                 <div key={item.id} className="prose prose-sm dark:prose-invert max-w-none text-sm leading-relaxed text-foreground">
@@ -716,7 +1034,7 @@ export default function DownloadPage() {
                                     });
                                 })()}
 
-                                {isRunning && items.length > 0 && items[items.length - 1]?.kind !== 'tool' && (
+                                {showBottomRunningIndicator && (
                                     <div className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
                                         <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
                                         <span>{activeStageLabel(progress) ?? '正在处理...'}</span>
@@ -733,42 +1051,63 @@ export default function DownloadPage() {
                             </div>
                         </div>
 
-                        {/* 底部悬浮圆角输入区 */}
-                        {session.status !== 'closed' && (
+                        {/* 底部悬浮圆角输入区 / 历史会话只读提示 */}
+                        {session.status === 'closed' ? (
                             <div className="shrink-0 px-6 pt-2 pb-5">
-                                <form
-                                    onSubmit={handleSendFollowUp}
-                                    className="mx-auto flex max-w-3xl items-center gap-2 rounded-2xl border border-border/80 bg-card px-3.5 py-2 shadow-sm transition-shadow focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/15"
-                                >
-                                    <input
-                                        type="text"
-                                        value={followUpInput}
-                                        onChange={(e) => setFollowUpInput(e.target.value)}
-                                        placeholder={isRunning ? '执行中，可输入补充指令进行调整...' : '输入后续指令（例如：使用 Chrome Cookie 重试、只下载 1080p）...'}
-                                        className="h-8 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none select-text"
-                                    />
-                                    {isRunning ? (
-                                        <Button
-                                            type="button"
-                                            size="icon"
-                                            variant="secondary"
-                                            title="停止"
-                                            className="h-8 w-8 shrink-0 rounded-full"
-                                            onClick={handleAbort}
-                                        >
-                                            <Square className="h-3.5 w-3.5 fill-current" />
-                                        </Button>
-                                    ) : (
-                                        <Button
-                                            type="submit"
-                                            size="icon"
-                                            className="h-8 w-8 shrink-0 rounded-full"
-                                            disabled={!followUpInput.trim()}
-                                        >
-                                            <ArrowUp className="h-4 w-4" />
-                                        </Button>
+                                <div className="mx-auto max-w-3xl rounded-xl border border-border/60 bg-muted/30 px-4 py-2.5 text-center text-xs text-muted-foreground">
+                                    历史会话仅供查看，如需继续下载或补充字幕请点击左侧「新建」
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="shrink-0 px-6 pt-2 pb-5">
+                                <div className="mx-auto max-w-3xl space-y-2">
+                                    {!isRunning && hasReadyVideoWithoutSubtitle && (
+                                        <div className="flex flex-wrap items-center gap-2 px-1">
+                                            <button
+                                                type="button"
+                                                disabled={sendingFollowUp}
+                                                onClick={() => { void sendFollowUpMessage(QUICK_SUBTITLE_PROMPT); }}
+                                                className="inline-flex items-center gap-1.5 rounded-full border border-border/80 bg-card px-3 py-1 text-xs text-muted-foreground shadow-2xs transition-colors hover:border-primary/40 hover:bg-accent/50 hover:text-foreground disabled:opacity-50"
+                                            >
+                                                <Subtitles className="h-3.5 w-3.5" />
+                                                <span>下载人工英文字幕</span>
+                                            </button>
+                                        </div>
                                     )}
-                                </form>
+                                    <form
+                                        onSubmit={handleSendFollowUp}
+                                        className="flex items-center gap-2 rounded-2xl border border-border/80 bg-card px-3.5 py-2 shadow-sm transition-shadow focus-within:border-primary/40 focus-within:ring-2 focus-within:ring-primary/15"
+                                    >
+                                        <input
+                                            type="text"
+                                            value={followUpInput}
+                                            onChange={(e) => setFollowUpInput(e.target.value)}
+                                            placeholder={isRunning ? '执行中，可输入补充指令进行调整...' : '输入后续指令（例如：使用 Chrome Cookie 重试、只下载 1080p）...'}
+                                            className="h-8 flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground focus:outline-none select-text"
+                                        />
+                                        {isRunning ? (
+                                            <Button
+                                                type="button"
+                                                size="icon"
+                                                variant="secondary"
+                                                title="停止"
+                                                className="h-8 w-8 shrink-0 rounded-full"
+                                                onClick={handleAbort}
+                                            >
+                                                <Square className="h-3.5 w-3.5 fill-current" />
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                type="submit"
+                                                size="icon"
+                                                className="h-8 w-8 shrink-0 rounded-full"
+                                                disabled={sendingFollowUp || !followUpInput.trim()}
+                                            >
+                                                <ArrowUp className="h-4 w-4" />
+                                            </Button>
+                                        )}
+                                    </form>
+                                </div>
                             </div>
                         )}
                     </main>

@@ -57,7 +57,7 @@ export default function (pi: ExtensionAPI) {
     pi.registerTool({
         name: "present_video",
         label: "Present Video",
-        description: "单个视频下载并整理到保存目录后立即调用，在对话流中生成可点击观看的视频卡片（时长等信息由应用自动读取，无需单独跑 ffprobe）。",
+        description: "单个视频下载并整理到保存目录后立即调用，在对话流中生成可点击观看的视频卡片（时长等信息由应用自动读取，无需单独跑 ffprobe）。若后续回合补充下载了字幕，也可再次传入原 videoPath 与新的 subtitlePath 以更新既有视频卡片。",
         parameters: Type.Object({
             videoPath: Type.String({
                 description: "最终保存到目标目录的视频文件绝对路径。",
@@ -87,6 +87,64 @@ export default function (pi: ExtensionAPI) {
                 details: {
                     videoPath: params.videoPath,
                     title: params.title,
+                },
+            };
+        },
+    });
+
+    pi.registerTool({
+        name: "ask_user",
+        label: "Ask User",
+        description: "向用户展示单选或多选交互卡片（用于列表选集、浏览器 Cookie 选择、重试策略确认等）。调用后应立即停止本轮并等待用户回复。",
+        parameters: Type.Object({
+            question: Type.String({
+                description: "简洁明确的提问标题。",
+            }),
+            description: Type.Optional(
+                Type.String({
+                    description: "可选的补充说明，例如合集总数或注意事项。",
+                }),
+            ),
+            selectionMode: Type.Union(
+                [Type.Literal("single"), Type.Literal("multiple")],
+                {
+                    description: "选择模式：single（单选）或 multiple（多选）。",
+                },
+            ),
+            options: Type.Array(
+                Type.Object({
+                    value: Type.String({
+                        description: "选项唯一值（如序号、范围或操作标识）。",
+                    }),
+                    label: Type.String({
+                        description: "面向用户展示的选项标题。",
+                    }),
+                    description: Type.Optional(
+                        Type.String({
+                            description: "可选的选项副标题（如时长或补充说明）。",
+                        }),
+                    ),
+                }),
+                {
+                    description: "供用户选择的选项列表（至少 1 项）。",
+                },
+            ),
+            confirmLabel: Type.Optional(
+                Type.String({
+                    description: "可选的确认按钮文案，默认「确认选择」。",
+                }),
+            ),
+        }),
+        async execute(_toolCallId, params) {
+            return {
+                content: [
+                    {
+                        type: "text",
+                        text: \`已在界面展示交互选择卡片：\${params.question}。请立即结束本轮并等待用户做出选择。\`,
+                    },
+                ],
+                details: {
+                    question: params.question,
                 },
             };
         },

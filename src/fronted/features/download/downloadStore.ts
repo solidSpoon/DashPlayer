@@ -174,11 +174,20 @@ export const useDownloadStore = create<DownloadStoreState>((set) => ({
                         )
                         : -1;
                     if (existingIndex !== -1) {
-                        nextItems[existingIndex] = {
-                            ...nextItems[existingIndex],
-                            kind: 'media_card',
-                            card: event.card,
-                        };
+                        const existingItem = nextItems[existingIndex];
+                        if (existingItem.kind === 'media_card') {
+                            nextItems[existingIndex] = {
+                                ...existingItem,
+                                kind: 'media_card',
+                                card: {
+                                    ...existingItem.card,
+                                    ...event.card,
+                                    resolution: event.card.resolution ?? existingItem.card.resolution,
+                                    durationText: event.card.durationText ?? existingItem.card.durationText,
+                                    subtitlePath: event.card.subtitlePath ?? existingItem.card.subtitlePath,
+                                },
+                            };
+                        }
                     } else {
                         nextItems.push({
                             id: nextItemId(),
@@ -222,10 +231,42 @@ export const useDownloadStore = create<DownloadStoreState>((set) => ({
                 };
             }
 
+            if (event.kind === 'choice_card') {
+                const nextItems = [...state.items];
+                const existingIndex = nextItems.findIndex(
+                    (item) => item.kind === 'choice_card' && item.card.choiceId === event.card.choiceId,
+                );
+                if (existingIndex !== -1) {
+                    const existingItem = nextItems[existingIndex];
+                    if (existingItem.kind === 'choice_card') {
+                        nextItems[existingIndex] = {
+                            ...existingItem,
+                            kind: 'choice_card',
+                            card: event.card,
+                        };
+                    }
+                } else {
+                    nextItems.push({
+                        id: nextItemId(),
+                        kind: 'choice_card',
+                        card: event.card,
+                    });
+                }
+                return {
+                    sessions: nextSessions,
+                    items: nextItems,
+                };
+            }
+
             if (event.kind === 'status') {
+                const isTerminated = event.status !== 'running' && event.status !== 'starting';
+                const nextItems = isTerminated
+                    ? state.items.filter((item) => !(item.kind === 'media_card' && item.card.state === 'downloading'))
+                    : state.items;
                 return {
                     sessions: nextSessions,
                     session: { ...state.session, status: event.status },
+                    items: nextItems,
                     error: event.error ?? (event.status === 'running' ? null : state.error),
                 };
             }

@@ -1,4 +1,6 @@
 import type {
+    PiDownloadChoiceCardInfo,
+    PiDownloadChoiceOption,
     PiDownloadMediaCardInfo,
     PiDownloadPhase,
     PiDownloadProgressInfo,
@@ -102,6 +104,74 @@ export function parsePresentVideoToolArgs(args: unknown): PiDownloadMediaCardInf
             : undefined,
         durationText: typeof durationText === 'string' && durationText.trim().length > 0
             ? durationText.trim()
+            : undefined,
+    };
+}
+
+/**
+ * 解析自定义工具 `ask_user` 的调用参数，生成交互提问卡片数据。
+ *
+ * @param toolCallId 工具调用唯一标识，用作卡片 choiceId。
+ * @param args 工具调用参数对象。
+ * @returns 合法的选择卡片对象；必填字段缺失或无有效选项时返回 null。
+ */
+export function parseAskUserToolArgs(toolCallId: string, args: unknown): PiDownloadChoiceCardInfo | null {
+    if (!toolCallId || !args || typeof args !== 'object') {
+        return null;
+    }
+    const {
+        question,
+        description,
+        selectionMode,
+        options,
+        confirmLabel,
+    } = args as Record<string, unknown>;
+
+    if (typeof question !== 'string' || question.trim().length === 0) {
+        return null;
+    }
+    if (selectionMode !== 'single' && selectionMode !== 'multiple') {
+        return null;
+    }
+    if (!Array.isArray(options) || options.length === 0) {
+        return null;
+    }
+
+    const parsedOptions: PiDownloadChoiceOption[] = [];
+    for (const rawOption of options) {
+        if (!rawOption || typeof rawOption !== 'object') {
+            continue;
+        }
+        const { value, label, description: optDesc } = rawOption as Record<string, unknown>;
+        if (typeof value !== 'string' || value.trim().length === 0) {
+            continue;
+        }
+        if (typeof label !== 'string' || label.trim().length === 0) {
+            continue;
+        }
+        parsedOptions.push({
+            value: value.trim(),
+            label: label.trim(),
+            description: typeof optDesc === 'string' && optDesc.trim().length > 0
+                ? optDesc.trim()
+                : undefined,
+        });
+    }
+
+    if (parsedOptions.length === 0) {
+        return null;
+    }
+
+    return {
+        choiceId: toolCallId,
+        question: question.trim(),
+        description: typeof description === 'string' && description.trim().length > 0
+            ? description.trim()
+            : undefined,
+        selectionMode,
+        options: parsedOptions,
+        confirmLabel: typeof confirmLabel === 'string' && confirmLabel.trim().length > 0
+            ? confirmLabel.trim()
             : undefined,
     };
 }

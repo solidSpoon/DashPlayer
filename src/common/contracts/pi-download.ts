@@ -49,6 +49,50 @@ export interface PiDownloadMediaCardInfo {
 }
 
 /**
+ * 下载任务交互提问选项。
+ */
+export interface PiDownloadChoiceOption {
+    /** 选项唯一标识值（回传给 Agent）。 */
+    value: string;
+    /** 面向用户展示的主文案。 */
+    label: string;
+    /** 可选的补充说明（如时长、编号、来源等）。 */
+    description?: string;
+}
+
+/**
+ * 对话流中的交互提问卡片（由 `ask_user` 工具生成）。
+ */
+export interface PiDownloadChoiceCardInfo {
+    /** 本次提问的唯一标识（与 toolCallId 对应）。 */
+    choiceId: string;
+    /** 提问标题。 */
+    question: string;
+    /** 可选的补充说明。 */
+    description?: string;
+    /** 选择模式：single（单选）或 multiple（多选）。 */
+    selectionMode: 'single' | 'multiple';
+    /** 可选项列表。 */
+    options: PiDownloadChoiceOption[];
+    /** 确认按钮文案（可选）。 */
+    confirmLabel?: string;
+    /** 用户已提交的选择值列表；非空表示该卡片已作答并进入只读态。 */
+    selectedValues?: string[];
+}
+
+/**
+ * 下载工作台基础上下文（包含输出目录与云端 AI 就绪状态）。
+ */
+export interface PiDownloadContextVO {
+    /** 默认最终视频保存目录。 */
+    videosDir: string;
+    /** 下载 Agent 所需的云端 AI 凭据与模型是否已就绪。 */
+    aiReady: boolean;
+    /** 云端 AI 未就绪时的明确提示信息。 */
+    aiIssue?: string;
+}
+
+/**
  * 对话流中的消息条目（前后端持久化共用结构）。
  */
 export type PiDownloadTimelineItem =
@@ -84,6 +128,11 @@ export type PiDownloadTimelineItem =
         id: string;
         kind: 'media_card';
         card: PiDownloadMediaCardInfo;
+    }
+    | {
+        id: string;
+        kind: 'choice_card';
+        card: PiDownloadChoiceCardInfo;
     }
     | {
         id: string;
@@ -145,6 +194,11 @@ export interface PiDownloadSendMessageRequest {
     sessionId: string;
     /** 用户补充的指令文本。 */
     message: string;
+    /** 若本次消息来自交互选择卡片，附带卡片 ID 与已选值以持久化锁定卡片状态。 */
+    choiceReply?: {
+        choiceId: string;
+        selectedValues: string[];
+    };
 }
 
 /**
@@ -225,6 +279,11 @@ export type PiDownloadStreamEvent =
         sessionId: string;
         kind: 'media_card';
         card: PiDownloadMediaCardInfo;
+    }
+    | {
+        sessionId: string;
+        kind: 'choice_card';
+        card: PiDownloadChoiceCardInfo;
     }
     | {
         sessionId: string;

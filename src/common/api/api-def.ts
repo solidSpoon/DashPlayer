@@ -69,6 +69,7 @@ import type { TranscriptTask } from '@/common/contracts/transcript/transcript-ta
 import type { DubbingExportStatus, DubbingLibraryEntry, DubbingManifest, DubbingTakeVO } from '@/common/contracts/dubbing';
 import type { PiRuntimeStatusVO } from '@/common/contracts/pi-runtime';
 import type {
+    PiDownloadContextVO,
     PiDownloadSendMessageRequest,
     PiDownloadSessionActionRequest,
     PiDownloadSessionDetailVO,
@@ -523,7 +524,7 @@ interface PiDownloadDef {
     'pi-download/list-sessions': { params: void, return: PiDownloadSessionVO[] };
     'pi-download/get-session': { params: { sessionId: string }, return: PiDownloadSessionDetailVO | null };
     'pi-download/delete-session': { params: PiDownloadSessionActionRequest, return: void };
-    'pi-download/context': { params: void, return: { videosDir: string } };
+    'pi-download/context': { params: void, return: PiDownloadContextVO };
 }
 
 // 使用交叉类型合并 ApiDefinitions 和 ExtraApiDefinition

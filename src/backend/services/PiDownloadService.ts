@@ -1,4 +1,5 @@
 import { randomUUID } from 'crypto';
+import fs from 'fs';
 import fsp from 'fs/promises';
 import path from 'path';
 import { inject, injectable } from 'inversify';
@@ -6,11 +7,13 @@ import TYPES from '@/backend/ioc/types';
 import { getMainLogger } from '@/backend/infrastructure/logger';
 import { storeGet } from '@/backend/infrastructure/settings/store';
 import { PiRpcClient } from '@/backend/infrastructure/agent/PiRpcClient';
+import { getRuntimeResourcePath } from '@/backend/utils/runtimeEnv';
 import {
     buildPiDownloadSystemPrompt,
     buildPiDownloadUserMessage,
 } from '@/backend/services/download/piDownloadPrompt';
 import {
+    parseAskUserToolArgs,
     parseLatestToolProgressFromChunk,
     parsePresentVideoToolArgs,
     parseReportStageToolArgs,
@@ -25,8 +28,10 @@ import { AI_API_FORMATS, type AiApiFormat } from '@/common/utils/cloud-ai-api-fo
 import StrUtil from '@/common/utils/str-util';
 import TimeUtil from '@/common/utils/TimeUtil';
 import type {
+    PiDownloadContextVO,
     PiDownloadMediaCardInfo,
     PiDownloadProgressInfo,
+    PiDownloadSendMessageRequest,
     PiDownloadSessionDetailVO,
     PiDownloadSessionStatus,
     PiDownloadSessionVO,
@@ -40,6 +45,7 @@ const TOOLS_DIR_NAME = 'tools';
 const SESSION_FILE_NAME = 'session.json';
 const WORKSPACE_DIR_NAME = 'workspace';
 const RPC_LOG_FILE_NAME = 'rpc-events.jsonl';
+const MAX_PERSISTED_SESSIONS = 20;
 
 interface ActiveDownloadSession {
     vo: PiDownloadSessionVO;
@@ -60,20 +66,26 @@ interface ActiveDownloadSession {
 export default interface PiDownloadService {
     /** 启动一个新的下载对话会话并发送预设下载提示词。 */
     startDownload(url: string, outputDir?: string): Promise<PiDownloadSessionDetailVO>;
-    /** 向指定会话追加用户指令。 */
-    sendMessage(sessionId: string, message: string): Promise<void>;
+    /** 向指定会话追加用户指令（支持附带交互卡片选择结果以持久化锁定）。 */
+    sendMessage(
+        sessionId: string,
+        message: string,
+        choiceReply?: PiDownloadSendMessageRequest['choiceReply'],
+    ): Promise<void>;
     /** 中止指定会话当前正在执行的回合。 */
     abort(sessionId: string): Promise<void>;
     /** 关闭并清理指定会话的子进程（保留持久化记录）。 */
     close(sessionId: string): Promise<void>;
+    /** 应用退出时关闭并落盘全部活跃下载会话及其子进程树。 */
+    shutdown(): Promise<void>;
     /** 列出所有下载会话摘要（含历史持久化记录，按创建时间倒序）。 */
     listSessions(): Promise<PiDownloadSessionVO[]>;
     /** 获取指定会话的完整详情与历史对话时间线。 */
     getSession(sessionId: string): Promise<PiDownloadSessionDetailVO | null>;
     /** 删除指定历史会话及其持久化目录。 */
     deleteSession(sessionId: string): Promise<void>;
-    /** 获取下载工作台基础上下文（如最终输出目录）。 */
-    getContext(): Promise<{ videosDir: string }>;
+    /** 获取下载工作台基础上下文（最终输出目录与云端 AI 就绪状态）。 */
+    getContext(): Promise<PiDownloadContextVO>;
 }
 
 /**
@@ -198,6 +210,7 @@ export class PiDownloadServiceImpl implements PiDownloadService {
         });
         this.updateStatus(sessionId, 'running');
         await this.persistSessionNow(activeSession);
+        void this.pruneOldPersistedSessions();
         client.prompt(initialUserMessage);
 
         this.logger.info('started pi download session', { sessionId, workspaceDir, videosDir, modelId });
@@ -211,7 +224,11 @@ export class PiDownloadServiceImpl implements PiDownloadService {
     /**
      * 向指定会话发送后续消息（运行中采用 steer 插话，空闲时直接发起新回合）。
      */
-    public async sendMessage(sessionId: string, rawMessage: string): Promise<void> {
+    public async sendMessage(
+        sessionId: string,
+        rawMessage: string,
+        choiceReply?: PiDownloadSendMessageRequest['choiceReply'],
+    ): Promise<void> {
         const session = this.requireActiveSession(sessionId);
         const message = rawMessage.trim();
         if (message.length === 0) {
@@ -219,6 +236,22 @@ export class PiDownloadServiceImpl implements PiDownloadService {
         }
         if (session.vo.status === 'closed') {
             throw new Error('下载会话已关闭');
+        }
+
+        if (choiceReply) {
+            const matched = session.items.find(
+                (item) => item.kind === 'choice_card' && item.card.choiceId === choiceReply.choiceId,
+            );
+            if (matched && matched.kind === 'choice_card') {
+                this.applyAndEmitEvent(sessionId, {
+                    sessionId,
+                    kind: 'choice_card',
+                    card: {
+                        ...matched.card,
+                        selectedValues: choiceReply.selectedValues,
+                    },
+                });
+            }
         }
 
         const isActive = session.vo.status === 'running' || session.vo.status === 'starting';
@@ -253,6 +286,24 @@ export class PiDownloadServiceImpl implements PiDownloadService {
         this.updateStatus(sessionId, 'closed');
         await this.persistSessionNow(session);
         this.sessions.delete(sessionId);
+    }
+
+    /**
+     * 应用退出前关闭全部活跃会话并等待子进程树释放，避免后台残留孤儿进程。
+     */
+    public async shutdown(): Promise<void> {
+        const entries = Array.from(this.sessions.values());
+        if (entries.length === 0) {
+            return;
+        }
+        this.logger.info('shutting down pi download sessions', { count: entries.length });
+        await Promise.allSettled(entries.map(async (session) => {
+            session.disposed = true;
+            await session.client.disposeAndWait(1500);
+            this.updateStatus(session.vo.sessionId, 'closed');
+            await this.persistSessionNow(session);
+        }));
+        this.sessions.clear();
     }
 
     /**
@@ -298,6 +349,9 @@ export class PiDownloadServiceImpl implements PiDownloadService {
             if (detail && detail.session.sessionId === sessionId) {
                 return {
                     ...detail,
+                    items: detail.items.filter(
+                        (item) => !(item.kind === 'media_card' && item.card.state === 'downloading'),
+                    ),
                     session: this.normalizeDetachedSession(detail.session),
                 };
             }
@@ -333,11 +387,14 @@ export class PiDownloadServiceImpl implements PiDownloadService {
     }
 
     /**
-     * 获取下载工作台基础上下文（如配置好的最终视频保存目录）。
+     * 获取下载工作台基础上下文（最终保存目录与云端 AI 就绪状态）。
      */
-    public async getContext(): Promise<{ videosDir: string }> {
+    public async getContext(): Promise<PiDownloadContextVO> {
         const videosDir = await this.storageDirectoryProvider.provideDirectory(StorageDirectoryTarget.VIDEOS);
-        return { videosDir };
+        const resolved = this.resolveAiModelConfig();
+        return resolved.ok
+            ? { videosDir, aiReady: true }
+            : { videosDir, aiReady: false, aiIssue: resolved.issue };
     }
 
     private requireActiveSession(sessionId: string): ActiveDownloadSession {
@@ -349,10 +406,10 @@ export class PiDownloadServiceImpl implements PiDownloadService {
     }
 
     /**
-     * 若历史会话来自上次应用运行（已脱离内存进程），把残留的运行中状态修正为已结束。
+     * 若历史会话来自上次应用运行（已脱离内存进程），统一归为只读 closed 状态。
      */
     private normalizeDetachedSession(session: PiDownloadSessionVO): PiDownloadSessionVO {
-        if (session.status === 'running' || session.status === 'starting') {
+        if (session.status !== 'closed') {
             return { ...session, status: 'closed' };
         }
         return session;
@@ -381,6 +438,66 @@ export class PiDownloadServiceImpl implements PiDownloadService {
             return parsed;
         } catch {
             return null;
+        }
+    }
+
+    /**
+     * 清理超出保留上限的历史下载会话目录（仅保留最近 20 条），跳过内存中仍活跃的会话。
+     */
+    private async pruneOldPersistedSessions(): Promise<void> {
+        const dirs = await this.listPersistedSessionDirs();
+        if (dirs.length <= MAX_PERSISTED_SESSIONS) {
+            return;
+        }
+
+        const activeDirs = new Set(
+            Array.from(this.sessions.values()).map((session) => path.resolve(session.sessionDir)),
+        );
+
+        const entries = await Promise.all(
+            dirs.map(async (dir) => {
+                const detail = await this.readPersistedSessionFile(path.join(dir, SESSION_FILE_NAME));
+                if (detail) {
+                    return {
+                        dir,
+                        sessionId: detail.session.sessionId,
+                        createdAt: detail.session.createdAt,
+                    };
+                }
+                let mtimeMs = 0;
+                try {
+                    const stat = await fsp.stat(dir);
+                    mtimeMs = stat.mtimeMs;
+                } catch {
+                    mtimeMs = 0;
+                }
+                return {
+                    dir,
+                    sessionId: null as string | null,
+                    createdAt: mtimeMs,
+                };
+            }),
+        );
+
+        entries.sort((a, b) => b.createdAt - a.createdAt);
+        const staleEntries = entries.slice(MAX_PERSISTED_SESSIONS);
+
+        for (const entry of staleEntries) {
+            if ((entry.sessionId && this.sessions.has(entry.sessionId)) || activeDirs.has(path.resolve(entry.dir))) {
+                continue;
+            }
+            try {
+                await fsp.rm(entry.dir, { recursive: true, force: true });
+                this.logger.info('pruned old pi download session', {
+                    dir: entry.dir,
+                    sessionId: entry.sessionId,
+                });
+            } catch (error) {
+                this.logger.warn('failed to prune old pi download session', {
+                    dir: entry.dir,
+                    error: error instanceof Error ? error.message : String(error),
+                });
+            }
         }
     }
 
@@ -429,18 +546,26 @@ export class PiDownloadServiceImpl implements PiDownloadService {
     }
 
     /**
-     * 把 DashPlayer 当前配置的云端 AI 凭据写入受管 `PI_CODING_AGENT_DIR/models.json`。
+     * 校验下载 Agent 所需的云端 AI 凭据与独立模型槽位，不做隐式回退。
      */
-    private async syncIsolatedModelsConfig(agentDir: string): Promise<string> {
+    private resolveAiModelConfig():
+        | { ok: true; apiKey: string; endpoint: string; apiFormat: AiApiFormat; modelId: string }
+        | { ok: false; issue: string } {
         const apiKey = storeGet('apiKeys.openAi.key');
         const endpoint = storeGet('apiKeys.openAi.endpoint');
         const apiFormat = storeGet('apiKeys.openAi.apiFormat');
 
         if (StrUtil.hasBlank(apiKey, endpoint)) {
-            throw new Error('云端 AI 未配置：请先到「设置 → 服务与资源」填写 API Key 和接口地址');
+            return {
+                ok: false,
+                issue: '云端 AI 尚未配置密钥或接口地址，请先到「设置 → 服务与资源」填写',
+            };
         }
         if (!AI_API_FORMATS.includes(apiFormat as AiApiFormat)) {
-            throw new Error(`不支持的 AI 接口格式: ${apiFormat}`);
+            return {
+                ok: false,
+                issue: `不支持的 AI 接口格式: ${apiFormat}`,
+            };
         }
 
         const availableRaw = storeGet('models.openai.available');
@@ -449,26 +574,58 @@ export class PiDownloadServiceImpl implements PiDownloadService {
             .map((item) => item.trim())
             .filter((item) => item.length > 0);
         if (availableModels.length === 0) {
-            throw new Error('可用云端模型列表为空，请先在「设置 → 服务与资源」添加模型');
+            return {
+                ok: false,
+                issue: '可用云端模型列表为空，请先到「设置 → 服务与资源」添加模型',
+            };
         }
 
-        const preferredModel = storeGet('models.openai.sentenceLearning').trim();
-        const modelId = availableModels.includes(preferredModel) ? preferredModel : availableModels[0];
+        const modelId = storeGet('models.openai.downloadAgent').trim();
+        if (modelId.length === 0) {
+            return {
+                ok: false,
+                issue: '视频下载 Agent 尚未选择云端模型，请先到「设置 → 服务与资源」选择模型',
+            };
+        }
+        if (!availableModels.includes(modelId)) {
+            return {
+                ok: false,
+                issue: `视频下载 Agent 选中的模型「${modelId}」已不在可用列表中，请重新选择`,
+            };
+        }
 
-        const piApiType = this.mapApiFormatToPiApi(apiFormat as AiApiFormat);
+        return {
+            ok: true,
+            apiKey: apiKey.trim(),
+            endpoint: endpoint.trim(),
+            apiFormat: apiFormat as AiApiFormat,
+            modelId,
+        };
+    }
+
+    /**
+     * 把 DashPlayer 当前配置的云端 AI 凭据写入受管 `PI_CODING_AGENT_DIR/models.json`。
+     */
+    private async syncIsolatedModelsConfig(agentDir: string): Promise<string> {
+        const resolved = this.resolveAiModelConfig();
+        if (!resolved.ok) {
+            throw new Error(resolved.issue);
+        }
+
+        const piApiType = this.mapApiFormatToPiApi(resolved.apiFormat);
         const modelsConfig = {
             providers: {
                 [DASHPLAYER_PROVIDER_ID]: {
-                    baseUrl: endpoint.trim(),
-                    apiKey: apiKey.trim(),
+                    baseUrl: resolved.endpoint,
+                    apiKey: resolved.apiKey,
                     api: piApiType,
-                    models: [{ id: modelId }],
+                    models: [{ id: resolved.modelId }],
                 },
             },
         };
 
         await fsp.writeFile(path.join(agentDir, 'models.json'), JSON.stringify(modelsConfig, null, 2), 'utf8');
-        return modelId;
+        return resolved.modelId;
     }
 
     private mapApiFormatToPiApi(format: AiApiFormat): string {
@@ -482,16 +639,17 @@ export class PiDownloadServiceImpl implements PiDownloadService {
     }
 
     /**
-     * 组装子进程环境变量：注入受管配置目录、受管工具目录 PATH 与代理设置。
+     * 组装子进程环境变量：注入受管配置目录、共享工具与内置 ffmpeg PATH、以及大小写代理变量。
      */
     private buildProcessEnv(agentDir: string, toolsDir: string): NodeJS.ProcessEnv {
         const existingPath = process.env.PATH ?? '';
-        const mergedPath = Array.from(
-            new Set([
-                toolsDir,
-                ...existingPath.split(path.delimiter).filter((item) => item.length > 0),
-            ]),
-        ).join(path.delimiter);
+        const bundledLibDir = getRuntimeResourcePath('lib');
+        const pathEntries = [toolsDir];
+        if (fs.existsSync(bundledLibDir)) {
+            pathEntries.push(bundledLibDir);
+        }
+        pathEntries.push(...existingPath.split(path.delimiter).filter((item) => item.length > 0));
+        const mergedPath = Array.from(new Set(pathEntries)).join(path.delimiter);
 
         const env: NodeJS.ProcessEnv = {
             PI_CODING_AGENT_DIR: agentDir,
@@ -504,10 +662,16 @@ export class PiDownloadServiceImpl implements PiDownloadService {
             env.HTTP_PROXY = proxyUrl;
             env.HTTPS_PROXY = proxyUrl;
             env.ALL_PROXY = proxyUrl;
+            env.http_proxy = proxyUrl;
+            env.https_proxy = proxyUrl;
+            env.all_proxy = proxyUrl;
         } else if (proxyMode === 'none') {
             env.HTTP_PROXY = '';
             env.HTTPS_PROXY = '';
             env.ALL_PROXY = '';
+            env.http_proxy = '';
+            env.https_proxy = '';
+            env.all_proxy = '';
         }
         return env;
     }
@@ -594,6 +758,13 @@ export class PiDownloadServiceImpl implements PiDownloadService {
                 }
                 return;
             }
+            if (toolName === 'ask_user') {
+                const card = parseAskUserToolArgs(String(record.toolCallId ?? ''), record.args);
+                if (card) {
+                    this.applyAndEmitEvent(sessionId, { sessionId, kind: 'choice_card', card });
+                }
+                return;
+            }
             this.applyAndEmitEvent(sessionId, {
                 sessionId,
                 kind: 'tool_start',
@@ -606,7 +777,7 @@ export class PiDownloadServiceImpl implements PiDownloadService {
 
         if (type === 'tool_execution_update') {
             const toolName = String(record.toolName ?? 'tool');
-            if (toolName === 'report_stage' || toolName === 'present_video') {
+            if (toolName === 'report_stage' || toolName === 'present_video' || toolName === 'ask_user') {
                 return;
             }
             const output = this.extractToolText(record.partialResult);
@@ -623,7 +794,7 @@ export class PiDownloadServiceImpl implements PiDownloadService {
 
         if (type === 'tool_execution_end') {
             const toolName = String(record.toolName ?? 'tool');
-            if (toolName === 'report_stage' || toolName === 'present_video') {
+            if (toolName === 'report_stage' || toolName === 'present_video' || toolName === 'ask_user') {
                 return;
             }
             const output = this.extractToolText(record.result);
@@ -778,6 +949,14 @@ export class PiDownloadServiceImpl implements PiDownloadService {
             } else if (event.status === 'running') {
                 session.error = null;
             }
+            if (event.status !== 'running' && event.status !== 'starting') {
+                for (let i = session.items.length - 1; i >= 0; i -= 1) {
+                    const item = session.items[i];
+                    if (item.kind === 'media_card' && item.card.state === 'downloading') {
+                        session.items.splice(i, 1);
+                    }
+                }
+            }
             return;
         }
 
@@ -798,13 +977,19 @@ export class PiDownloadServiceImpl implements PiDownloadService {
                         session.items.splice(i, 1);
                     }
                 }
-                // 合集场景下按 videoPath 区分，避免后续视频覆盖前面的卡片
+                // 合集或补下字幕场景下按 videoPath 区分，合并字段避免丢失已有元数据
                 if (event.card.videoPath) {
                     const existing = session.items.find(
                         (item) => item.kind === 'media_card' && item.card.videoPath === event.card.videoPath,
                     );
                     if (existing && existing.kind === 'media_card') {
-                        existing.card = event.card;
+                        existing.card = {
+                            ...existing.card,
+                            ...event.card,
+                            resolution: event.card.resolution ?? existing.card.resolution,
+                            durationText: event.card.durationText ?? existing.card.durationText,
+                            subtitlePath: event.card.subtitlePath ?? existing.card.subtitlePath,
+                        };
                         return;
                     }
                 }
@@ -827,6 +1012,25 @@ export class PiDownloadServiceImpl implements PiDownloadService {
             session.items.push({
                 id: nextItemId(),
                 kind: 'media_card',
+                card: event.card,
+            });
+            return;
+        }
+
+        if (event.kind === 'choice_card') {
+            const existingIndex = session.items.findIndex(
+                (item) => item.kind === 'choice_card' && item.card.choiceId === event.card.choiceId,
+            );
+            if (existingIndex !== -1) {
+                const existing = session.items[existingIndex];
+                if (existing.kind === 'choice_card') {
+                    existing.card = event.card;
+                    return;
+                }
+            }
+            session.items.push({
+                id: nextItemId(),
+                kind: 'choice_card',
                 card: event.card,
             });
             return;
