@@ -76,7 +76,6 @@ const SideBar = ({ compact }: SideBarProps) => {
                 />
             </div>
             <div className={cn('basis-3/4 flex flex-col p-3 gap-1')}>
-                {/* 核心学习与复习 */}
                 {item(
                     t('playbackLab'),
                     `/player/${videoId}?sideBarAnimation=false`,
@@ -95,10 +94,6 @@ const SideBar = ({ compact }: SideBarProps) => {
                     'vocabulary',
                     <BookOpen />
                 )}
-
-                <div className="my-1.5 border-t border-border/40" />
-
-                {/* 素材准备与工具 */}
                 {item(
                     t('mediaDownload'),
                     '/download',
@@ -123,11 +118,7 @@ const SideBar = ({ compact }: SideBarProps) => {
                     'repair',
                     <Rotate3D />
                 )}
-
-                {/* 系统设置固定在底部 */}
-                <div className="mt-auto pt-2">
-                    {item(t('settingsCenter'), '/settings', 'settings', <Settings />)}
-                </div>
+                {item(t('settingsCenter'), '/settings', 'settings', <Settings />)}
             </div>
         </div>
     );
